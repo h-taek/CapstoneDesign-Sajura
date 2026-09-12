@@ -430,7 +430,7 @@ Frontend → GET /api/auth/login/kakao
 
 - 검증 실측(파일럿, 선택 fold): 배지율 18%, 배지 ON일의 상대 오차가 OFF일의 **1.85배**(lift), 공휴일 오예측 케이스 포착 — 근거: `AI/notebooks/08_confidence.ipynb`.
 - 판정 결과는 `forecast_results.is_low_confidence` / `low_confidence_reason` 컬럼에 저장한다(`08_schema.md` §3.15).
-- 예측 근거 문구(`11_ai_spec.md` §9)는 본 배지·P10/P90 구간과 **항상 동반 노출**한다.
+- 예측 근거 문구(`11_ai_spec.md` §8)는 본 배지·P10/P90 구간과 **항상 동반 노출**한다.
 
 ### 5.4 Cold-start 처리 [2단계]
 
