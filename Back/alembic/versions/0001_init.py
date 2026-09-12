@@ -1,6 +1,6 @@
-"""init — schema.md 전체 테이블 (M2.B3).
+"""init — 08_schema.md 전체 테이블 (M2.B3).
 
-Spec: docs/spec/06_database/schema.md §3 (23 tables).
+Spec: docs/spec/08_schema.md §3 (23 tables).
 FK 순서대로 CREATE, 역순으로 DROP.
 
 Revision ID: 0001_init

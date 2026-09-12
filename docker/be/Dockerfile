@@ -1,4 +1,4 @@
-# Backend image — service_design.md §11.1 (be 컨테이너, Gunicorn + uvicorn.workers)
+# Backend image — 09_service_design.md §11.1 (be 컨테이너, Gunicorn + uvicorn.workers)
 # Build context: repo root (compose: context=.)
 FROM python:3.12-slim AS base
 
@@ -9,7 +9,7 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 
 WORKDIR /app
 
-# uv (service_design.md §1 dev tools) — used here only to resolve+install deps from pyproject.
+# uv (09_service_design.md §1 dev tools) — used here only to resolve+install deps from pyproject.
 RUN pip install --no-cache-dir uv==0.5.11
 
 COPY Back/pyproject.toml ./
@@ -24,7 +24,7 @@ COPY Back/tests ./tests
 
 EXPOSE 8000
 
-# Default = production Gunicorn (service_design.md §1 표).
+# Default = production Gunicorn (09_service_design.md §1 표).
 # Compose `be` 서비스는 dev에서 `uvicorn --reload` 로 override.
 CMD ["gunicorn", "app.main:app", \
      "-k", "uvicorn.workers.UvicornWorker", \

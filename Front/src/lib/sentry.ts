@@ -1,4 +1,4 @@
-// Sentry — frontend_design.md §1, research/frontend/11_observability.md.
+// Sentry — 10_frontend_design.md §1, research/frontend/11_observability.md.
 // PII scrubbing + release tagging (sentry release = git-<sha-short>).
 import * as Sentry from "@sentry/react";
 

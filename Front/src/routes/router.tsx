@@ -4,15 +4,23 @@ import AdminVerificationsPage from "./admin/verifications";
 import ForecastPage from "./forecast";
 import { RequireAdmin, RequireGuest, RequireStage } from "./guards";
 import HomePage from "./home";
+import InventoryPage from "./inventory";
 import LoginPage from "./login";
 import OnboardingLayout from "./onboarding/layout";
 import ConfirmStep from "./onboarding/step-confirm";
 import MenusStep from "./onboarding/step-menus";
 import PosStep from "./onboarding/step-pos";
 import StoreStep from "./onboarding/step-store";
+import OrdersPage from "./orders";
+import RecipesPage from "./recipes";
 import RegisterPage from "./register";
 import SalesUploadPage from "./sales/upload";
+import AccountSettingsPage from "./settings/account";
+import AppInfoSettingsPage from "./settings/app-info";
+import SettingsHubPage from "./settings/index";
+import NotificationSettingsPage from "./settings/notifications";
 import PosSettingsPage from "./settings/pos";
+import PricingSettingsPage from "./settings/pricing";
 import VerifyBusinessPage from "./verify-business";
 
 export const router = createBrowserRouter([
@@ -64,10 +72,50 @@ export const router = createBrowserRouter([
     ),
   },
   {
+    path: "/settings",
+    element: (
+      <RequireStage stage="app">
+        <SettingsHubPage />
+      </RequireStage>
+    ),
+  },
+  {
     path: "/settings/pos",
     element: (
       <RequireStage stage="app">
         <PosSettingsPage />
+      </RequireStage>
+    ),
+  },
+  {
+    path: "/settings/pricing",
+    element: (
+      <RequireStage stage="app">
+        <PricingSettingsPage />
+      </RequireStage>
+    ),
+  },
+  {
+    path: "/settings/notifications",
+    element: (
+      <RequireStage stage="app">
+        <NotificationSettingsPage />
+      </RequireStage>
+    ),
+  },
+  {
+    path: "/settings/account",
+    element: (
+      <RequireStage stage="app">
+        <AccountSettingsPage />
+      </RequireStage>
+    ),
+  },
+  {
+    path: "/settings/app-info",
+    element: (
+      <RequireStage stage="app">
+        <AppInfoSettingsPage />
       </RequireStage>
     ),
   },
@@ -84,6 +132,30 @@ export const router = createBrowserRouter([
     element: (
       <RequireStage stage="app">
         <ForecastPage />
+      </RequireStage>
+    ),
+  },
+  {
+    path: "/inventory",
+    element: (
+      <RequireStage stage="app">
+        <InventoryPage />
+      </RequireStage>
+    ),
+  },
+  {
+    path: "/orders",
+    element: (
+      <RequireStage stage="app">
+        <OrdersPage />
+      </RequireStage>
+    ),
+  },
+  {
+    path: "/recipes",
+    element: (
+      <RequireStage stage="app">
+        <RecipesPage />
       </RequireStage>
     ),
   },

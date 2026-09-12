@@ -72,6 +72,21 @@ export async function fetchMe(): Promise<AuthUser> {
   return api.get("auth/me").json<AuthUser>();
 }
 
+export interface UpdateMePayload {
+  name?: string;
+  store_name?: string;
+}
+
+export async function updateMe(payload: UpdateMePayload): Promise<AuthUser> {
+  return api.patch("auth/me", { json: payload }).json<AuthUser>();
+}
+
+export async function changePassword(currentPassword: string, newPassword: string): Promise<void> {
+  await api.patch("auth/password", {
+    json: { current_password: currentPassword, new_password: newPassword },
+  });
+}
+
 interface VerifyBusinessResponse {
   business_status: BusinessStatus;
   business_no: string | null;

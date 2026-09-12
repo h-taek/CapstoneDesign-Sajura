@@ -3,7 +3,12 @@ import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip } from "recharts";
 import type { TopMenuItem } from "../../api/endpoints/sales";
 
 const won = new Intl.NumberFormat("ko-KR", { style: "currency", currency: "KRW" });
-const COLORS = ["#7a5eff", "#9b85ff", "#b8a6ff", "#d4c9ff", "#e8e0ff", "#d1d5dc"];
+const OTHER_COLOR = "#d1d5dc";
+
+function rainbowColor(index: number, total: number): string {
+  const hue = total <= 1 ? 260 : Math.round((index / total) * 320);
+  return `hsl(${hue}, 75%, 60%)`;
+}
 
 export function MenuSharePieChart({
   topMenus,
@@ -18,6 +23,9 @@ export function MenuSharePieChart({
     ...topMenus.map((m) => ({ name: m.menu_name, value: m.revenue })),
     ...(rest > 0 ? [{ name: "기타", value: rest }] : []),
   ];
+  const colors = slices.map((s, i) =>
+    s.name === "기타" ? OTHER_COLOR : rainbowColor(i, topMenus.length),
+  );
 
   if (slices.length === 0 || totalRevenue === 0) {
     return <p className="text-sm text-[#99a1af]">매출 데이터가 연결되면 비중이 표시됩니다.</p>;
@@ -37,7 +45,7 @@ export function MenuSharePieChart({
               paddingAngle={2}
             >
               {slices.map((s, i) => (
-                <Cell key={s.name} fill={COLORS[i % COLORS.length]} stroke="white" />
+                <Cell key={s.name} fill={colors[i]} stroke="white" />
               ))}
             </Pie>
             <Tooltip
@@ -54,10 +62,7 @@ export function MenuSharePieChart({
         {slices.map((s, i) => (
           <li key={s.name} className="flex items-center justify-between text-sm">
             <span className="flex items-center gap-2 text-[#364153]">
-              <span
-                className="size-2.5 rounded-full"
-                style={{ backgroundColor: COLORS[i % COLORS.length] }}
-              />
+              <span className="size-2.5 rounded-full" style={{ backgroundColor: colors[i] }} />
               {s.name}
             </span>
             <span className="text-[#99a1af]">{((s.value / totalRevenue) * 100).toFixed(1)}%</span>

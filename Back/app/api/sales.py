@@ -10,9 +10,11 @@ from app.api.deps import CurrentUserDep, SessionDep
 from app.core import errors
 from app.schemas.sales import (
     CSVUploadResponse,
+    DailyRevenuePoint,
     MonthlyRevenuePoint,
     SalesSummaryResponse,
     TopMenuItem,
+    WeeklyRevenuePoint,
 )
 from app.services.sale_service import SaleService
 from app.services.store_service import StoreService
@@ -42,6 +44,40 @@ async def get_monthly_revenue(
     """홈/매출예측 화면 그래프용 — 데이터가 있는 월 기준 최근 N개월 매출."""
     store_id = (await StoreService(session).get_store(current.user_id)).store_id
     return await SaleService(session).get_monthly_revenue(store_id=store_id, months=months)
+
+
+@router.get("/daily", response_model=list[DailyRevenuePoint])
+async def get_daily_revenue(
+    session: SessionDep,
+    current: CurrentUserDep,
+    days: int = 7,
+) -> list[DailyRevenuePoint]:
+    """홈 화면 "일간매출 추이" — 최근 N일, 데이터 없는 날은 0으로 채움."""
+    store_id = (await StoreService(session).get_store(current.user_id)).store_id
+    return await SaleService(session).get_daily_revenue(store_id=store_id, days=days)
+
+
+@router.get("/daily-by-month", response_model=list[DailyRevenuePoint])
+async def get_daily_revenue_for_month(
+    session: SessionDep,
+    current: CurrentUserDep,
+    year_month: str,
+) -> list[DailyRevenuePoint]:
+    """매출예측 화면 "이번 달/지난 달 매출 그래프" — 특정 월 1일~말일 일별 매출."""
+    store_id = (await StoreService(session).get_store(current.user_id)).store_id
+    return await SaleService(session).get_daily_revenue_for_month(
+        store_id=store_id, year_month=year_month
+    )
+
+
+@router.get("/weekly-this-month", response_model=list[WeeklyRevenuePoint])
+async def get_weekly_revenue_this_month(
+    session: SessionDep,
+    current: CurrentUserDep,
+) -> list[WeeklyRevenuePoint]:
+    """홈 화면 "이번 달 매출 그래프"(주차별) — 월초 기준 7일 단위 등분."""
+    store_id = (await StoreService(session).get_store(current.user_id)).store_id
+    return await SaleService(session).get_weekly_revenue_this_month(store_id=store_id)
 
 
 @router.get("/top-menus", response_model=list[TopMenuItem])

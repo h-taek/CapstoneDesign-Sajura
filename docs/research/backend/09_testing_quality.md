@@ -1,7 +1,7 @@
 # 테스트 · 코드 품질 · 미들웨어 · API 문서화
 
 > **카테고리**: 단위/통합 테스트, 정적 분석·포매터·보안 스캔, BE 미들웨어, API 문서화 라이브러리 결정
-> **연결 spec**: `docs/spec/05_api/api_spec.md` §10·§11, `docs/spec/09_nonfunctional/performance.md`, `docs/spec/09_nonfunctional/security.md`
+> **연결 spec**: `docs/spec/07_api_spec.md` §10·§11, `docs/spec/13_performance.md`, `docs/spec/12_security.md`
 
 ---
 
@@ -18,7 +18,7 @@
 
 | 라이브러리 | 카테고리 | 결정 근거 위치 | spec 반영 위치 |
 |----------|---------|--------------|--------------|
-| pytest | 테스트 러너 | §1.2 + §1.4 | `service_design.md` §1 개발·테스트 도구 (신규) |
+| pytest | 테스트 러너 | §1.2 + §1.4 | `09_service_design.md` §1 개발·테스트 도구 (신규) |
 | pytest-asyncio | async 테스트 | §1.2 + §1.4 | 동상 |
 | pytest-cov | 커버리지 | §1.2 + §1.4 | 동상 |
 | factory_boy | 픽스처 | §1.2 + §1.4 | 동상 |
@@ -30,7 +30,7 @@
 | bandit | 보안 정적 분석 | §2.2 + §2.4 | 동상 |
 | pip-audit | 의존성 취약점 | §2.2 + §2.4 | 동상 (05 §3에서 09에 위임) |
 | pre-commit | 커밋 훅 | §2.2 + §2.4 | 동상 |
-| fastapi-limiter | Rate Limit | §3.2 + §3.4 | `service_design.md` §1 운영 라이브러리 (신규) |
+| fastapi-limiter | Rate Limit | §3.2 + §3.4 | `09_service_design.md` §1 운영 라이브러리 (신규) |
 
 ### 이미 결정된 항목 (다른 research에서)
 
@@ -40,7 +40,7 @@
 | secure 미들웨어 | ⛔ 미채택 (Caddy `header`) | `05_auth_security.md` §3.4 |
 | HTTPSRedirectMiddleware | ⛔ 미채택 (Caddy TLS 종료·HTTP→HTTPS) | `03_reverse_proxy.md` §4 |
 | GZip/Brotli 응답 압축 | ⛔ 미채택 (Caddy `encode zstd gzip`) | `03_reverse_proxy.md` §4.1 |
-| Swagger UI / ReDoc | ✅ 채택 (FastAPI 내장) | `01_web_framework.md` §2, `api_spec.md` §11 |
+| Swagger UI / ReDoc | ✅ 채택 (FastAPI 내장) | `01_web_framework.md` §2, `07_api_spec.md` §11 |
 
 ### 본 research 보존 후보 (probe-dependent 트리거)
 
@@ -96,7 +96,7 @@
 |------|-------|------|
 | Python 테스트 러너 | **필수** | BE 코드 검증 기반 |
 | async 테스트 | **필수** | `02_app_server.md` §4.1 — FastAPI async 일관성 |
-| HTTP 통합 테스트 | **필수** | `api_spec.md` endpoint 회귀 검증 |
+| HTTP 통합 테스트 | **필수** | `07_api_spec.md` endpoint 회귀 검증 |
 | 커버리지 | **필수** | 코드 품질 측정 |
 | 픽스처·더미 데이터 | **필수** | DB·DTO 테스트 데이터 |
 | 통합 인프라 (실 DB) | **필수** | 04 SQLAlchemy/aiomysql 결정에 따라 mock DB로는 검증 부족 — 실 MySQL/Redis 통합 필요 |
@@ -154,8 +154,8 @@
 |------|-------|------|
 | Linter + Formatter 통합 | **필수** | BE 팀(2명) 코드 스타일 일관성·CI 속도 |
 | 정적 타입 검사 | **필수** | Pydantic v2 + SQLAlchemy 2.x 타입 친화 — 회귀 방지 |
-| 보안 정적 분석 | **필수** | `security.md` §5.3 감사·민감 자격증명 보호 |
-| 의존성 취약점 스캔 | **필수** | `security.md` §7 — 05 §3에서 09에 위임 |
+| 보안 정적 분석 | **필수** | `12_security.md` §5.3 감사·민감 자격증명 보호 |
+| 의존성 취약점 스캔 | **필수** | `12_security.md` §7 — 05 §3에서 09에 위임 |
 | 커밋 훅 일관성 | **필수** | 1인 운영 - 팀원 환경 일관성 |
 
 **탈락 사유:**
@@ -211,7 +211,7 @@
 | Rate Limit | **필수** | 인증 API 무차별 시도 방어, 알림 발송 API 남용 방어 |
 | 요청 상관 ID | **필수** | 07 §2.4 ratify |
 | Host 검증 | **필수** | Host 헤더 위변조 방어 |
-| HTTPS 강제 | Caddy 처리 | 03 §4 — BE upstream은 HTTP/1.1 평문 (security.md §4) |
+| HTTPS 강제 | Caddy 처리 | 03 §4 — BE upstream은 HTTP/1.1 평문 (12_security.md §4) |
 | 응답 압축 | Caddy 처리 | 03 §4.1 |
 | 보안 헤더 (HSTS·X-Frame·CSP) | Caddy 처리 | 05 §3.4 |
 
@@ -220,7 +220,7 @@
 - **#2 slowapi** — Flask-Limiter 포팅으로 async 통합 한계. fastapi-limiter는 async-first.
 - **#4 starlette-context** — `asgi-correlation-id`가 contextvars로 요청 ID 부여, structlog의 `bind_contextvars`가 `user_id`·`store_id` 부여(`07_cache_observability.md` §3.2). starlette-context 도입 시 키 충돌·중복.
 - **#6 GZip/Brotli** — Caddy 엣지 압축으로 충분. BE 내부 압축은 CPU 중복 비용.
-- **HTTPSRedirectMiddleware** (7의 일부) — BE upstream은 평문 HTTP/1.1 (security.md §4 정합). Caddy가 외부 HTTPS 강제.
+- **HTTPSRedirectMiddleware** (7의 일부) — BE upstream은 평문 HTTP/1.1 (12_security.md §4 정합). Caddy가 외부 HTTPS 강제.
 - **#8 secure** — Caddy `header` 디렉티브로 일괄 적용 (05 §3.5).
 
 ### 3.4 최종 선발
@@ -252,7 +252,7 @@
 | 경로 | `/docs` (Swagger UI), `/redoc` (ReDoc), `/openapi.json` (스키마) |
 | 운영 환경 접근 | 인증 게이트 — `app.openapi_url`을 운영에서 비공개 (또는 Caddy basic auth로 보호) |
 | 개발/스테이징 접근 | 공개 |
-| api_spec 변경 시 동기화 | FastAPI 자동 생성이므로 코드 변경 즉시 반영. `api_spec.md` 정의와 일치 검증은 Schemathesis (보존 후보 §0) 도입 시 자동화 |
+| api_spec 변경 시 동기화 | FastAPI 자동 생성이므로 코드 변경 즉시 반영. `07_api_spec.md` 정의와 일치 검증은 Schemathesis (보존 후보 §0) 도입 시 자동화 |
 
 ---
 
@@ -317,14 +317,14 @@ GitHub Actions 등 CI 환경에서 다음 순서:
 
 ### 6.1 라이브러리 결정
 
-**개발·테스트 도구 (신규 spec 표 — `service_design.md` §1에 추가)**
+**개발·테스트 도구 (신규 spec 표 — `09_service_design.md` §1에 추가)**
 
 | 라이브러리 | 역할 |
 |----------|------|
 | pytest | 테스트 러너 |
 | pytest-asyncio | async 테스트 |
 | pytest-cov | 커버리지 |
-| httpx (테스트 모드) | FastAPI AsyncClient — `service_design.md` §1 httpx 행에 이미 포함 |
+| httpx (테스트 모드) | FastAPI AsyncClient — `09_service_design.md` §1 httpx 행에 이미 포함 |
 | factory_boy | 픽스처 |
 | Faker | 더미 데이터 (`ko_KR`) |
 | testcontainers-python | 실 MySQL/Redis 통합 테스트 |
@@ -335,7 +335,7 @@ GitHub Actions 등 CI 환경에서 다음 순서:
 | pip-audit | 의존성 취약점 |
 | pre-commit | 커밋 훅 일관성 |
 
-**운영 라이브러리 (`service_design.md` §1 본 표에 추가)**
+**운영 라이브러리 (`09_service_design.md` §1 본 표에 추가)**
 
 | 라이브러리 | 역할 |
 |----------|------|
@@ -345,9 +345,9 @@ GitHub Actions 등 CI 환경에서 다음 순서:
 
 | 영향 영역 | 결정 사항 | 위치 |
 |---------|---------|------|
-| 미들웨어 순서·정책 | CORS / TrustedHost / asgi-correlation-id / Sentry / 인증 / 라우터. CORS allow_origins·credentials 정책 | `service_design.md` 미들웨어 절 또는 별도 신규 절 |
-| Rate Limit 적용 endpoint 5개 | 인증 5/min · refresh 30/min · subscribe 10/min · GET notifications 60/min | `api_spec.md` 또는 `security.md`에 표기 가능 (현 구조에서는 `service_design.md` 미들웨어 절에 통합) |
-| API 문서 운영 환경 비공개 정책 | `/docs`·`/redoc` 운영 비공개 또는 Caddy basic auth | `api_spec.md` §11 인터페이스 표준 |
+| 미들웨어 순서·정책 | CORS / TrustedHost / asgi-correlation-id / Sentry / 인증 / 라우터. CORS allow_origins·credentials 정책 | `09_service_design.md` 미들웨어 절 또는 별도 신규 절 |
+| Rate Limit 적용 endpoint 5개 | 인증 5/min · refresh 30/min · subscribe 10/min · GET notifications 60/min | `07_api_spec.md` 또는 `12_security.md`에 표기 가능 (현 구조에서는 `09_service_design.md` 미들웨어 절에 통합) |
+| API 문서 운영 환경 비공개 정책 | `/docs`·`/redoc` 운영 비공개 또는 Caddy basic auth | `07_api_spec.md` §11 인터페이스 표준 |
 
 > DB 컬럼·API endpoint·서비스 시그니처 추가 없음 — 본 카테고리 결정은 라이브러리·미들웨어·운영 정책 한정.
 
@@ -371,7 +371,7 @@ GitHub Actions 등 CI 환경에서 다음 순서:
 - **사용처**: FastAPI app 직접 호출 통합 테스트 — `AsyncClient(app=app, base_url="http://test")`
 - **장점**: 실제 HTTP 흐름·async dependency·lifespan 검증. FastAPI 공식 패턴
 - **단점**: 외부 서비스(MySQL·Redis·AI Server) 별도 mock (testcontainers + respx)
-- **세부사항**: `service_design.md` §1 httpx에 포함
+- **세부사항**: `09_service_design.md` §1 httpx에 포함
 
 ### 7.4 pytest-cov ✅
 - **사용처**: 코드 커버리지 측정

@@ -52,7 +52,7 @@ export default function PosSettingsPage() {
   });
 
   return (
-    <DashboardShell active="home">
+    <DashboardShell active="settings">
       <header className="mx-auto max-w-3xl pb-6">
         <h1 className="text-2xl font-semibold text-[#101828]">POS 연동 설정</h1>
         <p className="text-base text-[#364153]">

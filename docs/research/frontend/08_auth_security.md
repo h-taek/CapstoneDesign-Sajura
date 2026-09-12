@@ -2,8 +2,8 @@
 
 > **카테고리**: OAuth 흐름의 FE 책임, Access Token / Refresh Token FE 저장 정책, Content Security Policy(CSP) 정책 결정
 > **연결 spec**:
-> - `security.md` §2.1 (Backend OAuth Authlib 처리)·§2.3 (토큰 정책)·§4 (TLS·CSP)
-> - `service_design.md` §10.2 (CORS `allow_credentials: True`)·§11 (Caddy 정적 서빙)
+> - `12_security.md` §2.1 (Backend OAuth Authlib 처리)·§2.3 (토큰 정책)·§4 (TLS·CSP)
+> - `09_service_design.md` §10.2 (CORS `allow_credentials: True`)·§11 (Caddy 정적 서빙)
 > - `docs/research/backend/03_reverse_proxy.md` §4.1 (Caddy `header` 디렉티브 보안 헤더 — CSP 본 research가 확정)
 > - `docs/research/backend/05_auth_security.md` §3.5 (Caddy 보안 헤더 권장 블록 — CSP는 본 research에서 PWA 정합 확정)
 
@@ -33,9 +33,9 @@
 
 ### 1.1 BE 결정 가정 (요약)
 
-- `security.md` §2.1 — Google/카카오 OAuth는 BE Authlib이 처리, FE는 인가 URL로 리다이렉트만 수행
-- `feature_spec.md` §1.1 — Backend 콜백에서 사용자 정보 조회·JWT 발급
-- `service_design.md` §10.2 — CORS `allow_credentials: True` (Refresh Cookie 송수신)
+- `12_security.md` §2.1 — Google/카카오 OAuth는 BE Authlib이 처리, FE는 인가 URL로 리다이렉트만 수행
+- `04_feature_spec.md` §1.1 — Backend 콜백에서 사용자 정보 조회·JWT 발급
+- `09_service_design.md` §10.2 — CORS `allow_credentials: True` (Refresh Cookie 송수신)
 
 ### 1.2 FE 흐름 결정
 
@@ -51,11 +51,11 @@
 
 | 항목 | 결정 | 사유 |
 |------|------|------|
-| OAuth 콜백 처리 위치 | BE 단독 (FE는 redirect만) | `security.md` §2.1 결정 — FE에서 OAuth 코드 노출·교환 책임 회피 |
+| OAuth 콜백 처리 위치 | BE 단독 (FE는 redirect만) | `12_security.md` §2.1 결정 — FE에서 OAuth 코드 노출·교환 책임 회피 |
 | Access Token 전달 | BE 콜백 응답 → FE 진입 시 refresh로 동기 | URL fragment·쿼리에 토큰 노출 회피 (브라우저 히스토리·Referer 누출) |
 | user 정보 첫 조회 | `GET /api/auth/me` | JWT decode 대신 BE API — 토큰 클레임 변경 영향 흡수 |
 
-> **신규 BE 요구 없음**. 현재 `api_spec.md` §2에 `POST /api/auth/refresh`·`GET /api/auth/me` 모두 존재.
+> **신규 BE 요구 없음**. 현재 `07_api_spec.md` §2에 `POST /api/auth/refresh`·`GET /api/auth/me` 모두 존재.
 
 ---
 
@@ -65,7 +65,7 @@
 
 | 항목 | 결정 | 사유 |
 |------|------|------|
-| 저장 위치 | Zustand `useAuthStore` (메모리 — `02_routing_state.md` §2.6) | `security.md` §2.3 정합 — LocalStorage 저장 금지 |
+| 저장 위치 | Zustand `useAuthStore` (메모리 — `02_routing_state.md` §2.6) | `12_security.md` §2.3 정합 — LocalStorage 저장 금지 |
 | persist 미사용 | `02_routing_state.md` §2.6에서 auth store를 preferences store와 물리적 분리 | persist 활성화 시 LocalStorage 노출 사고 방지 |
 | 만료 시 동작 | 401 → ky 인터셉터(`03_data_http.md` §2.5)가 단일 refresh 후 원요청 재시도 | 동시 다발 401 단일화 |
 | 페이지 새로고침 | 메모리 휘발 → 첫 진입 §1.2 단계 3 흐름 재실행 | Refresh Cookie 유효 시 자연 복구 |
@@ -74,17 +74,17 @@
 
 | 항목 | 결정 | 사유 |
 |------|------|------|
-| 저장 위치 | **FE 접근 불가** — BE가 HttpOnly·Secure·SameSite=Lax Cookie로 설정·회수 | `security.md` §2.3 정합 — JavaScript 접근 불가 |
-| FE 전송 | `fetch`/`ky`의 `credentials: 'include'`로 자동 송수신 (`03_data_http.md` §2.5) | CORS `allow_credentials: True` (`service_design.md` §10.2) 정합 |
+| 저장 위치 | **FE 접근 불가** — BE가 HttpOnly·Secure·SameSite=Lax Cookie로 설정·회수 | `12_security.md` §2.3 정합 — JavaScript 접근 불가 |
+| FE 전송 | `fetch`/`ky`의 `credentials: 'include'`로 자동 송수신 (`03_data_http.md` §2.5) | CORS `allow_credentials: True` (`09_service_design.md` §10.2) 정합 |
 | FE 표시 코드 | 없음 — Refresh Token 값이 FE 코드에 등장하지 않아야 함 | DevTools·Sentry breadcrumb 노출 회피 |
-| Rotation | BE가 Cookie 갱신 — FE는 무관 | `security.md` §2.3 Rotation 정책 |
+| Rotation | BE가 Cookie 갱신 — FE는 무관 | `12_security.md` §2.3 Rotation 정책 |
 
 ### 2.3 로그아웃·강제 로그아웃
 
 | 시나리오 | FE 처리 |
 |---------|--------|
 | 일반 로그아웃 | `POST /api/auth/logout` → BE가 Cookie 폐기 → FE는 `useAuthStore.clearToken()` + 라우터 `/login` 이동 |
-| 강제 로그아웃 (모든 디바이스) | `POST /api/auth/logout-all` (`security.md` §2.3 강제 로그아웃 정책) → 동일 처리 + 사용자 안내 |
+| 강제 로그아웃 (모든 디바이스) | `POST /api/auth/logout-all` (`12_security.md` §2.3 강제 로그아웃 정책) → 동일 처리 + 사용자 안내 |
 | Refresh 실패 (401) | `useAuthStore.clearToken()` + `window.location.href = '/login'` (ky 인터셉터 — `03_data_http.md` §2.5) |
 
 ### 2.4 다중 디바이스 (참고)
@@ -173,7 +173,7 @@ header {
 | 항목 | 결정 | spec 반영 위치 |
 |------|------|--------------|
 | OAuth FE 책임 | BE 인가 URL 리다이렉트 + 첫 진입 refresh + `/api/auth/me` | FE spec 신설 시 명시 (BE 변경 없음) |
-| Access Token 저장 | Zustand `useAuthStore` 메모리 (persist 금지) | FE spec 신설 시 명시 (`security.md` §2.3 ratify) |
+| Access Token 저장 | Zustand `useAuthStore` 메모리 (persist 금지) | FE spec 신설 시 명시 (`12_security.md` §2.3 ratify) |
 | Refresh Token 처리 | FE 접근 불가·`credentials: 'include'` 자동 송수신 | 동상 |
 | CSP 헤더 | `script-src 'self'`·`style-src 'self' 'unsafe-inline'` 등 §3.4 블록 | `docs/research/backend/03_reverse_proxy.md` §4.1·`05_auth_security.md` §3.5에 본 결정 반영 |
 
@@ -190,7 +190,7 @@ header {
 
 | 영향 | 영향 받는 카테고리 |
 |------|----------------|
-| Refresh Cookie SameSite=Lax → BE 응답 헤더 정책 확인 | BE `service_design.md` §10 미들웨어 — Cookie 설정은 AuthService 응답 직접 처리 (변경 없음) |
+| Refresh Cookie SameSite=Lax → BE 응답 헤더 정책 확인 | BE `09_service_design.md` §10 미들웨어 — Cookie 설정은 AuthService 응답 직접 처리 (변경 없음) |
 | `script-src 'self'` → 3rd-party 분석 도구 도입 시 정책 갱신 필요 | `10_deployment.md` 운영 항목 |
 
 ---
@@ -207,7 +207,7 @@ header {
 
 ### 5.3 ky `credentials: 'include'` ✅
 - **장점**: Cookie 자동 송수신·FE 코드에 Refresh Token 미등장
-- **단점**: CORS `allow_credentials: True` + `allow_origins` 명시 필수 (이미 `service_design.md` §10.2 결정)
+- **단점**: CORS `allow_credentials: True` + `allow_origins` 명시 필수 (이미 `09_service_design.md` §10.2 결정)
 
 ### 5.4 Caddy CSP `'self' + 'unsafe-inline'` (style만) ✅
 - **장점**: 운영 단순·Radix·Recharts 정합·nonce 운영 부담 회피
@@ -226,8 +226,8 @@ header {
 
 | 분류 | 후보 | 결과 | 핵심 사유 |
 |------|------|------|---------|
-| OAuth FE 책임 | BE 리다이렉트 + refresh + me | ✅ | `security.md` §2.1 정합 — 코드 노출 회피 |
-| Access Token | Zustand 메모리 | ✅ | `security.md` §2.3 정합 — persist 금지 |
+| OAuth FE 책임 | BE 리다이렉트 + refresh + me | ✅ | `12_security.md` §2.1 정합 — 코드 노출 회피 |
+| Access Token | Zustand 메모리 | ✅ | `12_security.md` §2.3 정합 — persist 금지 |
 | Refresh Token | HttpOnly Cookie 자동 송수신 | ✅ | FE 코드에 미등장 |
 | CSP script | `'self'` (nonce 없음) | ✅ | Vite 빌드 inline script 없음 |
 | CSP script | `'nonce-<random>'` | 🟡 보존 | inline script·3rd-party 트리거 |

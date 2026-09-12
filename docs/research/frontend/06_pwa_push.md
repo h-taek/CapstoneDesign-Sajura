@@ -2,13 +2,13 @@
 
 > **카테고리**: PWA 인프라(Service Worker·manifest·캐시 전략), Web Push(VAPID 구독·`push` 이벤트), 인앱 알림(BE polling) 결정
 > **연결 spec**:
-> - `mvp_scope.md` §3 (PWA + 푸시·인앱 알림 MVP 포함)
-> - `service_design.md` §1 (BE pywebpush)·§4 NotificationService·§11 (Caddy 정적 서빙)
-> - `api_spec.md` §10 (알림 5개 endpoint)
-> - `schema.md` §3.22 `notifications`·§3.23 `push_subscriptions`
+> - `03_mvp_scope.md` §3 (PWA + 푸시·인앱 알림 MVP 포함)
+> - `09_service_design.md` §1 (BE pywebpush)·§4 NotificationService·§11 (Caddy 정적 서빙)
+> - `07_api_spec.md` §10 (알림 5개 endpoint)
+> - `08_schema.md` §3.22 `notifications`·§3.23 `push_subscriptions`
 > - `docs/research/backend/06_external_integration.md` §3.4 (pywebpush 결정·VAPID·iOS Safari 16.4+ 지원)
 > - `docs/research/backend/14_security_open_items.md` §6 (다중 디바이스 — 각 디바이스 자체 토큰)
-> - `feature_spec.md` §11 (알림 정책 6개 상황)
+> - `04_feature_spec.md` §11 (알림 정책 6개 상황)
 
 ---
 
@@ -60,7 +60,7 @@
 | `generateSW` | Workbox가 SW 코드 자동 생성. 커스텀 코드 추가 불가 | △ (push 이벤트 처리 못 함) |
 | `injectManifest` | 개발자가 작성한 `src/sw.ts` 파일에 Workbox precaching manifest 자동 주입 | ◎ (push·notificationclick 핸들러 작성 가능) |
 
-→ **injectManifest 모드** 선택 — 사주라는 push 이벤트·notificationclick 처리 필수(`feature_spec.md` §11 6개 알림 상황 표시).
+→ **injectManifest 모드** 선택 — 사주라는 push 이벤트·notificationclick 처리 필수(`04_feature_spec.md` §11 6개 알림 상황 표시).
 
 ### 1.4 최종 선발
 
@@ -161,9 +161,9 @@ registerRoute(
 
 `docs/research/backend/06_external_integration.md` §3.4에서 결정:
 - **BE 라이브러리**: pywebpush (VAPID 표준·Google 비종속·iOS Safari 16.4+)
-- **DB**: `push_subscriptions(endpoint UNIQUE, p256dh, auth, user_agent)` (`schema.md` §3.23)
-- **endpoint**: `POST /api/notifications/subscribe` · `DELETE /api/notifications/subscribe/{id}` (`api_spec.md` §10)
-- **발송 트리거**: BE `NotificationService.create_and_push` (`service_design.md` §4)
+- **DB**: `push_subscriptions(endpoint UNIQUE, p256dh, auth, user_agent)` (`08_schema.md` §3.23)
+- **endpoint**: `POST /api/notifications/subscribe` · `DELETE /api/notifications/subscribe/{id}` (`07_api_spec.md` §10)
+- **발송 트리거**: BE `NotificationService.create_and_push` (`09_service_design.md` §4)
 
 FE 책임:
 1. VAPID 공개 키 BE에서 받기 (환경변수 또는 `/api/notifications/vapid-public-key` endpoint — 신규 필요 여부 §2.4)
@@ -261,7 +261,7 @@ export async function ensurePushSubscription() {
 
 ### 2.4 VAPID 공개 키 전달 — BE 정합 사항 (확인 필요)
 
-현재 `api_spec.md` §10에는 VAPID 공개 키 조회 endpoint가 명시되어 있지 않음. 두 가지 옵션:
+현재 `07_api_spec.md` §10에는 VAPID 공개 키 조회 endpoint가 명시되어 있지 않음. 두 가지 옵션:
 
 | 옵션 | 방식 | 평가 |
 |------|------|------|
@@ -270,7 +270,7 @@ export async function ensurePushSubscription() {
 
 **결정**: **옵션 A (환경변수 주입)** — MVP 단계에서 VAPID 키 회전 빈도 낮음(연 1회 미만 예상). 운영 비용·복잡도 회피. 키 회전 시 FE 재배포 + BE 환경변수 갱신을 동시 수행하는 정책으로 충분.
 
-→ **BE spec 변경 없음**. VAPID 공개·비밀 키는 BE/FE 환경변수로 양쪽에 주입(`service_design.md` §1 pywebpush 행 정합).
+→ **BE spec 변경 없음**. VAPID 공개·비밀 키는 BE/FE 환경변수로 양쪽에 주입(`09_service_design.md` §1 pywebpush 행 정합).
 
 ---
 
@@ -278,7 +278,7 @@ export async function ensurePushSubscription() {
 
 ### 3.1 결정 흐름
 
-BE NotificationService는 인앱 알림을 `notifications` 테이블에 INSERT(`service_design.md` §4·`api_spec.md` §10 `GET /api/notifications`). FE는 주기적으로 polling하여 미읽 개수·최근 알림 목록을 표시.
+BE NotificationService는 인앱 알림을 `notifications` 테이블에 INSERT(`09_service_design.md` §4·`07_api_spec.md` §10 `GET /api/notifications`). FE는 주기적으로 polling하여 미읽 개수·최근 알림 목록을 표시.
 
 ### 3.2 전체 후보 (polling 방식)
 
@@ -356,10 +356,10 @@ export function useUnreadNotifications() {
 |------|------|--------------|
 | PWA 플러그인 | **vite-plugin-pwa** | FE spec 신설 시 명시 |
 | Service Worker 모드 | **injectManifest** (커스텀 SW + Workbox precaching) | FE spec 신설 시 명시 |
-| VAPID 공개 키 전달 | **환경변수 주입** (`VITE_VAPID_PUBLIC_KEY`) | BE spec 변경 없음 — `service_design.md` §1 pywebpush 정합 |
+| VAPID 공개 키 전달 | **환경변수 주입** (`VITE_VAPID_PUBLIC_KEY`) | BE spec 변경 없음 — `09_service_design.md` §1 pywebpush 정합 |
 | 인앱 알림 polling | **TanStack Query `refetchInterval` 5분 고정(코드 상수) + 백그라운드 비활성 + 수동 새로고침 버튼** | FE spec 신설 시 명시 |
 
-> 본 카테고리 결정은 BE schema/api/service 변경을 유발하지 않는다. BE `notifications`·`push_subscriptions` 테이블과 5개 endpoint(`api_spec.md` §10)는 그대로이며 FE가 그 계약을 따른다.
+> 본 카테고리 결정은 BE schema/api/service 변경을 유발하지 않는다. BE `notifications`·`push_subscriptions` 테이블과 5개 endpoint(`07_api_spec.md` §10)는 그대로이며 FE가 그 계약을 따른다.
 
 ### 4.2 결정에 따라 다른 카테고리에 미치는 영향
 
@@ -368,17 +368,17 @@ export function useUnreadNotifications() {
 | 환경변수 `VITE_VAPID_PUBLIC_KEY` 추가 | `10_deployment.md` (CI·환경 분리 시점에 환경변수 목록 명시) |
 | SW 코드 `src/sw.ts` 추가 → 린트·타입 검사 대상 (`lib: WebWorker`) | `01_framework_build.md` §3.5 tsconfig `lib` 이미 포함 |
 | 캐시 전략 — TanStack Query persist와 정합 (중복 캐시 회피) | `03_data_http.md` §1.5 persist 범위 검토 |
-| Web Push 권한 요청 UX | `feature_spec.md` §12 — 설정 화면에서 권한 요청 트리거 화면 추가 검토 (FE spec) |
+| Web Push 권한 요청 UX | `04_feature_spec.md` §12 — 설정 화면에서 권한 요청 트리거 화면 추가 검토 (FE spec) |
 
 ### 4.3 BE 정합 확인 사항 (변경 없음 — 기재만)
 
 | 항목 | BE 위치 | FE 정합 |
 |------|---------|--------|
-| `POST /api/notifications/subscribe` | `api_spec.md` §10 | `ensurePushSubscription()` 1회 호출 |
+| `POST /api/notifications/subscribe` | `07_api_spec.md` §10 | `ensurePushSubscription()` 1회 호출 |
 | `DELETE /api/notifications/subscribe/{id}` | 동상 | 설정 화면 — 알림 끄기 |
 | `GET /api/notifications` | 동상 | TanStack Query 폴링 |
 | `PATCH /api/notifications/{id}/read` · `PATCH /api/notifications/read-all` | 동상 | mutation + invalidate query |
-| `push_subscriptions` `user_agent` 필드 | `schema.md` §3.23 | `navigator.userAgent` 전달 |
+| `push_subscriptions` `user_agent` 필드 | `08_schema.md` §3.23 | `navigator.userAgent` 전달 |
 | 다중 디바이스 — 각 디바이스 자체 구독 | `14_security_open_items.md` §6 | 디바이스마다 `endpoint` UNIQUE — 자연 동작 |
 
 ---

@@ -335,6 +335,81 @@ async def test_sales_upload_idempotent_on_external_id(client: AsyncClient) -> No
 
 
 @pytest.mark.asyncio
+async def test_sales_upload_idempotent_without_external_id_column(client: AsyncClient) -> None:
+    """영수증번호 컬럼 없이(external_sale_id NULL) 같은 파일을 재업로드해도
+    (메뉴, 판매일시) 기준으로 중복 적재되면 안 된다.
+
+    회귀 테스트 — 2026-08-17 발견: MySQL UNIQUE(store_id, source, external_sale_id)는
+    NULL끼리 서로 다르게 취급되어, 영수증번호 컬럼을 비워두면(FE 기본값) 재업로드 시
+    DB 레벨 중복 방지가 전혀 동작하지 않고 매번 전량 재적재되던 버그.
+    """
+    _, auth = await _register_verified_user(client)
+    await _create_menu(client, auth, "소주")
+
+    csv = ("날짜,메뉴명,수량,금액\n2026-01-15,소주,10,20000\n2026-01-16,소주,5,10000\n").encode(
+        "utf-8"
+    )
+    common_data = {
+        "date_column": "날짜", "menu_column": "메뉴명",
+        "quantity_column": "수량", "price_column": "금액",
+    }
+
+    r1 = await client.post(
+        "/api/sales/upload",
+        files={"file": ("a.csv", io.BytesIO(csv), "text/csv")},
+        data=common_data,
+        headers=auth,
+    )
+    assert r1.status_code == 201, r1.text
+    assert r1.json()["imported"] == 2
+
+    # 재업로드 — 영수증번호가 없어도 (메뉴, 판매일시) 기준으로 전부 skip 되어야 함.
+    r2 = await client.post(
+        "/api/sales/upload",
+        files={"file": ("b.csv", io.BytesIO(csv), "text/csv")},
+        data=common_data,
+        headers=auth,
+    )
+    assert r2.status_code == 201, r2.text
+    body2 = r2.json()
+    assert body2["imported"] == 0
+    assert body2["skipped"] == 2
+
+    r3 = await client.get("/api/sales/top-menus", headers=auth)
+    assert r3.status_code == 200
+    soju = next(m for m in r3.json() if m["menu_name"] == "소주")
+    assert soju["quantity"] == 15  # 10 + 5, 재업로드분 미포함
+
+
+@pytest.mark.asyncio
+async def test_sales_upload_dedupes_within_same_file_without_external_id(
+    client: AsyncClient,
+) -> None:
+    """영수증번호 없이 같은 파일 안에 (메뉴, 판매일시) 중복 행이 있으면 1건만 적재."""
+    _, auth = await _register_verified_user(client)
+    await _create_menu(client, auth, "소주")
+
+    csv = (
+        "날짜,메뉴명,수량,금액\n"
+        "2026-01-15,소주,1,2000\n"
+        "2026-01-15,소주,1,2000\n"
+    ).encode("utf-8")
+    r = await client.post(
+        "/api/sales/upload",
+        files={"file": ("a.csv", io.BytesIO(csv), "text/csv")},
+        data={
+            "date_column": "날짜", "menu_column": "메뉴명",
+            "quantity_column": "수량", "price_column": "금액",
+        },
+        headers=auth,
+    )
+    assert r.status_code == 201, r.text
+    body = r.json()
+    assert body["imported"] == 1
+    assert body["skipped"] == 1
+
+
+@pytest.mark.asyncio
 async def test_sales_upload_missing_required_column_returns_422(client: AsyncClient) -> None:
     _, auth = await _register_verified_user(client)
     # 헤더에 "금액" 컬럼 누락

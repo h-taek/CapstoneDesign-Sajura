@@ -82,7 +82,7 @@ gh pr create --base be
 
 be와 fe는 서로 진행 사항을 공유해야 하므로 아래 규칙을 따른다.
 
-* **Contract-first**: BE는 `docs/spec/05_api/api_spec.md`(OpenAPI 계약)를 먼저 안정화한다. FE는 BE 완성 전이라도 `pnpm gen:api`로 타입 코드젠 + MSW mock으로 선행 개발한다.
+* **Contract-first**: BE는 `docs/spec/07_api_spec.md`(OpenAPI 계약)를 먼저 안정화한다. FE는 BE 완성 전이라도 `pnpm gen:api`로 타입 코드젠 + MSW mock으로 선행 개발한다.
 * **be/fe → dev promote**: 마일스톤(Phase) 끝나면 `be` / `fe`를 즉시 `dev`로 promote PR한다. dev는 항상 양 트랙의 "최신 truth"가 된다.
 * **dev → fe / dev → be back-merge**: 새 피처 브랜치를 따기 전 또는 매주 정기적으로 `git checkout fe && git merge origin/dev && git push`(또는 be)로 base를 최신화한다. 이후 따는 모든 `feat/*`는 자동으로 최신 상태에서 출발.
 * **충돌 최소화**: 이미 진행 중인 `feat/*` 브랜치는 그대로 두고 마무리한 다음, 다음 피처부터 back-merge된 base에서 따는 것이 깔끔하다.

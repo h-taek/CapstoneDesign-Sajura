@@ -1,7 +1,7 @@
 # 인증 · 암호화 · 시크릿 · 보안 부가
 
 > **카테고리**: OAuth/JWT/비밀번호 라이브러리, 암호화·시크릿 관리, 보안 부가 미들웨어
-> **연결 spec**: `docs/spec/09_nonfunctional/security.md`, `docs/spec/07_backend/service_design.md` §1
+> **연결 spec**: `docs/spec/12_security.md`, `docs/spec/09_service_design.md` §1
 
 ---
 
@@ -9,9 +9,9 @@
 
 | 하위 카테고리 | 후보 수 | 연결 spec 섹션 | 결정 항목 수 |
 |------------|--------|--------------|------------|
-| §1 인증 (OAuth · JWT · 비밀번호) | 11 | `security.md` §2 | 3 (OAuth / JWT / 해싱) |
-| §2 암호화 · 시크릿 | 7 | `security.md` §4 | 2 (대칭 암호 라이브러리 / 시크릿 로딩) |
-| §3 보안 부가 | 5 | `security.md` §5, §7 | 2 (응답 헤더 / 의존성 스캔) |
+| §1 인증 (OAuth · JWT · 비밀번호) | 11 | `12_security.md` §2 | 3 (OAuth / JWT / 해싱) |
+| §2 암호화 · 시크릿 | 7 | `12_security.md` §4 | 2 (대칭 암호 라이브러리 / 시크릿 로딩) |
+| §3 보안 부가 | 5 | `12_security.md` §5, §7 | 2 (응답 헤더 / 의존성 스캔) |
 
 ### 본 research가 결정한 라이브러리 (spec 반영)
 
@@ -19,10 +19,10 @@
 
 | 라이브러리 | 카테고리 | 결정 근거 위치 | spec 반영 위치 |
 |----------|---------|--------------|--------------|
-| Authlib | OAuth | §1.2 OAuth 1차 벤치 + §1.4 | `service_design.md` §1, `security.md` §2.1 |
-| python-jose | JWT | §1.2 JWT 1차 벤치 + §1.4 | `service_design.md` §1, `security.md` §2.3 |
-| passlib[bcrypt] | 해싱 | §1.2 해싱 1차 벤치 + §1.4 | `service_design.md` §1, `security.md` §2.2 |
-| **cryptography** | 대칭 암호·JWT 백엔드 | §2.2 1차 벤치 + §2.4 | `service_design.md` §1 (신규 행), `security.md` §4.1 적용 |
+| Authlib | OAuth | §1.2 OAuth 1차 벤치 + §1.4 | `09_service_design.md` §1, `12_security.md` §2.1 |
+| python-jose | JWT | §1.2 JWT 1차 벤치 + §1.4 | `09_service_design.md` §1, `12_security.md` §2.3 |
+| passlib[bcrypt] | 해싱 | §1.2 해싱 1차 벤치 + §1.4 | `09_service_design.md` §1, `12_security.md` §2.2 |
+| **cryptography** | 대칭 암호·JWT 백엔드 | §2.2 1차 벤치 + §2.4 | `09_service_design.md` §1 (신규 행), `12_security.md` §4.1 적용 |
 
 > 보존(probe-dependent 재평가) 후보: PyJWT(§1.5), argon2-cffi(§1.5), HashiCorp Vault(§2.5).
 
@@ -76,10 +76,10 @@ OAuth 4개 + JWT 4개 + 해싱 3개 = **총 11개**.
 
 | 기능 | 필수도 | 근거 |
 |------|-------|------|
-| Google + 카카오 OAuth | **필수** | `security.md` §2.1 / `feature_spec.md` §1.1 |
+| Google + 카카오 OAuth | **필수** | `12_security.md` §2.1 / `04_feature_spec.md` §1.1 |
 | OAuth state·PKCE·nonce | **필수** | OAuth 2.0 표준 + CSRF·인가코드 가로채기 방어 |
 | async FastAPI 통합 | **필수** | `02_app_server.md` §4.1 I/O bound |
-| JWT RS256/HS256 | **필수** | Access Token 서명 (`security.md` §2.3) |
+| JWT RS256/HS256 | **필수** | Access Token 서명 (`12_security.md` §2.3) |
 | OWASP 권장 해시 | **필수** | bcrypt 또는 argon2 |
 | 알고리즘 회전 추상화 | 중요 | 미래 해시 알고리즘 교체 대비 |
 
@@ -97,7 +97,7 @@ OAuth 4개 + JWT 4개 + 해싱 3개 = **총 11개**.
 | 역할 | 선택 | 비고 |
 |------|------|------|
 | **OAuth (Google/카카오)** | **Authlib** ✅ | `authlib.integrations.starlette_client.OAuth`. 카카오는 OIDC 비표준이라 manual config 매핑 필요 |
-| **JWT** | **python-jose** ✅ | `python-jose[cryptography]` (RS256/HS256). JWS·JWE·JWK·JWT 모두 지원하며 `security.md` §2.3 Refresh Token Rotation 흐름의 claim·exp·iss·jti 표준 처리. PyJWT는 §1.5 재평가 후보 보존 |
+| **JWT** | **python-jose** ✅ | `python-jose[cryptography]` (RS256/HS256). JWS·JWE·JWK·JWT 모두 지원하며 `12_security.md` §2.3 Refresh Token Rotation 흐름의 claim·exp·iss·jti 표준 처리. PyJWT는 §1.5 재평가 후보 보존 |
 | **비밀번호 해싱** | **passlib[bcrypt]** ✅ | bcrypt 4.x 핀 고정 권장. argon2 재평가 보존 |
 
 ### 1.5 보존 후보 (재평가 트리거)
@@ -162,7 +162,7 @@ OAuth 4개 + JWT 4개 + 해싱 3개 = **총 11개**.
 
 | 기능 | 필수도 | 근거 |
 |------|-------|------|
-| AES-256-GCM | **필수** | `security.md` §4.1 `pos_connections.api_key` 적용 대상 |
+| AES-256-GCM | **필수** | `12_security.md` §4.1 `pos_connections.api_key` 적용 대상 |
 | python-jose `[cryptography]` 백엔드 | **필수** | JWT RS256·ES256 서명 |
 | 환경변수·`.env` 통합 | **필수** | 운영 컨테이너 시크릿 주입 |
 | 회전 가능 | 중요 | MVP는 수동 회전 허용 |
@@ -180,7 +180,7 @@ OAuth 4개 + JWT 4개 + 해싱 3개 = **총 11개**.
 |------|------|------|
 | **대칭 암호 (AES-256-GCM)** | **cryptography** ✅ | `cryptography.hazmat.primitives.ciphers.aead.AESGCM`. 키는 환경변수 → pydantic-settings 로딩 |
 | **JWT 백엔드** | **cryptography** (python-jose extras) | `python-jose[cryptography]` 설치 |
-| **해시 (token_hash)** | Python 표준 `hashlib.sha256` | `security.md` §4.1 SHA-256 — 외부 라이브러리 불필요 |
+| **해시 (token_hash)** | Python 표준 `hashlib.sha256` | `12_security.md` §4.1 SHA-256 — 외부 라이브러리 불필요 |
 | **시크릿 로딩** | **pydantic-settings** ✅ | 04에서 확정 |
 
 ### 2.5 보존 후보 (재평가 트리거)
@@ -223,15 +223,15 @@ OAuth 4개 + JWT 4개 + 해싱 3개 = **총 11개**.
 
 | 기능 | 필수도 | 근거 |
 |------|-------|------|
-| 의존성 취약점 스캔 | **필수** | `security.md` §7 외부 라이브러리 라이선스·취약점 검토 |
+| 의존성 취약점 스캔 | **필수** | `12_security.md` §7 외부 라이브러리 라이선스·취약점 검토 |
 | HTTP 보안 헤더 (HSTS·X-Frame·CSP) | **필수** | OWASP 권장 |
-| RBAC 정책 엔진 | 참고 | `security.md` §5.1 — MVP는 단일 역할 점주 |
+| RBAC 정책 엔진 | 참고 | `12_security.md` §5.1 — MVP는 단일 역할 점주 |
 
 **탈락 사유:**
 
 - **#2 OWASP Dependency-Check** — 다언어 지원이 강점이나 사주라는 Python·JS 한정. pip-audit이 가벼움.
 - **#3 secure 미들웨어** — HSTS·X-Frame-Options·Referrer-Policy를 Caddyfile `header` 디렉티브로 한 블록 처리 가능. FastAPI 미들웨어 추가 시 BE 응답마다 헤더 추가 비용 발생. **Caddy 엣지에서 처리하는 게 책임 분리에 맞음.**
-- **#4 python-keycloak / #5 Casbin** — 단일 역할(점주)에 과한 도입. `security.md` §5.1 RBAC는 "추후 확장".
+- **#4 python-keycloak / #5 Casbin** — 단일 역할(점주)에 과한 도입. `12_security.md` §5.1 RBAC는 "추후 확장".
 
 ### 3.4 최종 선발
 
@@ -276,7 +276,7 @@ header {
 |----------|------|
 | **cryptography** | `pos_connections.api_key` AES-256-GCM 암호화·복호화. python-jose [cryptography] 백엔드 |
 
-> 본 research 결정 중 Authlib · python-jose · passlib(bcrypt)는 이미 동일 결정으로 spec에 반영되어 있어 행 추가 없음. `security.md` 정책(TLS 1.3·Rotation·AES-256·SHA-256) 모두 본 research 결정과 정합.
+> 본 research 결정 중 Authlib · python-jose · passlib(bcrypt)는 이미 동일 결정으로 spec에 반영되어 있어 행 추가 없음. `12_security.md` 정책(TLS 1.3·Rotation·AES-256·SHA-256) 모두 본 research 결정과 정합.
 > SHA-256 해시(refresh_tokens.token_hash)는 Python 표준 `hashlib`로 처리 — 외부 라이브러리 미사용.
 
 ### 4.1 후속 반영 권장 (별도 작업)
@@ -284,7 +284,7 @@ header {
 | 항목 | 위치 | 비고 |
 |------|------|------|
 | Caddy 보안 헤더 블록 | `03_reverse_proxy.md` §4.1 Caddyfile 예시 | HSTS·X-Frame·X-Content-Type 등 (본 문서 §3.5) |
-| `secrets_manager` 재평가 트리거 | `security.md` §4 또는 본 문서 §2.5 | 매장 300+ 시 Vault 도입 |
+| `secrets_manager` 재평가 트리거 | `12_security.md` §4 또는 본 문서 §2.5 | 매장 300+ 시 Vault 도입 |
 
 ---
 
@@ -362,7 +362,7 @@ header {
 
 ### 5.13 fastapi-users — 후보 외 제외 사유
 
-자체 사용자 모델·OAuth·JWT를 패키지 단위로 제공하나 사주라의 자체 JWT 흐름(`security.md` §2.3 Rotation·HttpOnly Cookie)·온보딩(`feature_spec.md` §1)과 추상화 충돌. 카카오 OAuth도 직접 지원 없음.
+자체 사용자 모델·OAuth·JWT를 패키지 단위로 제공하나 사주라의 자체 JWT 흐름(`12_security.md` §2.3 Rotation·HttpOnly Cookie)·온보딩(`04_feature_spec.md` §1)과 추상화 충돌. 카카오 OAuth도 직접 지원 없음.
 
 ---
 

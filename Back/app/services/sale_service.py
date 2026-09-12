@@ -3,7 +3,11 @@
 핵심 정책:
 - 청크 크기 = 1만 행 (메모리 부담 회피)
 - 트랜잭션 단위 = 청크 1개 (부분 실패 시 청크 단위 롤백 → 그 이전 청크는 보존)
-- UNIQUE(store_id, source, external_sale_id) 위반 행은 자동 skip
+- UNIQUE(store_id, source, external_sale_id) 위반 행은 자동 skip. 영수증번호
+  컬럼이 없는 CSV는 external_sale_id가 NULL이 되는데, MySQL UNIQUE 인덱스는
+  NULL끼리 서로 다르게 취급해 이 경로만으로는 중복 방지가 되지 않는다 — 그래서
+  external_sale_id가 없으면 (menu_id, sold_at) 기반 합성 식별자를 만들어 같은
+  UNIQUE 제약을 타게 한다(2026-08-17, 소주 8,984→98,824 11배 중복 적재 픽스).
 - menu_name → menu_id 매핑은 매장 메뉴 캐시 1회 조회 후 in-memory dict 매핑
 - auto_create_menus=True 시 미등록 메뉴를 카테고리='자동등록', use_inventory_deduction=False
   로 즉시 생성하여 menu_map 갱신 (feature_spec §2.2 + §4.4 옵션).
@@ -18,7 +22,7 @@ from __future__ import annotations
 
 import asyncio
 from dataclasses import dataclass, field
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime, timedelta
 from io import BytesIO
 from typing import Iterator
 
@@ -31,7 +35,13 @@ from app.adapters.pos.csv_adapter import CSVAdapter, CommonSale, SkipReason
 from app.core import errors
 from app.models.menu import Menu
 from app.models.sale_record import SaleRecord, SaleSource
-from app.schemas.sales import MonthlyRevenuePoint, SalesSummaryResponse, TopMenuItem
+from app.schemas.sales import (
+    DailyRevenuePoint,
+    MonthlyRevenuePoint,
+    SalesSummaryResponse,
+    TopMenuItem,
+    WeeklyRevenuePoint,
+)
 from app.services.anomaly_detector import AnomalyDetector
 
 CHUNK_SIZE = 10_000
@@ -62,9 +72,9 @@ class UploadResult:
             out.append(f"매장 메뉴와 매핑 실패: {', '.join(parts)}")
         if self._dup_in_chunk_counts:
             parts = [f"{name} ({cnt}회)" for name, cnt in sorted(self._dup_in_chunk_counts.items())]
-            out.append(f"같은 파일 안에서 영수증번호 중복: {', '.join(parts)}")
+            out.append(f"같은 파일 안에서 중복(영수증번호 또는 상품+판매일 기준): {', '.join(parts)}")
         if self._dup_in_db_total > 0:
-            out.append(f"이미 저장된 영수증번호와 중복: {self._dup_in_db_total}건")
+            out.append(f"이미 저장된 판매 기록과 중복(영수증번호 또는 상품+판매일 기준): {self._dup_in_db_total}건")
         if self._auto_create_limit_hit:
             out.append(
                 "메뉴 자동 등록 상한에 도달했습니다 — "
@@ -153,7 +163,13 @@ class SaleService:
         return result
 
     async def get_summary(self, *, store_id: str) -> SalesSummaryResponse:
-        """홈 화면 매출 요약 — 전체 누계 + 이번 달(UTC 캘린더 월) 집계."""
+        """홈 화면 매출 요약 — 전체 누계 + 이번 달 + 오늘 집계.
+
+        "이번 달"·"오늘"은 실제 달력이 아니라 **이 매장의 마지막 판매일 기준**으로 계산한다.
+        시연·테스트 데이터는 실제 오늘 날짜와 무관한 과거 구간을 업로드하는 경우가 많아서,
+        실제 달력 기준이면 "이번 달 매출 0원"처럼 데이터가 있어도 빈 값으로 보이는 문제가
+        있었다 — 마지막 판매일을 기준점으로 삼아 항상 실데이터가 채워지게 한다.
+        """
         totals = (
             await self.session.execute(
                 select(
@@ -165,9 +181,8 @@ class SaleService:
         ).one()
         total_revenue, total_sales_count, last_sale_at = totals
 
-        month_start = datetime.now(UTC).replace(
-            day=1, hour=0, minute=0, second=0, microsecond=0, tzinfo=None
-        )
+        now = last_sale_at if last_sale_at is not None else datetime.now(UTC).replace(tzinfo=None)
+        month_start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
         this_month = (
             await self.session.execute(
                 select(
@@ -181,13 +196,129 @@ class SaleService:
         ).one()
         this_month_revenue, this_month_sales_count = this_month
 
+        today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
+        today = (
+            await self.session.execute(
+                select(
+                    func.coalesce(func.sum(SaleRecord.total_price), 0),
+                    func.count(SaleRecord.sale_id),
+                ).where(
+                    SaleRecord.store_id == store_id,
+                    SaleRecord.sold_at >= today_start,
+                )
+            )
+        ).one()
+        today_revenue, today_sales_count = today
+
         return SalesSummaryResponse(
             total_revenue=total_revenue,
             total_sales_count=total_sales_count,
             this_month_revenue=this_month_revenue,
             this_month_sales_count=this_month_sales_count,
+            today_revenue=today_revenue,
+            today_sales_count=today_sales_count,
             last_sale_at=last_sale_at,
         )
+
+    async def _reference_date(self, *, store_id: str) -> date:
+        """이 매장의 마지막 판매일(없으면 오늘) — "최근 N일"·"이번 달" 계산 기준점.
+        실제 달력 대신 데이터 기준으로 잡아서, 과거 구간 시연 데이터도 항상 값이 채워지게 한다."""
+        latest = await self.session.scalar(
+            select(func.max(SaleRecord.sold_at)).where(SaleRecord.store_id == store_id)
+        )
+        return latest.date() if latest is not None else date.today()
+
+    async def get_daily_revenue(self, *, store_id: str, days: int = 7) -> list[DailyRevenuePoint]:
+        """최근 N일 매출 추이 — 데이터 없는 날짜는 0으로 채운 연속 시계열."""
+        reference = await self._reference_date(store_id=store_id)
+        start = reference - timedelta(days=days - 1)
+        d = func.date(SaleRecord.sold_at)
+        rows = (
+            await self.session.execute(
+                select(d, func.sum(SaleRecord.total_price), func.count(SaleRecord.sale_id))
+                .where(SaleRecord.store_id == store_id, SaleRecord.sold_at >= start)
+                .group_by(d)
+            )
+        ).all()
+        by_day = {
+            (row[0] if isinstance(row[0], date) else datetime.strptime(row[0], "%Y-%m-%d").date()): (
+                int(row[1]),
+                int(row[2]),
+            )
+            for row in rows
+        }
+        return [
+            DailyRevenuePoint(
+                date=(start + timedelta(days=i)).isoformat(),
+                revenue=by_day.get(start + timedelta(days=i), (0, 0))[0],
+                sales_count=by_day.get(start + timedelta(days=i), (0, 0))[1],
+            )
+            for i in range(days)
+        ]
+
+    async def get_daily_revenue_for_month(
+        self, *, store_id: str, year_month: str
+    ) -> list[DailyRevenuePoint]:
+        """특정 월(YYYY-MM)의 1일~말일 매출 추이 — 데이터 없는 날짜는 0으로 채움."""
+        year, month = (int(p) for p in year_month.split("-"))
+        month_start = date(year, month, 1)
+        next_month_start = date(year + 1, 1, 1) if month == 12 else date(year, month + 1, 1)
+        days_in_month = (next_month_start - month_start).days
+
+        d = func.date(SaleRecord.sold_at)
+        rows = (
+            await self.session.execute(
+                select(d, func.sum(SaleRecord.total_price), func.count(SaleRecord.sale_id))
+                .where(
+                    SaleRecord.store_id == store_id,
+                    SaleRecord.sold_at >= datetime.combine(month_start, datetime.min.time()),
+                    SaleRecord.sold_at < datetime.combine(next_month_start, datetime.min.time()),
+                )
+                .group_by(d)
+            )
+        ).all()
+        by_day = {
+            (row[0] if isinstance(row[0], date) else datetime.strptime(row[0], "%Y-%m-%d").date()): (
+                int(row[1]),
+                int(row[2]),
+            )
+            for row in rows
+        }
+        return [
+            DailyRevenuePoint(
+                date=(month_start + timedelta(days=i)).isoformat(),
+                revenue=by_day.get(month_start + timedelta(days=i), (0, 0))[0],
+                sales_count=by_day.get(month_start + timedelta(days=i), (0, 0))[1],
+            )
+            for i in range(days_in_month)
+        ]
+
+    async def get_weekly_revenue_this_month(self, *, store_id: str) -> list[WeeklyRevenuePoint]:
+        """이번 달 주차별(1일 단위 7개씩 묶음) 매출 — 캘린더 주가 아닌 월초 기준 등분."""
+        today = await self._reference_date(store_id=store_id)
+        month_start = today.replace(day=1)
+        rows = (
+            await self.session.execute(
+                select(SaleRecord.sold_at, SaleRecord.total_price).where(
+                    SaleRecord.store_id == store_id,
+                    SaleRecord.sold_at >= datetime.combine(month_start, datetime.min.time()),
+                )
+            )
+        ).all()
+        buckets: dict[int, list[int]] = {}
+        for sold_at, total_price in rows:
+            day_of_month = (sold_at.date() if isinstance(sold_at, datetime) else sold_at).day
+            week_idx = (day_of_month - 1) // 7
+            buckets.setdefault(week_idx, []).append(total_price)
+        max_week = max(buckets.keys(), default=(today.day - 1) // 7)
+        return [
+            WeeklyRevenuePoint(
+                week_label=f"{i + 1}주차",
+                revenue=sum(buckets.get(i, [])),
+                sales_count=len(buckets.get(i, [])),
+            )
+            for i in range(max_week + 1)
+        ]
 
     async def get_monthly_revenue(
         self, *, store_id: str, months: int = 6
@@ -315,20 +446,31 @@ class SaleService:
                 )
                 continue
 
-            if sale.external_sale_id is not None:
-                key = sale.external_sale_id
-                if key in seen_external:
-                    result.skipped += 1
-                    result._dup_in_chunk_counts[key] = (
-                        result._dup_in_chunk_counts.get(key, 0) + 1
-                    )
-                    continue
-                seen_external.add(key)
+            # 영수증번호(external_sale_id) 컬럼이 없는 CSV(기간별 상품 합계 리포트 등)는
+            # 원본에 거래 단위 식별자가 없다. UNIQUE(store_id, source, external_sale_id)는
+            # MySQL에서 NULL끼리 서로 다른 값으로 취급되어 DB 레벨 중복 방지가 전혀
+            # 동작하지 않는다 — 같은 파일을 여러 번 업로드하면 매번 전량 재적재된다
+            # (실사례: 소주 8,984개 → 98,824개로 11배 중복 적재, 2026-08-17 발견).
+            # (매장, 메뉴, 판매일시) 조합으로 합성 식별자를 만들어 같은 UNIQUE 제약·
+            # INSERT IGNORE 경로를 그대로 타게 한다.
+            dedup_key = sale.external_sale_id
+            dedup_label = sale.external_sale_id
+            if dedup_key is None:
+                dedup_key = f"AGG:{menu_id}:{sale.sold_at.isoformat()}"
+                dedup_label = f"{sale.menu_name} {sale.sold_at.date().isoformat()}"
+
+            if dedup_key in seen_external:
+                result.skipped += 1
+                result._dup_in_chunk_counts[dedup_label] = (
+                    result._dup_in_chunk_counts.get(dedup_label, 0) + 1
+                )
+                continue
+            seen_external.add(dedup_key)
 
             rows_to_insert.append({
                 "store_id": store_id,
                 "menu_id": menu_id,
-                "external_sale_id": sale.external_sale_id,
+                "external_sale_id": dedup_key,
                 "quantity": sale.quantity,
                 "unit_price": sale.unit_price,
                 "total_price": sale.total_price,

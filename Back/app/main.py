@@ -1,4 +1,9 @@
-"""FastAPI application entry — Phase 2 BE bootstrap + Phase 3 auth routers."""
+"""FastAPI application entry — Phase 2 BE bootstrap + Phase 3 auth routers.
+
+Spec refs:
+  - docs/spec/09_service_design.md §10 미들웨어 등록 순서
+  - docs/plan/01_be.md M2.B2
+"""
 from __future__ import annotations
 
 from datetime import UTC, datetime
@@ -15,9 +20,12 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from app.api.admin import router as admin_router
 from app.api.auth import router as auth_router
+from app.api.forecast import router as forecast_router
 from app.api.health import router as health_router
+from app.api.inventory import router as inventory_router
 from app.api.menu import router as menu_router
 from app.api.oauth import router as oauth_router
+from app.api.orders import router as orders_router
 from app.api.pos_stub import router as pos_router
 from app.api.prices import router as prices_router
 from app.api.sales import router as sales_router
@@ -64,6 +72,9 @@ def create_app() -> FastAPI:
     app.include_router(admin_router)
     app.include_router(pos_router)
     app.include_router(menu_router)
+    app.include_router(inventory_router)
+    app.include_router(orders_router)
+    app.include_router(forecast_router)
     app.include_router(sales_router)
     app.include_router(prices_router)
 

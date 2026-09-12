@@ -22,12 +22,12 @@ export interface Store {
 }
 
 export interface StoreUpdate {
-  store_name?: string;
-  business_type?: string;
-  store_size?: StoreSize;
-  operation_type?: OperationType;
-  address?: string;
-  phone?: string;
+  store_name?: string | undefined;
+  business_type?: string | undefined;
+  store_size?: StoreSize | undefined;
+  operation_type?: OperationType | undefined;
+  address?: string | undefined;
+  phone?: string | undefined;
 }
 
 export async function getStore(): Promise<Store> {

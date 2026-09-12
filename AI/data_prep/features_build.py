@@ -4,7 +4,7 @@ processed/ 산출물(판매·기상·공휴일·인구)과 manual/(학사일정)
 캘린더 그레인(2025-04-03~2026-04-16, 379일)의 피처 후보 테이블을 만든다.
 산출: processed/features_daily.{csv,parquet}
 
-누수 방지 원칙 (`docs/spec/08_ai/ml_pipeline.md` §6)
+누수 방지 원칙 (`docs/spec/11_ai_spec.md` §5)
 - 타깃 유래 피처(lag·rolling)는 전부 shift(1) 이후 — 예측일 값은 절대 포함하지 않는다
 - 유동인구는 전월(lag 1M) 값만 사용 (당월 값은 월말까지 확정되지 않음)
 - 기상은 학습 시 실측 사용 — 운영 서빙에서는 예보로 대체됨(Phase 7) → 후보 근거는 EDA §4

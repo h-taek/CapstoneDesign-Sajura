@@ -201,7 +201,7 @@ export default function SalesUploadPage() {
             <FormField
               label="영수증번호 컬럼 (선택)"
               htmlFor="external_sale_id_column"
-              hint="비워두면 중복 영수증 자동 차단이 적용되지 않습니다."
+              hint="비워두면 상품+판매일시 기준으로 중복을 방지합니다(영수증 단위 구분은 되지 않음)."
             >
               <Input
                 id="external_sale_id_column"

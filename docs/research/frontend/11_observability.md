@@ -1,7 +1,7 @@
 # 에러 모니터링·관측가능성 (FE)
 
 > **카테고리**: FE 측 에러·성능 추적 도구, PII scrubbing 정책, 소스맵 업로드 정책, sampleRate·이벤트 한도 정책 결정
-> **연결 spec**: `performance.md` §5 (BE Sentry 결정·구조화 로깅), `service_design.md` §1 sentry-sdk[fastapi] 행 (BE 정합)
+> **연결 spec**: `13_performance.md` §5 (BE Sentry 결정·구조화 로깅), `09_service_design.md` §1 sentry-sdk[fastapi] 행 (BE 정합)
 > **연결 research**: `docs/research/backend/07_cache_observability.md` §3 (BE Sentry 결정 — 동일 SaaS 플랫폼 공유)
 
 ---
@@ -58,7 +58,7 @@
 | BE 결정 정합 | **필수** | BE Sentry와 동일 플랫폼·동일 release 태깅 → 운영 시 BE↔FE 에러 상관관계 추적 |
 | React 1급 SDK | **필수** | `ErrorBoundary`·React Router 통합·breadcrumb 자동 수집 |
 | Source map 업로드 자동 | **필수** | production 빌드는 minified — 소스맵 없이는 stack trace 해독 불가 |
-| PII scrubbing | **필수** | `security.md` §3 개인정보 보호 — 이메일·매장명·토큰 누출 차단 |
+| PII scrubbing | **필수** | `12_security.md` §3 개인정보 보호 — 이메일·매장명·토큰 누출 차단 |
 
 **탈락 사유:**
 
@@ -132,7 +132,7 @@ createRoot(rootEl).render(
 
 | 옵션 | 값 | 사유 |
 |------|---|------|
-| `sendDefaultPii: false` | — | Sentry 기본 PII 수집(IP·user-agent 일부) 비활성 — `security.md` §3 정합 |
+| `sendDefaultPii: false` | — | Sentry 기본 PII 수집(IP·user-agent 일부) 비활성 — `12_security.md` §3 정합 |
 | `replaysSessionSampleRate: 0` | — | 세션 리플레이 미사용 — 점주 화면 캡처로 매출·매장 정보 누출 차단 |
 | `ignoreErrors` | 노이즈 패턴 | 이벤트 한도 보호 |
 
@@ -287,7 +287,7 @@ Sentry 무료 플랜: **5,000 events/월**.
 
 | 항목 | 결정 | spec 반영 위치 |
 |------|------|--------------|
-| 에러 모니터링 SaaS | **Sentry** (BE 정합) | `performance.md` §5 FE Sentry 1행 추가 |
+| 에러 모니터링 SaaS | **Sentry** (BE 정합) | `13_performance.md` §5 FE Sentry 1행 추가 |
 | FE 라이브러리 | **`@sentry/react` ^8 + `@sentry/vite-plugin` ^2** | FE spec 신설 시 명시 |
 | PII scrubbing | `sendDefaultPii: false` + `beforeSend`·`beforeBreadcrumb` 마스킹 | 동상 |
 | 소스맵 업로드 | Sentry 전용 + `deleteFilesAfterUpload: true` | 동상 |

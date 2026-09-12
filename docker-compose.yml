@@ -87,6 +87,20 @@ services:
       timeout: 5s
       retries: 10
 
+  ai:
+    build:
+      context: .
+      dockerfile: docker/ai/Dockerfile
+    container_name: sajura-ai
+    restart: unless-stopped
+    ports:
+      - "8001:8001"
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://localhost:8001/ai/health').status==200 else 1)\""]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+
   arq-worker:
     build:
       context: .

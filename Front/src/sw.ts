@@ -1,5 +1,5 @@
 /// <reference lib="webworker" />
-// vite-plugin-pwa injectManifest — frontend_design.md §1 PWA.
+// vite-plugin-pwa injectManifest — 10_frontend_design.md §1 PWA.
 // Phase 2 시점에는 precache + push 기본 핸들러만 둠. 실제 push 페이로드
 // 처리는 Phase 11 dashboard·알림에서 채워 넣는다.
 import { precacheAndRoute } from "workbox-precaching";

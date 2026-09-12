@@ -48,6 +48,8 @@ export interface SalesSummary {
   total_sales_count: number;
   this_month_revenue: number;
   this_month_sales_count: number;
+  today_revenue: number;
+  today_sales_count: number;
   last_sale_at: string | null;
 }
 
@@ -73,4 +75,30 @@ export interface TopMenuItem {
 
 export async function getTopMenus(limit = 5): Promise<TopMenuItem[]> {
   return api.get("sales/top-menus", { searchParams: { limit } }).json<TopMenuItem[]>();
+}
+
+export interface DailyRevenuePoint {
+  date: string;
+  revenue: number;
+  sales_count: number;
+}
+
+export async function getDailyRevenue(days = 7): Promise<DailyRevenuePoint[]> {
+  return api.get("sales/daily", { searchParams: { days } }).json<DailyRevenuePoint[]>();
+}
+
+export async function getDailyRevenueForMonth(yearMonth: string): Promise<DailyRevenuePoint[]> {
+  return api
+    .get("sales/daily-by-month", { searchParams: { year_month: yearMonth } })
+    .json<DailyRevenuePoint[]>();
+}
+
+export interface WeeklyRevenuePoint {
+  week_label: string;
+  revenue: number;
+  sales_count: number;
+}
+
+export async function getWeeklyRevenueThisMonth(): Promise<WeeklyRevenuePoint[]> {
+  return api.get("sales/weekly-this-month").json<WeeklyRevenuePoint[]>();
 }

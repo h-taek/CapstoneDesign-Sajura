@@ -21,11 +21,25 @@ class SalesSummaryResponse(BaseModel):
     total_sales_count: int
     this_month_revenue: int
     this_month_sales_count: int
+    today_revenue: int
+    today_sales_count: int
     last_sale_at: datetime | None
 
 
 class MonthlyRevenuePoint(BaseModel):
     year_month: str  # "2026-05"
+    revenue: int
+    sales_count: int
+
+
+class DailyRevenuePoint(BaseModel):
+    date: str  # "2026-07-28"
+    revenue: int
+    sales_count: int
+
+
+class WeeklyRevenuePoint(BaseModel):
+    week_label: str  # "1주차"
     revenue: int
     sales_count: int
 

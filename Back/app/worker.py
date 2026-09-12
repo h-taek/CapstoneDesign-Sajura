@@ -1,4 +1,4 @@
-"""ARQ worker stub — service_design.md §1, plan phase_02 §M2.B1 (`arq-worker` 컨테이너).
+"""ARQ worker stub — 09_service_design.md §1, plan phase_02 §M2.B1 (`arq-worker` 컨테이너).
 
 실제 잡/cron 함수는 후속 phase에서 채워 넣는다. 본 stub은 Compose
 `arq-worker` 서비스가 빈 워커로 기동되도록 최소 WorkerSettings만 둔다.

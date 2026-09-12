@@ -1,7 +1,7 @@
 # 테스트·코드 품질·문서화
 
 > **카테고리**: 단위/통합 테스트 러너, 컴포넌트 테스트 도구, API mock, E2E 테스트, 린터·포매터, 정적 타입 검사, 컴포넌트 문서화 결정
-> **연결 spec**: `performance.md` §1.1 (API SLA — E2E 시나리오 기준), `api_spec.md` (mock 대상 endpoint), `docs/research/backend/09_testing_quality.md` (BE 테스트 도구 — 정합 검토)
+> **연결 spec**: `13_performance.md` §1.1 (API SLA — E2E 시나리오 기준), `07_api_spec.md` (mock 대상 endpoint), `docs/research/backend/09_testing_quality.md` (BE 테스트 도구 — 정합 검토)
 
 ---
 
@@ -89,7 +89,7 @@
 |------|------|---------|
 | **테스트 러너** | **Vitest 2.x** ✅ | Vite `vite.config.ts` 공유·esbuild 트랜스파일 ms 단위·`vi.*` API가 Jest와 호환. coverage(v8 provider) 내장. `02_app_server.md` BE pytest와 동일 멘탈 모델 |
 | **컴포넌트 테스트** | **@testing-library/react 16 + user-event 14** ✅ | React 19 호환, 접근성 쿼리(`getByRole`/`getByLabelText`)로 사용자 관점 테스트, user-event 14는 비동기 시뮬레이션 표준 |
-| **API mock** | **MSW 2.x** ✅ | Service Worker(브라우저 dev) + Node(`setupServer`, vitest jsdom) 양쪽 동작. handler는 REST `http.get(path, ({request, params}) => ...)` 일관 표현. shadcn 컴포넌트 통합 테스트 시 BE `api_spec.md` endpoint를 한 곳에서 mock |
+| **API mock** | **MSW 2.x** ✅ | Service Worker(브라우저 dev) + Node(`setupServer`, vitest jsdom) 양쪽 동작. handler는 REST `http.get(path, ({request, params}) => ...)` 일관 표현. shadcn 컴포넌트 통합 테스트 시 BE `07_api_spec.md` endpoint를 한 곳에서 mock |
 
 ### 1.5 권장 vitest 설정
 
@@ -170,7 +170,7 @@ afterAll(() => server.close());
 
 | 역할 | 선택 | 결정 사유 |
 |------|------|---------|
-| **E2E** | **Playwright (Node) 1.x — Chromium 단일** ✅ | mvp_scope.md §6 데모 시나리오 Step 1~6 end-to-end 검증. BE Playwright(Python·쿠팡 자동화)와 동일 엔진으로 1인 운영 학습 공유. Chromium 단일(`docs/research/backend/06_external_integration.md` §2.4 정합) — Docker 이미지·CI 시간 절감 |
+| **E2E** | **Playwright (Node) 1.x — Chromium 단일** ✅ | 03_mvp_scope.md §6 데모 시나리오 Step 1~6 end-to-end 검증. BE Playwright(Python·쿠팡 자동화)와 동일 엔진으로 1인 운영 학습 공유. Chromium 단일(`docs/research/backend/06_external_integration.md` §2.4 정합) — Docker 이미지·CI 시간 절감 |
 
 ### 2.5 권장 사용 범위
 

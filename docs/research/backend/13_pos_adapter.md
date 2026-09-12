@@ -1,8 +1,8 @@
 # POS 어댑터 — API 연동 조사
 
-> **상태**: MVP 범위 외 — 2단계 진입 시 작업 (`mvp_scope.md` §4)
+> **상태**: MVP 범위 외 — 2단계 진입 시 작업 (`03_mvp_scope.md` §4)
 > **목적**: 2단계 POS API 연동(TossPlace·키움페이·OKPOS) 진입 시 사용할 조사 체크리스트와 spec 반영 절차 정의. 본 문서의 모든 미확정 항목은 외부 POS사 API 문서·자격증명 확보가 필요한 **probe 의존 정보**이므로 본 단계에선 결정하지 않는다.
-> **연결 spec**: `docs/spec/03_feature_design/feature_spec.md` §4.2·§4.3, `docs/spec/02_mvp/mvp_scope.md` §4
+> **연결 spec**: `docs/spec/04_feature_spec.md` §4.2·§4.3, `docs/spec/03_mvp_scope.md` §4
 
 ---
 
@@ -10,7 +10,7 @@
 
 | 항목 | 상태 |
 |------|------|
-| MVP (1단계) — CSV 업로드 | ✅ — `feature_spec.md` §4.1·§4.4·`CSVAdapter` |
+| MVP (1단계) — CSV 업로드 | ✅ — `04_feature_spec.md` §4.1·§4.4·`CSVAdapter` |
 | 2단계 — POS API 연동 (TossPlace·키움페이·OKPOS) | 🟡 본 문서 영역 — 외부 POS사 자격증명·API 문서 확보가 선행되어야 결정 가능 |
 
 > 본 문서의 모든 항목은 **외부 probe 의존**이다. POS사 영업 채널·API 문서·테스트 환경·자격증명 발급 절차가 없으면 결정 불가. MVP 진입 단계에서는 본 문서를 갱신하지 않는다.
@@ -19,7 +19,7 @@
 
 ## 1. 지원 대상 POS사
 
-`feature_spec.md` §4.2 spec 확정.
+`04_feature_spec.md` §4.2 spec 확정.
 
 | POS사 | 어댑터 클래스 | MVP 진입 |
 |------|------------|--------|
@@ -57,14 +57,14 @@
 
 ### 2.3 공통 스키마 매핑
 
-`feature_spec.md` §4.5 사주라 공통 스키마(이미 확정)에 매핑 시 다음을 확인.
+`04_feature_spec.md` §4.5 사주라 공통 스키마(이미 확정)에 매핑 시 다음을 확인.
 
 | 확인 항목 | 비고 |
 |---------|------|
 | 메뉴 매핑 단위 | POS의 상품 ID·SKU vs 사주라 `menu_name` |
 | 메뉴명 변형 처리 | 공백·대소문자·POS사 표기 차이 |
 | 결제 취소·환불 이벤트 | 별도 이벤트 / 음수 amount / soft delete |
-| 외부 영수증 ID | `sale_records.external_sale_id` 매핑 — 중복 방지 정책 (`schema.md` §4 UNIQUE) |
+| 외부 영수증 ID | `sale_records.external_sale_id` 매핑 — 중복 방지 정책 (`08_schema.md` §4 UNIQUE) |
 | 시간대 처리 | POS사 응답이 KST vs UTC — `04_data_layer.md` §3.4 UTC 저장 정합 |
 
 ### 2.4 운영 고려사항
@@ -84,10 +84,10 @@
 
 1. **외부 정보 확보** — §2 체크리스트 일체 응답 확보
 2. **schema 영향 결정**
-   - `pos_connections` 테이블에 추가 컬럼 필요한지 (예: `client_id`, `merchant_code` 등) → 필요 시 `schema.md` §3.4에 spec 반영
-   - 자격증명 추가 컬럼 암호화 정책 → `security.md` §4.1 AES-256-GCM 대상 확장
-3. **어댑터 인터페이스 결정** — `PosService` 메서드 시그니처 / `feature_spec.md` §4.2 어댑터 구조 일관성
-4. **API 어댑터 동작 명세** — Webhook 등록·Polling 스케줄·재시도 정책 → `service_design.md` 어댑터 운영 흐름
+   - `pos_connections` 테이블에 추가 컬럼 필요한지 (예: `client_id`, `merchant_code` 등) → 필요 시 `08_schema.md` §3.4에 spec 반영
+   - 자격증명 추가 컬럼 암호화 정책 → `12_security.md` §4.1 AES-256-GCM 대상 확장
+3. **어댑터 인터페이스 결정** — `PosService` 메서드 시그니처 / `04_feature_spec.md` §4.2 어댑터 구조 일관성
+4. **API 어댑터 동작 명세** — Webhook 등록·Polling 스케줄·재시도 정책 → `09_service_design.md` 어댑터 운영 흐름
 5. **테스트 전략** — Sandbox 환경으로 통합 테스트 (`09_testing_quality.md` §1.4 testcontainers-python으로는 POS사 외부 의존이라 부적합 → respx mock 또는 Sandbox 사용)
 
 ---

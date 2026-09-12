@@ -1,6 +1,6 @@
 # 사주라 AI Server
 
-`docs/spec/05_api/api_spec.md` §8 / `docs/spec/08_ai/` 기반 별도 FastAPI 서버.
+`docs/spec/07_api_spec.md` §8 / `docs/spec/08_ai/` 기반 별도 FastAPI 서버.
 
 ## 현재 상태
 - Phase 2: 빈 FastAPI 골격 + `GET /ai/health`

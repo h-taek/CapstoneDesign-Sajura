@@ -1,6 +1,6 @@
-"""AI Server 요청/응답 스키마 — api_spec.md §8 정합 (M7.A1).
+"""AI Server 요청/응답 스키마 — 07_api_spec.md §8 정합 (M7.A1).
 
-필드명·구조는 `docs/spec/05_api/api_spec.md` §8을 그대로 따른다(contract-first).
+필드명·구조는 `docs/spec/07_api_spec.md` §8을 그대로 따른다(contract-first).
 [조사 중] 표기 입력(search_trend_data·event_data)은 Optional.
 예측 구간(P10/P90)·예측 근거(top_factors·sentence) 필드는 M6.A7·고도화 확정분 —
 spec §8 갱신(docs PR)과 함께 M7.A2에서 응답에 추가한다.
