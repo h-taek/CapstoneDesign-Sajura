@@ -26,7 +26,7 @@
 | **Python 3.12** | 언어 | BE·AI Server 메인 언어 | BE 전체·AI Server 전체 | 04 |
 | **TypeScript 5.x (strict)** | 언어 | FE 메인 언어 (strict + noUncheckedIndexedAccess + exactOptionalPropertyTypes) | FE 전체 | fe 01 |
 | **Node 22 LTS** | 런타임 | FE 빌드·테스트·CI 런타임 | FE 빌드·CI | fe 10 |
-| **SQL (MySQL 8 방언)** | 언어 | DB 직접 쿼리·Alembic 마이그레이션 | `schema.md`·`alembic/` | 04 |
+| **SQL (MySQL 8 방언)** | 언어 | DB 직접 쿼리·Alembic 마이그레이션 | `08_schema.md`·`alembic/` | 04 |
 
 ---
 
@@ -34,10 +34,10 @@
 
 | 이름 | 종류 | 설명 | 적용 위치 | ref |
 |------|------|------|---------|----|
-| **FastAPI** | 라이브러리(Python) | 웹 프레임워크 — HTTP 라우팅·Pydantic v2·자동 OpenAPI | BE 전체·`api_spec.md` 22 endpoint | 01 |
+| **FastAPI** | 라이브러리(Python) | 웹 프레임워크 — HTTP 라우팅·Pydantic v2·자동 OpenAPI | BE 전체·`07_api_spec.md` 22 endpoint | 01 |
 | **Uvicorn** | 라이브러리(Python) | dev ASGI 서버 (`uvicorn main:app --reload`) | 로컬 개발 | 02 |
 | **Gunicorn + uvicorn.workers** | 라이브러리(Python) | 운영 ASGI 프로세스 매니저 — 워커 4 + `--timeout 60 --max-requests 1000 --preload` | 운영 BE 컨테이너 | 02 |
-| **Caddy v2** | 인프라 | 리버스 프록시 + 자동 HTTPS(Let's Encrypt) + HTTP/2·3 + PWA 정적 서빙 | `service_design.md` §11 `caddy` 컨테이너 (자체 빌드, FE dist COPY) | 03 + fe 10 |
+| **Caddy v2** | 인프라 | 리버스 프록시 + 자동 HTTPS(Let's Encrypt) + HTTP/2·3 + PWA 정적 서빙 | `09_service_design.md` §11 `caddy` 컨테이너 (자체 빌드, FE dist COPY) | 03 + fe 10 |
 
 ---
 
@@ -55,7 +55,7 @@
 | **python-multipart** | 라이브러리(Python) | 멀티파트 폼 처리 | `POST /api/sales/upload` | 04 |
 | **pandas** | 라이브러리(Python) | DataFrame — CSV 파싱·집계·IQR/Z-score 이상치 | `SaleService.upload_csv`·`DashboardService.get_roi` | 04 |
 | **numpy** | 라이브러리(Python) | 수치 연산 (pandas backend) | 동상 | 04 |
-| **MySQL 8** | 인프라 | RDB | `service_design.md` §11 `mysql` 컨테이너 | 04 |
+| **MySQL 8** | 인프라 | RDB | `09_service_design.md` §11 `mysql` 컨테이너 | 04 |
 | **datetime + zoneinfo (표준)** | 라이브러리(Python·표준) | 시간 처리 (KST `Asia/Seoul`) | 전 영역 | 11 |
 
 ---
@@ -91,10 +91,10 @@
 
 | 이름 | 종류 | 설명 | 적용 위치 | ref |
 |------|------|------|---------|----|
-| **Redis 7** | 인프라 | 캐시 + 잡 큐 브로커 + Rate Limit 카운터 | `service_design.md` §11 `redis` 컨테이너 | 07 |
+| **Redis 7** | 인프라 | 캐시 + 잡 큐 브로커 + Rate Limit 카운터 | `09_service_design.md` §11 `redis` 컨테이너 | 07 |
 | **redis-py (async)** | 라이브러리(Python) | Redis 클라이언트 (Service 계층 명시 키 호출) | 모든 Service 캐시 호출 | 07 |
 | **structlog** | 라이브러리(Python) | 구조화 JSON 로깅 (`request_id`·`user_id`·`store_id` contextvars) | BE 전체 로그 | 07 |
-| **asgi-correlation-id** | 라이브러리(Python) | ASGI 미들웨어 — `X-Request-ID` 처리·UUID 생성 | `service_design.md` §10 미들웨어 | 07 |
+| **asgi-correlation-id** | 라이브러리(Python) | ASGI 미들웨어 — `X-Request-ID` 처리·UUID 생성 | `09_service_design.md` §10 미들웨어 | 07 |
 | **sentry-sdk[fastapi]** | 라이브러리(Python) | 에러·성능 추적 (PII scrubbing·`traces_sample_rate=0.1`) | BE 진입·예외 핸들러 | 07 |
 
 ---
@@ -104,9 +104,9 @@
 | 이름 | 종류 | 설명 | 적용 위치 | ref |
 |------|------|------|---------|----|
 | **FastAPI BackgroundTasks** | 라이브러리(Python·FastAPI 내장) | 짧은 후처리 (1~3초) | 응답 후 로깅·캐시 무효화 | 08 |
-| **ARQ** | 라이브러리(Python) | Redis 기반 async 잡 큐 + cron_jobs (소비기한 일일 점검·단가 일괄 갱신 등) | `service_design.md` §11 `arq-worker` 컨테이너 | 08 |
-| **n8n** | 인프라(서비스) | AI 파이프라인 GUI 오케스트레이션 — 외부 API 수집·AI Server 호출·재시도 | `service_design.md` §11 `n8n` 컨테이너 | 08 |
-| **fastapi-limiter** | 라이브러리(Python) | Redis 기반 Rate Limit | `service_design.md` §10.4 인증·알림 endpoint | 09 |
+| **ARQ** | 라이브러리(Python) | Redis 기반 async 잡 큐 + cron_jobs (소비기한 일일 점검·단가 일괄 갱신 등) | `09_service_design.md` §11 `arq-worker` 컨테이너 | 08 |
+| **n8n** | 인프라(서비스) | AI 파이프라인 GUI 오케스트레이션 — 외부 API 수집·AI Server 호출·재시도 | `09_service_design.md` §11 `n8n` 컨테이너 | 08 |
+| **fastapi-limiter** | 라이브러리(Python) | Redis 기반 Rate Limit | `09_service_design.md` §10.4 인증·알림 endpoint | 09 |
 
 ---
 
@@ -126,8 +126,8 @@
 | **bandit** | 도구(Python) | 보안 정적 분석 | pre-commit·CI | 09 |
 | **pip-audit** | 도구(Python) | 의존성 알려진 취약점 스캔 | pre-commit·CI | 09 |
 | **pre-commit** | 도구(Python) | 커밋 훅 (ruff·mypy·bandit·pip-audit 일괄) | `.pre-commit-config.yaml` | 09 |
-| **CORSMiddleware** | 라이브러리(Python·FastAPI 내장) | CORS (PWA 도메인 + dev `localhost:5173`) | `service_design.md` §10.2 | 09 |
-| **TrustedHostMiddleware** | 라이브러리(Python·Starlette 내장) | Host 헤더 검증 | `service_design.md` §10.3 | 09 |
+| **CORSMiddleware** | 라이브러리(Python·FastAPI 내장) | CORS (PWA 도메인 + dev `localhost:5173`) | `09_service_design.md` §10.2 | 09 |
+| **TrustedHostMiddleware** | 라이브러리(Python·Starlette 내장) | Host 헤더 검증 | `09_service_design.md` §10.3 | 09 |
 
 ---
 
@@ -268,7 +268,7 @@
 | `Docker Compose V2` 6 서비스 | `caddy` 컨테이너에 FE `dist/` 포함 | atomic 이미지 배포 |
 | `GitHub Actions` BE 8단계 | FE 8단계 (`.github/workflows/fe.yml`) | 동등 위계 |
 
-### 19.2 인프라 컨테이너 6종 (`service_design.md` §11.1)
+### 19.2 인프라 컨테이너 6종 (`09_service_design.md` §11.1)
 
 | 컨테이너 | 이미지 | 역할 |
 |---------|------|------|
@@ -279,7 +279,7 @@
 | `n8n` | `n8nio/n8n` | AI 파이프라인 오케스트레이션 |
 | `caddy` | 자체 빌드 (`Dockerfile.caddy` — `caddy:2-alpine` + FE `dist/` COPY) | 리버스 프록시 + HTTPS + PWA 정적 서빙 |
 
-> AI Server는 별도 배포 (`performance.md` §2.4).
+> AI Server는 별도 배포 (`13_performance.md` §2.4).
 
 ---
 

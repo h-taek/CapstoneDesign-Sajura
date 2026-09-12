@@ -25,7 +25,7 @@
 
 ## 참조
 
-- [frontend_design.md §5 수요예측·추천발주](../../spec/07_frontend/frontend_design.md)
+- [10_frontend_design.md §5 수요예측·추천발주](../../spec/10_frontend_design.md)
 - [HANDOFF.md AI 의존성 ① 후기 수정 비용 중간~큼](../../../HANDOFF.md)
 
 ## Phase 통합 종료 조건 (M9)

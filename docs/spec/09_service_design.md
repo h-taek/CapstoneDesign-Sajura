@@ -20,11 +20,11 @@
 | **python-jose** | JWT Access Token 생성 및 검증 |
 | **passlib (bcrypt)** | 이메일 로그인용 비밀번호 bcrypt 해싱 |
 | **Authlib** | Google/카카오 OAuth 2.0 흐름 처리 (인가 URL 생성, 코드 교환, 사용자 정보 조회) |
-| **cryptography** | `pos_connections.api_key` AES-256-GCM 암호화·복호화. python-jose `[cryptography]` extras 백엔드. `security.md` §4.1 적용 |
+| **cryptography** | `pos_connections.api_key` AES-256-GCM 암호화·복호화. python-jose `[cryptography]` extras 백엔드. `12_security.md` §4.1 적용 |
 | **Playwright (async)** | 쿠팡 장바구니 자동 담기 및 단가 조회용 브라우저 자동화 |
 | **Alembic** | DB 스키마 변경 이력 관리 및 자동 마이그레이션 |
 | **httpx** | AI Server·국세청·외부 공공 API 호출용 async HTTP 클라이언트 (sync 스크립트는 `httpx.Client`) |
-| **tenacity** | 외부 API 호출 재시도. `stop_after_attempt(3)` + `wait_exponential_jitter` (`feature_spec.md` §10 정합) |
+| **tenacity** | 외부 API 호출 재시도. `stop_after_attempt(3)` + `wait_exponential_jitter` (`04_feature_spec.md` §10 정합) |
 | **aiobreaker** | AI Server 호출 차단기. CLOSED→OPEN→HALF_OPEN 자동 회복 |
 | **BeautifulSoup4 (lxml 파서)** | Playwright `page.content()` HTML 파싱 — 쿠팡 단가·재고 표시 추출 |
 | **slack_sdk** | 파이프라인 실패 알림(개발팀 채널). `AsyncWebhookClient` 단방향 |
@@ -101,7 +101,7 @@
 | `AuthService` | 로그인, 회원가입, JWT 발급, OAuth 처리 |
 | `StoreService` | 매장 정보 CRUD, 사업자 검증(NTS+등록증 업로드), 온보딩 완료 처리 |
 | `AdminVerificationService` | (role=ADMIN) 사업자 검증 심사 큐 조회, 등록증 파일 조회, 승인/반려 [최소 — 종합 관리도구는 후속] |
-| `PosService` | POS API 연동·동기화·상태 관리 [`get_pos_status` MVP·나머지 2단계, `mvp_scope.md` §4] |
+| `PosService` | POS API 연동·동기화·상태 관리 [`get_pos_status` MVP·나머지 2단계, `03_mvp_scope.md` §4] |
 | `MenuService` | 메뉴 CRUD, 레시피 관리 |
 | `InventoryService` | 재고 품목, 로트, 폐기, 경고, FIFO 차감 |
 | `SaleService` | 판매 데이터 조회, CSV 업로드, POS 판매 저장 |
@@ -109,7 +109,7 @@
 | `OrderService` | 저장된 추천발주 조회, 점주 수정안 저장, 발주 확정, 승인 이력 |
 | `AutomationService` | Playwright 쿠팡 장바구니 자동화 |
 | `SiteScrapingService` | Playwright 쿠팡 단가 조회 |
-| `DashboardService` | 대시보드 집계, 폐기 현황 [MVP] / ROI 집계 [2단계, `mvp_scope.md` §4] |
+| `DashboardService` | 대시보드 집계, 폐기 현황 [MVP] / ROI 집계 [2단계, `03_mvp_scope.md` §4] |
 | `PipelineService` | 파이프라인 실행 이력 조회 및 상태 표시 |
 | `DataService` | 데이터 CSV 내보내기, 전체 데이터 삭제 |
 | `NotificationService` | 인앱 알림 CRUD, Web Push 발송, 구독 관리 |
@@ -129,7 +129,7 @@
 | `login_with_email` | email, password | `TokenDTO` | 이메일 로그인 |
 | `login_with_oauth` | provider, code, state | `TokenDTO` | Google/카카오 OAuth 로그인 |
 | `logout` | user_id, refresh_token_hash | `None` | Refresh Token 무효화 (현 디바이스) |
-| `logout_all` | user_id | `None` | 모든 디바이스의 활성 Refresh Token 일괄 폐기. `security.md` §2.3 강제 로그아웃 정책 |
+| `logout_all` | user_id | `None` | 모든 디바이스의 활성 Refresh Token 일괄 폐기. `12_security.md` §2.3 강제 로그아웃 정책 |
 | `refresh_token` | refresh_token | `TokenDTO` | Access Token 재발급 + Rotation |
 | `get_me` | user_id | `UserDTO` | 내 정보 조회 |
 | `update_me` | user_id, data | `UserDTO` | 일반 정보 수정 |
@@ -156,7 +156,7 @@
 
 ### PosService
 
-> 단계 구분: `get_pos_status`만 [MVP] (CSV 모드 표시용). 나머지 메서드는 [2단계] POS API 연동 범위 — `mvp_scope.md` §4 참조.
+> 단계 구분: `get_pos_status`만 [MVP] (CSV 모드 표시용). 나머지 메서드는 [2단계] POS API 연동 범위 — `03_mvp_scope.md` §4 참조.
 
 | 메서드 | 파라미터 | 반환 | 단계 | 설명 |
 |--------|----------|------|------|------|
@@ -198,7 +198,7 @@
 | `get_alerts` | store_id | `AlertListDTO` | 부족/소비기한 경고 조회 |
 | `get_summary` | store_id | `InventorySummaryDTO` | 재고 현황 요약 |
 | `deduct_stock` | item_id, quantity | `None` | FIFO 재고 차감 (SaleService 내부 호출용) |
-| `check_expiry_batch` | — | `None` | **소비기한 일일 점검 — ARQ cron_jobs(매일 02:00) 진입점**. 전체 매장의 `inventory_lots.expiry_date` 조회 → D-3·D-1·초과 매칭 → `NotificationService.create_and_push` 호출하여 점주에게 인앱 + Web Push 발송 (`feature_spec.md` §3.6) |
+| `check_expiry_batch` | — | `None` | **소비기한 일일 점검 — ARQ cron_jobs(매일 02:00) 진입점**. 전체 매장의 `inventory_lots.expiry_date` 조회 → D-3·D-1·초과 매칭 → `NotificationService.create_and_push` 호출하여 점주에게 인앱 + Web Push 발송 (`04_feature_spec.md` §3.6) |
 
 ### SaleService
 
@@ -249,7 +249,7 @@
 | 메서드 | 파라미터 | 반환 | 단계 | 설명 |
 |--------|----------|------|------|------|
 | `get_dashboard` | store_id | `DashboardDTO` | [MVP] | 전체 요약 집계 |
-| `get_roi` | store_id, start_month, end_month | `RoiDTO` | [2단계] | 기간별 ROI 집계 (폐기 비용·폐기율·재고 회전율·예측 정확도 지표) 및 월별 추세 반환. 예측 정확도 지표 선정·산식은 별도 확정 예정. 재고 회전율 = 기간 내 총 소모량 / 평균 재고 수량. 총 소모량은 `sale_records × recipe_ingredients`로 파생, 평균 재고 수량은 (기간 시작 재고 + 기간 종료 재고) / 2로 근사 (시작 재고 = 종료 재고 + 소모량 + 폐기량 - 입고량으로 역산). 누적 데이터 부족으로 MVP 기간 동안 의미 없음 (`mvp_scope.md` §4) |
+| `get_roi` | store_id, start_month, end_month | `RoiDTO` | [2단계] | 기간별 ROI 집계 (폐기 비용·폐기율·재고 회전율·예측 정확도 지표) 및 월별 추세 반환. 예측 정확도 지표 선정·산식은 별도 확정 예정. 재고 회전율 = 기간 내 총 소모량 / 평균 재고 수량. 총 소모량은 `sale_records × recipe_ingredients`로 파생, 평균 재고 수량은 (기간 시작 재고 + 기간 종료 재고) / 2로 근사 (시작 재고 = 종료 재고 + 소모량 + 폐기량 - 입고량으로 역산). 누적 데이터 부족으로 MVP 기간 동안 의미 없음 (`03_mvp_scope.md` §4) |
 | `get_waste` | store_id, start_date, end_date | `WasteDTO` | [MVP] | 기간별 폐기 현황 |
 
 ### PipelineService
@@ -262,7 +262,7 @@
 
 ### NotificationService
 
-> 알림 정책: `feature_spec.md` §11 / 스키마: `schema.md` §3.22 `notifications`·§3.23 `push_subscriptions` / 라이브러리: `docs/research/backend/06_external_integration.md` §3
+> 알림 정책: `04_feature_spec.md` §11 / 스키마: `08_schema.md` §3.22 `notifications`·§3.23 `push_subscriptions` / 라이브러리: `docs/research/backend/06_external_integration.md` §3
 
 | 메서드 | 파라미터 | 반환 | 설명 |
 |--------|----------|------|------|
@@ -274,11 +274,11 @@
 | `create_and_push` | user_id, store_id, type, priority, title, body, related_resource | `NotificationDTO` | 인앱 알림 INSERT 후 사용자의 모든 활성 구독에 Web Push 발송. Push Service 410 응답 시 해당 `push_subscriptions` 행 삭제 |
 | `send_slack_failure` | job_id, store_id, step, error | `None` | slack_sdk Webhook으로 개발팀 채널 단방향 알림 발송 (n8n에서 직접 호출 가능) |
 
-> 인앱 알림 INSERT는 다른 Service(`SaleService`·`InventoryService` 등)에서 `NotificationService.create_and_push`를 호출하는 방식으로 일관 처리한다. n8n 배치도 BE 내부 API를 호출하여 동일 메서드를 트리거할 뿐, `notifications` 테이블에 직접 INSERT하지 않는다 (`schema.md` §5 `n8n_user`에 notifications INSERT 권한 미부여). 개발팀 Slack 알림만 n8n에서 직접 발송한다 (`send_slack_failure`).
+> 인앱 알림 INSERT는 다른 Service(`SaleService`·`InventoryService` 등)에서 `NotificationService.create_and_push`를 호출하는 방식으로 일관 처리한다. n8n 배치도 BE 내부 API를 호출하여 동일 메서드를 트리거할 뿐, `notifications` 테이블에 직접 INSERT하지 않는다 (`08_schema.md` §5 `n8n_user`에 notifications INSERT 권한 미부여). 개발팀 Slack 알림만 n8n에서 직접 발송한다 (`send_slack_failure`).
 
 ### DataService
 
-> **MVP 범위 외** (`mvp_scope.md` §4 참조)
+> **MVP 범위 외** (`03_mvp_scope.md` §4 참조)
 
 | 메서드 | 파라미터 | 반환 | 설명 |
 |--------|----------|------|------|
@@ -293,7 +293,7 @@
 |--------|----------|------|------|
 | `predict` | store_id, target_date, input_data | `PredictionResultDTO` | [MVP] 수요예측 실행 요청 |
 | `recommend_order` | store_id, target_date, forecast_results, recipes, inventory | `RecommendationResultDTO` | [MVP] 추천발주 생성 요청 |
-| `train` | store_id, training_data | `TrainJobDTO` | [2단계] 모델 재학습 요청 (`mvp_scope.md` §4) |
+| `train` | store_id, training_data | `TrainJobDTO` | [2단계] 모델 재학습 요청 (`03_mvp_scope.md` §4) |
 | `get_job_status` | job_id | `JobStatusDTO` | [MVP] 작업 상태 조회 |
 <!-- 예측 근거 조회 메서드(get_shap 등)는 산출 방법·출력 형태 확정 후 추가 -->
 | `health_check` | - | `HealthDTO` | [MVP] AI Server 상태 확인 |
@@ -324,7 +324,7 @@
 | CSV 업로드 [MVP] | Frontend `POST /api/sales/upload` → `SaleService.upload_csv` → 파싱·매핑 → `sale_records` 저장 → `InventoryService.deduct_stock` | MVP 기본 판매 데이터 적재 경로 |
 | 판매 저장 후 재고 차감 | `SaleService.save_pos_sales` → `InventoryService.deduct_stock` | 판매 메뉴의 레시피를 기준으로 재고 로트를 FIFO 차감 |
 | n8n 예측/추천발주 워크플로우 [MVP] | n8n → DB 조회 → 외부 API 수집 → 전처리/정규화 → AI Server `/ai/forecast/predict` → AI Server `/ai/orders/recommend` → DB 저장 → BE `NotificationService.create_and_push` 호출 | n8n이 배치 실행, DB 직접 조회/저장, 외부 API 수집, 데이터 전처리/정규화, 재시도, 점주 알림은 BE API 호출로 일관 처리 (Slack 알림만 n8n 직접 발송) |
-| n8n 재학습 워크플로우 [2단계] | n8n → DB 조회 → AI Server `/ai/forecast/train` → AI Server `/ai/forecast/status` polling → DB 상태 갱신 | n8n이 주간 재학습 흐름과 재시도를 오케스트레이션. MVP 기간 데이터 축적 부족으로 비활성 (`mvp_scope.md` §4) |
+| n8n 재학습 워크플로우 [2단계] | n8n → DB 조회 → AI Server `/ai/forecast/train` → AI Server `/ai/forecast/status` polling → DB 상태 갱신 | n8n이 주간 재학습 흐름과 재시도를 오케스트레이션. MVP 기간 데이터 축적 부족으로 비활성 (`03_mvp_scope.md` §4) |
 | 발주 확정 후 단가 갱신 | `OrderService.approve_order` → `SiteScrapingService.scrape_prices_bulk` | 발주 확정 시 쿠팡 등 연결 사이트의 최신 단가를 일괄 갱신 |
 | 초기 단가 자동 조회 | `InventoryService.update_item`(coupang_url 설정 시) → `inventory_item_sites` UPSERT → `SiteScrapingService.scrape_price` | 재고 품목에 coupang_url이 처음 등록될 때 즉시 단가를 조회하여 `inventory_item_sites.last_price`에 저장. 온보딩 초기 재고 등록 시에도 동일하게 적용 |
 | 쿠팡 자동 담기 | Frontend `POST /api/orders/{order_id}/automate` → `AutomationService.automate_coupang` → Playwright → `AutomationService.update_order_status` | 발주 확정(`approve_order`)과 독립적인 별도 요청. 점주가 확정 후 명시적으로 자동화 버튼을 눌러야 실행됨. 성공 시 `AUTOMATED`, 실패 시 `MANUAL_REQUIRED` + 수동 URL 안내 |
@@ -560,12 +560,12 @@ n8n은 운영 데이터 원본을 삭제하지 않는다. n8n의 쓰기 대상�
 |--------|------|------|
 | `be` | 자체 빌드 (Gunicorn + uvicorn.workers) | FastAPI BE 본체 |
 | `arq-worker` | 자체 빌드 (`arq <module>.WorkerSettings`) | 잡 큐 + cron_jobs 실행 |
-| `mysql` | `mysql:8` | DB (`schema.md` §1) |
+| `mysql` | `mysql:8` | DB (`08_schema.md` §1) |
 | `redis` | `redis:7-alpine` | 캐시 + 잡 큐 브로커 + Rate Limit |
 | `n8n` | `n8nio/n8n` | AI 파이프라인 오케스트레이션 |
 | `caddy` | 자체 빌드 (`Dockerfile.caddy` — `caddy:2-alpine` 베이스 + FE `dist/` COPY) | 리버스 프록시 + 자동 HTTPS + PWA 정적 파일 서빙. FE Vite 빌드 산출을 이미지에 포함하여 atomic 배포·롤백. 상세: `docs/research/frontend/10_deployment.md` §3.4 |
 
-> AI Server는 `performance.md` §2.4 분리 배포 원칙에 따라 본 Compose 외부에 별도 배포.
+> AI Server는 `13_performance.md` §2.4 분리 배포 원칙에 따라 본 Compose 외부에 별도 배포.
 
 ### 11.2 환경 분리
 
@@ -606,4 +606,4 @@ n8n은 운영 데이터 원본을 삭제하지 않는다. n8n의 쓰기 대상�
 
 > Sentry Release tagging(`docs/research/backend/07_cache_observability.md` §3.3)에 동일 `<commit-sha-short>` 사용 — 운영 에러 추적 시 이미지·소스 일치.
 
-> 운영 환경(Mac mini M2 Pro 16GB)의 Docker Desktop 메모리 할당 권장값은 `performance.md` §1.3 참조.
+> 운영 환경(Mac mini M2 Pro 16GB)의 Docker Desktop 메모리 할당 권장값은 `13_performance.md` §1.3 참조.

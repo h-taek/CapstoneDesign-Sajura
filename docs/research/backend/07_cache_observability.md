@@ -1,7 +1,7 @@
 # 캐시 · 로깅 · 모니터링 · 에러추적
 
 > **카테고리**: 인메모리 스토어·캐시 클라이언트, 구조화 로깅·요청 상관 ID, 메트릭·트레이싱·에러 추적 라이브러리 결정
-> **연결 spec**: `docs/spec/07_backend/service_design.md` §1·§9, `docs/spec/09_nonfunctional/performance.md` §5
+> **연결 spec**: `docs/spec/09_service_design.md` §1·§9, `docs/spec/13_performance.md` §5
 
 ---
 
@@ -16,11 +16,11 @@
 
 | 라이브러리 | 카테고리 | 결정 근거 위치 | spec 반영 위치 |
 |----------|---------|--------------|--------------|
-| Redis | 인메모리 스토어 | §1.2 + §1.4 | `service_design.md` §1 (기존) + §9 캐시 패턴 (기존) |
-| redis-py (async) | Redis 클라이언트 | §1.2 + §1.4 | `service_design.md` §1 (신규) |
-| structlog | 구조화 로깅 | §2.2 + §2.4 | `service_design.md` §1 (신규) |
-| asgi-correlation-id | 요청 상관 ID | §2.2 + §2.4 | `service_design.md` §1 (신규) |
-| sentry-sdk[fastapi] | 에러·성능 추적 | §2.2 + §2.4 | `service_design.md` §1 (신규), `performance.md` §5 결정 반영 |
+| Redis | 인메모리 스토어 | §1.2 + §1.4 | `09_service_design.md` §1 (기존) + §9 캐시 패턴 (기존) |
+| redis-py (async) | Redis 클라이언트 | §1.2 + §1.4 | `09_service_design.md` §1 (신규) |
+| structlog | 구조화 로깅 | §2.2 + §2.4 | `09_service_design.md` §1 (신규) |
+| asgi-correlation-id | 요청 상관 ID | §2.2 + §2.4 | `09_service_design.md` §1 (신규) |
+| sentry-sdk[fastapi] | 에러·성능 추적 | §2.2 + §2.4 | `09_service_design.md` §1 (신규), `13_performance.md` §5 결정 반영 |
 
 ### 운영 흐름 (research 결정)
 
@@ -72,9 +72,9 @@
 | 기능 | 필수도 | 근거 |
 |------|-------|------|
 | Pub/Sub · Sorted Set 등 자료구조 | 중요 | 향후 알림 큐·차단기 상태 등 확장 |
-| persistence(AOF/RDB) | **필수** | Refresh Token 블랙리스트 30일 유지 (`service_design.md` §9) |
+| persistence(AOF/RDB) | **필수** | Refresh Token 블랙리스트 30일 유지 (`09_service_design.md` §9) |
 | async Python 클라이언트 | **필수** | `02_app_server.md` §4.1 I/O bound async 일관성 |
-| 명시적 키 패턴 운영 | **필수** | `service_design.md` §9 — `forecast:{store_id}:{target_date}` 등 5개 명시 키 |
+| 명시적 키 패턴 운영 | **필수** | `09_service_design.md` §9 — `forecast:{store_id}:{target_date}` 등 5개 명시 키 |
 | 라이선스 안전성 | 중요 | 1인 운영 부담 최소화 |
 
 **탈락 사유:**
@@ -88,9 +88,9 @@
 
 | 역할 | 선택 | 결정 사유 |
 |------|------|---------|
-| **인메모리 스토어** | **Redis 7.x** ✅ | 단일 노드 100k+ ops/s, Pub/Sub·Sorted Set·HyperLogLog·Bitmap 등 자료구조 풍부. `service_design.md` §9 5개 캐시 패턴(`forecast:{...}` / `recommend:{...}` / `dashboard:{...}` / `inventory_summary:{...}` / `refresh_token_blacklist:{...}`)을 모두 표현 가능. 라이선스 7.4 RSALv2/SSPL은 자체 컨테이너 운영(Mac mini)에선 영향 없음 |
+| **인메모리 스토어** | **Redis 7.x** ✅ | 단일 노드 100k+ ops/s, Pub/Sub·Sorted Set·HyperLogLog·Bitmap 등 자료구조 풍부. `09_service_design.md` §9 5개 캐시 패턴(`forecast:{...}` / `recommend:{...}` / `dashboard:{...}` / `inventory_summary:{...}` / `refresh_token_blacklist:{...}`)을 모두 표현 가능. 라이선스 7.4 RSALv2/SSPL은 자체 컨테이너 운영(Mac mini)에선 영향 없음 |
 | **클라이언트** | **redis-py (async)** ✅ | 공식 클라이언트, 4.x부터 async 통합, Sentinel·Cluster 지원. `AsyncSession` 패턴과 lifecycle 정합 |
-| **호출 방식** | **Service 계층에서 명시적 키로 redis-py 직접 호출** ✅ | `service_design.md` §9가 5개 키 패턴을 spec으로 확정 → 데코레이터 추상화(aiocache/fastapi-cache2) 도입 가치 없음. 캐시 로직이 도메인 코드에 명시되어 디버깅·무효화 추적 명확 |
+| **호출 방식** | **Service 계층에서 명시적 키로 redis-py 직접 호출** ✅ | `09_service_design.md` §9가 5개 키 패턴을 spec으로 확정 → 데코레이터 추상화(aiocache/fastapi-cache2) 도입 가치 없음. 캐시 로직이 도메인 코드에 명시되어 디버깅·무효화 추적 명확 |
 
 ### 1.5 보존 후보 (Valkey)
 
@@ -163,9 +163,9 @@ Valkey는 Linux Foundation 산하·BSD 3-clause로 라이선스 안전성이 더
 
 | 기능 | 필수도 | 근거 |
 |------|-------|------|
-| 구조화 JSON 로그 | **필수** | `security.md` §5.3 감사 로그 + `performance.md` §5 응답 시간·에러율·DB 쿼리 시간 로깅 |
+| 구조화 JSON 로그 | **필수** | `12_security.md` §5.3 감사 로그 + `13_performance.md` §5 응답 시간·에러율·DB 쿼리 시간 로깅 |
 | 요청 상관 ID 자동 전파 | **필수** | 단일 요청의 로그·DB·외부 API 흐름 추적 |
-| FastAPI 자동 통합 (에러·성능) | **필수** | `performance.md` §5 에러 추적 위임 |
+| FastAPI 자동 통합 (에러·성능) | **필수** | `13_performance.md` §5 에러 추적 위임 |
 | 메트릭 수집 (RPS·p95) | MVP 미채택 | Sentry Performance가 일부 커버. 본격 도입은 2단계 |
 | 분산 트레이싱 | MVP 미채택 | 사주라 단일 BE 노드, 분산 컴포넌트 없음. AI Server 분리는 이미 명확해 트레이싱 가치 작음 |
 
@@ -212,7 +212,7 @@ Valkey는 Linux Foundation 산하·BSD 3-clause로 라이선스 안전성이 더
 ### 3.1 캐시 호출 방식
 
 - Service 계층 메서드 안에서 `redis-py`를 직접 호출한다 (데코레이터 추상화 미사용).
-- 키 패턴은 `service_design.md` §9가 source-of-truth — 본 research에서 중복 정의하지 않는다.
+- 키 패턴은 `09_service_design.md` §9가 source-of-truth — 본 research에서 중복 정의하지 않는다.
 - 패턴별 흐름:
   - **Cache-Aside** (`forecast`·`recommend`): GET 시 MISS면 DB 조회 후 SETEX, PUT/PATCH 시 키 DEL → 다음 GET 시 재적재
   - **TTL 기반** (`dashboard`·`inventory_summary`): SETEX로 TTL 설정 후 자동 만료 — 무효화 호출 불필요 (집계 데이터 오차 허용)
@@ -234,7 +234,7 @@ Valkey는 Linux Foundation 산하·BSD 3-clause로 라이선스 안전성이 더
 | `path` / `method` / `status` | FastAPI request hook | 요청 로그 한정 |
 | `duration_ms` | request hook | 응답 직전 측정 |
 
-- 감사 로그(`security.md` §5.3 대상)는 `event=audit_<action>` 패턴 + 위 필드 + 도메인별 컨텍스트(예: `disposal_log_id`).
+- 감사 로그(`12_security.md` §5.3 대상)는 `event=audit_<action>` 패턴 + 위 필드 + 도메인별 컨텍스트(예: `disposal_log_id`).
 
 ### 3.3 Sentry 환경 분리
 
@@ -262,30 +262,30 @@ Valkey는 Linux Foundation 산하·BSD 3-clause로 라이선스 안전성이 더
 
 ## 4. 통합 최종 결정 (spec 반영)
 
-본 research가 결정한 라이브러리는 `service_design.md` §1에 반영된다. 캐시 키 패턴·서비스 클래스·감사 로그 항목 등 도메인 정의는 spec(`service_design.md` §9, `security.md` §5.3)이 source-of-truth — 본 문서는 호출 방식·운영 흐름만 정의한다.
+본 research가 결정한 라이브러리는 `09_service_design.md` §1에 반영된다. 캐시 키 패턴·서비스 클래스·감사 로그 항목 등 도메인 정의는 spec(`09_service_design.md` §9, `12_security.md` §5.3)이 source-of-truth — 본 문서는 호출 방식·운영 흐름만 정의한다.
 
 ### 4.1 라이브러리 결정 (4개 신규 + 1개 기존)
 
 | 라이브러리 | 역할 | spec 반영 위치 |
 |----------|------|--------------|
-| **redis-py (async)** | Redis Python 클라이언트. `service_design.md` §9 5개 키 패턴 명시 호출 | `service_design.md` §1 |
-| **structlog** | 구조화 JSON 로깅. `request_id`·`user_id`·`store_id` contextvars 자동 부여 | `service_design.md` §1 |
-| **asgi-correlation-id** | ASGI 미들웨어. `X-Request-ID` 처리·UUID 생성·contextvars 저장 | `service_design.md` §1 |
-| **sentry-sdk[fastapi]** | 에러·성능 추적. PII scrubbing·환경 분리·`traces_sample_rate=0.1`(prod) | `service_design.md` §1 |
-| `Redis` (기존) | 인메모리 스토어 | `service_design.md` §1 + §9 캐시 패턴 |
+| **redis-py (async)** | Redis Python 클라이언트. `09_service_design.md` §9 5개 키 패턴 명시 호출 | `09_service_design.md` §1 |
+| **structlog** | 구조화 JSON 로깅. `request_id`·`user_id`·`store_id` contextvars 자동 부여 | `09_service_design.md` §1 |
+| **asgi-correlation-id** | ASGI 미들웨어. `X-Request-ID` 처리·UUID 생성·contextvars 저장 | `09_service_design.md` §1 |
+| **sentry-sdk[fastapi]** | 에러·성능 추적. PII scrubbing·환경 분리·`traces_sample_rate=0.1`(prod) | `09_service_design.md` §1 |
+| `Redis` (기존) | 인메모리 스토어 | `09_service_design.md` §1 + §9 캐시 패턴 |
 
 ### 4.2 결정에 따라 spec에서 갱신될 항목 (참조)
 
 | 영향 영역 | 결정 사항 | 위치 |
 |---------|---------|------|
-| 모니터링 도구 결정 (위임 → 결정 반영) | 에러·성능 추적은 Sentry SDK. 메트릭·트레이싱은 MVP 미채택 (보존) | `performance.md` §5 갱신 |
+| 모니터링 도구 결정 (위임 → 결정 반영) | 에러·성능 추적은 Sentry SDK. 메트릭·트레이싱은 MVP 미채택 (보존) | `13_performance.md` §5 갱신 |
 
 ---
 
 ## 5. 후보 세부 정보
 
 ### 5.1 Redis ✅
-- **사용처**: `service_design.md` §9 5개 캐시 패턴 일체 — `forecast:{store_id}:{target_date}`(24h), `recommend:{store_id}`(24h), `dashboard:{store_id}`(10m), `inventory_summary:{store_id}`(5m), `refresh_token_blacklist:{token_hash}`(30d)
+- **사용처**: `09_service_design.md` §9 5개 캐시 패턴 일체 — `forecast:{store_id}:{target_date}`(24h), `recommend:{store_id}`(24h), `dashboard:{store_id}`(10m), `inventory_summary:{store_id}`(5m), `refresh_token_blacklist:{token_hash}`(30d)
 - **장점**: 단일 노드 100k+ ops/s, Pub/Sub·Sorted Set·HLL·Bitmap 등 자료구조 풍부, AOF/RDB persistence, 클러스터·복제 옵션
 - **단점**: 7.4부터 RSALv2/SSPL 라이선스 — 자체 운영(사주라 Mac mini)엔 영향 없음
 - **세부사항**: 컨테이너 단일 노드 운영. `redis:7-alpine`. persistence는 Refresh Token 블랙리스트 30일 유지를 위해 AOF 활성

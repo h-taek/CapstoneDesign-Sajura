@@ -24,14 +24,14 @@
 | 에러 모니터링 | Sentry (FE SaaS) + PII scrubbing + 소스맵 업로드 + sampleRate 환경별 분리 |
 | 테스트 | Vitest 2 + @testing-library/react + MSW 2 + Playwright(Node) |
 | 코드 품질 | Biome 1 + tsc --noEmit |
-| 배포 | Caddy 컨테이너 자체 빌드(FE dist를 Caddy 이미지에 COPY) — `service_design.md` §11.1 |
+| 배포 | Caddy 컨테이너 자체 빌드(FE dist를 Caddy 이미지에 COPY) — `09_service_design.md` §11.1 |
 | CI | GitHub Actions 8단계 — `docs/research/frontend/10_deployment.md` |
 
 ---
 
 ## 2. 인증 통합
 
-> 토큰 정책 원본: `security.md` §2 / OAuth API 흐름 원본: `api_spec.md` §2
+> 토큰 정책 원본: `12_security.md` §2 / OAuth API 흐름 원본: `07_api_spec.md` §2
 
 | 항목 | 결정 |
 |------|------|
@@ -63,7 +63,7 @@
 
 ## 3. 라우팅 구조
 
-> 화면 IA 원본: `feature_spec.md` §12 / 사용 흐름 원본: `user_flow.md`
+> 화면 IA 원본: `04_feature_spec.md` §12 / 사용 흐름 원본: `05_user_flow.md`
 
 | 경로 | 화면 | 가드 |
 |------|------|------|
@@ -112,7 +112,7 @@
 
 ## 5. PWA·Web Push
 
-> 알림 정책 원본: `feature_spec.md` §11
+> 알림 정책 원본: `04_feature_spec.md` §11
 
 | 항목 | 결정 |
 |------|------|
@@ -121,7 +121,7 @@
 | 캐시 전략 | 정적 자산 `CacheFirst` · API `NetworkOnly` (캐시는 TanStack Query 담당) |
 | Web Push | VAPID 공개키 환경변수 inline, 구독 시 `POST /api/notifications/subscribe`로 BE 전송 |
 | 인앱 알림 | TanStack Query 5분 폴링 (BE Web Push와 별개 보조 채널) |
-| 알림 우선순위 | 긴급 → 경고 → 정보 정렬 (`feature_spec.md` §12.3) |
+| 알림 우선순위 | 긴급 → 경고 → 정보 정렬 (`04_feature_spec.md` §12.3) |
 
 ---
 
@@ -161,7 +161,7 @@
 
 ## 8. 에러 모니터링
 
-> 원본 결정: `docs/research/frontend/11_observability.md` / 성능 항목 정합: `performance.md` §5
+> 원본 결정: `docs/research/frontend/11_observability.md` / 성능 항목 정합: `13_performance.md` §5
 
 | 항목 | 결정 |
 |------|------|
@@ -176,7 +176,7 @@
 
 ## 9. 빌드·배포·CI
 
-> Caddy 배포 토폴로지: `service_design.md` §11.1 (caddy 컨테이너 자체 빌드, FE dist COPY)
+> Caddy 배포 토폴로지: `09_service_design.md` §11.1 (caddy 컨테이너 자체 빌드, FE dist COPY)
 
 ### 9.1 CI 8단계 (GitHub Actions)
 
@@ -224,7 +224,7 @@ src/
 
 ## 11. MVP / 2단계 매핑
 
-> 단계별 기능 원본: `mvp_scope.md` §3 (MVP 포함), §4 (제외)
+> 단계별 기능 원본: `03_mvp_scope.md` §3 (MVP 포함), §4 (제외)
 
 FE에서 [2단계]로 라벨링되는 화면·기능:
 

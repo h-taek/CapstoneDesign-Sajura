@@ -34,7 +34,7 @@ Frontend → GET /api/auth/login/kakao
          → Frontend: GET /api/auth/me → onboarding_completed 분기
 ```
 
-> Access Token을 콜백 응답 본문·URL에 노출하지 않는 이유: 브라우저 히스토리·Referer 헤더·서버 access log 누출 차단. 자세한 설계 근거는 `docs/research/frontend/08_auth_security.md` §1, API 명세는 `api_spec.md` §2 `GET /api/auth/callback/{provider}`.
+> Access Token을 콜백 응답 본문·URL에 노출하지 않는 이유: 브라우저 히스토리·Referer 헤더·서버 access log 누출 차단. 자세한 설계 근거는 `docs/research/frontend/08_auth_security.md` §1, API 명세는 `07_api_spec.md` §2 `GET /api/auth/callback/{provider}`.
 
 | 구분 | 항목 |
 |---|---|
@@ -110,7 +110,7 @@ Frontend → GET /api/auth/login/kakao
 | | business_status | UNVERIFIED / PENDING / VERIFIED / REJECTED |
 | | onboarding_completed | boolean |
 
-> 시연·테스트용 강제 패스: 입력 사업자번호가 환경변수 마스터 코드(`NTS_MASTER_BYPASS_CODE`)와 일치하면 국세청 호출·등록증 업로드 없이 곧바로 `VERIFIED` 처리한다. 상세·위험은 `security.md` §2.4.
+> 시연·테스트용 강제 패스: 입력 사업자번호가 환경변수 마스터 코드(`NTS_MASTER_BYPASS_CODE`)와 일치하면 국세청 호출·등록증 업로드 없이 곧바로 `VERIFIED` 처리한다. 상세·위험은 `12_security.md` §2.4.
 
 > POS 연동 상태(`CONNECTED` / `CSV_MODE` / `DISCONNECTED`)는 온보딩 완료 후 `GET /api/store/pos/status`로 별도 조회한다.
 
@@ -291,7 +291,7 @@ Frontend → GET /api/auth/login/kakao
 
 ### 4.3 POS API 연동 [2단계]
 
-> MVP 범위 외 — `mvp_scope.md` §4 참조. 아래 시그니처는 2단계 설계 기준.
+> MVP 범위 외 — `03_mvp_scope.md` §4 참조. 아래 시그니처는 2단계 설계 기준.
 
 | 구분 | 항목 | 비고 |
 |---|---|---|
@@ -405,15 +405,15 @@ Frontend → GET /api/auth/login/kakao
 | 3 | `SPECIAL_DAY` | 공휴일(대체공휴일 포함) — 학습 표본 희소 |
 | 4 | `LONG_HORIZON` | 선행 D+3 이상 — 모델 우위 소멸 구간 |
 | 5 | `WIDE_INTERVAL` | 상대 예측 구간 폭 (P90−P10)/기준선 > θ — θ는 재학습 시 train 구간 in-sample 폭의 P80로 재산정(파일럿 실측 1.6~1.8) |
-| 6 | `DRIFT` (운영) | 직전 4주 rolling에서 모델 MAE > MA-7 MAE — 해당 기간 전 예측에 배지(`ml_pipeline.md` §10) |
+| 6 | `DRIFT` (운영) | 직전 4주 rolling에서 모델 MAE > MA-7 MAE — 해당 기간 전 예측에 배지(`11_ai_spec.md` §10) |
 
 - 검증 실측(파일럿, 선택 fold): 배지율 18%, 배지 ON일의 상대 오차가 OFF일의 **1.85배**(lift), 공휴일 오예측 케이스 포착 — 근거: `AI/notebooks/08_confidence.ipynb`.
-- 판정 결과는 `forecast_results.is_low_confidence` / `low_confidence_reason` 컬럼에 저장한다(`schema.md` §3.15).
-- 예측 근거 문구(`model_spec.md` §9)는 본 배지·P10/P90 구간과 **항상 동반 노출**한다.
+- 판정 결과는 `forecast_results.is_low_confidence` / `low_confidence_reason` 컬럼에 저장한다(`08_schema.md` §3.15).
+- 예측 근거 문구(`11_ai_spec.md` §9)는 본 배지·P10/P90 구간과 **항상 동반 노출**한다.
 
 ### 5.4 Cold-start 처리 [2단계]
 
-> MVP 범위 외 — `mvp_scope.md` §4 참조. MVP는 보유 주점 POS 데이터(30일+) 기반으로 시작하므로 cold-start 분기가 발생하지 않는다.
+> MVP 범위 외 — `03_mvp_scope.md` §4 참조. MVP는 보유 주점 POS 데이터(30일+) 기반으로 시작하므로 cold-start 분기가 발생하지 않는다.
 
 - 신규 매장은 자체 데이터 30일 축적 전까지 유사 매장 기반 예측 결과를 제공한다.
 - 유사 매장 기준은 동일 업종, 유사 상권, 매장 규모 구간 및 운영 형태를 모두 적용한다.
@@ -553,7 +553,7 @@ Frontend → GET /api/auth/login/kakao
 
 ### 8.2 ROI 대시보드 [2단계]
 
-> MVP 범위 외 — `mvp_scope.md` §4 참조. 누적 데이터 부족으로 MVP 기간에는 의미 있는 지표 산출 불가. 아래 시그니처는 2단계 설계 기준.
+> MVP 범위 외 — `03_mvp_scope.md` §4 참조. 누적 데이터 부족으로 MVP 기간에는 의미 있는 지표 산출 불가. 아래 시그니처는 2단계 설계 기준.
 
 
 - 기본 조회 단위는 월별이며 점주가 시작월·종료월을 선택할 수 있다.
@@ -586,7 +586,7 @@ Frontend → GET /api/auth/login/kakao
 ### 10.1 야간 배치 파이프라인
 
 - 예측 배치는 매일 02:00에 실행한다. [MVP]
-- 모델 재학습은 매주 일요일 02:00에 실행한다 (예측 배치와 별도). [2단계 — MVP 기간 데이터 축적 부족, `mvp_scope.md` §4]
+- 모델 재학습은 매주 일요일 02:00에 실행한다 (예측 배치와 별도). [2단계 — MVP 기간 데이터 축적 부족, `03_mvp_scope.md` §4]
 - n8n은 정해진 시각에 배치 워크플로우를 트리거한다.
 - n8n은 DB 직접 조회/저장, 외부 API 수집, 데이터 전처리/정규화, AI Server 호출, 실행 이력 갱신을 담당한다.
 - AI Server는 n8n으로부터 예측, 추천발주, 학습 요청을 받아 모델 연산을 수행한다.
@@ -607,7 +607,7 @@ Frontend → GET /api/auth/login/kakao
 
 ### 10.2 주간 재학습 파이프라인 (매주 일요일 02:00) [2단계]
 
-> MVP 범위 외 — `mvp_scope.md` §4 참조. 아래 시그니처는 2단계 설계 기준.
+> MVP 범위 외 — `03_mvp_scope.md` §4 참조. 아래 시그니처는 2단계 설계 기준.
 
 
 | 단계 | 작업 | 실패 처리 |
@@ -638,7 +638,7 @@ Frontend → GET /api/auth/login/kakao
 
 ### 12.1 로그인 / 회원가입
 
-> 이메일 로그인·회원가입 정책 원본: §1.2 / 라우트: `frontend_design.md` §3 (`/login`, `/register`)
+> 이메일 로그인·회원가입 정책 원본: §1.2 / 라우트: `10_frontend_design.md` §3 (`/login`, `/register`)
 
 **로그인 (`/login`)**
 
@@ -666,7 +666,7 @@ Frontend → GET /api/auth/login/kakao
 - 상단에 진행 단계 표시 (1/4, 2/4...)
 - Step 4 완료 전까지 메인 화면 진입 불가
 - 입력 도중 앱 종료 시 다음 접속에서 해당 스텝부터 재진입, 기존 입력 데이터 유지
-- **Step 1(사업자 인증)은 온보딩과 분리된 검증 게이트** — 별도 라우트 `/verify-business`(`frontend_design.md` §3), `business_status` ∈ {UNVERIFIED, REJECTED}일 때 강제 진입. 진행 단계 표시상으로만 Step 1로 노출. 검증 흐름 원본: §1.4 / `user_flow.md` §2
+- **Step 1(사업자 인증)은 온보딩과 분리된 검증 게이트** — 별도 라우트 `/verify-business`(`10_frontend_design.md` §3), `business_status` ∈ {UNVERIFIED, REJECTED}일 때 강제 진입. 진행 단계 표시상으로만 Step 1로 노출. 검증 흐름 원본: §1.4 / `05_user_flow.md` §2
 
 | 스텝 | 구성 요소 |
 |---|---|

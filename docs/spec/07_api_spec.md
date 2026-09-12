@@ -186,7 +186,7 @@ Authorization: Bearer <access_token>
 
 ### POST /api/auth/logout-all
 
-> 강제 로그아웃 — 모든 디바이스의 활성 Refresh Token 일괄 폐기. 분실·도난·계정 도용 의심 시 사용. Access Token은 서명 stateless이므로 자체 무효화 불가, 최대 1시간(Access 유효기간) 이내 모든 디바이스가 재로그인으로 이동. 정책 상세: `security.md` §2.3 "강제 로그아웃 (모든 디바이스)".
+> 강제 로그아웃 — 모든 디바이스의 활성 Refresh Token 일괄 폐기. 분실·도난·계정 도용 의심 시 사용. Access Token은 서명 stateless이므로 자체 무효화 불가, 최대 1시간(Access 유효기간) 이내 모든 디바이스가 재로그인으로 이동. 정책 상세: `12_security.md` §2.3 "강제 로그아웃 (모든 디바이스)".
 
 ```
 // Request: Header만 (Authorization: Bearer <token>)
@@ -305,11 +305,11 @@ Authorization: Bearer <access_token>
 // 실패 — 파일 형식·용량 위반: 400 VALIDATION_ERROR
 ```
 
-> 온보딩 진입 **전** 게이트. ① 국세청 조회로 계속사업자 여부 확인 → ② 통과 시 등록증 파일을 서버 볼륨에 저장(경로만 DB)하고 `business_status=PENDING`. **PENDING부터 온보딩 진입 허용**(1-B). 실패 시 **계정·상태 유지**하고 사유만 반환(삭제 없음). 입력 `business_no`가 마스터 코드(`NTS_MASTER_BYPASS_CODE`)와 일치하면 NTS 호출·파일 없이 곧바로 `VERIFIED`(시연용, `security.md` §2.4). 소셜·이메일 공통. 검증 어댑터: `nts.assert_business_active`, 승인 루프: 관리자 API(하단).
+> 온보딩 진입 **전** 게이트. ① 국세청 조회로 계속사업자 여부 확인 → ② 통과 시 등록증 파일을 서버 볼륨에 저장(경로만 DB)하고 `business_status=PENDING`. **PENDING부터 온보딩 진입 허용**(1-B). 실패 시 **계정·상태 유지**하고 사유만 반환(삭제 없음). 입력 `business_no`가 마스터 코드(`NTS_MASTER_BYPASS_CODE`)와 일치하면 NTS 호출·파일 없이 곧바로 `VERIFIED`(시연용, `12_security.md` §2.4). 소셜·이메일 공통. 검증 어댑터: `nts.assert_business_active`, 승인 루프: 관리자 API(하단).
 
 ### 관리자 심사 API (role=ADMIN 전용)
 
-> `users.role=ADMIN`만 접근. 그 외 403 FORBIDDEN. 사업자등록증은 민감정보이므로 파일 조회도 ADMIN 가드 하에서만 (`security.md` §4.1). 사용자·매장 종합 관리도구는 [후속 phase].
+> `users.role=ADMIN`만 접근. 그 외 403 FORBIDDEN. 사업자등록증은 민감정보이므로 파일 조회도 ADMIN 가드 하에서만 (`12_security.md` §4.1). 사용자·매장 종합 관리도구는 [후속 phase].
 
 ```json
 // GET /api/admin/verifications?status=pending
@@ -1253,9 +1253,9 @@ Authorization: Bearer <access_token>
 
 ### POST /ai/forecast/predict
 
-> **계약 v2 (38차)** — AI 산출 범위 재확정(`08_ai/model_spec.md` §3·§4: 타깃 = 매장 일 매출, 메뉴 분해 없음)에 따라
+> **계약 v2 (38차)** — AI 산출 범위 재확정(`11_ai_spec.md` §3·§4: 타깃 = 매장 일 매출, 메뉴 분해 없음)에 따라
 > 메뉴별 입력·출력을 제거하고 매출 중심으로 재설계. 다일 D+1~D+3(선행일별 신뢰도 차등)·P10/P90 예측 구간·
-> 예측 근거(§9 확정 형태)·신뢰도 배지(`feature_spec.md` §5.3)를 포함한다.
+> 예측 근거(§9 확정 형태)·신뢰도 배지(`04_feature_spec.md` §5.3)를 포함한다.
 > 공휴일·학사일정은 AI Server 내장 지식이라 payload로 받지 않는다. 기상은 과거 관측 + 대상일 예보를
 > 함께 전달한다(단기예보의 TMN/TMX — 평균기온은 (min+max)/2 근사). 구현: `AI/app/api/forecast.py` (M7.A2).
 
@@ -1303,7 +1303,7 @@ Authorization: Bearer <access_token>
 ### POST /ai/orders/recommend
 
 > **계약 v2 (39차, M7.A3 — A안: 단일 호출)** — 구 계약의 `forecast_results`(메뉴별 예측 *입력*)는 폐기.
-> 산출 구조 확정(`08_ai/model_spec.md` §3: 2모델)에 따라 서버가 내부에서
+> 산출 구조 확정(`11_ai_spec.md` §3: 2모델)에 따라 서버가 내부에서
 > **① V1-t 매출 예측 × ② 매장별 메뉴 비중 분해**(최근 28영업일 합산 비중 — `AI/notebooks/11_menu_decomposition.ipynb` 검증)
 > → **점주 레시피(BOM) 전개 → 재고·리드타임·안전재고 반영 발주 참고치**까지 수행한다.
 > 레시피(`recipes`)는 점주 관리 데이터(재료 리스트업 = 사용자 몫, 38차 확정)를 BE가 전달.
@@ -1593,7 +1593,7 @@ Authorization: Bearer <access_token>
 
 ### GET /api/data/export
 
-> **MVP 범위 외** (`mvp_scope.md` §4 참조)
+> **MVP 범위 외** (`03_mvp_scope.md` §4 참조)
 
 ```
 // Query: ?type=sales&start_date=2026-01-01&end_date=2026-01-31
@@ -1605,7 +1605,7 @@ Authorization: Bearer <access_token>
 
 ### DELETE /api/data
 
-> **MVP 범위 외** (`mvp_scope.md` §4 참조)
+> **MVP 범위 외** (`03_mvp_scope.md` §4 참조)
 
 ```json
 // Request
@@ -1620,7 +1620,7 @@ Authorization: Bearer <access_token>
 
 ## 10. 알림 API
 
-> 알림 정책 기준: `feature_spec.md` §11 / 저장 스키마: `schema.md` §3.22 `notifications`·§3.23 `push_subscriptions`
+> 알림 정책 기준: `04_feature_spec.md` §11 / 저장 스키마: `08_schema.md` §3.22 `notifications`·§3.23 `push_subscriptions`
 > 알림 채널·라이브러리: `docs/research/backend/06_external_integration.md` §3
 
 ### Endpoints

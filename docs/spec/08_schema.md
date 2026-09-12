@@ -28,7 +28,7 @@ CREATE TABLE users (
     email         VARCHAR(255)                        NOT NULL,
     password_hash VARCHAR(255)                        NULL COMMENT '소셜 로그인 계정은 NULL',
     name          VARCHAR(50)                         NOT NULL,
-    role          ENUM('OWNER','ADMIN')               NOT NULL DEFAULT 'OWNER' COMMENT '점주/관리자 — 관리자는 운영자 계정만 수동 지정 (security.md §5.1)',
+    role          ENUM('OWNER','ADMIN')               NOT NULL DEFAULT 'OWNER' COMMENT '점주/관리자 — 관리자는 운영자 계정만 수동 지정 (12_security.md §5.1)',
     auth_provider ENUM('LOCAL','KAKAO','GOOGLE')      NOT NULL DEFAULT 'LOCAL',
     social_id     VARCHAR(100)                        NULL COMMENT '소셜 서비스의 사용자 고유 ID',
     created_at    DATETIME                            NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -88,7 +88,7 @@ CREATE TABLE stores (
 
 > 매장 행은 계정 생성(소셜/이메일) 시 1:1로 함께 생성되며, `store_name`·`business_no`·`business_type` 등은 NULL로 시작해 사업자 검증·온보딩에서 채운다.
 >
-> **사업자 검증 상태(`business_status`) 흐름**: `UNVERIFIED`(초기) → NTS 즉시검증 통과 + 사업자등록증 업로드 → `PENDING`(관리자 심사 대기) → 관리자 승인 → `VERIFIED` / 반려 → `REJECTED`(재시도 가능). **온보딩 진입은 `PENDING` 또는 `VERIFIED`에서 허용**(`UNVERIFIED`·`REJECTED`는 차단). 마스터 코드(`NTS_MASTER_BYPASS_CODE`)는 곧바로 `VERIFIED`. 등록증 원본 파일은 서버 볼륨에 저장하고 DB엔 경로만 둔다(민감정보, `security.md` §4.1). `uq_stores_business_no`는 NULL 다중 허용(MySQL)이라 미검증 매장 공존 가능.
+> **사업자 검증 상태(`business_status`) 흐름**: `UNVERIFIED`(초기) → NTS 즉시검증 통과 + 사업자등록증 업로드 → `PENDING`(관리자 심사 대기) → 관리자 승인 → `VERIFIED` / 반려 → `REJECTED`(재시도 가능). **온보딩 진입은 `PENDING` 또는 `VERIFIED`에서 허용**(`UNVERIFIED`·`REJECTED`는 차단). 마스터 코드(`NTS_MASTER_BYPASS_CODE`)는 곧바로 `VERIFIED`. 등록증 원본 파일은 서버 볼륨에 저장하고 DB엔 경로만 둔다(민감정보, `12_security.md` §4.1). `uq_stores_business_no`는 NULL 다중 허용(MySQL)이라 미검증 매장 공존 가능.
 
 ### 3.4 pos_connections
 
@@ -455,7 +455,7 @@ CREATE TABLE notifications (
 );
 ```
 
-> 인앱 알림 저장소. `feature_spec.md` §11 알림 정책 모두 본 테이블에 INSERT된다. Web Push 발송은 `push_subscriptions`를 참조해 BE Service가 비동기로 수행한다.
+> 인앱 알림 저장소. `04_feature_spec.md` §11 알림 정책 모두 본 테이블에 INSERT된다. Web Push 발송은 `push_subscriptions`를 참조해 BE Service가 비동기로 수행한다.
 
 ### 3.23 push_subscriptions
 

@@ -1,7 +1,7 @@
 """FastAPI application entry — Phase 2 BE bootstrap.
 
 Spec refs:
-  - docs/spec/07_backend/service_design.md §10 미들웨어 등록 순서
+  - docs/spec/09_service_design.md §10 미들웨어 등록 순서
   - docs/plan/be/phase_02_infra.md M2.B2
 """
 from __future__ import annotations
@@ -37,7 +37,7 @@ def create_app() -> FastAPI:
         default_response_class=ORJSONResponse,
     )
 
-    # service_design.md §10.1 등록 순서 (바깥 → 안쪽)
+    # 09_service_design.md §10.1 등록 순서 (바깥 → 안쪽)
     app.add_middleware(
         CORSMiddleware,
         allow_origins=settings.cors_origins_list,

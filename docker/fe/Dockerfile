@@ -1,4 +1,4 @@
-# FE 이미지 — frontend_design.md §1, plan/fe/phase_02_infra.md M2.F6.
+# FE 이미지 — 10_frontend_design.md §1, plan/fe/phase_02_infra.md M2.F6.
 # 멀티스테이지: node 22로 pnpm build → caddy:2-alpine 정적 서빙.
 # Build context: repo root (compose: context=.)
 

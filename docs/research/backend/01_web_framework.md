@@ -1,7 +1,7 @@
 # 웹 프레임워크
 
 > **카테고리**: BE HTTP 요청을 수신·라우팅하는 웹 프레임워크 후보 조사
-> **연결 spec**: `docs/spec/07_backend/service_design.md` §1 (FastAPI 확정)
+> **연결 spec**: `docs/spec/09_service_design.md` §1 (FastAPI 확정)
 
 ---
 
@@ -53,13 +53,13 @@
 
 | 기능 | 필수도 | 근거 |
 |------|-------|------|
-| async/await | **필수** | service_design.md 1장 — SQLAlchemy async·httpx·Playwright·Redis 모두 async |
-| Pydantic v2 | **필수** | api_spec.md 전체 Request/Response 구조가 Pydantic DTO 전제 |
-| OpenAPI 자동 | **필수** | api_spec.md 섹션 10 인터페이스 표준 — Swagger 자동 문서화 |
-| DI | **필수** | service_design.md 2~3장 Controller/Service/Model 계층 분리 |
+| async/await | **필수** | 09_service_design.md 1장 — SQLAlchemy async·httpx·Playwright·Redis 모두 async |
+| Pydantic v2 | **필수** | 07_api_spec.md 전체 Request/Response 구조가 Pydantic DTO 전제 |
+| OpenAPI 자동 | **필수** | 07_api_spec.md 섹션 10 인터페이스 표준 — Swagger 자동 문서화 |
+| DI | **필수** | 09_service_design.md 2~3장 Controller/Service/Model 계층 분리 |
 | multipart | **필수** | `POST /api/sales/upload` CSV 업로드 |
 | BackgroundTasks | 중요 | 단가 갱신·이메일·자동화 트리거 |
-| HttpOnly Cookie | **필수** | Refresh Token 30일 HttpOnly Cookie (security.md 2.3) |
+| HttpOnly Cookie | **필수** | Refresh Token 30일 HttpOnly Cookie (12_security.md 2.3) |
 | 응답 스트리밍 | 중요 | `GET /api/data/export` CSV 다운로드(2단계) |
 | WebSocket | 참고 | 현재 spec 미사용, 향후 인앱 알림 옵션 |
 
@@ -81,7 +81,7 @@
 | # | 후보 | 핵심 강점 |
 |---|------|---------|
 | 1 | FastAPI | 모든 9개 필수 항목 1급 네이티브. Pydantic v2 일체화·생태계 최강 |
-| 4 | Litestar | DTO·Repository·Channels 내장 → service_design.md 3계층 매핑 가장 매끄러움 |
+| 4 | Litestar | DTO·Repository·Channels 내장 → 09_service_design.md 3계층 매핑 가장 매끄러움 |
 | 5 | BlackSheep | Cython 라우터 가속. Pydantic·OpenAPI·DI 1급 |
 | 9 | Esmerald | Litestar 기반 풀스택. permission·국제화 통합 |
 
@@ -89,7 +89,7 @@
 
 ## 3. 2차 벤치마크 — 성능 (공개 자료 기반)
 
-> 1차 통과 4개 후보(FastAPI / Litestar / BlackSheep / Esmerald) 대상. **공개 벤치마크 자료**로 상대 처리량을 평가한다. 직접 실측은 본 research 단계의 범위가 아니며 — 본 §3.3에서 4개 모두 사주라 SLA(`performance.md` §1.1)를 여유 있게 충족하는 것이 자료만으로 결론지어지기 때문이다. 운영 후 실측 검증은 [구현 후 부하 테스트] 항목으로 별도 관리된다.
+> 1차 통과 4개 후보(FastAPI / Litestar / BlackSheep / Esmerald) 대상. **공개 벤치마크 자료**로 상대 처리량을 평가한다. 직접 실측은 본 research 단계의 범위가 아니며 — 본 §3.3에서 4개 모두 사주라 SLA(`13_performance.md` §1.1)를 여유 있게 충족하는 것이 자료만으로 결론지어지기 때문이다. 운영 후 실측 검증은 [구현 후 부하 테스트] 항목으로 별도 관리된다.
 
 ### 3.1 평가 지표 (공개 자료 기반)
 
@@ -138,7 +138,7 @@
 
 ### 3.3 사주라 SLA 충족 평가
 
-| SLA 항목 | 목표 (performance.md 1.1) | 4개 후보 평가 |
+| SLA 항목 | 목표 (13_performance.md 1.1) | 4개 후보 평가 |
 |----------|--------------------------|--------------|
 | 일반 API 응답 | ≤ 200ms | **모두 충족 가능** — 처리량이 수만 RPS이므로 200ms 초과 가능성 거의 없음 |
 | 캐시 hit 응답 | ≤ 300ms | 모두 충족 가능 |
@@ -170,14 +170,14 @@
 
 | 결정 사유 | 내용 |
 |----------|------|
-| 성능 충족 | 사주라 SLA(`performance.md` §1.1 일반 200 ms·캐시 hit 300 ms)를 여유 있게 충족 (§3.3 평가) |
-| Pydantic v2 일체화 | 타입 힌트 → 자동 검증·직렬화·OpenAPI 스키마 단일 생성. `api_spec.md` DTO 구조와 일치 |
+| 성능 충족 | 사주라 SLA(`13_performance.md` §1.1 일반 200 ms·캐시 hit 300 ms)를 여유 있게 충족 (§3.3 평가) |
+| Pydantic v2 일체화 | 타입 힌트 → 자동 검증·직렬화·OpenAPI 스키마 단일 생성. `07_api_spec.md` DTO 구조와 일치 |
 | 생태계 | Python 웹 프레임워크 PyPI 다운로드·GitHub stars 1위. 한국어 자료 풍부 → 1인 운영 디버깅 자료 확보 |
 | 학습 곡선 | BE 팀(2명) 온보딩 비용 최소 |
 | 처리량 이점 무력화 | BlackSheep 2.0~2.5x·Litestar 1.3~1.7x의 처리량 우위가 SLA 여유 안에서 사용자 체감되지 않음 → 의사결정 가치 미미 |
 | Esmerald 대비 | Litestar 기반이라 별도 후보로 둘 필요 약함 (`§3.4` 탈락 사유 참조) |
 
-> 본 결정은 spec(`service_design.md` §1)에 반영된다. PROGRESS.md §3 결정 이력 갱신 필요.
+> 본 결정은 spec(`09_service_design.md` §1)에 반영된다. PROGRESS.md §3 결정 이력 갱신 필요.
 
 ---
 
@@ -186,7 +186,7 @@
 > 1차 통과 4개 후보의 사용처·장점·단점·세부사항. 탈락 8개는 §2.3 사유로 대체.
 
 ### 5.1 FastAPI ✅
-- **사용처**: 모든 점주 API·AI Server 연동 API의 라우팅·요청 검증·응답 직렬화·OpenAPI 자동 문서화. service_design.md 섹션 1 확정.
+- **사용처**: 모든 점주 API·AI Server 연동 API의 라우팅·요청 검증·응답 직렬화·OpenAPI 자동 문서화. 09_service_design.md 섹션 1 확정.
 - **장점**:
   - Pydantic v2 통합으로 타입 힌트 → 자동 검증·직렬화·OpenAPI 스키마 일체화
   - async/await 1급 시민, `Depends` 기반 의존성 주입 표준

@@ -3,7 +3,7 @@ name = "sajura-be"
 version = "0.1.0"
 description = "사주라 Backend (FastAPI + SQLAlchemy async + Alembic)"
 requires-python = ">=3.12,<3.13"
-# Library set is the contract in docs/spec/07_backend/service_design.md §1.
+# Library set is the contract in docs/spec/09_service_design.md §1.
 # Phase 2 bootstrap intentionally pins the runtime essentials only; per-domain
 # libs (Authlib, Playwright, pywebpush, etc.) get added in their phase.
 dependencies = [

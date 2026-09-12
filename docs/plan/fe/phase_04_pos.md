@@ -25,7 +25,7 @@ CSV 관련 액션은 **설정 화면(M4.F1) 한 곳에 모은다**. 중복·빈�
 | M4.F1 설정 화면 | 연동 상태 + CSV 템플릿 다운로드 + 업로드 화면 진입 (CSV 액션 허브) |
 | M4.F2 업로드 화면 | 실제 파일 업로드·진행률·오류 표시 (M4.F1에서 진입) |
 
-> `feature_spec.md` §4.4의 "업로드 화면에서 템플릿 제공" 문구는 본 정합 후 **"설정 화면에서 다운로드 제공, 업로드 화면은 파일 업로드만 수행"**으로 SSOT 일원화 (PROGRESS 35차).
+> `04_feature_spec.md` §4.4의 "업로드 화면에서 템플릿 제공" 문구는 본 정합 후 **"설정 화면에서 다운로드 제공, 업로드 화면은 파일 업로드만 수행"**으로 SSOT 일원화 (PROGRESS 35차).
 
 ## 디자인 사전 합의 권장
 
@@ -34,7 +34,7 @@ CSV 관련 액션은 **설정 화면(M4.F1) 한 곳에 모은다**. 중복·빈�
 
 ## 참조
 
-- [frontend_design.md §5 화면 구성](../../spec/07_frontend/frontend_design.md)
+- [10_frontend_design.md §5 화면 구성](../../spec/10_frontend_design.md)
 - [PROGRESS.md §3 2026-05-16 CSV-only MVP 정책](../../../PROGRESS.md)
 
 ## Phase 통합 종료 조건 (M4)

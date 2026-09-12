@@ -1,4 +1,4 @@
-// Auth 메모리 스토어 — frontend_design.md §2 (LocalStorage·Cookie 금지).
+// Auth 메모리 스토어 — 10_frontend_design.md §2 (LocalStorage·Cookie 금지).
 import { create } from "zustand";
 
 interface AuthState {

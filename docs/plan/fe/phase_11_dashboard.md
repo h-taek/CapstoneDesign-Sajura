@@ -25,7 +25,7 @@
 
 ## 참조
 
-- [frontend_design.md §5 대시보드·알림](../../spec/07_frontend/frontend_design.md)
+- [10_frontend_design.md §5 대시보드·알림](../../spec/10_frontend_design.md)
 - [PROGRESS.md §3 2026-05-16 18차 A-1 폴링 5분 고정](../../../PROGRESS.md)
 
 ## Phase 통합 종료 조건 (M11)

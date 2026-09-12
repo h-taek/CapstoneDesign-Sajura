@@ -1,6 +1,6 @@
 # AI 모델링 데이터 카탈로그 — M6.A1
 
-> 수집 근거: `docs/spec/08_ai/ml_pipeline.md` §4 · `docs/plan/ai/phase_06_model.md` M6.A1
+> 수집 근거: `docs/spec/11_ai_spec.md` §4 · `docs/plan/ai/phase_06_model.md` M6.A1
 > 갱신: 2026-07-27 (M6.A2 EDA 완료 회차 — EDA 보고서: `../notebooks/01_eda.ipynb`)
 
 ## 폴더 구조·추적 정책
@@ -64,9 +64,9 @@
 >
 > **M6.A5 종료 판정**: 베이스라인 12개 후보 비교 완료(`../notebooks/04_baselines.ipynb`, 2026-07-27) — 승자 **LightGBM 비율 타깃 하이브리드**(log1p(y)−log1p(roll7) 편차 학습, 워밍업 NaN 라벨 명시 제거): 선택 5-fold에서 MA-7 대비 MAE -8.8%·naive-요일 대비 skill +23.1%, 봉인 test(2026-04) sMAPE 30.0%·MA-7 대비 -19.6%. 발견 ① 순정 GBM·SARIMA는 단순 7영업일 평균(MA-7)을 못 이김(일 매출 노이즈 지배) ② 같은 하이브리드 구조에서 GBM 3사 비교 — XGBoost +7.9%·CatBoost +9.9% 열세(둘 다 regime fold 취약) → LightGBM 확정. hold 3종(month·술비중·gap) 무익 → keep 20열 최종 확정. → **M6.A6 모델 선정 + model_spec §3 갱신(docs PR) 진입 가능**.
 >
-> **M6.A4 종료 판정**: 전처리 규칙 확정(`../data_prep/preprocess.py` SSOT + `../notebooks/03_preprocessing.ipynb` 근거, 2026-07-27) — ① 월 단위 walk-forward 6 fold(휴업 월 자동 배제, 최종 fold test 봉인) ② 유동인구 ffill+staleness(선형 보간은 누수라 금지)·기상 1건 선형 보간·워밍업 NaN 이원화 ③ 타깃 이상치 log1p IQR k=3.0 train-fit winsorize(현 데이터 개입 0건) ④ floating은 보간 후 ablation +1.2% 악화로 **모델 1군 제외 확정**(원본 확인 검수는 여전히 유효 — 재평가 트리거). spec `ml_pipeline.md` §6 반영은 docs PR로 진행. → **M6.A5 베이스라인 비교 진입 가능** (참조점: keep 20열 fold별 MAE — 03 노트북 로컬 출력).
+> **M6.A4 종료 판정**: 전처리 규칙 확정(`../data_prep/preprocess.py` SSOT + `../notebooks/03_preprocessing.ipynb` 근거, 2026-07-27) — ① 월 단위 walk-forward 6 fold(휴업 월 자동 배제, 최종 fold test 봉인) ② 유동인구 ffill+staleness(선형 보간은 누수라 금지)·기상 1건 선형 보간·워밍업 NaN 이원화 ③ 타깃 이상치 log1p IQR k=3.0 train-fit winsorize(현 데이터 개입 0건) ④ floating은 보간 후 ablation +1.2% 악화로 **모델 1군 제외 확정**(원본 확인 검수는 여전히 유효 — 재평가 트리거). spec `11_ai_spec.md` §6 반영은 docs PR로 진행. → **M6.A5 베이스라인 비교 진입 가능** (참조점: keep 20열 fold별 MAE — 03 노트북 로컬 출력).
 
 ## 전처리 원칙 (spec)
 
-- 결측 보간·이상치 임계값은 여기서 **처리하지 않는다** — M6.A4에서 train 구간 기준으로 확정 (`ml_pipeline.md` §6 누수 방지)
+- 결측 보간·이상치 임계값은 여기서 **처리하지 않는다** — M6.A4에서 train 구간 기준으로 확정 (`11_ai_spec.md` §6 누수 방지)
 - 적재 단계는 형식 통일(인코딩·컬럼명·타입)과 품질 실측까지만

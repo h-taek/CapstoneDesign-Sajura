@@ -1,7 +1,7 @@
 # 패키지 매니저·빌드·배포·CI
 
 > **카테고리**: JS 패키지 매니저, Node 버전, FE 빌드 산출물 배포 방식, 환경변수 주입, CI/CD 파이프라인 결정
-> **연결 spec**: `service_design.md` §1 GitHub Actions (BE CI)·§11 운영 토폴로지 (Caddy 정적 서빙), `mvp_scope.md` §3 (PWA 산출 → Caddy)
+> **연결 spec**: `09_service_design.md` §1 GitHub Actions (BE CI)·§11 운영 토폴로지 (Caddy 정적 서빙), `03_mvp_scope.md` §3 (PWA 산출 → Caddy)
 > **연결 backend research**: `docs/research/backend/10_deployment.md` (BE Docker·Compose·CI 결정)
 
 ---
@@ -25,7 +25,7 @@
 | Node 버전 | **Node 22 LTS** (`.nvmrc`·`engines` 명시) | §2.4 |
 | FE 빌드 산출 배포 | **Caddy 이미지 자체 빌드 — FE `dist/`를 `COPY`로 포함** (옵션 A) | §3.4 |
 | 환경변수 주입 | **빌드 시 `VITE_*` inline** (환경별 `.env.{staging,prod}`) | §4.3 |
-| CI/CD | **GitHub Actions 8단계** (BE 정합 — `service_design.md` §11.3) | §5.3 |
+| CI/CD | **GitHub Actions 8단계** (BE 정합 — `09_service_design.md` §11.3) | §5.3 |
 
 ---
 
@@ -115,7 +115,7 @@ Node 동봉으로 별도 설치 불필요. pnpm 도입 비용이 부담될 경�
 
 ### 3.1 결정 환경
 
-`service_design.md` §11.1 — Caddy(`caddy:alpine`)가 BE 프록시 + PWA 정적 파일 서빙 둘 다 담당. FE Vite 빌드 산출(`dist/`)을 어떻게 Caddy 컨테이너에 전달할지 결정 필요.
+`09_service_design.md` §11.1 — Caddy(`caddy:alpine`)가 BE 프록시 + PWA 정적 파일 서빙 둘 다 담당. FE Vite 빌드 산출(`dist/`)을 어떻게 Caddy 컨테이너에 전달할지 결정 필요.
 
 ### 3.2 후보 옵션
 
@@ -123,26 +123,26 @@ Node 동봉으로 별도 설치 불필요. pnpm 도입 비용이 부담될 경�
 |---|------|------|------|
 | A | Caddy 이미지 자체 빌드 + FE `dist/` COPY | `Dockerfile`에서 `caddy:alpine` + `COPY dist /var/www/pwa` | ✅ 이미지 단위 배포 — 롤백 단순, 운영 호스트 의존 없음 |
 | B | Caddy 공식 이미지 + 호스트 volume `dist/` 마운트 | `docker-compose.yml` `volumes: - ./dist:/var/www/pwa:ro` | △ 호스트 파일 시스템 의존, 롤백 시 dist도 복원 필요 |
-| C | 별도 nginx-fe 컨테이너 | Caddy는 BE 프록시만, fe-static은 nginx | ⛔ 운영 컨테이너 1개 추가 — `service_design.md` §11.1 6 서비스 구성 깸 |
+| C | 별도 nginx-fe 컨테이너 | Caddy는 BE 프록시만, fe-static은 nginx | ⛔ 운영 컨테이너 1개 추가 — `09_service_design.md` §11.1 6 서비스 구성 깸 |
 
 ### 3.3 판정 기준 및 탈락 사유
 
 | 기능 | 필수도 | 근거 |
 |------|-------|------|
 | 이미지 단위 배포 (atomic) | **필수** | 롤백·재현성 |
-| 운영 컨테이너 수 유지 | **필수** | `service_design.md` §11.1 6 서비스 구성 보존 |
+| 운영 컨테이너 수 유지 | **필수** | `09_service_design.md` §11.1 6 서비스 구성 보존 |
 | CI 빌드 → 이미지 push → 운영 pull 흐름 정합 | **필수** | BE GitHub Actions 정합 |
 
 **탈락 사유:**
 
 - **B (호스트 volume)** — 운영 호스트 파일 시스템에 dist를 두면 롤백 시 dist 폴더 단위 복원 필요·CI 이미지 push 모델과 부정합.
-- **C (별도 nginx-fe)** — 운영 컨테이너 1개 추가로 `service_design.md` §11.1 6 서비스 구성 깸. 7 서비스로 부풀림.
+- **C (별도 nginx-fe)** — 운영 컨테이너 1개 추가로 `09_service_design.md` §11.1 6 서비스 구성 깸. 7 서비스로 부풀림.
 
 ### 3.4 최종 선발
 
 | 역할 | 선택 | 결정 사유 |
 |------|------|---------|
-| **FE 빌드 산출 배포** | **옵션 A: Caddy 이미지 자체 빌드 + FE `dist/` COPY** ✅ | FE CI가 `pnpm build` → Caddy 이미지(`Dockerfile.caddy`)에 `dist/`를 COPY → GHCR push. 운영 호스트는 이미지 pull/restart만으로 FE+Caddy 동시 갱신. 롤백은 이미지 태그 교체 1회. `service_design.md` §11.1 caddy 행을 "자체 빌드"로 정정 필요 (§6.2) |
+| **FE 빌드 산출 배포** | **옵션 A: Caddy 이미지 자체 빌드 + FE `dist/` COPY** ✅ | FE CI가 `pnpm build` → Caddy 이미지(`Dockerfile.caddy`)에 `dist/`를 COPY → GHCR push. 운영 호스트는 이미지 pull/restart만으로 FE+Caddy 동시 갱신. 롤백은 이미지 태그 교체 1회. `09_service_design.md` §11.1 caddy 행을 "자체 빌드"로 정정 필요 (§6.2) |
 
 ### 3.5 권장 Dockerfile
 
@@ -186,7 +186,7 @@ COPY --from=builder /app/dist /var/www/pwa
 
 | 기능 | 필수도 | 근거 |
 |------|-------|------|
-| 운영·스테이징 분리 | **필수** | `service_design.md` §11.2 환경 분리 정합 |
+| 운영·스테이징 분리 | **필수** | `09_service_design.md` §11.2 환경 분리 정합 |
 | 단순성 | 중요 | 1인 운영 |
 | Sentry DSN·VAPID 공개 키 등 비밀번호 아닌 공개 키 inline 허용 | 자연 | 공개 키는 secret 아님 |
 
@@ -212,7 +212,7 @@ COPY --from=builder /app/dist /var/www/pwa
 
 ## 5. CI/CD
 
-### 5.1 BE 정합 (`service_design.md` §11.3 — 8단계)
+### 5.1 BE 정합 (`09_service_design.md` §11.3 — 8단계)
 
 BE GitHub Actions 8단계와 같은 구조로 FE 파이프라인 정의. CI 파일은 `.github/workflows/fe.yml` 분리.
 
@@ -312,7 +312,7 @@ jobs:
 
 ### 5.4 이미지 태그 정책
 
-BE 정합 (`service_design.md` §11.4):
+BE 정합 (`09_service_design.md` §11.4):
 
 | 환경 | 태그 |
 |------|---|
@@ -332,7 +332,7 @@ Sentry release tagging도 동일 `<commit-sha-short>` 사용 — `VITE_APP_VERSI
 |------|------|--------------|
 | 패키지 매니저 | **pnpm 9.x** | FE spec 신설 시 명시 |
 | Node 버전 | **Node 22 LTS** | FE spec 신설 시 명시 |
-| FE 빌드 산출 배포 | **Caddy 이미지 자체 빌드 + FE `dist/` COPY** | **`service_design.md` §11.1 caddy 행을 "자체 빌드 (Caddy + FE dist)"로 정정** (§6.2 참조) |
+| FE 빌드 산출 배포 | **Caddy 이미지 자체 빌드 + FE `dist/` COPY** | **`09_service_design.md` §11.1 caddy 행을 "자체 빌드 (Caddy + FE dist)"로 정정** (§6.2 참조) |
 | 환경변수 주입 | **빌드 시 `VITE_*` inline** | FE spec 신설 시 명시 |
 | CI/CD | **GitHub Actions 8단계** (`.github/workflows/fe.yml`) | FE spec 신설 시 명시. BE workflow와 분리 |
 
@@ -340,7 +340,7 @@ Sentry release tagging도 동일 `<commit-sha-short>` 사용 — `VITE_APP_VERSI
 
 | 갱신 대상 | 현재 | 정정 |
 |---------|------|------|
-| `docs/spec/07_backend/service_design.md` §11.1 caddy 행 이미지 | `caddy:alpine` | **자체 빌드 (`Dockerfile.caddy` — `caddy:2-alpine` 베이스 + FE `dist/` COPY)** |
+| `docs/spec/09_service_design.md` §11.1 caddy 행 이미지 | `caddy:alpine` | **자체 빌드 (`Dockerfile.caddy` — `caddy:2-alpine` 베이스 + FE `dist/` COPY)** |
 
 > 사유: FE 빌드 산출이 Caddy 이미지에 포함되어야 atomic 배포·롤백 가능. 호스트 volume·별도 컨테이너 대안은 §3.3에서 탈락.
 

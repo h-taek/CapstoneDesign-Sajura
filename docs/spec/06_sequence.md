@@ -26,7 +26,7 @@
 
 ## 2. 소셜 로그인 및 온보딩 시퀀스
 
-> 인증 방식: Authlib OAuth 2.0, Firebase 미사용. API 기준: api_spec.md 섹션 2
+> 인증 방식: Authlib OAuth 2.0, Firebase 미사용. API 기준: 07_api_spec.md 섹션 2
 
 ```mermaid
 sequenceDiagram
@@ -156,7 +156,7 @@ sequenceDiagram
 
 ## 4. 발주 확정 및 쿠팡 자동화 시퀀스
 
-> 발주 확정과 쿠팡 자동화는 별도 엔드포인트로 분리된다. api_spec.md 기준.
+> 발주 확정과 쿠팡 자동화는 별도 엔드포인트로 분리된다. 07_api_spec.md 기준.
 
 ```mermaid
 sequenceDiagram
@@ -211,7 +211,7 @@ sequenceDiagram
 
 ## 5. 야간 배치 파이프라인 시퀀스
 
-> 매일 02:00 실행. 각 단계 실패 시 3회 재시도 후 개발팀 Slack 알림. feature_spec.md 섹션 10.1 기준.
+> 매일 02:00 실행. 각 단계 실패 시 3회 재시도 후 개발팀 Slack 알림. 04_feature_spec.md 섹션 10.1 기준.
 
 ```mermaid
 sequenceDiagram

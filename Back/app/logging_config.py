@@ -1,4 +1,4 @@
-"""structlog 구성 — service_design.md §1 (structlog + asgi-correlation-id).
+"""structlog 구성 — 09_service_design.md §1 (structlog + asgi-correlation-id).
 
 운영은 JSON 렌더러, 개발은 rich Console 렌더러. 표준 logging bridge로
 SQLAlchemy/Uvicorn 로그도 동일 포맷으로 수집한다.

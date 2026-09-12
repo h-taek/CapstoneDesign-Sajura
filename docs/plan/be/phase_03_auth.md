@@ -31,9 +31,9 @@
 
 ## 참조
 
-- [feature_spec.md §1.1 OAuth 흐름](../../spec/03_feature_design/feature_spec.md)
-- [api_spec.md §2 auth](../../spec/05_api/api_spec.md)
-- [sequence.md §2 OAuth](../../spec/04_flow/sequence.md)
+- [04_feature_spec.md §1.1 OAuth 흐름](../../spec/04_feature_spec.md)
+- [07_api_spec.md §2 auth](../../spec/07_api_spec.md)
+- [06_sequence.md §2 OAuth](../../spec/06_sequence.md)
 
 ## Phase 통합 종료 조건 (M3)
 

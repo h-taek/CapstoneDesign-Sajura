@@ -9,7 +9,7 @@
 |---|---|---|---|
 | M2.B1 | Docker Compose 6 서비스 stack 기동 | `docker-compose.yml` (be·arq-worker·mysql·redis·n8n·caddy) | `docker compose up` → 6 컨테이너 healthy |
 | M2.B2 | FastAPI 베이스 프로젝트 셋업 | `pyproject.toml` (uv) + `app/main.py` + structlog·asgi-correlation-id·sentry-sdk 미들웨어 | `GET /health` 200 |
-| M2.B3 | Alembic 초기 마이그레이션 | `alembic/versions/0001_init.py` ([schema.md](../../spec/06_database/schema.md) 전체 테이블) | `alembic upgrade head` 무오류 |
+| M2.B3 | Alembic 초기 마이그레이션 | `alembic/versions/0001_init.py` ([08_schema.md](../../spec/08_schema.md) 전체 테이블) | `alembic upgrade head` 무오류 |
 | M2.B4 | pydantic-settings + .env 셋업 | `app/config.py` + `.env.example` (DB·Redis·OAuth·VAPID·Sentry) | 환경별 설정 분리 |
 
 ## 외부 의존

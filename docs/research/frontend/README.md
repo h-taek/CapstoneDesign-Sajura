@@ -3,12 +3,12 @@
 > **목적**: Frontend(React + PWA) 구현에 사용할 오픈소스·라이브러리·도구를 카테고리별로 결정한다.
 > **작성 패턴**: `docs/research/backend/`와 동일 — §0 카테고리 구성 → §x 1차/2차 벤치마크 → §x.4 최종 선발 → §x.5 보존 후보 → §통합 결정 → §후보 세부 → §비교 요약.
 > **연결 spec**:
-> - `docs/spec/03_feature_design/feature_spec.md` §12 (화면별 UI 구성)
-> - `docs/spec/04_flow/user_flow.md` (UX 흐름)
-> - `docs/spec/05_api/api_spec.md` (FE가 호출할 endpoint)
-> - `docs/spec/07_backend/service_design.md` §10 (미들웨어·CORS·Rate Limit), §11 (Caddy 정적 서빙)
-> - `docs/spec/09_nonfunctional/security.md` §2.3 (토큰 정책 — Access 메모리 / Refresh HttpOnly Cookie / Rotation)
-> - `docs/spec/02_mvp/mvp_scope.md` §3 (PWA + 푸시·인앱 알림 MVP 포함)
+> - `docs/spec/04_feature_spec.md` §12 (화면별 UI 구성)
+> - `docs/spec/05_user_flow.md` (UX 흐름)
+> - `docs/spec/07_api_spec.md` (FE가 호출할 endpoint)
+> - `docs/spec/09_service_design.md` §10 (미들웨어·CORS·Rate Limit), §11 (Caddy 정적 서빙)
+> - `docs/spec/12_security.md` §2.3 (토큰 정책 — Access 메모리 / Refresh HttpOnly Cookie / Rotation)
+> - `docs/spec/03_mvp_scope.md` §3 (PWA + 푸시·인앱 알림 MVP 포함)
 
 ---
 
@@ -44,10 +44,10 @@
 
 frontend 결정이 일정 규모 쌓이면 `docs/spec/07_frontend/` (또는 동일 수준 폴더) 도입을 검토한다. 현재는 frontend 관련 사실이 다음 위치에 분산되어 있다:
 
-- `service_design.md` §10 (미들웨어·CORS·Rate Limit — BE 측 정합)
-- `service_design.md` §11 (Caddy 정적 파일 서빙 — FE 산출 위치)
-- `feature_spec.md` §12 (화면별 UI 구성)
-- `security.md` §2.3 (토큰 정책 — FE 저장 위치 명시)
-- `api_spec.md` (FE가 호출할 endpoint 일체)
+- `09_service_design.md` §10 (미들웨어·CORS·Rate Limit — BE 측 정합)
+- `09_service_design.md` §11 (Caddy 정적 파일 서빙 — FE 산출 위치)
+- `04_feature_spec.md` §12 (화면별 UI 구성)
+- `12_security.md` §2.3 (토큰 정책 — FE 저장 위치 명시)
+- `07_api_spec.md` (FE가 호출할 endpoint 일체)
 
 → 신규 spec 폴더 도입은 frontend research 10개가 모두 결정된 다음 세션에 일괄 검토.

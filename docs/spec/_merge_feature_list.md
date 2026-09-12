@@ -46,7 +46,7 @@
 ### 2.4 소비기한 관리
 
 - 식자재 소비기한을 자동 관리한다.
-- D-3·D-1·초과 시점에 단계별 알림을 제공한다 (상세 정책: `feature_spec.md` §5).
+- D-3·D-1·초과 시점에 단계별 알림을 제공한다 (상세 정책: `04_feature_spec.md` §5).
 
 ### 2.5 POS 어댑터
 
@@ -72,7 +72,7 @@
 ### 인증/회원
 - Google / 카카오 로그인 모두 Backend가 자체 JWT 발급 (Access Token 1시간, Refresh Token 30일 HttpOnly Cookie, Rotation 적용)
 - 이메일 회원가입은 email·password·name만 받고, 소셜·이메일 계정 모두 가입 직후 사업자 검증 단계로 진입 (계정은 항상 생성됨)
-- 사업자 검증은 온보딩과 분리된 2단계 게이트(NTS 자동 + 관리자 승인 병행): ① 사업자번호 국세청 즉시 검증 ② 사업자등록증 업로드 → `PENDING` → 관리자 승인 → `VERIFIED`. `business_status`(UNVERIFIED/PENDING/VERIFIED/REJECTED)로 관리. **PENDING부터 온보딩 진입 허용**(1-B), 검증 실패·반려 시 계정 유지 + 재검증, 마스터 코드로 강제 패스 가능 (`security.md` §2.4)
+- 사업자 검증은 온보딩과 분리된 2단계 게이트(NTS 자동 + 관리자 승인 병행): ① 사업자번호 국세청 즉시 검증 ② 사업자등록증 업로드 → `PENDING` → 관리자 승인 → `VERIFIED`. `business_status`(UNVERIFIED/PENDING/VERIFIED/REJECTED)로 관리. **PENDING부터 온보딩 진입 허용**(1-B), 검증 실패·반려 시 계정 유지 + 재검증, 마스터 코드로 강제 패스 가능 (`12_security.md` §2.4)
 - 관리자(`users.role=ADMIN`)는 `/admin` 심사 큐에서 등록증을 보고 승인/반려 (최소 기능, 사용자·매장 종합 관리도구는 [후속])
 - 미검증·온보딩 미완료 시 재접속해도 검증/초기 설정 화면으로 강제 이동 (`business_status`·`onboarding_completed` 관리)
 - 매장 정보 입력 항목: 사업자등록번호, 매장명, 업종, 연락처, 주소, 매장 규모 구간, 운영 형태 (전체 필수)

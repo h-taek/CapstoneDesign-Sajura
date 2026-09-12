@@ -19,7 +19,7 @@
 
 ## 참조
 
-- [api_spec.md §6 forecast / §7 orders](../../spec/05_api/api_spec.md)
+- [07_api_spec.md §6 forecast / §7 orders](../../spec/07_api_spec.md)
 - [HANDOFF.md AI 의존성 ①·④](../../../HANDOFF.md)
 
 ## Phase 통합 종료 조건 (M9)

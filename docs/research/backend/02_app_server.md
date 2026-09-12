@@ -1,7 +1,7 @@
 # 애플리케이션 서버
 
 > **카테고리**: WSGI/ASGI/RSGI 프로토콜로 HTTP를 수신해 프레임워크와 연결하는 서버 후보 조사
-> **연결 spec**: `docs/spec/07_backend/service_design.md` §1
+> **연결 spec**: `docs/spec/09_service_design.md` §1
 
 ---
 
@@ -52,7 +52,7 @@ ASGI 서버 5개 + WSGI 서버 7개 = **총 12개**.
 
 | 기능 | 필수도 | 근거 |
 |------|-------|------|
-| ASGI 지원 | **필수** | FastAPI(`01_web_framework.md` §4 확정)는 ASGI 프레임워크. service_design.md 섹션 1. WSGI 단독 서버는 본체 운영 불가 |
+| ASGI 지원 | **필수** | FastAPI(`01_web_framework.md` §4 확정)는 ASGI 프레임워크. 09_service_design.md 섹션 1. WSGI 단독 서버는 본체 운영 불가 |
 
 **판정 룰**: ASGI 미지원 → 탈락.
 
@@ -134,7 +134,7 @@ WSGI 단독 서버 7개는 Flask·Django 등 WSGI 프레임워크 운영용으�
 
 | 결정 사유 | 내용 |
 |----------|------|
-| FastAPI 표준 조합 | encode·Gunicorn 공식 문서가 권장하는 ASGI 운영 패턴. 사주라 spec(`service_design.md` §1)에 FastAPI는 확정·Uvicorn은 미기재 상태 → 본 조사로 확정 |
+| FastAPI 표준 조합 | encode·Gunicorn 공식 문서가 권장하는 ASGI 운영 패턴. 사주라 spec(`09_service_design.md` §1)에 FastAPI는 확정·Uvicorn은 미기재 상태 → 본 조사로 확정 |
 | 프로세스 관리 | Gunicorn의 preload·timeout·max-requests·graceful restart로 Docker PID 1 안정 운영 |
 | HTTP/2 무관 | `03_reverse_proxy.md`가 외부 HTTP/2/3 종료 담당 |
 | 성숙도 | encode·Benoit Chesneau 운영·문서 풍부, 한국어 자료 다수 |
@@ -142,7 +142,7 @@ WSGI 단독 서버 7개는 Flask·Django 등 WSGI 프레임워크 운영용으�
 
 ### 4.1 워커 수 산정
 
-**진단**: 사주라 BE는 명확히 **I/O bound** (MySQL aiomysql · Redis · httpx(AI Server) · Playwright(쿠팡)). CPU 집약 작업(ML 학습·추론)은 `performance.md` §2 분리 배포 원칙에 따라 별도 AI Server로 위임.
+**진단**: 사주라 BE는 명확히 **I/O bound** (MySQL aiomysql · Redis · httpx(AI Server) · Playwright(쿠팡)). CPU 집약 작업(ML 학습·추론)은 `13_performance.md` §2 분리 배포 원칙에 따라 별도 AI Server로 위임.
 
 → Gunicorn 공식 권장 공식 **`workers = (2 × cores) + 1`** 을 상한으로 두되, **메모리 제약**(Playwright Chromium peak 700–900 MB/워커)이 실질적 상한.
 
@@ -180,7 +180,7 @@ WSGI 단독 서버 7개는 Flask·Django 등 WSGI 프레임워크 운영용으�
 | 지표 | 임계치 | 근거 |
 |------|------|------|
 | 평균 RPS | ≥ 200 req/s (지속) | MVP 50매장 가정 RPS의 10배. Uvicorn worker 처리량 여유 소진 시점 |
-| API p95 응답 | > 200 ms 지속 (5분 평균) | `performance.md` §1.1 일반 API SLA 위반 |
+| API p95 응답 | > 200 ms 지속 (5분 평균) | `13_performance.md` §1.1 일반 API SLA 위반 |
 | 워커 CPU 사용률 | 평균 > 70% (전체 워커) | Python GIL 한계 접근 신호 |
 | 메모리 압박 | macOS Memory Pressure 노란색 빈발 | swap 유입으로 응답 지연 |
 
@@ -188,14 +188,14 @@ WSGI 단독 서버 7개는 Flask·Django 등 WSGI 프레임워크 운영용으�
 
 ### 4.3 운영 옵션 권장값
 
-> Gunicorn + UvicornWorker 운영 시 적용할 옵션 정량값. spec(`service_design.md` §1·`performance.md`) 의존성과 함께 정리.
+> Gunicorn + UvicornWorker 운영 시 적용할 옵션 정량값. spec(`09_service_design.md` §1·`13_performance.md`) 의존성과 함께 정리.
 
 | 옵션 | 권장값 | 사주라 적용 근거 |
 |------|------|---------------|
 | `-k uvicorn.workers.UvicornWorker` | 고정 | FastAPI(ASGI) 실행에 필수 |
 | `--workers` | 4 (MVP) | §4.1 산정 |
 | `--bind` | `0.0.0.0:8000` | Caddy → 내부 포트 |
-| `--timeout` | **60** | Playwright 쿠팡 자동화는 5~60초 가능 (`feature_spec.md` §9). 일반 API는 200ms 안 끝나므로 영향 없음. 60초 초과 시 워커 SIGKILL |
+| `--timeout` | **60** | Playwright 쿠팡 자동화는 5~60초 가능 (`04_feature_spec.md` §9). 일반 API는 200ms 안 끝나므로 영향 없음. 60초 초과 시 워커 SIGKILL |
 | `--graceful-timeout` | **30** | Docker `stop_grace_period` 기본 30초에 정합. SIGTERM 받으면 진행 중 요청 완결 후 종료 |
 | `--keepalive` | **5** | Caddy(`03_reverse_proxy.md`)와 HTTP/1.1 upstream keep-alive. 너무 길면 idle 워커 점유, 짧으면 핸드셰이크 비용 |
 | `--max-requests` | **1000** | 워커 1000요청 처리 후 자동 재시작. SQLAlchemy 커서·Playwright Chromium 메모리 누수 방어 |

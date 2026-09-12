@@ -1,6 +1,6 @@
 """전처리 규칙 SSOT — M6.A4 확정 (근거·검증: notebooks/03_preprocessing.ipynb).
 
-`ml_pipeline.md` §6의 "별도 확정 예정" 항목을 채우는 규칙 모음.
+`11_ai_spec.md` §6의 "별도 확정 예정" 항목을 채우는 규칙 모음.
 features_build.py 산출(features_daily)은 원본 실측 그대로 두고,
 보간·이상치·fold 분할은 전부 여기서 — 학습(M6.A5~) 직전에만 적용한다.
 

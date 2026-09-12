@@ -1,4 +1,4 @@
-# Caddy 이미지 — service_design.md §11.1 (자체 빌드, FE dist COPY 자리는 후속 phase에서)
+# Caddy 이미지 — 09_service_design.md §11.1 (자체 빌드, FE dist COPY 자리는 후속 phase에서)
 FROM caddy:2-alpine
 
 COPY docker/caddy/Caddyfile /etc/caddy/Caddyfile

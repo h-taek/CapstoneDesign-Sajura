@@ -11,7 +11,7 @@
 
 ### 2.1 소셜 로그인 (Google / 카카오)
 
-> 인증 흐름 상세: feature_spec.md 섹션 1.1
+> 인증 흐름 상세: 04_feature_spec.md 섹션 1.1
 
 - Google과 카카오 모두 **Authlib 라이브러리로 Backend에서 OAuth 2.0 흐름을 처리**한다. Firebase SDK 미사용.
 - Frontend는 로그인 버튼 클릭 시 Backend의 인가 URL(`GET /api/auth/login/google`, `GET /api/auth/login/kakao`)로 리다이렉트만 수행한다.
@@ -25,7 +25,7 @@
 
 ### 2.3 토큰 정책
 
-> JWT 유효기간 기준: feature_spec.md 섹션 1.3 / 토큰 DB 스키마: schema.md 3.2
+> JWT 유효기간 기준: 04_feature_spec.md 섹션 1.3 / 토큰 DB 스키마: 08_schema.md 3.2
 
 **토큰의 역할**
 
@@ -125,11 +125,11 @@ Rotation은 Refresh Token 자체가 탈취된 경우에 유효하다. 탈취된 
 
 - 백업 데이터에도 동일 암호화 정책을 적용한다.
 - 전송 구간에는 TLS 1.3을 적용한다.
-- TLS 종료는 외부 엣지(Caddy v2)에서 수행한다. 내부 BE upstream은 HTTP/1.1 평문이며 같은 호스트 또는 컨테이너 네트워크 내부로 한정한다. (구성 상세: `service_design.md` §1, `docs/research/backend/03_reverse_proxy.md` §4)
+- TLS 종료는 외부 엣지(Caddy v2)에서 수행한다. 내부 BE upstream은 HTTP/1.1 평문이며 같은 호스트 또는 컨테이너 네트워크 내부로 한정한다. (구성 상세: `09_service_design.md` §1, `docs/research/backend/03_reverse_proxy.md` §4)
 
 ### 4.1 저장 암호화 적용 대상
 
-> 컬럼별 적용 방식 원본: schema.md 인덱스 설계 요약
+> 컬럼별 적용 방식 원본: 08_schema.md 인덱스 설계 요약
 
 암호화 적용 기준: 유출 시 외부 서비스에 직접 피해를 줄 수 있는 자격증명, 또는 원문 복구가 불가능해야 하는 값.
 
@@ -169,7 +169,7 @@ Rotation은 Refresh Token 자체가 탈취된 경우에 유효하다. 탈취된 
 
 - 직원 계정·세분화된 권한이 필요하면 RBAC 매트릭스로 역할별 권한을 더 나눈다.
 
-> 기준: requirements.md 섹션 4 보안 요구사항
+> 기준: 01_requirements.md 섹션 4 보안 요구사항
 
 ---
 
@@ -177,7 +177,7 @@ Rotation은 Refresh Token 자체가 탈취된 경우에 유효하다. 탈취된 
 
 **현재 적용됨.**
 
-> DB 계정 권한 상세: schema.md 섹션 5
+> DB 계정 권한 상세: 08_schema.md 섹션 5
 
 | 계정 | 용도 | 접근 방식 |
 |------|------|----------|
@@ -194,7 +194,7 @@ Rotation은 Refresh Token 자체가 탈취된 경우에 유효하다. 탈취된 
 
 ### 5.3 감사 로그
 
-> 각 테이블 스키마 상세: schema.md 해당 섹션
+> 각 테이블 스키마 상세: 08_schema.md 해당 섹션
 
 | 테이블 | 기록 내용 | 추적 항목 |
 |--------|----------|----------|
@@ -209,12 +209,12 @@ Rotation은 Refresh Token 자체가 탈취된 경우에 유효하다. 탈취된 
 |------|------|
 | 보관 기간 | 1년 (개인정보보호법 일반 권장 + 디스크 부담 적정) |
 | 보관 초과 처리 | 매월 1회 배치로 1년 초과 행 archive(cold storage 이전 또는 삭제) |
-| 조회 권한 | `ops_readonly` 계정만 (`schema.md` §5) — VPN 경유 필수 |
+| 조회 권한 | `ops_readonly` 계정만 (`08_schema.md` §5) — VPN 경유 필수 |
 | 무결성 | DB append-only(INSERT only) + 정기 백업. 해시 체인 등 추가 무결성 메커니즘은 운영 부담 대비 가치 작아 MVP 미적용 |
 
 ## 6. 결제 및 외부 거래
 
-- 실제 결제는 쿠팡에서 진행한다. 사주라는 Playwright로 쿠팡 장바구니에 품목을 담을 뿐 결제 단계는 점주가 쿠팡에서 직접 수행한다 (`feature_spec.md` §7).
+- 실제 결제는 쿠팡에서 진행한다. 사주라는 Playwright로 쿠팡 장바구니에 품목을 담을 뿐 결제 단계는 점주가 쿠팡에서 직접 수행한다 (`04_feature_spec.md` §7).
 - 카드·결제수단 정보는 사주라 서버를 경유하지 않고, 저장하지도 않는다.
 - 사주라 서버에는 결제 관련 토큰·식별자를 보관하지 않는다 (PG 연동 없음).
 - 일정 금액 이상의 발주에 대한 추가 인증은 쿠팡 결제 단계에서 쿠팡 정책에 따라 처리된다.

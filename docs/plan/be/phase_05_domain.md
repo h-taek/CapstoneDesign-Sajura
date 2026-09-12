@@ -19,7 +19,7 @@
 
 ## 참조
 
-- [service_design.md MenuService·InventoryService·SaleService](../../spec/07_backend/service_design.md)
+- [09_service_design.md MenuService·InventoryService·SaleService](../../spec/09_service_design.md)
 - [PROGRESS.md §3 2026-05-16 스케줄러 책임 분리 (n8n vs ARQ)](../../../PROGRESS.md)
 
 ## Phase 통합 종료 조건 (M5)

@@ -1,4 +1,4 @@
-// HTTP 클라이언트 — frontend_design.md §1 (ky 1.x) + §2 (401 단일 refresh 인터셉터).
+// HTTP 클라이언트 — 10_frontend_design.md §1 (ky 1.x) + §2 (401 단일 refresh 인터셉터).
 import ky from "ky";
 import { useAuthStore } from "./auth-store";
 

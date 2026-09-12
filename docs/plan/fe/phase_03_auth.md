@@ -18,7 +18,7 @@
 | M3.F9 | **사업자 검증 화면 (온보딩 게이트)** | `routes/verify-business.tsx` 신설(사업자번호 입력·마스크 + 사업자등록증 파일 업로드, `POST /api/store/business/verify` multipart) + 가드를 `business_status`(UNVERIFIED·REJECTED→`/verify-business`, PENDING·VERIFIED→온보딩 허용)로 전환 + 미등록/휴폐업/반려 사유 분기 | 미검증 온보딩 차단 + 업로드→PENDING→온보딩 진입 E2E |
 | M3.F10 | **관리자 심사 화면 (최소)** | `routes/admin/verifications.tsx` 신설(PENDING 목록·등록증 미리보기·승인/반려) + `role=ADMIN` 가드 + `/api/admin/*` 연동 | 비ADMIN 접근 차단 + 승인/반려 후 목록 갱신 E2E. 종합 관리도구는 [후속] |
 
-> **M3.F8·F9·F10 사유**: 사업자 검증을 회원가입에서 분리해 **온보딩 진입 전 독립 게이트(`/verify-business`)**로 두고, NTS 자동 조회 + 사업자등록증 업로드 + 관리자 승인(`/admin`) 2단계로 소유권까지 확인 — 소셜·이메일 공통. PENDING부터 온보딩 허용(1-B). 상세: `feature_spec.md` §1.4, `api_spec.md` §3, `security.md` §2.4·§4.2·§5.1.
+> **M3.F8·F9·F10 사유**: 사업자 검증을 회원가입에서 분리해 **온보딩 진입 전 독립 게이트(`/verify-business`)**로 두고, NTS 자동 조회 + 사업자등록증 업로드 + 관리자 승인(`/admin`) 2단계로 소유권까지 확인 — 소셜·이메일 공통. PENDING부터 온보딩 허용(1-B). 상세: `04_feature_spec.md` §1.4, `07_api_spec.md` §3, `12_security.md` §2.4·§4.2·§5.1.
 >
 > **구현 순서 (plan-eng-review 후속)**: M3.F8·F9(점주 측)=PR-A 먼저, M3.F10(관리자 화면)=PR-B 나중. BE PR-A/PR-B와 짝. F9 가드는 `business_status` 4값 기준으로 전환.
 
@@ -28,7 +28,7 @@
 
 ## 참조
 
-- [frontend_design.md §3 인증·라우팅](../../spec/07_frontend/frontend_design.md)
+- [10_frontend_design.md §3 인증·라우팅](../../spec/10_frontend_design.md)
 - [PROGRESS.md §3 2026-05-16 18차 A-4 OAuth callback 302 redirect](../../../PROGRESS.md)
 
 ## Phase 통합 종료 조건 (M3)

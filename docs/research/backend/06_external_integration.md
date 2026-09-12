@@ -1,7 +1,7 @@
 # 외부 연동 (HTTP 클라이언트 · 브라우저 자동화 · 알림)
 
 > **카테고리**: 외부 API 호출·재시도·차단기, 쿠팡 브라우저 자동화·정적 파싱, 알림 채널(Slack·Web Push·이메일·인앱) 라이브러리 결정
-> **연결 spec**: `docs/spec/07_backend/service_design.md` §1, `docs/spec/03_feature_design/feature_spec.md` §9·§11, `docs/spec/09_nonfunctional/security.md`
+> **연결 spec**: `docs/spec/09_service_design.md` §1, `docs/spec/04_feature_spec.md` §9·§11, `docs/spec/12_security.md`
 
 ---
 
@@ -20,16 +20,16 @@
 
 | 라이브러리 | 카테고리 | 결정 근거 위치 | spec 반영 위치 |
 |----------|---------|--------------|--------------|
-| httpx | HTTP 클라이언트 | §1.2 + §1.4 | `service_design.md` §1 (기존) |
-| tenacity | 재시도 | §1.2 + §1.4 | `service_design.md` §1 (신규) |
-| aiobreaker | 차단기 | §1.2 + §1.4 | `service_design.md` §1 (신규) |
-| Playwright | 브라우저 자동화 | §2.2 + §2.4 | `service_design.md` §1 (기존) |
-| BeautifulSoup4 + lxml | 정적 파싱 | §2.2 + §2.4 | `service_design.md` §1 (신규) |
-| slack_sdk | Slack 운영 알림 | §3.2 + §3.4 | `service_design.md` §1 (신규) |
-| pywebpush | Web Push (점주) | §3.2 + §3.4 | `service_design.md` §1 (신규) + `schema.md` `push_subscriptions` 신설 |
-| fastapi-mail | 이메일 (탈퇴 증빙) | §3.2 + §3.4 | `service_design.md` §1 (신규) |
+| httpx | HTTP 클라이언트 | §1.2 + §1.4 | `09_service_design.md` §1 (기존) |
+| tenacity | 재시도 | §1.2 + §1.4 | `09_service_design.md` §1 (신규) |
+| aiobreaker | 차단기 | §1.2 + §1.4 | `09_service_design.md` §1 (신규) |
+| Playwright | 브라우저 자동화 | §2.2 + §2.4 | `09_service_design.md` §1 (기존) |
+| BeautifulSoup4 + lxml | 정적 파싱 | §2.2 + §2.4 | `09_service_design.md` §1 (신규) |
+| slack_sdk | Slack 운영 알림 | §3.2 + §3.4 | `09_service_design.md` §1 (신규) |
+| pywebpush | Web Push (점주) | §3.2 + §3.4 | `09_service_design.md` §1 (신규) + `08_schema.md` `push_subscriptions` 신설 |
+| fastapi-mail | 이메일 (탈퇴 증빙) | §3.2 + §3.4 | `09_service_design.md` §1 (신규) |
 
-> 인앱 알림(점주 푸시 동반)은 BE가 `notifications` 테이블에 INSERT하고 Frontend가 조회하는 흐름이며 별도 라이브러리 미사용. `schema.md` `notifications` 신설.
+> 인앱 알림(점주 푸시 동반)은 BE가 `notifications` 테이블에 INSERT하고 Frontend가 조회하는 흐름이며 별도 라이브러리 미사용. `08_schema.md` `notifications` 신설.
 
 ---
 
@@ -69,9 +69,9 @@ HTTP 클라이언트 3개 + 재시도 2개 + 차단기 1개 = **총 6개**.
 
 | 기능 | 필수도 | 근거 |
 |------|-------|------|
-| async/await | **필수** | `02_app_server.md` §4.1 I/O bound, `service_design.md` §1 async 일관성 |
+| async/await | **필수** | `02_app_server.md` §4.1 I/O bound, `09_service_design.md` §1 async 일관성 |
 | 연결 풀·타임아웃 세밀 제어 | **필수** | AI Server / 국세청 / 외부 공공 API 호출 SLA 보장 |
-| 지수 백오프 + jitter | **필수** | `feature_spec.md` §10 파이프라인 3회 재시도 |
+| 지수 백오프 + jitter | **필수** | `04_feature_spec.md` §10 파이프라인 3회 재시도 |
 | 차단기 half-open 회복 | **필수** | AI Server 다운 시 cascade 실패 방지 후 자동 회복 |
 | FastAPI 통합 | **필수** | `01_web_framework.md` §4 결정과 정합 |
 
@@ -86,7 +86,7 @@ HTTP 클라이언트 3개 + 재시도 2개 + 차단기 1개 = **총 6개**.
 | 역할 | 선택 | 결정 사유 |
 |------|------|---------|
 | **HTTP 클라이언트** | **httpx (async)** ✅ | `httpx.AsyncClient`로 AI Server·국세청·외부 공공 API 통합 호출. requests 호환 API로 sync 스크립트(Alembic·시드)는 `httpx.Client`로 단일 라이브러리 운영. 연결 풀·timeout(connect/read/write/pool 분리)·transport 커스텀(인터셉트) 지원 |
-| **재시도** | **tenacity** ✅ | `@retry`·`Retrying`·`AsyncRetrying` 데코레이터·context 양식 일체. `stop_after_attempt(3)` + `wait_exponential_jitter(initial=1, max=10)` 패턴으로 `feature_spec.md` §10 "3회 재시도" 정확 매핑. retry 조건(예외 타입·HTTP 상태) 세밀 분리 |
+| **재시도** | **tenacity** ✅ | `@retry`·`Retrying`·`AsyncRetrying` 데코레이터·context 양식 일체. `stop_after_attempt(3)` + `wait_exponential_jitter(initial=1, max=10)` 패턴으로 `04_feature_spec.md` §10 "3회 재시도" 정확 매핑. retry 조건(예외 타입·HTTP 상태) 세밀 분리 |
 | **차단기** | **aiobreaker** ✅ | async circuit breaker. `CLOSED → OPEN → HALF_OPEN` 자동 회복. AI Server 호출(`AIServerClient`)에 적용해 다운 시 빠른 503 반환, half-open 시점에 1건 시도 회복 |
 
 ---
@@ -128,7 +128,7 @@ HTTP 클라이언트 3개 + 재시도 2개 + 차단기 1개 = **총 6개**.
 
 | 기능 | 필수도 | 근거 |
 |------|-------|------|
-| async API | **필수** | `service_design.md` §1 async 일관성 |
+| async API | **필수** | `09_service_design.md` §1 async 일관성 |
 | auto-wait · 셀렉터 | **필수** | 쿠팡 페이지 동적 렌더링·SPA 패턴 |
 | 네트워크 인터셉트 | **필수** | 단가 조회 시 XHR 응답 직접 수집 가능 |
 | Docker 친화 | **필수** | `02_app_server.md` 환경(Mac mini + Docker) |
@@ -147,7 +147,7 @@ HTTP 클라이언트 3개 + 재시도 2개 + 차단기 1개 = **총 6개**.
 
 | 역할 | 선택 | 결정 사유 |
 |------|------|---------|
-| **자동화 본체** | **Playwright (async, Chromium)** ✅ | `async_playwright()` + Chromium 단일 브라우저. auto-wait·셀렉터·네트워크 인터셉트 지원. `feature_spec.md` §9 쿠팡 자동화·단가 조회 표준 |
+| **자동화 본체** | **Playwright (async, Chromium)** ✅ | `async_playwright()` + Chromium 단일 브라우저. auto-wait·셀렉터·네트워크 인터셉트 지원. `04_feature_spec.md` §9 쿠팡 자동화·단가 조회 표준 |
 | **정적 파싱** | **BeautifulSoup4 + lxml** ✅ | Playwright `page.content()` HTML → `BeautifulSoup(html, 'lxml')` 셀렉터로 가벼운 파싱. lxml 파서가 빠르고 정확 |
 
 > Firefox/WebKit 미사용. Chromium 단일로 운영 → Docker 이미지 크기 절감, 셀렉터 호환성 단일 검증.
@@ -189,14 +189,14 @@ Slack 2개 + 푸시 3개 + 이메일 2개 + 모바일 메시지 1개 = **총 8�
 
 ### 3.2 1차 벤치마크 — 필수 기능 (채널별)
 
-**Slack** — 파이프라인 실패(개발팀) 알림 (`feature_spec.md` §11)
+**Slack** — 파이프라인 실패(개발팀) 알림 (`04_feature_spec.md` §11)
 
 | # | 후보 | Webhook 단방향 | async | 운영 부담 | 결과 |
 |---|------|:------------:|:-----:|:-------:|:----|
 | 1 | slack_sdk | ◎ | ◎(AsyncWebhookClient) | 낮음 | ✅ **통과 (Slack)** |
 | 2 | slack-bolt | (양방향) | O | 중간(앱 등록·이벤트 처리) | ⛔ (양방향 봇 불필요) |
 
-**Web Push** — 점주 푸시 알림 (`feature_spec.md` §11, PWA)
+**Web Push** — 점주 푸시 알림 (`04_feature_spec.md` §11, PWA)
 
 | # | 후보 | VAPID 표준 | iOS Safari | Google 비종속 | 운영 부담 | 결과 |
 |---|------|:--------:|:--------:|:----------:|:-------:|:----|
@@ -204,7 +204,7 @@ Slack 2개 + 푸시 3개 + 이메일 2개 + 모바일 메시지 1개 = **총 8�
 | 4 | pywebpush | ◎ | O(16.4+) | ◎ | 낮음(라이브러리 + VAPID 키) | ✅ **통과 (Web Push)** |
 | 5 | OneSignal | △(자체 SDK) | O | ⛔(SaaS) | 매니지드 | ⛔ |
 
-**이메일** — 회원 탈퇴 증빙·파기 통보 (`security.md` §8)
+**이메일** — 회원 탈퇴 증빙·파기 통보 (`12_security.md` §8)
 
 | # | 후보 | SMTP 추상 | Jinja 템플릿 | FastAPI 통합 | MVP 비용 | 결과 |
 |---|------|:--------:|:-----------:|:-----------:|:-------:|:----|
@@ -221,10 +221,10 @@ Slack 2개 + 푸시 3개 + 이메일 2개 + 모바일 메시지 1개 = **총 8�
 
 | 채널 | 필수도 | 근거 |
 |------|-------|------|
-| Slack (개발팀) | **필수** | `feature_spec.md` §11 파이프라인 실패 알림 |
-| Web Push (점주) | **필수** | `feature_spec.md` §11 + `mvp_scope.md` §3 "앱 내 알림(푸시 + 인앱)" |
-| 이메일 (탈퇴 증빙) | **필수** | `security.md` §8 "파기 완료 시 이메일로 증빙 발송" |
-| 인앱 알림 (점주) | **필수** | `feature_spec.md` §11 |
+| Slack (개발팀) | **필수** | `04_feature_spec.md` §11 파이프라인 실패 알림 |
+| Web Push (점주) | **필수** | `04_feature_spec.md` §11 + `03_mvp_scope.md` §3 "앱 내 알림(푸시 + 인앱)" |
+| 이메일 (탈퇴 증빙) | **필수** | `12_security.md` §8 "파기 완료 시 이메일로 증빙 발송" |
+| 인앱 알림 (점주) | **필수** | `04_feature_spec.md` §11 |
 | 카카오 알림톡 | 사용 안 함 (MVP) | 비용·심사 부담. PWA Web Push로 모바일 즉시성 일부 대체 |
 
 **탈락 사유:**
@@ -246,7 +246,7 @@ Slack 2개 + 푸시 3개 + 이메일 2개 + 모바일 메시지 1개 = **총 8�
 
 ### 3.5 알림 발송 흐름 (확정)
 
-> 알림 도메인은 BE에 응집된다. `NotificationService.create_and_push`(`service_design.md` §4)가 인앱(`notifications` INSERT) + Web Push(pywebpush)를 일관 처리한다. n8n은 AI 파이프라인 종료 시점에 BE API를 호출하여 알림을 트리거할 뿐, DB 직접 INSERT를 수행하지 않는다.
+> 알림 도메인은 BE에 응집된다. `NotificationService.create_and_push`(`09_service_design.md` §4)가 인앱(`notifications` INSERT) + Web Push(pywebpush)를 일관 처리한다. n8n은 AI 파이프라인 종료 시점에 BE API를 호출하여 알림을 트리거할 뿐, DB 직접 INSERT를 수행하지 않는다.
 
 | 알림 상황 | 트리거 | 처리 |
 |---------|------|------|
@@ -260,7 +260,7 @@ Slack 2개 + 푸시 3개 + 이메일 2개 + 모바일 메시지 1개 = **총 8�
 > 핵심 원칙:
 > - **점주 대상 알림**(인앱·Web Push)은 항상 BE `NotificationService.create_and_push`로 일관 처리
 > - **개발팀 알림**(Slack)만 n8n에서 직접 발송 — AI 파이프라인 실패 알림은 BE 도메인과 무관
-> - n8n은 DB `notifications` 테이블을 직접 INSERT하지 않는다 (`schema.md` §5 n8n_user 권한)
+> - n8n은 DB `notifications` 테이블을 직접 INSERT하지 않는다 (`08_schema.md` §5 n8n_user 권한)
 
 ### 3.6 보존 후보 (카카오 알림톡)
 
@@ -278,30 +278,30 @@ Slack 2개 + 푸시 3개 + 이메일 2개 + 모바일 메시지 1개 = **총 8�
 
 ## 4. 통합 최종 결정 (spec 반영)
 
-본 research가 결정한 라이브러리는 `service_design.md` §1에 반영된다. 라이브러리 채택에 따라 필요해진 schema·API·서비스 정의는 각 spec 파일에서 정의된다 — 본 문서는 영향 범위만 명시한다.
+본 research가 결정한 라이브러리는 `09_service_design.md` §1에 반영된다. 라이브러리 채택에 따라 필요해진 schema·API·서비스 정의는 각 spec 파일에서 정의된다 — 본 문서는 영향 범위만 명시한다.
 
 ### 4.1 라이브러리 결정 (6개 신규 + 2개 기존)
 
 | 라이브러리 | 역할 | spec 반영 위치 |
 |----------|------|--------------|
-| **tenacity** | 외부 API 호출 재시도. `stop_after_attempt(3)` + `wait_exponential_jitter` | `service_design.md` §1 |
-| **aiobreaker** | AI Server 호출 차단기. CLOSED→OPEN→HALF_OPEN 자동 회복 | `service_design.md` §1 |
-| **BeautifulSoup4 (lxml 파서)** | Playwright `page.content()` HTML 파싱 | `service_design.md` §1 |
-| **slack_sdk** | 파이프라인 실패 알림. `AsyncWebhookClient` 단방향 | `service_design.md` §1 |
-| **pywebpush** | 점주 Web Push 알림. VAPID 표준 | `service_design.md` §1 |
-| **fastapi-mail** | 탈퇴 증빙·파기 통보 이메일 (SMTP + Jinja) | `service_design.md` §1 |
-| `httpx` (기존) | AI Server·국세청·외부 공공 API + sync 스크립트 | `service_design.md` §1 |
-| `Playwright (async)` (기존) | 쿠팡 자동화·단가 조회 | `service_design.md` §1 |
+| **tenacity** | 외부 API 호출 재시도. `stop_after_attempt(3)` + `wait_exponential_jitter` | `09_service_design.md` §1 |
+| **aiobreaker** | AI Server 호출 차단기. CLOSED→OPEN→HALF_OPEN 자동 회복 | `09_service_design.md` §1 |
+| **BeautifulSoup4 (lxml 파서)** | Playwright `page.content()` HTML 파싱 | `09_service_design.md` §1 |
+| **slack_sdk** | 파이프라인 실패 알림. `AsyncWebhookClient` 단방향 | `09_service_design.md` §1 |
+| **pywebpush** | 점주 Web Push 알림. VAPID 표준 | `09_service_design.md` §1 |
+| **fastapi-mail** | 탈퇴 증빙·파기 통보 이메일 (SMTP + Jinja) | `09_service_design.md` §1 |
+| `httpx` (기존) | AI Server·국세청·외부 공공 API + sync 스크립트 | `09_service_design.md` §1 |
+| `Playwright (async)` (기존) | 쿠팡 자동화·단가 조회 | `09_service_design.md` §1 |
 
 ### 4.2 결정에 따라 spec에서 정의되는 항목 (참조)
 
 | 영향 영역 | 정의 위치 |
 |---------|---------|
-| `notifications` 테이블 (인앱 알림 저장) | `schema.md` §3.22 |
-| `push_subscriptions` 테이블 (VAPID 구독 정보) | `schema.md` §3.23 |
-| n8n_user 권한 — `notifications` SELECT/INSERT | `schema.md` §5 |
-| 알림 5개 endpoint (구독 등록/해제·목록 조회·읽음 처리) | `api_spec.md` §10 |
-| `NotificationService` 클래스·메서드 | `service_design.md` §3·§4 |
+| `notifications` 테이블 (인앱 알림 저장) | `08_schema.md` §3.22 |
+| `push_subscriptions` 테이블 (VAPID 구독 정보) | `08_schema.md` §3.23 |
+| n8n_user 권한 — `notifications` SELECT/INSERT | `08_schema.md` §5 |
+| 알림 5개 endpoint (구독 등록/해제·목록 조회·읽음 처리) | `07_api_spec.md` §10 |
+| `NotificationService` 클래스·메서드 | `09_service_design.md` §3·§4 |
 
 > 본 research는 라이브러리 결정·운영 흐름 합의의 source-of-truth다. DB 컬럼·API 계약·서비스 시그니처는 spec이 source-of-truth이며 본 문서가 중복 정의하지 않는다.
 
@@ -330,7 +330,7 @@ Slack 2개 + 푸시 3개 + 이메일 2개 + 모바일 메시지 1개 = **총 8�
 ### 5.4 Playwright (async) ✅
 - **사용처**: 쿠팡 장바구니 자동 담기·단가 조회
 - **장점**: Chromium·Firefox·WebKit 통합 제어, auto-wait·셀렉터 강력, 네트워크 인터셉트·trace 디버깅, async API, 공식 Docker 이미지 `mcr.microsoft.com/playwright/python`
-- **단점**: 컨테이너 이미지 크기 큼(Chromium 200MB+), 쿠팡 셀렉터 변경 시 깨짐 → `feature_spec.md` §7.2 재시도 없음·즉시 수동 안내 정책
+- **단점**: 컨테이너 이미지 크기 큼(Chromium 200MB+), 쿠팡 셀렉터 변경 시 깨짐 → `04_feature_spec.md` §7.2 재시도 없음·즉시 수동 안내 정책
 - **세부사항**: 라이선스 Apache 2.0. Microsoft. `playwright install chromium` 필요
 
 ### 5.5 BeautifulSoup4 + lxml ✅

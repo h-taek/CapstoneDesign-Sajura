@@ -45,22 +45,22 @@ plan/       → 확정된 내용을 구현 단위로 분해
 
 | 파일 | 역할 | 정의하는 사실 |
 |------|------|--------------|
-| `docs/spec/01_requirements/requirements.md` | 요구사항 원본 | 프로젝트 목표·고객·기능·비기능 요구사항 |
-| `docs/spec/01_requirements/usecase_spec.md` | 유즈케이스 원본 | 액터 관계, UC별 목적·흐름·조건 |
-| `docs/spec/02_mvp/mvp_scope.md` | MVP 범위 원본 | 포함/제외 기능, 성공기준, 로드맵, 개발역할 |
-| `docs/spec/03_feature_design/feature_list.md` | 기능 목록 원본 | 기능 분류, 베이스라인 모델 순서, 추천발주 단계 정책 |
-| `docs/spec/03_feature_design/feature_spec.md` | 비즈니스 규칙 원본 | 신뢰도 기준, FIFO 로직, 인증 정책, 알림 정책 |
-| `docs/spec/04_flow/user_flow.md` | UX 흐름 원본 | 점주 사용 흐름, 화면 IA |
-| `docs/spec/04_flow/sequence.md` | 시스템 흐름 시각화 | 소셜로그인·수요예측·발주 시퀀스 다이어그램 |
-| `docs/spec/05_api/api_spec.md` | API 계약 원본 | 요청/응답 구조, 상태코드, AI Server API |
-| `docs/spec/06_database/schema.md` | DB 구조 원본 | 컬럼명, 타입, FK, 인덱스 |
-| `docs/spec/06_database/erd.md` | schema.md 시각화 | schema와 항상 동기화 필요 |
-| `docs/spec/07_backend/service_design.md` | 백엔드 구현 설계 | 기술스택, 서비스 클래스·메서드 시그니처 |
-| `docs/spec/07_frontend/frontend_design.md` | 프론트엔드 구현 설계 | 라우팅·상태·인증 통합·PWA·CI |
-| `docs/spec/08_ai/model_spec.md` | ML 모델 설계 원본 | 베이스라인 순서, 입력피처, 출력, XAI 설계 |
-| `docs/spec/08_ai/ml_pipeline.md` | AI 파이프라인 원본 | 파이프라인 단계·입출력·전처리·배치 실행 시각 |
-| `docs/spec/09_nonfunctional/security.md` | 보안 정책 원본 | 토큰 정책, 암호화, 접근통제, 감사로그 항목 |
-| `docs/spec/09_nonfunctional/performance.md` | 성능 기준 원본 | API SLA, 배치 SLA, Playwright 타임아웃 기준 |
+| `docs/spec/01_requirements.md` | 요구사항 원본 | 프로젝트 목표·고객·기능·비기능 요구사항 |
+| `docs/spec/02_usecase.md` | 유즈케이스 원본 | 액터 관계, UC별 목적·흐름·조건 |
+| `docs/spec/03_mvp_scope.md` | MVP 범위 원본 | 포함/제외 기능, 성공기준, 로드맵, 개발역할 |
+| `docs/spec/04_feature_spec.md` | 기능 목록 원본 | 기능 분류, 베이스라인 모델 순서, 추천발주 단계 정책 |
+| `docs/spec/04_feature_spec.md` | 비즈니스 규칙 원본 | 신뢰도 기준, FIFO 로직, 인증 정책, 알림 정책 |
+| `docs/spec/05_user_flow.md` | UX 흐름 원본 | 점주 사용 흐름, 화면 IA |
+| `docs/spec/06_sequence.md` | 시스템 흐름 시각화 | 소셜로그인·수요예측·발주 시퀀스 다이어그램 |
+| `docs/spec/07_api_spec.md` | API 계약 원본 | 요청/응답 구조, 상태코드, AI Server API |
+| `docs/spec/08_schema.md` | DB 구조 원본 | 컬럼명, 타입, FK, 인덱스 |
+| `docs/spec/08_schema.md` | 08_schema.md 시각화 | schema와 항상 동기화 필요 |
+| `docs/spec/09_service_design.md` | 백엔드 구현 설계 | 기술스택, 서비스 클래스·메서드 시그니처 |
+| `docs/spec/10_frontend_design.md` | 프론트엔드 구현 설계 | 라우팅·상태·인증 통합·PWA·CI |
+| `docs/spec/11_ai_spec.md` | ML 모델 설계 원본 | 베이스라인 순서, 입력피처, 출력, XAI 설계 |
+| `docs/spec/11_ai_spec.md` | AI 파이프라인 원본 | 파이프라인 단계·입출력·전처리·배치 실행 시각 |
+| `docs/spec/12_security.md` | 보안 정책 원본 | 토큰 정책, 암호화, 접근통제, 감사로그 항목 |
+| `docs/spec/13_performance.md` | 성능 기준 원본 | API SLA, 배치 SLA, Playwright 타임아웃 기준 |
 
 ---
 
@@ -160,19 +160,19 @@ plan/       → 확정된 내용을 구현 단위로 분해
 
 | 수정 파일 | 함께 확인할 파일 |
 |----------|----------------|
-| `requirements.md` | `feature_list.md`, `mvp_scope.md` |
-| `usecase_spec.md` | `feature_spec.md`, `user_flow.md` |
-| `mvp_scope.md` | `requirements.md`, `feature_list.md` |
-| `feature_list.md` | `feature_spec.md`, `mvp_scope.md` |
-| `feature_spec.md` | `api_spec.md`, `security.md`, `user_flow.md`, `requirements.md` |
-| `user_flow.md` | `feature_spec.md`, `usecase_spec.md` |
-| `sequence.md` | `feature_spec.md`, `api_spec.md`, `service_design.md` |
-| `api_spec.md` | `feature_spec.md`, `service_design.md`, `sequence.md` |
-| `schema.md` | `erd.md`, `service_design.md`, `ml_pipeline.md` |
-| `erd.md` | `schema.md` |
-| `service_design.md` | `api_spec.md`, `sequence.md`, `frontend_design.md` |
-| `frontend_design.md` | `api_spec.md`, `security.md`, `feature_spec.md`, `service_design.md` §11 |
-| `model_spec.md` | `ml_pipeline.md`, `feature_list.md` |
-| `ml_pipeline.md` | `model_spec.md`, `performance.md` |
-| `security.md` | `feature_spec.md`, `api_spec.md` |
-| `performance.md` | `mvp_scope.md`, `ml_pipeline.md` |
+| `01_requirements.md` | `04_feature_spec.md`, `03_mvp_scope.md` |
+| `02_usecase.md` | `04_feature_spec.md`, `05_user_flow.md` |
+| `03_mvp_scope.md` | `01_requirements.md`, `04_feature_spec.md` |
+| `04_feature_spec.md` | `04_feature_spec.md`, `03_mvp_scope.md` |
+| `04_feature_spec.md` | `07_api_spec.md`, `12_security.md`, `05_user_flow.md`, `01_requirements.md` |
+| `05_user_flow.md` | `04_feature_spec.md`, `02_usecase.md` |
+| `06_sequence.md` | `04_feature_spec.md`, `07_api_spec.md`, `09_service_design.md` |
+| `07_api_spec.md` | `04_feature_spec.md`, `09_service_design.md`, `06_sequence.md` |
+| `08_schema.md` | `08_schema.md`, `09_service_design.md`, `11_ai_spec.md` |
+| `08_schema.md` | `08_schema.md` |
+| `09_service_design.md` | `07_api_spec.md`, `06_sequence.md`, `10_frontend_design.md` |
+| `10_frontend_design.md` | `07_api_spec.md`, `12_security.md`, `04_feature_spec.md`, `09_service_design.md` §11 |
+| `11_ai_spec.md` | `11_ai_spec.md`, `04_feature_spec.md` |
+| `11_ai_spec.md` | `11_ai_spec.md`, `13_performance.md` |
+| `12_security.md` | `04_feature_spec.md`, `07_api_spec.md` |
+| `13_performance.md` | `03_mvp_scope.md`, `11_ai_spec.md` |

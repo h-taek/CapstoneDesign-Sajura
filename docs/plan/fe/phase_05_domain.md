@@ -17,7 +17,7 @@
 
 ## 참조
 
-- [frontend_design.md §5 화면 구성](../../spec/07_frontend/frontend_design.md)
+- [10_frontend_design.md §5 화면 구성](../../spec/10_frontend_design.md)
 
 ## Phase 통합 종료 조건 (M5)
 

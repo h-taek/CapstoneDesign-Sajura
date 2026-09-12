@@ -3,14 +3,14 @@
 > 구현 작업 흐름과 파트 간 의존관계를 정의한다. 절대 일정(종료일)은 정하지 않으며, 단계 순서와 선행 작업 중심으로 표현한다.
 >
 > - 단위: **상대 일수(Day)**, 의존관계는 각 작업의 `deps` 필드로 표현
-> - 참조: `PROGRESS.md`(전체 단계), `docs/spec/02_mvp/mvp_scope.md`(역할 분담), `docs/spec/07_backend/service_design.md`(서비스 클래스), `docs/spec/03_feature_design/feature_spec.md`(기능)
+> - 참조: `PROGRESS.md`(전체 단계), `docs/spec/03_mvp_scope.md`(역할 분담), `docs/spec/09_service_design.md`(서비스 클래스), `docs/spec/04_feature_spec.md`(기능)
 > - 본 차트는 **Research → Plan → 구현 → 통합·배포** 흐름을 다룬다. spec 작성·08_ai 미확정 항목 조사는 본 차트 범위 밖
 
 ---
 
 ## 1. 파트 및 담당자
 
-> 기준: `docs/spec/02_mvp/mvp_scope.md` 섹션 9
+> 기준: `docs/spec/03_mvp_scope.md` 섹션 9
 
 | 파트 | 담당 업무 | 팀원 |
 |------|----------|------|
@@ -78,7 +78,7 @@ flowchart TD
 ```
 
 **핵심 포인트**
-- **AI 트랙(Phase 6~7)** 은 Plan 직후 BE/FE와 **병렬 출발**한다. 팀 보유 POS 데이터로 자체 학습 가능 (`mvp_scope.md` 섹션 8)
+- **AI 트랙(Phase 6~7)** 은 Plan 직후 BE/FE와 **병렬 출발**한다. 팀 보유 POS 데이터로 자체 학습 가능 (`03_mvp_scope.md` 섹션 8)
 - BE/FE/AI 세 트랙의 **1차 합류는 Phase 8 골격**(인터페이스만 있으면 진행), **2차 합류는 Phase 12 hookup**(AI 결정 4가지 확정 후)
 - Phase 12 AI hookup이 다루는 4가지: 예측 근거 응답/UI·신뢰도 임계값·n8n 전처리 실제 로직·예측 정확도 지표 (`HANDOFF.md` "AI 의존성")
 - Phase 13은 모든 트랙 종착 후 진행 (`test_release` 의존에 hookup 끝점 포함)

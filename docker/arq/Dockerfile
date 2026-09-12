@@ -1,4 +1,4 @@
-# ARQ worker image — service_design.md §11.1 (`arq-worker` 컨테이너).
+# ARQ worker image — 09_service_design.md §11.1 (`arq-worker` 컨테이너).
 # Build context: repo root (compose: context=.)
 FROM python:3.12-slim
 

@@ -8,7 +8,7 @@
 | ID | 마일스톤 | 산출물 | 검증 |
 |---|---|---|---|
 | M10.B1 | AutomationService (Playwright) | 쿠팡 로그인 → 장바구니 담기 → 주문서 작성 자동화 | 더미 계정 1회 실행 |
-| M10.B2 | 자격증명 보관 | AES-256-GCM 암호화(`cryptography`) → DB `store_credentials`. **키 관리 정책: `spec/09_nonfunctional/security.md` §4.1 (애플리케이션 레벨, env 비밀)** | 암복호화 unit test |
+| M10.B2 | 자격증명 보관 | AES-256-GCM 암호화(`cryptography`) → DB `store_credentials`. **키 관리 정책: `spec/12_security.md` §4.1 (애플리케이션 레벨, env 비밀)** | 암복호화 unit test |
 | M10.B3 | 자동화 결과 로깅 | `automation_logs` 테이블 INSERT + 실패 시 Slack 알림(운영자 모니터링 채널, 점주 알림 아님 — 점주에게는 M11.B3 인앱/이메일/Web Push로 통지) | 성공·실패 시나리오 각 1회 |
 
 ## 외부 의존
@@ -18,8 +18,8 @@
 
 ## 참조
 
-- [feature_spec.md §10 쿠팡 자동화](../../spec/03_feature_design/feature_spec.md)
-- [security.md §6 결제 — 사주라 미경유·미저장](../../spec/09_nonfunctional/security.md)
+- [04_feature_spec.md §10 쿠팡 자동화](../../spec/04_feature_spec.md)
+- [12_security.md §6 결제 — 사주라 미경유·미저장](../../spec/12_security.md)
 
 ## Phase 통합 종료 조건 (M10)
 

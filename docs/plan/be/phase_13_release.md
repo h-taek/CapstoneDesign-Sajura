@@ -7,8 +7,8 @@
 
 | ID | 마일스톤 | 산출물 | 검증 |
 |---|---|---|---|
-| M13.B1 | API 성능 검증 | k6 또는 Locust 부하 시나리오 → 응답 시간·처리량 측정 | [performance.md](../../spec/09_nonfunctional/performance.md) SLA 통과 |
-| M13.B2 | 보안 검증 | Trivy(이미지) + bandit(코드) + pip-audit(의존성) + Caddy 보안 헤더 검증 | **High/Critical 0건 (강행 — 1건이라도 발견 시 배포 차단). spec/09_nonfunctional/security.md에 SLA 정식 정의 없음 → plan 자체 기준** |
+| M13.B1 | API 성능 검증 | k6 또는 Locust 부하 시나리오 → 응답 시간·처리량 측정 | [13_performance.md](../../spec/13_performance.md) SLA 통과 |
+| M13.B2 | 보안 검증 | Trivy(이미지) + bandit(코드) + pip-audit(의존성) + Caddy 보안 헤더 검증 | **High/Critical 0건 (강행 — 1건이라도 발견 시 배포 차단). spec/12_security.md에 SLA 정식 정의 없음 → plan 자체 기준** |
 | M13.B3 | CI/CD 배포 파이프라인 | GitHub Actions 8단계 (lint→test→build→scan→push→deploy) | main 브랜치 push → 운영 배포 통과 |
 | M13.B4 | 데모 시나리오 백엔드 측 검증 | Step 1~9 end-to-end API 흐름 통합 테스트 | 9단계 모두 통과 |
 
@@ -32,9 +32,9 @@
 
 ## 참조
 
-- [performance.md](../../spec/09_nonfunctional/performance.md)
-- [security.md](../../spec/09_nonfunctional/security.md)
-- [requirements.md §6.3 CI/CD](../../spec/01_requirements/requirements.md)
+- [13_performance.md](../../spec/13_performance.md)
+- [12_security.md](../../spec/12_security.md)
+- [01_requirements.md §6.3 CI/CD](../../spec/01_requirements.md)
 
 ## Phase 통합 종료 조건 (M13)
 
