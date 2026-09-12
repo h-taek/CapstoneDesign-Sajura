@@ -27,8 +27,8 @@
 
 ## 참조
 
-- [docs/plan/01_be.md](../be/phase_12_hookup.md) — BE 수신 측 마일스톤 (M12.B1~B5)
-- [docs/plan/02_fe.md](../fe/phase_12_hookup.md) — FE 수신 측 마일스톤 (M12.F1~F5)
+- [docs/plan/01_be.md](../01_be.md) — BE 수신 측 마일스톤 (M12.B1~B5)
+- [docs/plan/02_fe.md](../02_fe.md) — FE 수신 측 마일스톤 (M12.F1~F5)
 - [HANDOFF.md AI 의존성 4가지](../../../HANDOFF.md)
 
 ## Phase 통합 종료 조건 (M12)
