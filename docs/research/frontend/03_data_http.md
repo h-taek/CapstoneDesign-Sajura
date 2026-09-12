@@ -1,7 +1,7 @@
 # 서버 상태·HTTP 클라이언트·OpenAPI 코드젠
 
 > **카테고리**: 서버 상태 캐시·refetch·낙관적 업데이트 라이브러리, HTTP 호출 라이브러리, BE OpenAPI 스키마 기반 타입 코드젠 도구 결정
-> **연결 spec**: `service_design.md` §1 (FastAPI 자동 OpenAPI·orjson), `service_design.md` §10 (CORS `allow_credentials: True`), `api_spec.md` (22개 endpoint), `security.md` §2.3 (Access Token 메모리·Refresh HttpOnly Cookie·Rotation)
+> **연결 spec**: `09_service_design.md` §1 (FastAPI 자동 OpenAPI·orjson), `09_service_design.md` §10 (CORS `allow_credentials: True`), `07_api_spec.md` (22개 endpoint), `12_security.md` §2.3 (Access Token 메모리·Refresh HttpOnly Cookie·Rotation)
 
 ---
 
@@ -53,7 +53,7 @@
 
 **탈락 사유:**
 
-- **#2 SWR** — 가벼움은 장점이나 낙관적 업데이트 표현이 수동에 가까움. 사주라 추천발주 수정 흐름(`feature_spec.md` §6.4)에서 rollback이 필요해 표준 API가 있는 TanStack Query 우위.
+- **#2 SWR** — 가벼움은 장점이나 낙관적 업데이트 표현이 수동에 가까움. 사주라 추천발주 수정 흐름(`04_feature_spec.md` §6.4)에서 rollback이 필요해 표준 API가 있는 TanStack Query 우위.
 - **#3 RTK Query** — Redux Toolkit 통합 의도 — `02_routing_state.md` §2에서 Zustand 채택으로 Redux 미사용 → 자연 탈락.
 
 ### 1.4 최종 선발
@@ -102,7 +102,7 @@ persistQueryClient({
 | `staleTime` | 60s | 사주라 점주 화면 전환 빈도(분 단위)에 적합 |
 | `gcTime` | 5m | 짧은 화면 이탈 후 재방문 시 캐시 적중 |
 | `retry` 401·403 차단 | — | auth 인터셉터(§2.5)가 단일 책임으로 처리 |
-| `maxAge` 24h | — | `service_design.md` §9 forecast/recommend 캐시 TTL과 정합 |
+| `maxAge` 24h | — | `09_service_design.md` §9 forecast/recommend 캐시 TTL과 정합 |
 
 ### 1.6 쿼리 키 컨벤션
 
@@ -121,7 +121,7 @@ export const queryKeys = {
 };
 ```
 
-> BE Redis 캐시 키 패턴(`service_design.md` §9 `forecast:{store_id}:{target_date}`)과 동일 구조로 일관 → 캐시 무효화 추적 용이.
+> BE Redis 캐시 키 패턴(`09_service_design.md` §9 `forecast:{store_id}:{target_date}`)과 동일 구조로 일관 → 캐시 무효화 추적 용이.
 
 ---
 
@@ -148,9 +148,9 @@ export const queryKeys = {
 
 | 기능 | 필수도 | 근거 |
 |------|-------|------|
-| 인터셉터 (auth 헤더·401 처리) | **필수** | Access Token 자동 첨부 + 401 시 refresh + 원요청 재시도 (`security.md` §2.3) |
+| 인터셉터 (auth 헤더·401 처리) | **필수** | Access Token 자동 첨부 + 401 시 refresh + 원요청 재시도 (`12_security.md` §2.3) |
 | 자동 재시도 | **필수** | 모바일 PWA — 네트워크 일시 단절 자동 복구 |
-| `credentials: 'include'` 지원 | **필수** | Refresh Token HttpOnly Cookie 자동 송수신 (`service_design.md` §10.2 `allow_credentials: True`) |
+| `credentials: 'include'` 지원 | **필수** | Refresh Token HttpOnly Cookie 자동 송수신 (`09_service_design.md` §10.2 `allow_credentials: True`) |
 | 번들 크기 작음 | 중요 | PWA 초기 로드 |
 | TypeScript 1급 | **필수** | OpenAPI 타입과 통합 (`§3`) |
 
@@ -344,10 +344,10 @@ export async function fetchMe(): Promise<UserDTO> {
 | 항목 | 결정 | spec 반영 위치 |
 |------|------|--------------|
 | 서버 상태 캐시 | **TanStack Query v5** | FE spec 신설 시 명시 |
-| HTTP 클라이언트 | **ky 1.x** | FE spec 신설 시 명시. `service_design.md` §10.2 CORS `allow_credentials: True` 정합 확인 (변경 없음) |
+| HTTP 클라이언트 | **ky 1.x** | FE spec 신설 시 명시. `09_service_design.md` §10.2 CORS `allow_credentials: True` 정합 확인 (변경 없음) |
 | OpenAPI 코드젠 | **openapi-typescript 7.x** | FE spec 신설 시 명시. BE FastAPI `/openapi.json` 자동 노출(이미 활성) |
 
-> 본 카테고리 결정은 BE 측 변경 유발 없음. CORS·credentials·401 응답 형식은 이미 `service_design.md` §10·`security.md` §2.3에서 정의됨.
+> 본 카테고리 결정은 BE 측 변경 유발 없음. CORS·credentials·401 응답 형식은 이미 `09_service_design.md` §10·`12_security.md` §2.3에서 정의됨.
 
 ### 4.2 결정에 따라 다른 카테고리에 미치는 영향
 

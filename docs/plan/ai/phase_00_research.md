@@ -1,6 +1,6 @@
 # Phase 0 Research — AI
 
-> 상위: [../plan_gantt.md](../plan_gantt.md) §2 Phase 0 / §4 `res_ai`
+> 상위: [../04_gantt.md](../04_gantt.md) §2 Phase 0 / §4 `res_ai`
 > Day: 0~4
 
 ## 마일스톤
@@ -13,8 +13,8 @@
 
 - `docs/research/ai/00_ml_guide_reference.md` — 캡스톤 ML 통합 가이드 (PART 0~5 + 부록)
 - `docs/research/ai/03_external_data_sources.md` — 외부 데이터 소스 조사 (세종 조치원 홍익대 상권 기준)
-- 정책 결정: Regression 방식 + Walk-forward CV + IQR 우선/Z-score 보조 + TreeSHAP (22차) — `docs/spec/08_ai/model_spec.md` §3·§7·§9
-- MVP 외부 데이터 확정 (30차): 기상청·과거 기상·공휴일·홍익대 학사일정 [필수]; 세담터·소상공인 상가정보 [권장]; 배달상권 [선택]; SK 지오비전·ECOS·네이버 [2단계] — `docs/spec/08_ai/ml_pipeline.md` §4
+- 정책 결정: Regression 방식 + Walk-forward CV + IQR 우선/Z-score 보조 + TreeSHAP (22차) — `docs/spec/11_ai_spec.md` §3·§7·§9
+- MVP 외부 데이터 확정 (30차): 기상청·과거 기상·공휴일·홍익대 학사일정 [필수]; 세담터·소상공인 상가정보 [권장]; 배달상권 [선택]; SK 지오비전·ECOS·네이버 [2단계] — `docs/spec/11_ai_spec.md` §4
 
 ## 외부 의존
 

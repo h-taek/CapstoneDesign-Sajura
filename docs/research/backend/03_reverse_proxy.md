@@ -1,7 +1,7 @@
 # 리버스 프록시
 
 > **카테고리**: 외부 HTTPS·HTTP/2/3 종료·정적 파일·로드밸런싱·캐싱·요청 분기 후보 조사
-> **연결 spec**: `docs/spec/07_backend/service_design.md` §1
+> **연결 spec**: `docs/spec/09_service_design.md` §1
 
 ---
 
@@ -55,11 +55,11 @@
 
 | 기능 | 필수도 | 근거 |
 |------|-------|------|
-| HTTPS 종료 | **필수** | `09_nonfunctional/security.md` 외부 통신 TLS 1.2+ 강제 |
+| HTTPS 종료 | **필수** | `12_security.md` 외부 통신 TLS 1.2+ 강제 |
 | HTTP/1.1 upstream | **필수** | `02_app_server.md` §4.3 Gunicorn 내부 HTTP/1.1 통신 |
-| 정적 파일 서빙 | **필수** | PWA (`docs/spec/02_mvp/mvp_scope.md`)·이미지 등 정적 자산 |
+| 정적 파일 서빙 | **필수** | PWA (`docs/spec/03_mvp_scope.md`)·이미지 등 정적 자산 |
 | 경로 기반 라우팅 | **필수** | `/api/*` → BE, 향후 `/n8n` 등 분기 가능성 |
-| HTTP/2 외부 | **필수** | 모바일 PWA 응답 지연 최소화 (`performance.md` §1.1) |
+| HTTP/2 외부 | **필수** | 모바일 PWA 응답 지연 최소화 (`13_performance.md` §1.1) |
 | 즉시 사용 가능 (바이너리·이미지) | **필수** | 1인 운영 부담 — 코드 작성형(Pingora) 제외 |
 
 **판정 룰**: 필수 항목 X 1개라도 → 탈락.
@@ -141,19 +141,19 @@
 
 ### 4.1 운영 옵션 권장값
 
-> Caddyfile 정량값. spec(`service_design.md` §1·`performance.md`) 의존성과 함께 정리.
+> Caddyfile 정량값. spec(`09_service_design.md` §1·`13_performance.md`) 의존성과 함께 정리.
 
 | 항목 | 권장값 | 사주라 적용 근거 |
 |------|------|---------------|
 | 도메인 | `<sub>.iptime.org` (ipTIME DDNS) | MVP 환경 가정. 실 도메인 확정 시 갱신 |
 | TLS 발급 | Let's Encrypt HTTP-01 (자동) | ipTIME 라우터에서 80·443 포트 포워딩 필수 |
-| TLS 버전 | **TLS 1.3 강제** (`tls { protocols tls1.3 }`) | `security.md` §4 "TLS 1.3 적용" 정책 정합. Caddy 기본은 1.2+이므로 명시적 제한 필요 |
+| TLS 버전 | **TLS 1.3 강제** (`tls { protocols tls1.3 }`) | `12_security.md` §4 "TLS 1.3 적용" 정책 정합. Caddy 기본은 1.2+이므로 명시적 제한 필요 |
 | `reverse_proxy` | `localhost:8000` 또는 `be:8000` | Gunicorn (`02_app_server.md` §4.3 `--bind`) |
 | `transport http { keepalive }` | **5s** | Gunicorn `--keepalive 5`와 정합 |
 | `transport http { dial_timeout }` | **5s** | upstream 연결 실패 빠른 감지 |
 | `transport http { read_timeout }` | **65s** | Gunicorn `--timeout 60`보다 5초 길게 두어 워커 강제종료 응답을 받을 시간 확보 |
 | `transport http { write_timeout }` | **65s** | 위와 동일 사유 |
-| 요청 본문 크기 제한 | **10 MB** | `POST /api/sales/upload` CSV 업로드 상한. `performance.md` 확인 후 조정 |
+| 요청 본문 크기 제한 | **10 MB** | `POST /api/sales/upload` CSV 업로드 상한. `13_performance.md` 확인 후 조정 |
 | `encode` | `zstd gzip` | Caddy v2 `encode` 디렉티브. zstd 우선, gzip fallback |
 | HTTP/2 | 활성 (기본) | 모바일 PWA 응답 |
 | HTTP/3 (QUIC) | 활성 (기본) | UDP 443 ipTIME 포워딩 필요 |

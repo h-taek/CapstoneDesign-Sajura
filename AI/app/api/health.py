@@ -1,4 +1,4 @@
-"""AI Server health endpoint — api_spec.md §8 GET /ai/health (M7.A6 확장).
+"""AI Server health endpoint — 07_api_spec.md §8 GET /ai/health (M7.A6 확장).
 
 - model_loaded : 서빙 스택 자가 점검(합성 미니 학습·예측 스모크) 통과 여부 —
   stateless 설계라 "아티팩트 로드" 대신 "요청 시 학습 가능"을 보증한다.

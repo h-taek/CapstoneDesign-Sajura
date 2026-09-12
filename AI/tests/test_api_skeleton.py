@@ -1,4 +1,4 @@
-"""M7.A1 골격 검증 — OpenAPI 노출 + 계약 경로 + stub 동작 (api_spec.md §8)."""
+"""M7.A1 골격 검증 — OpenAPI 노출 + 계약 경로 + stub 동작 (07_api_spec.md §8)."""
 from __future__ import annotations
 
 from fastapi.testclient import TestClient

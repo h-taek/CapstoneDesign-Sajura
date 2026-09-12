@@ -1,7 +1,7 @@
 # 폼·검증
 
 > **카테고리**: 폼 상태 관리 라이브러리, 스키마 검증 라이브러리, 두 라이브러리 통합 어댑터 결정
-> **연결 spec**: `api_spec.md` (22개 endpoint의 요청 DTO), `service_design.md` §1 (BE Pydantic v2), `feature_spec.md` §1·§2·§3·§6 (사주라 주요 폼 — 온보딩·메뉴·재고·발주 수정)
+> **연결 spec**: `07_api_spec.md` (22개 endpoint의 요청 DTO), `09_service_design.md` §1 (BE Pydantic v2), `04_feature_spec.md` §1·§2·§3·§6 (사주라 주요 폼 — 온보딩·메뉴·재고·발주 수정)
 
 ---
 
@@ -30,14 +30,14 @@
 
 | 폼 | spec 위치 | 필드 수 (대략) | 복잡도 |
 |----|---------|--------|-------|
-| 온보딩 Step 1 (사업자번호) | `feature_spec.md` §1.4 | 1 + 검증 결과 | 단순 |
+| 온보딩 Step 1 (사업자번호) | `04_feature_spec.md` §1.4 | 1 + 검증 결과 | 단순 |
 | 온보딩 Step 2 (매장 정보) | 동상 | 6 (매장명·업종·연락처·주소·규모·운영형태) | 중간 |
 | 온보딩 Step 3 (POS 연동) | 동상 | 1~3 (POS 종류·자격증명) | 단순 |
 | 온보딩 Step 4 (초기 재고·메뉴) | 동상 | 다중 행 추가 (FieldArray) | 복잡 |
-| 메뉴 등록·수정 | `feature_spec.md` §2.2 | 3 + 레시피 FieldArray | 중간 |
-| 재고 추가·수정 | `feature_spec.md` §3.4 | 4 + 수정 사유 | 단순 |
-| 발주 수정·승인 | `feature_spec.md` §6.4 | 다중 행 인라인 편집 | 복잡 |
-| 알림 설정 | `feature_spec.md` §12.10 | 토글 4개 | 단순 |
+| 메뉴 등록·수정 | `04_feature_spec.md` §2.2 | 3 + 레시피 FieldArray | 중간 |
+| 재고 추가·수정 | `04_feature_spec.md` §3.4 | 4 + 수정 사유 | 단순 |
+| 발주 수정·승인 | `04_feature_spec.md` §6.4 | 다중 행 인라인 편집 | 복잡 |
+| 알림 설정 | `04_feature_spec.md` §12.10 | 토글 4개 | 단순 |
 
 ### 1.2 전체 후보 목록
 

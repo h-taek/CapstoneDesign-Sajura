@@ -1,8 +1,8 @@
 """AI Server entry — Phase 7 M7.A1 API 골격.
 
 Spec refs:
-  - docs/spec/05_api/api_spec.md §8 AI Server 연동 API (contract SSOT)
-  - docs/spec/08_ai/model_spec.md §3 초기 모델 V1-t (38차 확정)
+  - docs/spec/07_api_spec.md §8 AI Server 연동 API (contract SSOT)
+  - docs/spec/11_ai_spec.md §3 초기 모델 V1-t (38차 확정)
   - docs/plan/ai/phase_07_api.md M7.A1~A7
 
 라우터: /ai/health · /ai/forecast/{predict,train,status} · /ai/orders/recommend.

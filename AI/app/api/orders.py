@@ -1,4 +1,4 @@
-"""추천발주 라우터 — api_spec.md §8 POST /ai/orders/recommend 계약 v2 (M7.A3, A안: 단일 호출).
+"""추천발주 라우터 — 07_api_spec.md §8 POST /ai/orders/recommend 계약 v2 (M7.A3, A안: 단일 호출).
 
 파이프라인(전 단계 매장별·요청 단위 stateless):
   ① V1-t 매출 예측(app/model/predictor.py)

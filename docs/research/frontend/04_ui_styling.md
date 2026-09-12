@@ -1,7 +1,7 @@
 # 스타일·컴포넌트 라이브러리
 
 > **카테고리**: 스타일 시스템(Tailwind·CSS Modules·CSS-in-JS), 컴포넌트 라이브러리(shadcn·MUI·Mantine·Chakra·AntD·Radix) 결정
-> **연결 spec**: `feature_spec.md` §12 (화면별 UI 구성 — 카드·플로팅 버튼·탭·배지 등 사주라 IA 요소), `user_flow.md` (UX 흐름)
+> **연결 spec**: `04_feature_spec.md` §12 (화면별 UI 구성 — 카드·플로팅 버튼·탭·배지 등 사주라 IA 요소), `05_user_flow.md` (UX 흐름)
 
 ---
 
@@ -86,13 +86,13 @@
 |------|-------|------|
 | 색 정의 | `oklch` | 색역·접근성 우수, v4 표준 |
 | 폰트 | Pretendard Variable | 한글·영문 통합 + Variable 1 파일 |
-| 경고·긴급 색 | `feature_spec.md` §12 배지 정책 정합 | D-3 경고/ D-1·초과 긴급 색 구분 |
+| 경고·긴급 색 | `04_feature_spec.md` §12 배지 정책 정합 | D-3 경고/ D-1·초과 긴급 색 구분 |
 
 ---
 
 ## 2. 컴포넌트 라이브러리
 
-### 2.1 사주라 UI 요소 인벤토리 (`feature_spec.md` §12 기반)
+### 2.1 사주라 UI 요소 인벤토리 (`04_feature_spec.md` §12 기반)
 
 | 요소 | 사용 위치 |
 |------|---------|

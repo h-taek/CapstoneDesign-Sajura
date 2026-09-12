@@ -1,4 +1,4 @@
-"""수요예측 라우터 — api_spec.md §8 (M7.A2: predict 구현).
+"""수요예측 라우터 — 07_api_spec.md §8 (M7.A2: predict 구현).
 
 - POST /ai/forecast/predict [MVP]  : V1-t stateless 학습·예측 (app/model/predictor.py)
 - POST /ai/forecast/train  [2단계] : 주간 재학습 트리거 — pipeline_jobs 연동은 M7.A5

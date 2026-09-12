@@ -1,6 +1,6 @@
 """Application settings — pydantic-settings + .env.
 
-Spec: docs/spec/07_backend/service_design.md §1 (pydantic-settings),
+Spec: docs/spec/09_service_design.md §1 (pydantic-settings),
       §10.2 CORS / §10.3 TrustedHost / §11.2 환경 분리.
 """
 from functools import lru_cache
@@ -49,10 +49,10 @@ class Settings(BaseSettings):
     JWT_ACCESS_TOKEN_TTL_SECONDS: int = 900
     JWT_REFRESH_TOKEN_TTL_SECONDS: int = 60 * 60 * 24 * 30
 
-    # AES-256-GCM (security.md §4.1, pos_connections.api_key)
+    # AES-256-GCM (12_security.md §4.1, pos_connections.api_key)
     AES_GCM_KEY_BASE64: str = ""
 
-    # VAPID (pywebpush, schema.md §3.23)
+    # VAPID (pywebpush, 08_schema.md §3.23)
     VAPID_PUBLIC_KEY: str = ""
     VAPID_PRIVATE_KEY: str = ""
     VAPID_SUBJECT: str = "mailto:ops@example.com"
@@ -71,7 +71,7 @@ class Settings(BaseSettings):
     NTS_API_BASE_URL: str = "https://api.odcloud.kr/api/nts-businessman/v1"
     NTS_API_SERVICE_KEY: str = ""
     NTS_API_STUB_MODE: bool = True
-    # 시연/테스트용 강제 패스 코드 (security.md §2.4). 빈 값이면 비활성(운영 기본).
+    # 시연/테스트용 강제 패스 코드 (12_security.md §2.4). 빈 값이면 비활성(운영 기본).
     NTS_MASTER_BYPASS_CODE: str = ""
 
     # KAMIS(한국농수산식품유통공사) 농산물 가격정보 오픈API — 홈 화면 "실시간 최저가 추천".
@@ -81,11 +81,11 @@ class Settings(BaseSettings):
     KAMIS_API_CERT_ID: str = ""
     KAMIS_API_STUB_MODE: bool = True
 
-    # 사업자등록증 업로드 저장 (security.md §4.2) — be 컨테이너 볼륨 마운트 경로
+    # 사업자등록증 업로드 저장 (12_security.md §4.2) — be 컨테이너 볼륨 마운트 경로
     UPLOAD_DIR: str = "/app/uploads"
     UPLOAD_MAX_BYTES: int = 10 * 1024 * 1024  # 10MB
 
-    # Middleware policy (service_design.md §10)
+    # Middleware policy (09_service_design.md §10)
     CORS_ALLOW_ORIGINS: str = "http://localhost:5173"
     TRUSTED_HOSTS: str = "localhost,be"
 
@@ -99,7 +99,7 @@ class Settings(BaseSettings):
 
     @property
     def database_url_async(self) -> str:
-        # SQLAlchemy 2.x async + aiomysql (service_design.md §1)
+        # SQLAlchemy 2.x async + aiomysql (09_service_design.md §1)
         return (
             f"mysql+aiomysql://{self.DB_USER}:{self.DB_PASSWORD}"
             f"@{self.DB_HOST}:{self.DB_PORT}/{self.DB_NAME}?charset=utf8mb4"
@@ -107,7 +107,7 @@ class Settings(BaseSettings):
 
     @property
     def database_url_sync(self) -> str:
-        # Alembic only — PyMySQL sync driver (service_design.md §1)
+        # Alembic only — PyMySQL sync driver (09_service_design.md §1)
         return (
             f"mysql+pymysql://{self.DB_USER}:{self.DB_PASSWORD}"
             f"@{self.DB_HOST}:{self.DB_PORT}/{self.DB_NAME}?charset=utf8mb4"

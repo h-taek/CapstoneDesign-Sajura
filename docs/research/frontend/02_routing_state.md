@@ -1,7 +1,7 @@
 # 라우팅·클라이언트 상태
 
 > **카테고리**: 라우터 라이브러리, 클라이언트 사이드 상태 관리 라이브러리 결정
-> **연결 spec**: `feature_spec.md` §12 (화면 IA — 라우트 구조 파생), `security.md` §2.3 (Access Token 메모리 저장 — 클라이언트 상태에 보관)
+> **연결 spec**: `04_feature_spec.md` §12 (화면 IA — 라우트 구조 파생), `12_security.md` §2.3 (Access Token 메모리 저장 — 클라이언트 상태에 보관)
 
 ---
 
@@ -48,8 +48,8 @@
 
 | 기능 | 필수도 | 근거 |
 |------|-------|------|
-| 중첩 라우팅 (`/inventory/:itemId/lots`) | **필수** | `feature_spec.md` §12.6 재고 상세 → 로트 |
-| 보호 라우트 (인증·온보딩 가드) | **필수** | `feature_spec.md` §1.4 onboarding_completed 미완료 시 강제 이동 |
+| 중첩 라우팅 (`/inventory/:itemId/lots`) | **필수** | `04_feature_spec.md` §12.6 재고 상세 → 로트 |
+| 보호 라우트 (인증·온보딩 가드) | **필수** | `04_feature_spec.md` §1.4 onboarding_completed 미완료 시 강제 이동 |
 | 코드 분할 (lazy route) | **필수** | 화면 10개 — 초기 번들 분할로 PWA 첫 로드 가속 |
 | 타입 안전 params | 중요 | TS strict 환경 — params 누락·오타 컴파일 차단 |
 
@@ -117,7 +117,7 @@
 | **서버 상태** (API 응답·캐시·refetch) | TanStack Query (`03_data_http.md` §1) — 본 카테고리 범위 외 |
 | **폼 상태** | React Hook Form (`05_form_validation.md`) — 본 카테고리 범위 외 |
 | **클라이언트 전역 상태** | 본 카테고리 결정 |
-| └ Access Token (메모리, `security.md` §2.3) | |
+| └ Access Token (메모리, `12_security.md` §2.3) | |
 | └ 현재 사용자·매장 정보 (token decode 캐시) | |
 | └ 알림 UI 표시 상태 (배지 카운트·드롭다운 open) | |
 | └ 테마·언어 | |
@@ -153,7 +153,7 @@
 |------|-------|------|
 | 최소 보일러플레이트 | **필수** | 사주라 전역 상태 범위가 작음(인증·테마·알림 UI) — 무거운 도구 불필요 |
 | TypeScript 1급 | **필수** | strict 환경 |
-| persist 미들웨어 (선택) | 중요 | 테마·알림 polling 주기 등 사용자 설정은 localStorage 영속. 단, Access Token은 절대 persist 금지(`security.md` §2.3) |
+| persist 미들웨어 (선택) | 중요 | 테마·알림 polling 주기 등 사용자 설정은 localStorage 영속. 단, Access Token은 절대 persist 금지(`12_security.md` §2.3) |
 | Redux DevTools 호환 | 선택 | 디버깅 편의 |
 
 **탈락 사유:**
@@ -185,7 +185,7 @@ type AuthState = {
 };
 
 export const useAuthStore = create<AuthState>((set) => ({
-  accessToken: null,           // 메모리만 — persist 절대 금지 (security.md §2.3)
+  accessToken: null,           // 메모리만 — persist 절대 금지 (12_security.md §2.3)
   user: null,
   storeId: null,
   setToken: (token) => set({ accessToken: token }),
@@ -214,7 +214,7 @@ export const usePreferencesStore = create<PreferencesState>()(
 
 > 핵심 분리: `auth` store는 **persist 미사용**(메모리만), `preferences` store는 persist 사용. 토큰을 절대 localStorage에 저장하지 않도록 store를 물리적으로 분리.
 
-> 알림 폴링 주기는 **점주 설정 항목에서 제외**한다 — 사용자가 임의로 낮추면 BE rate limit(`GET /api/notifications` 60/min, `service_design.md` §10.4)을 초과할 수 있고, 즉시성은 Web Push가 담당하므로 폴링 주기 노출 가치가 작다. 폴링 주기는 코드 상수 5분 고정 (`06_pwa_push.md` §3.6).
+> 알림 폴링 주기는 **점주 설정 항목에서 제외**한다 — 사용자가 임의로 낮추면 BE rate limit(`GET /api/notifications` 60/min, `09_service_design.md` §10.4)을 초과할 수 있고, 즉시성은 Web Push가 담당하므로 폴링 주기 노출 가치가 작다. 폴링 주기는 코드 상수 5분 고정 (`06_pwa_push.md` §3.6).
 
 ### 2.7 보존 후보 (Jotai)
 
@@ -241,7 +241,7 @@ primitive atom 단위 상태 모델은 사주라 알림 카운트·필터 등 fi
 | 라우터 | **React Router v7** | FE spec 신설 시 명시 (영향: 코드 구조만, schema/api/service 영향 없음) |
 | 클라이언트 상태 | **Zustand 5** | FE spec 신설 시 명시 |
 
-> Access Token 메모리 보관 정책(`security.md` §2.3)은 본 카테고리 결정으로 인해 변경 없음 — Zustand store에 단순히 `accessToken` 필드를 메모리로 유지하는 것으로 정합.
+> Access Token 메모리 보관 정책(`12_security.md` §2.3)은 본 카테고리 결정으로 인해 변경 없음 — Zustand store에 단순히 `accessToken` 필드를 메모리로 유지하는 것으로 정합.
 
 ### 3.2 결정에 따라 다른 카테고리에 미치는 영향
 

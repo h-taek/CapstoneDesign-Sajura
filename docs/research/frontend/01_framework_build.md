@@ -1,7 +1,7 @@
 # UI 프레임워크·빌드·언어
 
 > **카테고리**: UI 프레임워크(React 가정 ratify), 빌드/번들러 도구, 언어(TypeScript) 선정
-> **연결 spec**: `mvp_scope.md` §3 (React + PWA 명시), `service_design.md` §11 (Caddy 정적 서빙 — `caddy:alpine`이 BE 컨테이너 옆에서 PWA 산출물 호스팅), `feature_spec.md` §12 (화면 IA)
+> **연결 spec**: `03_mvp_scope.md` §3 (React + PWA 명시), `09_service_design.md` §11 (Caddy 정적 서빙 — `caddy:alpine`이 BE 컨테이너 옆에서 PWA 산출물 호스팅), `04_feature_spec.md` §12 (화면 IA)
 
 ---
 
@@ -30,7 +30,7 @@
 
 | # | 후보 | 분류 | 비고 |
 |---|------|------|------|
-| 1 | React 19 | 컴포넌트형 SPA | mvp_scope.md §3에서 명시 — ratify 대상 |
+| 1 | React 19 | 컴포넌트형 SPA | 03_mvp_scope.md §3에서 명시 — ratify 대상 |
 | 2 | Vue 3 | 컴포넌트형 SPA | |
 | 3 | Svelte 5 (SvelteKit) | 컴파일형 | |
 | 4 | SolidJS | 컴파일형 reactive | |
@@ -39,7 +39,7 @@
 
 | # | 후보 | 생태계(차트/폼/PWA) | TypeScript 1급 | 팀 친숙도 | PWA 통합 도구 | 결과 |
 |---|------|:---:|:---:|:---:|:---:|:---|
-| 1 | React 19 | ◎ (Recharts·ECharts wrapper·RHF·TanStack 모두 React 1급) | ◎ | ◎ (mvp_scope.md §3 명시) | ◎ (vite-plugin-pwa·Workbox React 예제 풍부) | ✅ **통과** |
+| 1 | React 19 | ◎ (Recharts·ECharts wrapper·RHF·TanStack 모두 React 1급) | ◎ | ◎ (03_mvp_scope.md §3 명시) | ◎ (vite-plugin-pwa·Workbox React 예제 풍부) | ✅ **통과** |
 | 2 | Vue 3 | O | O | ⛔ (선언 자체에 없음) | O | ⛔ |
 | 3 | Svelte 5 | △ (TanStack Query Svelte 어댑터 베타) | O | ⛔ | △ | ⛔ |
 | 4 | SolidJS | △ | O | ⛔ | △ | ⛔ |
@@ -48,17 +48,17 @@
 
 | 기능 | 필수도 | 근거 |
 |------|-------|------|
-| mvp_scope ratify | **필수** | `mvp_scope.md` §3에 React 명시 — 본 research가 변경할 사항 아님 |
+| mvp_scope ratify | **필수** | `03_mvp_scope.md` §3에 React 명시 — 본 research가 변경할 사항 아님 |
 | 생태계 폭 (차트·폼·PWA·TanStack Query) | **필수** | 1인 운영 팀 — 필요한 라이브러리가 React 1급으로 존재해야 함 |
 | TypeScript 1급 | **필수** | BE pydantic v2 ↔ FE zod 통합 + OpenAPI 코드젠 |
 
-- **#2 Vue 3 / #3 Svelte 5 / #4 SolidJS** — 기술적으로 모두 React 동등 또는 우위 영역이 있으나, mvp_scope.md §3에서 React가 명시되어 있고 사주라 팀 친숙도가 React 기준임. 변경 시 모든 라이브러리 결정 재실행 비용이 크고, 변경에 따른 기능적 이득이 작음.
+- **#2 Vue 3 / #3 Svelte 5 / #4 SolidJS** — 기술적으로 모두 React 동등 또는 우위 영역이 있으나, 03_mvp_scope.md §3에서 React가 명시되어 있고 사주라 팀 친숙도가 React 기준임. 변경 시 모든 라이브러리 결정 재실행 비용이 크고, 변경에 따른 기능적 이득이 작음.
 
 ### 1.4 최종 선발
 
 | 역할 | 선택 | 결정 사유 |
 |------|------|---------|
-| UI 프레임워크 | **React 19** ✅ | mvp_scope.md §3 ratify. 사주라 MVP는 점주용 운영 도구로 SEO 불필요·단일 origin SPA + PWA → React가 가장 적합. React 19의 Actions·`use()`·자동 메모이제이션은 사주라 화면 복잡도(IA `feature_spec.md` §12)에 충분 |
+| UI 프레임워크 | **React 19** ✅ | 03_mvp_scope.md §3 ratify. 사주라 MVP는 점주용 운영 도구로 SEO 불필요·단일 origin SPA + PWA → React가 가장 적합. React 19의 Actions·`use()`·자동 메모이제이션은 사주라 화면 복잡도(IA `04_feature_spec.md` §12)에 충분 |
 
 ---
 
@@ -92,14 +92,14 @@
 
 | 기능 | 필수도 | 근거 |
 |------|-------|------|
-| dev HMR 빠름 (< 200ms) | **필수** | 점주용 화면 IA(`feature_spec.md` §12)가 10개 이상으로 다수 — 개발 사이클 가속 |
-| SPA + PWA 표준 | **필수** | `mvp_scope.md` §3 PWA + Caddy 정적 서빙(`service_design.md` §11) |
+| dev HMR 빠름 (< 200ms) | **필수** | 점주용 화면 IA(`04_feature_spec.md` §12)가 10개 이상으로 다수 — 개발 사이클 가속 |
+| SPA + PWA 표준 | **필수** | `03_mvp_scope.md` §3 PWA + Caddy 정적 서빙(`09_service_design.md` §11) |
 | vite-plugin-pwa 또는 동등 PWA 플러그인 | **필수** | Workbox precaching + Service Worker 자동 생성 — `06_pwa_push.md`와 직결 |
 | 1인 운영 단순성 | **필수** | 사주라 운영 환경은 BE 1인 + FE 다수지만 도구는 단순할수록 유지보수 비용 작음 |
 
 **탈락 사유:**
 
-- **#2 Next.js 15** — RSC·SSR·App Router 모두 사주라 MVP에 불필요. 점주용 운영 도구는 인증 후 사용하므로 SEO 미요구. SSR 도입 시 BE FastAPI(`01_web_framework.md` 결정)와 별도 Node 서버가 필요해 운영 컨테이너 1개 추가 — `service_design.md` §11 6 서비스 구성을 7개로 부풀림. RSC는 BE FastAPI와 정합 어려움(서버 측 React 실행 환경 분리).
+- **#2 Next.js 15** — RSC·SSR·App Router 모두 사주라 MVP에 불필요. 점주용 운영 도구는 인증 후 사용하므로 SEO 미요구. SSR 도입 시 BE FastAPI(`01_web_framework.md` 결정)와 별도 Node 서버가 필요해 운영 컨테이너 1개 추가 — `09_service_design.md` §11 6 서비스 구성을 7개로 부풀림. RSC는 BE FastAPI와 정합 어려움(서버 측 React 실행 환경 분리).
 - **#3 Remix v2** — Next.js와 동일한 SSR·서버 의존 사유로 탈락.
 - **#4 Astro 5** — islands 아키텍처는 콘텐츠 사이트(블로그·문서) 중심으로 사주라 점주 대시보드와 동작 모델 다름. 모든 화면이 인터랙티브한 사주라 IA에 부적합.
 - **#5 CRA** — 2023 deprecated, 보안 패치 중단. 선택 자체가 위험.
@@ -195,8 +195,8 @@ Next.js는 SSR·SEO·이미지 최적화·미들웨어 등 풍부한 기능을 �
 
 | 기능 | 필수도 | 근거 |
 |------|-------|------|
-| BE Pydantic v2 모델 ↔ FE zod 동등 타입 | **필수** | API 계약 정합 — `api_spec.md` 22개 endpoint의 요청/응답 DTO를 FE에서 안전하게 사용 |
-| OpenAPI 코드젠 호환 | **필수** | BE Swagger UI 자동 문서(`service_design.md` §1 FastAPI 내장 ReDoc) 기반 코드 생성 |
+| BE Pydantic v2 모델 ↔ FE zod 동등 타입 | **필수** | API 계약 정합 — `07_api_spec.md` 22개 endpoint의 요청/응답 DTO를 FE에서 안전하게 사용 |
+| OpenAPI 코드젠 호환 | **필수** | BE Swagger UI 자동 문서(`09_service_design.md` §1 FastAPI 내장 ReDoc) 기반 코드 생성 |
 | IDE 자동완성·리팩토링 안전성 | **필수** | 화면 10개·서비스 클래스 15개 규모에서 타입이 보호 |
 
 **탈락 사유:**
@@ -251,8 +251,8 @@ Next.js는 SSR·SEO·이미지 최적화·미들웨어 등 풍부한 기능을 �
 
 | 항목 | 결정 | spec 반영 위치 |
 |------|------|--------------|
-| UI 프레임워크 | **React 19** | `mvp_scope.md` §3 (기존 명시 — ratify) / FE spec 신설 시 명시 |
-| 빌드·번들러 | **Vite 6 + Rollup** | FE spec 신설 시 명시 (현재 `service_design.md` §11 Caddy 정적 서빙에 산출물 위치만 영향) |
+| UI 프레임워크 | **React 19** | `03_mvp_scope.md` §3 (기존 명시 — ratify) / FE spec 신설 시 명시 |
+| 빌드·번들러 | **Vite 6 + Rollup** | FE spec 신설 시 명시 (현재 `09_service_design.md` §11 Caddy 정적 서빙에 산출물 위치만 영향) |
 | 언어 | **TypeScript 5.x (strict)** | FE spec 신설 시 명시 |
 
 > 본 카테고리 결정 중 schema/api/service 변경은 없다. FE 전용 spec 폴더(`docs/spec/07_frontend/`) 신설 시점에 본 결정들이 일괄 기재된다.
@@ -271,7 +271,7 @@ Next.js는 SSR·SEO·이미지 최적화·미들웨어 등 풍부한 기능을 �
 ## 5. 후보 세부 정보
 
 ### 5.1 React 19 ✅
-- **사용처**: 모든 화면 컴포넌트 (`feature_spec.md` §12 화면 10개)
+- **사용처**: 모든 화면 컴포넌트 (`04_feature_spec.md` §12 화면 10개)
 - **장점**: Actions(`useActionState`·`useFormStatus`)로 폼 제출 흐름 단순화, `use()` hook으로 promise·context 직접 소비, automatic compiler memo(React Compiler) 점진 도입 가능
 - **단점**: React 19는 2024년 12월 안정화 — 일부 라이브러리(Storybook 8 등)는 호환 지원 진행 중
 - **세부사항**: MIT 라이선스. `react@19.0.0` + `react-dom@19.0.0`
@@ -298,7 +298,7 @@ Next.js는 SSR·SEO·이미지 최적화·미들웨어 등 풍부한 기능을 �
 
 | 후보 | 분류 | 탈락 사유 |
 |------|------|---------|
-| Vue 3 / Svelte 5 / SolidJS | UI 프레임워크 | mvp_scope.md §3 React 명시 — 변경 비용 큼 |
+| Vue 3 / Svelte 5 / SolidJS | UI 프레임워크 | 03_mvp_scope.md §3 React 명시 — 변경 비용 큼 |
 | Remix v2 | 빌드 | SSR 기본·BE FastAPI와 별도 Node 서버 필요 |
 | Astro 5 | 빌드 | islands 아키텍처는 사주라 점주 대시보드 인터랙티브 모델에 부적합 |
 | CRA | 빌드 | 2023 deprecated |

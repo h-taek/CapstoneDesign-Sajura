@@ -1,7 +1,7 @@
 # 의존성 · 컨테이너 · 배포 · 환경 설정
 
 > **카테고리**: 패키지 관리, 컨테이너·멀티 컨테이너 정의·이미지 빌드·이미지 보안 스캔, CI/CD, 환경 분리
-> **연결 spec**: `docs/spec/07_backend/service_design.md` §1, `docs/spec/01_requirements/requirements.md` §6.3
+> **연결 spec**: `docs/spec/09_service_design.md` §1, `docs/spec/01_requirements.md` §6.3
 
 ---
 
@@ -17,12 +17,12 @@
 
 | 도구 | 카테고리 | 결정 근거 위치 | spec 반영 위치 |
 |------|---------|--------------|--------------|
-| uv | 의존성 관리 | §1.2 + §1.4 | `service_design.md` §1 개발·테스트 도구 (신규) |
-| Trivy | 이미지 보안 스캔 | §2.2 + §2.4 | `service_design.md` §1 개발·테스트 도구 (신규) |
-| Docker | 컨테이너 | §2.2 + §2.4 | `service_design.md` §1 외부 운영 도구 (신규) |
-| Docker Compose | 멀티 컨테이너 정의 | §2.2 + §2.4 | `service_design.md` §1 외부 운영 도구 (신규) |
+| uv | 의존성 관리 | §1.2 + §1.4 | `09_service_design.md` §1 개발·테스트 도구 (신규) |
+| Trivy | 이미지 보안 스캔 | §2.2 + §2.4 | `09_service_design.md` §1 개발·테스트 도구 (신규) |
+| Docker | 컨테이너 | §2.2 + §2.4 | `09_service_design.md` §1 외부 운영 도구 (신규) |
+| Docker Compose | 멀티 컨테이너 정의 | §2.2 + §2.4 | `09_service_design.md` §1 외부 운영 도구 (신규) |
 | Docker Buildx / BuildKit | 이미지 빌드 | §2.2 + §2.4 | Docker 기본 포함 — 별도 행 불필요 |
-| GitHub Actions | CI/CD | §2.2 + §2.4 | `service_design.md` §1 외부 운영 도구 (신규, `requirements.md` §6.3 정합) |
+| GitHub Actions | CI/CD | §2.2 + §2.4 | `09_service_design.md` §1 외부 운영 도구 (신규, `01_requirements.md` §6.3 정합) |
 
 ### 이미 결정된 항목 (다른 research에서)
 
@@ -39,7 +39,7 @@
 
 | 후보 | 보류 이유 | 트리거 |
 |------|---------|------|
-| Kubernetes | MVP 단일 노드(Mac mini)에 과한 수준 | 매장 ≥ 1000 (3단계) — `requirements.md` 1000 매장 목표 |
+| Kubernetes | MVP 단일 노드(Mac mini)에 과한 수준 | 매장 ≥ 1000 (3단계) — `01_requirements.md` 1000 매장 목표 |
 | Helm | k8s 의존 | Kubernetes 도입 시점 |
 | ArgoCD / Flux | k8s 의존 | Kubernetes 도입 시점 |
 | Watchtower | 운영 의도된 배포 흐름과 충돌 | 사용 안 함 (탈락) |
@@ -74,7 +74,7 @@
 
 | 기능 | 필수도 | 근거 |
 |------|-------|------|
-| 잠금·해시 검증 | **필수** | 의존성 재현성·공급망 보안 (`security.md` §7) |
+| 잠금·해시 검증 | **필수** | 의존성 재현성·공급망 보안 (`12_security.md` §7) |
 | 가상환경 통합 | **필수** | 개발·CI·운영 환경 일관성 |
 | group 의존성 | **필수** | 09에서 채택한 개발·테스트 도구 12개를 dev group으로 분리 |
 | 설치 속도 | 중요 | CI 시간 단축 |
@@ -129,7 +129,7 @@
 
 | # | 후보 | 결과 |
 |---|------|:----|
-| 3 | GitHub Actions | ✅ **통과 (CI/CD)** — `requirements.md` §6.3 명시. OIDC·matrix·캐시·무료 한도 충분 |
+| 3 | GitHub Actions | ✅ **통과 (CI/CD)** — `01_requirements.md` §6.3 명시. OIDC·matrix·캐시·무료 한도 충분 |
 
 **이미지 보안 스캔**
 
@@ -154,8 +154,8 @@
 | 컨테이너 런타임 | **필수** | BE·MySQL·Redis·n8n·Caddy + ARQ 워커 = 6 컨테이너 |
 | 멀티 컨테이너 정의 | **필수** | 단일 YAML로 로컬·운영 stack 정의 |
 | 멀티 아키 빌드 | **필수** | Mac mini M2 Pro(arm64) 운영 + 잠재적 x86 배포 환경 |
-| CI/CD | **필수** | `requirements.md` §6.3 |
-| 이미지 보안 스캔 | **필수** | `security.md` §7 — pip-audit이 Python 의존성, Trivy가 컨테이너 이미지(OS·라이브러리)로 보완관계 |
+| CI/CD | **필수** | `01_requirements.md` §6.3 |
+| 이미지 보안 스캔 | **필수** | `12_security.md` §7 — pip-audit이 Python 의존성, Trivy가 컨테이너 이미지(OS·라이브러리)로 보완관계 |
 | 오케스트레이션 (k8s) | MVP 미채택 | 단일 노드 Mac mini |
 
 **탈락 사유:**
@@ -171,7 +171,7 @@
 | **컨테이너 런타임** | **Docker** ✅ | 사실상 표준. Docker Engine은 Apache 2.0. Docker Desktop은 학교 프로젝트·1인 운영에서 무료 라이선스 적용 (중규모 기업 이상 유료) |
 | **멀티 컨테이너 정의** | **Docker Compose (V2)** ✅ | 단일 `docker-compose.yml`로 BE + ARQ 워커 + MySQL + Redis + n8n + Caddy = 6 서비스 정의. 로컬·운영 환경 분리는 `--env-file` 또는 override |
 | **이미지 빌드** | **Buildx / BuildKit** ✅ | Docker 기본 포함. `--platform linux/amd64,linux/arm64` 멀티 아키 빌드, secret 마운트, SBOM 생성 |
-| **CI/CD** | **GitHub Actions** ✅ | `requirements.md` §6.3 명시. OIDC로 secret-less 배포 가능, matrix(Python 버전·OS), reusable workflow, runner 캐시. 무료 plan 2000분/월 — MVP 충분 |
+| **CI/CD** | **GitHub Actions** ✅ | `01_requirements.md` §6.3 명시. OIDC로 secret-less 배포 가능, matrix(Python 버전·OS), reusable workflow, runner 캐시. 무료 plan 2000분/월 — MVP 충분 |
 | **이미지 보안 스캔** | **Trivy** ✅ | OS·언어 라이브러리·secret·misconfig 통합 스캔. SARIF로 GitHub Security 탭 통합. CI에 `trivy image` 또는 `aquasecurity/trivy-action` 사용. pip-audit(09)이 Python 의존성, Trivy가 컨테이너 이미지로 보완관계 |
 
 ---
@@ -205,7 +205,7 @@
 | `n8n` | `n8nio/n8n` | `08_async_pipeline.md` §2.4 |
 | `caddy` | `caddy:alpine` | `03_reverse_proxy.md` §4 |
 
-> AI Server는 `performance.md` §2.4에 따라 별도 머신·별도 stack — 본 Compose 외부.
+> AI Server는 `13_performance.md` §2.4에 따라 별도 머신·별도 stack — 본 Compose 외부.
 
 ### 4.2 환경 분리
 
@@ -259,15 +259,15 @@ Mac mini M2 Pro 16GB 운영 가정 (`02_app_server.md` §4.1):
 
 ### 5.1 도구 결정 (5개 신규)
 
-**외부 운영 도구 (`service_design.md` §1 외부 운영 도구 표에 추가)**
+**외부 운영 도구 (`09_service_design.md` §1 외부 운영 도구 표에 추가)**
 
 | 도구 | 역할 |
 |------|------|
 | **Docker (Engine)** | 컨테이너 런타임. BE·ARQ 워커·MySQL·Redis·n8n·Caddy 컨테이너화 |
 | **Docker Compose (V2)** | 멀티 컨테이너 정의 — 단일 `docker-compose.yml`로 6 서비스 정의. 환경 override(`docker-compose.staging.yml`·`docker-compose.prod.yml`) |
-| **GitHub Actions** | CI/CD — uv sync → pre-commit → pytest → Buildx 멀티 아키 빌드 → Trivy 스캔 → 레지스트리 push (`requirements.md` §6.3 정합) |
+| **GitHub Actions** | CI/CD — uv sync → pre-commit → pytest → Buildx 멀티 아키 빌드 → Trivy 스캔 → 레지스트리 push (`01_requirements.md` §6.3 정합) |
 
-**개발·테스트 도구 (`service_design.md` §1 개발·테스트 도구 표에 추가)**
+**개발·테스트 도구 (`09_service_design.md` §1 개발·테스트 도구 표에 추가)**
 
 | 도구 | 역할 |
 |------|------|
@@ -280,10 +280,10 @@ Mac mini M2 Pro 16GB 운영 가정 (`02_app_server.md` §4.1):
 
 | 영향 영역 | 결정 사항 | 위치 |
 |---------|---------|------|
-| Docker Compose 6 서비스 구성 | be · arq-worker · mysql · redis · n8n · caddy | `service_design.md` 운영 토폴로지 절(신규) 또는 운영 메모 |
-| CI 파이프라인 8단계 | uv sync → pre-commit → pytest → Buildx → Trivy → push → deploy | `service_design.md` CI 절(신규) 또는 별도 plan 문서 |
-| 환경 분리 (dev/staging/prod) | `.env.dev` / `.env.staging` / `.env.prod` + Docker secret | `security.md` 시크릿 관리 절 또는 운영 메모 |
-| Docker Desktop 메모리 권장 | 10~12 GB | `performance.md` 운영 환경 메모 |
+| Docker Compose 6 서비스 구성 | be · arq-worker · mysql · redis · n8n · caddy | `09_service_design.md` 운영 토폴로지 절(신규) 또는 운영 메모 |
+| CI 파이프라인 8단계 | uv sync → pre-commit → pytest → Buildx → Trivy → push → deploy | `09_service_design.md` CI 절(신규) 또는 별도 plan 문서 |
+| 환경 분리 (dev/staging/prod) | `.env.dev` / `.env.staging` / `.env.prod` + Docker secret | `12_security.md` 시크릿 관리 절 또는 운영 메모 |
+| Docker Desktop 메모리 권장 | 10~12 GB | `13_performance.md` 운영 환경 메모 |
 
 > DB 컬럼·API endpoint·서비스 시그니처 추가 없음 — 본 카테고리 결정은 도구·운영 절차 한정.
 
@@ -313,7 +313,7 @@ Mac mini M2 Pro 16GB 운영 가정 (`02_app_server.md` §4.1):
 - **사용처**: CI/CD — uv sync, pre-commit, pytest, Buildx 멀티 아키, Trivy 스캔, 레지스트리 push, 배포
 - **장점**: GitHub 통합·OIDC·matrix·reusable workflow·캐시. 무료 plan 2000분/월
 - **단점**: 사용량 초과 시 비용, runner 캐시 정책 신경 필요
-- **세부사항**: `requirements.md` §6.3 spec 정합
+- **세부사항**: `01_requirements.md` §6.3 spec 정합
 
 ### 6.5 Docker Buildx / BuildKit ✅
 - **사용처**: 멀티 아키(amd64+arm64) 이미지 빌드, 캐시·secret 마운트·SBOM

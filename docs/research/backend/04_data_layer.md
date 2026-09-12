@@ -1,7 +1,7 @@
 # 데이터 계층 (ORM·DB 드라이버·검증·데이터 처리)
 
 > **카테고리**: 영속성·검증·직렬화·데이터 처리 후보 조사
-> **연결 spec**: `docs/spec/07_backend/service_design.md` §1, `docs/spec/06_database/schema.md`
+> **연결 spec**: `docs/spec/09_service_design.md` §1, `docs/spec/08_schema.md`
 
 ---
 
@@ -55,14 +55,14 @@ ORM 4개 + async 드라이버 2개 + sync 드라이버 2개 + 마이그레이션
 | 기능 | 필수도 | 근거 |
 |------|-------|------|
 | async/await | **필수** (운영 경로) | `02_app_server.md` §4.1 I/O bound — async ORM·드라이버 필수 |
-| MySQL 지원 | **필수** | `service_design.md` §1 MySQL 확정 |
-| 복합 JOIN·서브쿼리 | **필수** | `schema.md` 21개 테이블 + FIFO·집계 |
+| MySQL 지원 | **필수** | `09_service_design.md` §1 MySQL 확정 |
+| 복합 JOIN·서브쿼리 | **필수** | `08_schema.md` 21개 테이블 + FIFO·집계 |
 | FastAPI 통합 | 중요 | DI·Depends 패턴과 자연스럽게 결합 |
 | 스키마 진화 도구 | **필수** | Alembic 또는 동등 |
 
 **탈락 사유:**
 
-- **#2 SQLModel** — Pydantic 통합은 매력적이나 복잡 관계(FIFO·다단계 JOIN)에서 SQLAlchemy 직접 사용 필요. service_design.md DTO 분리 정책과도 충돌 가능 (DTO와 ORM 모델 동일 클래스가 강제됨).
+- **#2 SQLModel** — Pydantic 통합은 매력적이나 복잡 관계(FIFO·다단계 JOIN)에서 SQLAlchemy 직접 사용 필요. 09_service_design.md DTO 분리 정책과도 충돌 가능 (DTO와 ORM 모델 동일 클래스가 강제됨).
 - **#3 Tortoise ORM** — SQLAlchemy 대비 표현력·생태계 부족. 21개 테이블 운영에 부담.
 - **#4 Piccolo** — MySQL 지원 제한적 (Postgres 우선). 본 프로젝트 부적합.
 - **#8 mysqlclient** — C 기반 빠르지만 시스템 의존성(`libmysqlclient-dev`)으로 컨테이너 이미지 부피 증가. PyMySQL이 Alembic 스크립트 용도에 충분.
@@ -123,10 +123,10 @@ asyncmy는 Cython으로 aiomysql 대비 2~3배 빠르나 다음 사유로 보존
 
 | 기능 | 필수도 | 근거 |
 |------|-------|------|
-| Pydantic v2 DTO | **필수** | `api_spec.md` Request/Response 전체 + `01_web_framework.md` 1차 기준 |
-| OpenAPI 통합 | **필수** | `api_spec.md` §10 Swagger 자동 문서화 |
+| Pydantic v2 DTO | **필수** | `07_api_spec.md` Request/Response 전체 + `01_web_framework.md` 1차 기준 |
+| OpenAPI 통합 | **필수** | `07_api_spec.md` §10 Swagger 자동 문서화 |
 | 설정 로딩 | **필수** | `.env`·환경변수 → 타입 안전 Settings |
-| JSON 직렬화 가속 | 중요 | `performance.md` §1.1 일반 API ≤ 200 ms |
+| JSON 직렬화 가속 | 중요 | `13_performance.md` §1.1 일반 API ≤ 200 ms |
 | 멀티파트 | **필수** | `POST /api/sales/upload` CSV |
 | 외부 JSON Schema | 참고 | POS Canonical Schema → Pydantic 모델로도 가능 |
 
@@ -178,9 +178,9 @@ asyncmy는 Cython으로 aiomysql 대비 2~3배 빠르나 다음 사유로 보존
 
 | 기능 | 필수도 | 근거 |
 |------|-------|------|
-| CSV 파싱 (수천~수만 행) | **필수** | `POST /api/sales/upload`, `feature_spec.md` §4.2 CSVAdapter |
+| CSV 파싱 (수천~수만 행) | **필수** | `POST /api/sales/upload`, `04_feature_spec.md` §4.2 CSVAdapter |
 | 결측·집계 | **필수** | 기간별 매출 집계, ROI |
-| IQR/Z-score 통계 | **필수** | `ml_pipeline.md` 이상치 탐지 |
+| IQR/Z-score 통계 | **필수** | `11_ai_spec.md` 이상치 탐지 |
 | 메모리 효율 | 중요 | M2 Pro 16GB · 워커 4개 동시 업로드 시도 시 |
 | 자료·생태계 | 중요 | 1인 운영 디버깅 자료 |
 | Excel 지원 | 참고 | 현 spec엔 CSV만 |
@@ -188,8 +188,8 @@ asyncmy는 Cython으로 aiomysql 대비 2~3배 빠르나 다음 사유로 보존
 **탈락 사유:**
 
 - **#4 pyarrow** — Parquet IO가 강점이나 사주라 MVP는 CSV/JSON만 사용. 도입 사례 없음.
-- **#5 openpyxl** — `api_spec.md` `POST /api/sales/upload`는 CSV만 명시. .xlsx 업로드 요구사항 없음. 추후 요구 발생 시 추가.
-- **#6 pendulum** — `api_spec.md` 시간 필드는 UTC ISO 8601(`2026-05-06T01:00:00Z`)로 통일. 표준 `datetime + zoneinfo`(Python 3.9+)로 충분. pendulum 도입 시 표준 datetime과 혼용 관리 비용 발생.
+- **#5 openpyxl** — `07_api_spec.md` `POST /api/sales/upload`는 CSV만 명시. .xlsx 업로드 요구사항 없음. 추후 요구 발생 시 추가.
+- **#6 pendulum** — `07_api_spec.md` 시간 필드는 UTC ISO 8601(`2026-05-06T01:00:00Z`)로 통일. 표준 `datetime + zoneinfo`(Python 3.9+)로 충분. pendulum 도입 시 표준 datetime과 혼용 관리 비용 발생.
 - **#7 Pint** — kg↔g(1000배), L↔ml(1000배) 단위 변환은 단순 곱셈으로 충분. 라이브러리 도입은 과한 수준.
 
 ### 3.4 최종 선발
@@ -221,7 +221,7 @@ polars는 Rust 멀티코어·메모리 효율 우위가 있으나 다음 사유�
 
 ## 4. 통합 최종 결정 (spec 반영용)
 
-`service_design.md` §1에 추가될 항목:
+`09_service_design.md` §1에 추가될 항목:
 
 | 라이브러리 | 역할 |
 |----------|------|
