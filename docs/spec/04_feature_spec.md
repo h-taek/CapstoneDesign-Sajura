@@ -336,7 +336,7 @@ Frontend → GET /api/auth/login/kakao
 | 구분 | 항목 | 비고 |
 |---|---|---|
 | 입력 | CSV 파일 (UTF-8) | |
-| | 컬럼명 매핑 (필수 4종 + 영수증번호 선택) | api_spec §6 |
+| | 컬럼명 매핑 (필수 4종 + 영수증번호 선택) | `07_api_spec.md` §6 |
 | | auto_create_menus (선택, 기본 false) | 미등록 메뉴 즉시 등록 |
 | | store_id | |
 | 출력 | 파싱 성공 건수 (`imported`) | |

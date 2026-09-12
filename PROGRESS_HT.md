@@ -174,6 +174,18 @@ HANDOFF.md E단계 9개 검증 시나리오 수행 + 발견된 결함 일괄 정
 
 ## 2. 문서 수정 이력
 
+### 2026-09-12 — 코드 ↔ 문서 전수 재검증 + 구 문서 참조 갱신
+
+구조 정합 직후 코드와 문서를 다시 전수 비교했다. 평탄화 당시 `*.md` 안의 참조 1,083곳만 갱신하고 **코드 주석·docstring은 빠뜨린 것**이 드러났다.
+
+**참조 갱신 (dev `0d597ec`, 80파일)**: 구 문서명 99곳 → 번호 접두 이름. `model_spec`·`ml_pipeline` 참조는 합본 절 번호로 재매핑(`model_spec §9` → `11_ai_spec.md §8`, `ml_pipeline §10` → §10). `service_design §4`는 plan 이관분을 직접 가리키게 변경. 삭제된 plan 파일 참조 7곳·구 폴더 경로 3곳 제거. `playwright.config.ts`의 "CI 6단계" → 8단계. 변경은 전부 주석·docstring이고 실행 코드는 무변경(py_compile 통과, 참조 문서 경로 17종 실존 확인).
+
+**문서 측 잔여 (main)**: `.md` 없이 이름만 쓴 참조 8곳(`07_api_spec.md` 5·`04_feature_spec.md`·`05_user_flow.md`·`plan/01_be.md`) 갱신. `plan/03_ai.md`의 `../spec/08_ai/` 깨진 링크 1건 수정. PROGRESS 계열의 구 문서명은 이력 서술이라 그대로 둔다.
+
+**검수 결과**: 엔드포인트 spec 79 / 구현 57 — 문서에 있고 미구현 32건(notifications 6·inventory 로트계 7·orders 추천계 5·dashboard 3·pipeline 3·sales 3·data 2·forecast 2, 쿠팡 automate 제외), 구현됐으나 문서에 없는 것 11건(KAMIS `prices/ingredients`·매출 집계 5종·`orders/confirm` 등). DB 23테이블 전부 존재하나 ORM은 10개. `purchase_orders` 테이블과 `inventory_items.current_quantity`가 `08_schema.md`에 없음. 미설치 스택: fastapi-limiter(Rate Limit 전무)·pywebpush·fastapi-mail·slack_sdk / Authlib은 설치만 되고 미사용(OAuth는 httpx 수기). `.github/workflows` 없음. `types.gen.ts`는 3줄 스텁. 상세는 `HANDOFF.md` §2.
+
+**문서끼리 어긋난 것**: 예측 조회 경로 3방향(spec `GET /api/forecast` / plan `…/demand` / 코드 `…/predict`), 추천발주 수정 `PATCH`(spec) ↔ `PUT`(plan), 소비기한 cron 02:00(spec 6곳) ↔ 01:30(`plan/01_be.md` M5.B3, 같은 파일 메서드 표는 02:00), `plan/01_be.md`에 범위 밖 서비스 3개(Automation·SiteScraping·Pipeline) 잔존, `04_gantt.md` §2~§5가 §6의 '범위 밖' 표시와 불일치, `03_mvp_scope.md`가 쿠팡 자동화를 MVP `O`로 유지.
+
 ### 2026-09-12 — 문서 구조 정합: spec 평탄화 · plan 합치기 · PROGRESS 분할
 
 `CLAUDE.md` 문서 규칙(파일명 `순번_이름.md`, spec에 실측치·구현 방법 금지, 덧대지 않는다)과 어긋난 구조를 일괄 정리했다. 구현에는 손대지 않았다.

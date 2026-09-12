@@ -1285,7 +1285,7 @@ Authorization: Bearer <access_token>
       "interval_p90": 1310000,
       "is_low_confidence": false,
       "low_confidence_reason": null,   // SHORT_HISTORY | MISSING_FEATURES | SPECIAL_DAY | LONG_HORIZON | WIDE_INTERVAL | DRIFT
-      "explanation": {                 // model_spec §9 — SHAP 합 = 편차, rule-based 문장(LLM 미사용)
+      "explanation": {                 // 11_ai_spec.md §8 — SHAP 합 = 편차, rule-based 문장(LLM 미사용)
         "baseline": "직전 7영업일 평균",
         "deviation_vs_baseline": 0.12,
         "top_factors": [
@@ -1308,7 +1308,7 @@ Authorization: Bearer <access_token>
 > → **점주 레시피(BOM) 전개 → 재고·리드타임·안전재고 반영 발주 참고치**까지 수행한다.
 > 레시피(`recipes`)는 점주 관리 데이터(재료 리스트업 = 사용자 몫, 38차 확정)를 BE가 전달.
 > 메뉴별 예상 수량은 서버 산출물(`menu_forecast`)로 응답에 포함되며, ①의 신뢰도 배지가
-> 응답에 동반 전파된다(참고치 원칙 — 배지 없이 단독 노출 금지, model_spec §9).
+> 응답에 동반 전파된다(참고치 원칙 — 배지 없이 단독 노출 금지, `11_ai_spec.md` §8).
 > 구현: `AI/app/api/orders.py` + `AI/app/model/decompose.py`.
 
 ```json
@@ -1340,7 +1340,7 @@ Authorization: Bearer <access_token>
   "store_id": "uuid",
   "target_dates": ["2026-07-28", "2026-07-29", "2026-07-30"],
   "is_low_confidence": true,               // ① 예측 신뢰도 전파 — UI는 배지와 함께 노출
-  "low_confidence_reason": "LONG_HORIZON", // feature_spec §5.3 코드
+  "low_confidence_reason": "LONG_HORIZON", // 04_feature_spec.md §5.3 코드
   "menu_forecast": [                       // ② 산출물 — 대상 기간 합계 메뉴별 예상 수량(참고치), 내림차순
     { "menu_id": "uuid", "expected_quantity": 37.5 }
   ],
@@ -1403,7 +1403,7 @@ Authorization: Bearer <access_token>
 
 > **M7.A6 확장(additive)** — stateless 서빙(M7.A2) 기준 의미: `model_loaded` = 자가 점검(합성 미니
 > 학습·예측 스모크) 통과, `last_trained_at` = null 고정([2단계] 주간 재학습 도입 시 채움).
-> DB 연결 점검은 해당 없음 — AI Server는 DB에 접근하지 않는다(n8n이 조회해 payload 전달, feature_spec §5.1).
+> DB 연결 점검은 해당 없음 — AI Server는 DB에 접근하지 않는다(n8n이 조회해 payload 전달, `04_feature_spec.md` §5.1).
 
 ```json
 // Response 200
@@ -1417,7 +1417,7 @@ Authorization: Bearer <access_token>
     "holidays":          { "status": "ok" }
   }
 }
-// AI Server 다운 시 호출 주체(Backend 또는 n8n)가 실패 처리, degraded는 운영 알림(ml_pipeline §10)
+// AI Server 다운 시 호출 주체(Backend 또는 n8n)가 실패 처리, degraded는 운영 알림(11_ai_spec.md §10)
 ```
 
 ---
