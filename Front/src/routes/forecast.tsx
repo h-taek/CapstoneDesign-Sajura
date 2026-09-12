@@ -1,6 +1,6 @@
 // 매출예측 화면 — 참고 대시보드 목업(예측정확도·오차율·누적매출·전월대비 카드 +
 // 이번달/지난달 매출 그래프 + 오차율분석/영향요인) 레이아웃에 맞춰 재구성.
-// AI 수요예측(D+1~D+3)은 실제 GET /api/forecast/predict(AI 서버 stateless 서빙)로 렌더링.
+// AI 수요예측(D+1~D+3)은 실제 GET /api/forecast(AI 서버 stateless 서빙)로 렌더링.
 // 예측 정확도·평균 오차율(과거 예측 대비 실측 누적 비교 지표)·오차율 분석은 아직 없어
 // 정직하게 "준비 중"으로 남기고, 나머지는 실제 GET /api/sales/* 데이터로 렌더링한다.
 import { useQuery } from "@tanstack/react-query";

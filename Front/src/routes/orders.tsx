@@ -1,5 +1,5 @@
 // 발주추천 화면 — Figma "발주추천"(node 9:989) 셸 적용.
-// 재고 임계값 기반(GET /api/inventory/reorder-suggestions) 추천과, AI 서버(/ai/orders/recommend
+// 재고 임계값 기반(GET /api/inventory/reorder-suggestions) 추천과, AI 서버(GET /api/orders/recommend
 // — 수요예측 × 메뉴 비중 분해 × 레시피(BOM) × 재고/리드타임/안전재고) 기반 추천을 함께 제공.
 // 점주 확정(체크박스 선택 + 수량 인라인 수정)은 POST /api/orders/confirm으로 실제 기록된다
 // (쿠팡 자동 담기·실제 입고 반영은 후속 작업 — 확정 = 기록만, 재고 수량은 자동 변경되지 않음).
@@ -7,9 +7,8 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { HTTPError } from "ky";
 import { AlertTriangle, CheckCircle2, Sparkles } from "lucide-react";
 import { useEffect, useState } from "react";
-import { getAIRecommend } from "../api/endpoints/forecast";
 import { getReorderSuggestions } from "../api/endpoints/inventory";
-import { confirmOrder, listOrders } from "../api/endpoints/orders";
+import { confirmOrder, getAIRecommend, listOrders } from "../api/endpoints/orders";
 import { DashboardShell } from "../components/dashboard/shell";
 import { Button } from "../components/ui/button";
 
