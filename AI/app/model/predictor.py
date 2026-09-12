@@ -1,14 +1,14 @@
-"""V1-t 서빙 — stateless 학습·예측 (model_spec §3, 모델 카드: notebooks/05).
+"""V1-t 서빙 — stateless 학습·예측 (11_ai_spec.md §3, 모델 카드: notebooks/05).
 
-설계 (MVP, 야간 배치 1회 호출 전제 — feature_spec §5.1):
+설계 (MVP, 야간 배치 1회 호출 전제 — 04_feature_spec.md §5.1):
 - 요청 payload의 판매 이력으로 요청 시점에 학습(fit)하고 target_dates를 예측한다.
   256 영업일 × LightGBM(60 iter) ×3(점+P10/P90) ≈ 1~2초 — 별도 모델 저장소 없이 재현 가능.
   주간 재학습·모델 아티팩트 관리(pipeline_jobs)는 M7.A5 [2단계].
 - 타깃: log1p(매출) − log1p(직전 7영업일 평균) 편차 — 복원 ŷ = expm1(pred + log1p(roll7_h)).
   워밍업 NaN 라벨은 학습에서 명시 제거(정의의 일부, 04 §3 재현 노트).
-- 예측 근거: LightGBM 내장 `pred_contrib`(TreeSHAP 동일값) → top-3 + rule-based 문장 (model_spec §9).
-- 신뢰도: feature_spec §5.3 트리거 — SHORT_HISTORY·MISSING_FEATURES·SPECIAL_DAY·LONG_HORIZON·
-  WIDE_INTERVAL(θ = train in-sample 폭 P80). DRIFT는 운영 배치 몫(ml_pipeline §10).
+- 예측 근거: LightGBM 내장 `pred_contrib`(TreeSHAP 동일값) → top-3 + rule-based 문장 (11_ai_spec.md §8).
+- 신뢰도: 04_feature_spec.md §5.3 트리거 — SHORT_HISTORY·MISSING_FEATURES·SPECIAL_DAY·LONG_HORIZON·
+  WIDE_INTERVAL(θ = train in-sample 폭 P80). DRIFT는 운영 배치 몫(11_ai_spec.md §10).
 """
 from __future__ import annotations
 
@@ -95,7 +95,7 @@ class SalesForecaster:
             self.models[name] = lgb.train(params, lgb.Dataset(X, label=y),
                                           num_boost_round=N_ESTIMATORS)
 
-        # 신뢰도 T5 임계 θ — train 구간 in-sample 상대 폭의 P80 (feature_spec §5.3)
+        # 신뢰도 T5 임계 θ — train 구간 in-sample 상대 폭의 P80 (04_feature_spec.md §5.3)
         lo = np.expm1(self.models["p10"].predict(X) + np.log1p(X["roll7_h"].values))
         hi = np.expm1(self.models["p90"].predict(X) + np.log1p(X["roll7_h"].values))
         widths = np.abs(hi - lo) / X["roll7_h"].values
@@ -143,7 +143,7 @@ class SalesForecaster:
 
     def _confidence_reason(self, X: pd.DataFrame, target_date: dt.date, horizon: int,
                            lo: float, hi: float, r7: float) -> str | None:
-        """트리거 우선순위 판정 — feature_spec §5.3 (T6 DRIFT는 운영 배치 몫)."""
+        """트리거 우선순위 판정 — 04_feature_spec.md §5.3 (T6 DRIFT는 운영 배치 몫)."""
         if self.n_open < SHORT_HISTORY_DAYS:
             return "SHORT_HISTORY"
         if X[CORE_LAG_COLUMNS].isna().any(axis=1).iloc[0]:

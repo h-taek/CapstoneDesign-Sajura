@@ -1,4 +1,4 @@
-"""User ORM — schema.md §3 users."""
+"""User ORM — 08_schema.md §3 users."""
 from __future__ import annotations
 
 import enum
@@ -23,7 +23,7 @@ class AuthProvider(str, enum.Enum):
 
 class UserRole(str, enum.Enum):
     OWNER = "OWNER"   # 점주 (기본)
-    ADMIN = "ADMIN"   # 운영자 — DB에서 수동 지정 (security.md §5.1)
+    ADMIN = "ADMIN"   # 운영자 — DB에서 수동 지정 (12_security.md §5.1)
 
 
 class User(Base):

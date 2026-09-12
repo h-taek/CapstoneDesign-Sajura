@@ -1,4 +1,4 @@
-"""AuthService — service_design §4."""
+"""AuthService — docs/plan/01_be.md 서비스별 주요 메서드."""
 from __future__ import annotations
 
 from dataclasses import dataclass

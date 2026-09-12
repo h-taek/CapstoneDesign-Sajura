@@ -1,6 +1,6 @@
 """users: role(OWNER/ADMIN) 추가 — 관리자 심사 (M3.B9, PR-B).
 
-관리자는 DB에서 수동으로 ADMIN 지정 (가입 경로로 부여 불가, security.md §5.1).
+관리자는 DB에서 수동으로 ADMIN 지정 (가입 경로로 부여 불가, 12_security.md §5.1).
 
 Revision ID: 0004_users_role
 Revises: 0003_business_status_enum

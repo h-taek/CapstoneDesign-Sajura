@@ -1,6 +1,6 @@
 """이상치 탐지 — Phase 12 hookup에서 실제 로직 채움.
 
-feature_spec.md §4.6: 방법(IQR/Z-score 등)·임계값·후속 처리(분리/수정·알림)
+04_feature_spec.md §4.6: 방법(IQR/Z-score 등)·임계값·후속 처리(분리/수정·알림)
 정책 미확정. 본 placeholder는 시그니처만 고정하고 통과시킨다.
 """
 from __future__ import annotations

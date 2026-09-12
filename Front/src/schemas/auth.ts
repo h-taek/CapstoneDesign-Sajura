@@ -1,9 +1,9 @@
-// 인증 폼 zod 스키마 — api_spec.md §2 register/login + feature_spec.md §1.2.
+// 인증 폼 zod 스키마 — 07_api_spec.md §2 register/login + 04_feature_spec.md §1.2.
 import { z } from "zod";
 
 // BE _BIZ_NO_RE: ^\d{3}-?\d{2}-?\d{5}$ — FE는 NNN-NN-NNNNN(10자리) 마스크로 정규화.
 const BUSINESS_NO_REGEX = /^\d{3}-\d{2}-\d{5}$/;
-// 시연/테스트용 마스터 코드(security.md §2.4)는 숫자 형식이 아니라서 별도 허용 — 실제
+// 시연/테스트용 마스터 코드(12_security.md §2.4)는 숫자 형식이 아니라서 별도 허용 — 실제
 // 코드값은 BE만 알고 FE는 검증하지 않는다. 문자를 하나 이상 포함해야 매칭시켜서
 // (예: "DEMO1234") 자릿수 부족한 순수 숫자(예: "12345")까지 통과되는 걸 막는다.
 const MASTER_CODE_REGEX = /^(?=.*[A-Za-z])[A-Za-z0-9]{4,20}$/;

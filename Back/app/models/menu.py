@@ -1,4 +1,4 @@
-"""Menu / Recipe / RecipeIngredient ORM — schema.md §3."""
+"""Menu / Recipe / RecipeIngredient ORM — 08_schema.md §3."""
 from __future__ import annotations
 
 from datetime import datetime

@@ -1,6 +1,6 @@
 """PurchaseOrder ORM — 발주추천 승인(확정) 기록.
 
-lots/FIFO 기반 실제 입고 처리(schema.md §3.9~11)는 후속 마일스톤. 그 전까지
+lots/FIFO 기반 실제 입고 처리(08_schema.md §3.9~11)는 후속 마일스톤. 그 전까지
 점주가 확정한 발주 품목·수량 스냅샷만 JSON으로 저장한다.
 """
 from __future__ import annotations

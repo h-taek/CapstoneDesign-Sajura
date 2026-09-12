@@ -45,7 +45,7 @@ async def _call_nts(b_no_digits: str) -> dict:
 
 async def check_business_status(business_no: str) -> BusinessStatus:
     s = get_settings()
-    # 시연/테스트용 마스터 코드 — 국세청 호출 없이 통과 (security.md §2.4).
+    # 시연/테스트용 마스터 코드 — 국세청 호출 없이 통과 (12_security.md §2.4).
     # 빈 값이면 비활성. 형식 검증보다 먼저 평가해 비숫자 코드도 허용.
     if s.NTS_MASTER_BYPASS_CODE and business_no == s.NTS_MASTER_BYPASS_CODE:
         return BusinessStatus.ACTIVE

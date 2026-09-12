@@ -1,4 +1,4 @@
-// 마운트 1회 refresh 동기 — frontend_design.md §2 (메모리 Access Token 부재 감지).
+// 마운트 1회 refresh 동기 — 10_frontend_design.md §2 (메모리 Access Token 부재 감지).
 import { useEffect } from "react";
 import { fetchMe, refreshAccessToken } from "../../api/endpoints/auth";
 import { useAuthStore } from "../../stores/auth-store";

@@ -1,4 +1,4 @@
-// 메뉴 API — api_spec.md §4.
+// 메뉴 API — 07_api_spec.md §4.
 import { HTTPError } from "ky";
 import { api } from "../../lib/api";
 

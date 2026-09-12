@@ -1,4 +1,4 @@
-"""도메인 예외 — service_design §8 / api_spec §1.3."""
+"""도메인 예외 — 09_service_design.md §8 / 07_api_spec.md §1.3."""
 from __future__ import annotations
 
 from typing import Any

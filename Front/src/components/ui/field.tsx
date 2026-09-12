@@ -1,4 +1,4 @@
-// 입력 + 라벨 + 에러 메시지 묶음 — RHF 친화 (frontend_design.md §7).
+// 입력 + 라벨 + 에러 메시지 묶음 — RHF 친화 (10_frontend_design.md §7).
 import {
   forwardRef,
   type InputHTMLAttributes,

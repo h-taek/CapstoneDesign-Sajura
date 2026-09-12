@@ -1,7 +1,7 @@
 """ForecastService — 실제 판매·재고·레시피 데이터를 AI 계약 형태로 집계해 AI 서버 호출.
 
 AI Server는 stateless(사전 학습 모델 불필요)라 매 요청마다 이 서비스가 판매 이력을
-모아 보내면 즉석 학습·예측한다 (model_spec §3, api_spec §8).
+모아 보내면 즉석 학습·예측한다 (11_ai_spec.md §3, 07_api_spec.md §8).
 """
 from __future__ import annotations
 

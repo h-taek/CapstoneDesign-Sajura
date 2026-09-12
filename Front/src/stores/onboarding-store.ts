@@ -1,4 +1,4 @@
-// 온보딩 단계 간 입력 캐싱 — 메모리 only (frontend_design.md §4.1).
+// 온보딩 단계 간 입력 캐싱 — 메모리 only (10_frontend_design.md §4.1).
 import { create } from "zustand";
 import type {
   MenusStepValues,

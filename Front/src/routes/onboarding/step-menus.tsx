@@ -1,4 +1,4 @@
-// M3.F5 — 온보딩 3스텝: 메뉴 등록 (동적 배열, api_spec.md §4 POST /api/menus/bulk).
+// M3.F5 — 온보딩 3스텝: 메뉴 등록 (동적 배열, 07_api_spec.md §4 POST /api/menus/bulk).
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Plus, Trash2 } from "lucide-react";
 import { useFieldArray, useForm } from "react-hook-form";

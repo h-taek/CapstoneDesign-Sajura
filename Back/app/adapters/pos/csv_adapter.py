@@ -1,9 +1,9 @@
 """CSVAdapter — CSV 행을 공통 판매 스키마로 변환.
 
-feature_spec.md §4.2·§4.5 공통 스키마:
+04_feature_spec.md §4.2·§4.5 공통 스키마:
   {sold_at, external_sale_id, menu_name, quantity, unit_price, total_price}
 
-api_spec.md §6 POST /api/sales/upload 의 컬럼명 매핑(date/menu/quantity/price/
+07_api_spec.md §6 POST /api/sales/upload 의 컬럼명 매핑(date/menu/quantity/price/
 external_sale_id_column)을 받아 한 행씩 normalize. unit_price는 total_price를
 quantity로 정수 나눗셈하여 산출(CSV에는 단가 컬럼이 없음). 매핑 실패·형식
 오류 행은 SkipReason 으로 반환하여 호출자가 응답의 skipped_reasons 에 누적.
@@ -16,13 +16,13 @@ from typing import Any
 
 from pydantic import BaseModel, ConfigDict
 
-# schema.md §3 menus.name = VARCHAR(100). 초과 시 INSERT가 청크 전체를 굴려뜨릴 수
+# 08_schema.md §3 menus.name = VARCHAR(100). 초과 시 INSERT가 청크 전체를 굴려뜨릴 수
 # 있으므로 adapter 단에서 행 단위로 미리 거른다.
 MENU_NAME_MAX_LENGTH = 100
 
 
 class CommonSale(BaseModel):
-    """공통 판매 스키마 — feature_spec.md §4.2."""
+    """공통 판매 스키마 — 04_feature_spec.md §4.2."""
 
     model_config = ConfigDict(frozen=True)
 

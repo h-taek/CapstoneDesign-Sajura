@@ -1,4 +1,4 @@
-// AI 수요예측·발주추천 API — api_spec.md §8 (BE 프록시, /api/forecast/*).
+// AI 수요예측·발주추천 API — 07_api_spec.md §8 (BE 프록시, /api/forecast/*).
 import { api } from "../../lib/api";
 
 export interface TopFactor {

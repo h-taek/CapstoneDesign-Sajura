@@ -1,4 +1,4 @@
-"""ORM 패키지 — schema.md §3."""
+"""ORM 패키지 — 08_schema.md §3."""
 from app.models.base import Base
 from app.models.inventory_item import InventoryItem
 from app.models.menu import Menu, Recipe, RecipeIngredient

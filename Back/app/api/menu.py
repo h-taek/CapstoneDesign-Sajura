@@ -1,4 +1,4 @@
-"""/api/menus — api_spec §4."""
+"""/api/menus — 07_api_spec.md §4."""
 from __future__ import annotations
 
 import math

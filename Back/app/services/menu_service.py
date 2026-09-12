@@ -1,4 +1,4 @@
-"""MenuService — service_design §4 (M3.B7)."""
+"""MenuService — docs/plan/01_be.md 서비스별 주요 메서드 (M3.B7)."""
 from __future__ import annotations
 
 from datetime import UTC, datetime

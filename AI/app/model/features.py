@@ -24,7 +24,7 @@ FEATURE_COLUMNS = [
     "is_post_renewal", "days_since_reopen",
     "dow_0", "dow_1", "dow_2", "dow_3", "dow_4", "dow_5", "dow_6",
 ]
-CORE_LAG_COLUMNS = ["lag_sales_h", "roll7_h", "lag_dow_sales"]  # 신뢰도 T2 (feature_spec §5.3)
+CORE_LAG_COLUMNS = ["lag_sales_h", "roll7_h", "lag_dow_sales"]  # 신뢰도 T2 (04_feature_spec.md §5.3)
 
 _ACADEMIC_CSV = Path(__file__).resolve().parents[2] / "data" / "manual" / "academic_calendar.csv"
 _MANUAL_HOLIDAYS = {dt.date(2025, 10, 10)}  # 임시공휴일 수동 보정 (data/README 검수 항목)

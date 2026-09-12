@@ -1,6 +1,6 @@
 """inventory_items: current_quantity 추가 — 간소화된 재고 수량 CRUD.
 
-lots/FIFO 기반 입출고 이력(schema.md §3.9~11)은 후속 마일스톤. 그 전까지
+lots/FIFO 기반 입출고 이력(08_schema.md §3.9~11)은 후속 마일스톤. 그 전까지
 품목당 단일 수치로 현재 수량을 직접 관리한다.
 
 Revision ID: 0005_inventory_current_quantity

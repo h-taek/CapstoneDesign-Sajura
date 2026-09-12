@@ -1,7 +1,7 @@
 """M7.A2 predict e2e — 합성 이력으로 검증 (공개 정책: 실매장 데이터 미사용).
 
-검증 대상: 계약 v2 응답 구조 · 다일 horizon · P10≤P90 · 신뢰도 트리거(feature_spec §5.3) ·
-예측 근거(model_spec §9) · 최소 이력 422.
+검증 대상: 계약 v2 응답 구조 · 다일 horizon · P10≤P90 · 신뢰도 트리거(04_feature_spec.md §5.3) ·
+예측 근거(11_ai_spec.md §8) · 최소 이력 422.
 """
 from __future__ import annotations
 

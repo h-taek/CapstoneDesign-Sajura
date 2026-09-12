@@ -1,4 +1,4 @@
-// 인증 API — api_spec.md §2·§3.
+// 인증 API — 07_api_spec.md §2·§3.
 import { HTTPError } from "ky";
 import { api } from "../../lib/api";
 import type { AuthUser, BusinessStatus } from "../../stores/auth-store";

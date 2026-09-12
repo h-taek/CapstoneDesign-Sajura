@@ -1,7 +1,7 @@
 """auth_test (M3.B5) — 12 integration cases.
 
 Coverage: register / login / refresh / logout / logout-all / get_me + 인증 가드.
-spec: docs/spec/05_api/api_spec.md §2, plan: docs/plan/be/phase_03_auth.md M3.B1~B5.
+spec: docs/spec/07_api_spec.md §2, plan: docs/plan/01_be.md M3.B1~B5.
 """
 from __future__ import annotations
 
@@ -169,7 +169,7 @@ async def test_login_includes_business_status_unverified(client: AsyncClient) ->
     assert tokens["business_status"] == "UNVERIFIED"
 
 
-# 8d — 마스터 코드 강제 패스 → VERIFIED, 파일 불필요 (security.md §2.4). 미설정 시 skip.
+# 8d — 마스터 코드 강제 패스 → VERIFIED, 파일 불필요 (12_security.md §2.4). 미설정 시 skip.
 @pytest.mark.asyncio
 async def test_verify_business_master_code_bypass(client: AsyncClient) -> None:
     from app.config import get_settings

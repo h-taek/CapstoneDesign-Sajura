@@ -4,7 +4,7 @@
   stateless 설계라 "아티팩트 로드" 대신 "요청 시 학습 가능"을 보증한다.
 - last_trained_at : stateless MVP에서는 null 고정 — 주간 재학습·모델 저장(M7.A5 [2단계]) 도입 시 채움.
 - components : serving_stack·academic_calendar(커버리지 stale 판정)·holidays.
-  하나라도 ok가 아니면 status="degraded" (호출 주체 n8n/BE가 알림 처리 — ml_pipeline §10).
+  하나라도 ok가 아니면 status="degraded" (호출 주체 n8n/BE가 알림 처리 — 11_ai_spec.md §10).
 """
 from __future__ import annotations
 

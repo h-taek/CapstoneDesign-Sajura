@@ -1,4 +1,4 @@
-// 알림 설정 — schema.md에 notifications/push_subscriptions 테이블은 설계돼 있지만
+// 알림 설정 — 08_schema.md에 notifications/push_subscriptions 테이블은 설계돼 있지만
 // 아직 BE 모델·API가 없어(알림 발송 자체가 미구현) 정직하게 준비 중으로 표시.
 import { DashboardShell } from "../../components/dashboard/shell";
 

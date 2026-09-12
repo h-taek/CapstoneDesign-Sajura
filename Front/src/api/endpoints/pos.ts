@@ -1,4 +1,4 @@
-// POS 연동 상태 API — api_spec.md §3.
+// POS 연동 상태 API — 07_api_spec.md §3.
 import { api } from "../../lib/api";
 
 export type PosStatusCode = "CONNECTED" | "ERROR" | "CSV_MODE" | "DISCONNECTED";

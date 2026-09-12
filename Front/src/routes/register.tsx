@@ -1,4 +1,4 @@
-// M3.F8 — 자체 회원가입 화면 (api_spec.md §2 POST /api/auth/register).
+// M3.F8 — 자체 회원가입 화면 (07_api_spec.md §2 POST /api/auth/register).
 // Figma "인증 및 회원 등록"(node 4:323)은 저해상도 와이어프레임이라 로그인 화면과 같은 톤으로 재해석.
 // 휴대폰 SMS 본인인증 UI는 백엔드 미구현이라 제외 — 실제 지원되는 이메일/비밀번호/이름만 구현.
 import { zodResolver } from "@hookform/resolvers/zod";

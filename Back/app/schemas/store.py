@@ -1,4 +1,4 @@
-"""Store DTOs — api_spec §3."""
+"""Store DTOs — 07_api_spec.md §3."""
 from __future__ import annotations
 
 from datetime import datetime
@@ -41,7 +41,7 @@ class StoreUpdateRequest(BaseModel):
     phone: str | None = Field(default=None, max_length=20)
 
 
-# ── 관리자 심사 (M3.B9, api_spec §3 관리자 API) ──
+# ── 관리자 심사 (M3.B9, 07_api_spec.md §3 관리자 API) ──
 class VerificationItem(BaseModel):
     store_id: str
     user_email: str

@@ -1,4 +1,4 @@
-"""/api/forecast — AI 서버 연동 수요예측·발주추천 (api_spec.md §8 BE 프록시)."""
+"""/api/forecast — AI 서버 연동 수요예측·발주추천 (07_api_spec.md §8 BE 프록시)."""
 from __future__ import annotations
 
 from fastapi import APIRouter

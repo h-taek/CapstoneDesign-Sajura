@@ -1,6 +1,6 @@
 """stores: business_verified 추가 + 검증/온보딩 전 필드 nullable (M3.B8).
 
-Spec: docs/spec/06_database/schema.md §3 stores.
+Spec: docs/spec/08_schema.md §3 stores.
 사업자 검증을 온보딩 진입 전 독립 게이트로 분리 — 계정 생성 시 빈 매장 행이
 생기고 store_name·business_no·business_type 등은 검증·온보딩에서 채운다.
 

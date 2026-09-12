@@ -1,4 +1,4 @@
-"""StoreService — service_design §4."""
+"""StoreService — docs/plan/01_be.md 서비스별 주요 메서드."""
 from __future__ import annotations
 
 import re
@@ -57,7 +57,7 @@ class StoreService:
 
         형식·미등록·휴폐업 분기는 nts.assert_business_active가 담당하며 실패 시
         DomainError를 raise한다(계정·상태 유지). 마스터 코드는 NTS 호출·파일 없이
-        곧바로 VERIFIED (실 번호 아님 → business_no None, unique 충돌 방지, security.md §2.4).
+        곧바로 VERIFIED (실 번호 아님 → business_no None, unique 충돌 방지, 12_security.md §2.4).
         그 외에는 등록증 파일이 필수이며, 저장 후 PENDING(관리자 심사 대기)으로 둔다.
         """
         store = await self.get_store(user_id)

@@ -4,7 +4,7 @@
   ① V1-t 매출 예측(app/model/predictor.py)
   × ② 메뉴 비중 분해(app/model/decompose.py — 검증: notebooks/11_menu_decomposition.ipynb)
   → 메뉴별 예상 수량 → 점주 레시피(BOM) 전개 → 재고·리드타임·안전재고 반영 발주 참고치.
-③ 이후는 결정론 — 예측 불확실성은 is_low_confidence로 동반 전파(참고치 원칙, model_spec §9).
+③ 이후는 결정론 — 예측 불확실성은 is_low_confidence로 동반 전파(참고치 원칙, 11_ai_spec.md §8).
 """
 from __future__ import annotations
 

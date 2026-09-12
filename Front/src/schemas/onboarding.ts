@@ -1,4 +1,4 @@
-// 온보딩 zod 스키마 — frontend_design.md §7 + api_spec.md §3·§4.
+// 온보딩 zod 스키마 — 10_frontend_design.md §7 + 07_api_spec.md §3·§4.
 import { z } from "zod";
 
 const PHONE_REGEX = /^0\d{1,2}-\d{3,4}-\d{4}$/;

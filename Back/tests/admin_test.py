@@ -1,7 +1,7 @@
 """admin_test (M3.B9) — 관리자 사업자 검증 심사.
 
 Coverage: 비ADMIN 403 / 심사 큐 / 승인→VERIFIED / 반려→REJECTED(+사유).
-spec: api_spec.md §3 관리자 API, plan: phase_03_auth.md M3.B9.
+spec: 07_api_spec.md §3 관리자 API, plan: docs/plan/01_be.md M3.B9.
 """
 from __future__ import annotations
 

@@ -1,4 +1,4 @@
-// Playwright E2E 설정 — frontend_design.md §9 CI 6단계.
+// Playwright E2E 설정 — 10_frontend_design.md §9 CI 8단계.
 import { defineConfig, devices } from "@playwright/test";
 
 const PORT = 4173;

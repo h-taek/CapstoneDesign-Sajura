@@ -1,4 +1,4 @@
-// 온보딩 레이아웃 — 스텝 진행 표시 + Outlet (frontend_design.md §3).
+// 온보딩 레이아웃 — 스텝 진행 표시 + Outlet (10_frontend_design.md §3).
 import { NavLink, Outlet, useLocation } from "react-router";
 
 const STEPS = [

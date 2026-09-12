@@ -1,4 +1,4 @@
-"""AI 수요예측·발주추천 DTOs — api_spec.md §8 계약을 BE 응답 형태로 재노출."""
+"""AI 수요예측·발주추천 DTOs — 07_api_spec.md §8 계약을 BE 응답 형태로 재노출."""
 from __future__ import annotations
 
 from datetime import date

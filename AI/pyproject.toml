@@ -12,7 +12,7 @@ dependencies = [
     "pydantic-settings==2.7.0",
     "pandas==2.3.3",     # M7.A2 서빙 피처 빌드
     "numpy==2.4.6",
-    "lightgbm==4.7.0",   # 초기 모델 V1-t (model_spec §3) — SHAP은 내장 pred_contrib 사용(shap 패키지 불필요)
+    "lightgbm==4.7.0",   # 초기 모델 V1-t (11_ai_spec.md §3) — SHAP은 내장 pred_contrib 사용(shap 패키지 불필요)
     "holidays==0.101",   # 공휴일 캘린더 (AI 내장 지식 — 요청 payload에 안 받음)
 ]
 

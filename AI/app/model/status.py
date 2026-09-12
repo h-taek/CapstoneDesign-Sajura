@@ -5,7 +5,7 @@ stateless 설계(predictor.py)에 맞춘 의미 재정의:
   결과는 프로세스 수명 동안 캐시(첫 /ai/health 호출 시 1회 실행, ~수십 ms).
 - academic_calendar : 내장 학사 지식의 커버리지 — 오늘이 범위를 벗어나면 stale(=degraded).
   plan의 "외부 데이터 fresh check"의 본 설계식 구현. DB 연결 점검은 해당 없음 —
-  AI Server는 DB에 접근하지 않는다(n8n이 조회해 payload로 전달, feature_spec §5.1).
+  AI Server는 DB에 접근하지 않는다(n8n이 조회해 payload로 전달, 04_feature_spec.md §5.1).
 - holidays : 공휴일 패키지 동작 확인.
 """
 from __future__ import annotations

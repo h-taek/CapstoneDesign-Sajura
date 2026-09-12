@@ -10,7 +10,7 @@
   UNIQUE 제약을 타게 한다(2026-08-17, 소주 8,984→98,824 11배 중복 적재 픽스).
 - menu_name → menu_id 매핑은 매장 메뉴 캐시 1회 조회 후 in-memory dict 매핑
 - auto_create_menus=True 시 미등록 메뉴를 카테고리='자동등록', use_inventory_deduction=False
-  로 즉시 생성하여 menu_map 갱신 (feature_spec §2.2 + §4.4 옵션).
+  로 즉시 생성하여 menu_map 갱신 (04_feature_spec.md §2.2 + §4.4 옵션).
 - pandas의 sync I/O는 asyncio.to_thread로 워커 스레드에 위임해 이벤트 루프
   블록을 막는다(10만 행 ~12초 동안 다른 요청이 막히지 않게 함).
 - auto_create_menus 상한: 업로드당 200개 + 매장 전체 1,000개. 초과 시 그 행은

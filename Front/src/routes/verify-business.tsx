@@ -1,4 +1,4 @@
-// M3.F9 — 사업자 검증 화면 (온보딩 진입 전 게이트, api_spec.md §3).
+// M3.F9 — 사업자 검증 화면 (온보딩 진입 전 게이트, 07_api_spec.md §3).
 // 사업자번호 + 사업자등록증 업로드 → POST /api/store/business/verify (multipart).
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery } from "@tanstack/react-query";

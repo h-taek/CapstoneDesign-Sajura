@@ -1,6 +1,6 @@
 // M4.F1 — POS 연동 설정 화면 (CSV 액션 허브).
 //
-// 책임 (SSOT: plan/fe/phase_04_pos.md §화면 책임 분리):
+// 책임 (SSOT: plan/02_fe.md §화면 책임 분리):
 //   - 현재 연동 상태 표시 (GET /api/store/pos/status)
 //   - CSV 템플릿 다운로드 (Blob 생성, BE 트래픽 0)
 //   - CSV 업로드 화면 진입 (/sales/upload)

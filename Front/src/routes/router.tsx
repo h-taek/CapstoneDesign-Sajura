@@ -1,4 +1,4 @@
-// 라우터 정의 — frontend_design.md §3.
+// 라우터 정의 — 10_frontend_design.md §3.
 import { Navigate, createBrowserRouter } from "react-router";
 import AdminVerificationsPage from "./admin/verifications";
 import ForecastPage from "./forecast";

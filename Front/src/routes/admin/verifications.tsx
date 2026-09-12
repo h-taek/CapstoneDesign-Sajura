@@ -1,4 +1,4 @@
-// M3.F10 — 관리자 사업자 검증 심사 큐 (role=ADMIN, api_spec §3).
+// M3.F10 — 관리자 사업자 검증 심사 큐 (role=ADMIN, 07_api_spec.md §3).
 // PENDING 목록 + 등록증 미리보기 + 승인/반려. 종합 관리도구는 [후속].
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";

@@ -1,4 +1,4 @@
-// 버튼 프리미티브 — shadcn/ui 스타일 (frontend_design.md §1).
+// 버튼 프리미티브 — shadcn/ui 스타일 (10_frontend_design.md §1).
 import { forwardRef, type ButtonHTMLAttributes } from "react";
 import { cn } from "../../lib/utils";
 

@@ -1,4 +1,4 @@
-"""/api/admin — 사업자 검증 심사 (M3.B9, role=ADMIN 전용, api_spec §3)."""
+"""/api/admin — 사업자 검증 심사 (M3.B9, role=ADMIN 전용, 07_api_spec.md §3)."""
 from __future__ import annotations
 
 import math

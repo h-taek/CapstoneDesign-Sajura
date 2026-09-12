@@ -22,8 +22,8 @@ class SalesRecord(BaseModel):
 
 
 # ── POST /ai/forecast/predict — 계약 v2 (38차 AI 범위 재확정 반영) ──
-# 타깃 = 매장 일 매출(model_spec §3), 다일 D+1~3(§3 고도화)·P10/P90 구간·예측 근거(§9)·
-# 신뢰도(feature_spec §5.3) 포함. 공휴일·학사일정은 AI Server 내장 지식이라 payload에 없음.
+# 타깃 = 매장 일 매출(11_ai_spec.md §3), 다일 D+1~3(§3 고도화)·P10/P90 구간·예측 근거(§9)·
+# 신뢰도(04_feature_spec.md §5.3) 포함. 공휴일·학사일정은 AI Server 내장 지식이라 payload에 없음.
 class DailySales(BaseModel):
     date: dt.date
     total_amount: int = Field(ge=0)
@@ -71,7 +71,7 @@ class Prediction(BaseModel):
     interval_p10: int
     interval_p90: int
     is_low_confidence: bool
-    low_confidence_reason: str | None = None  # feature_spec §5.3 코드 6종
+    low_confidence_reason: str | None = None  # 04_feature_spec.md §5.3 코드 6종
     explanation: Explanation
 
 

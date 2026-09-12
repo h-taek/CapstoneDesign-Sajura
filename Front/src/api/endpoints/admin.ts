@@ -1,4 +1,4 @@
-// 관리자 사업자 검증 심사 API — api_spec.md §3 (role=ADMIN 전용).
+// 관리자 사업자 검증 심사 API — 07_api_spec.md §3 (role=ADMIN 전용).
 import { api } from "../../lib/api";
 
 export interface VerificationItem {

@@ -1,4 +1,4 @@
-"""/api/auth/* — api_spec §2."""
+"""/api/auth/* — 07_api_spec.md §2."""
 from __future__ import annotations
 
 from typing import Annotated

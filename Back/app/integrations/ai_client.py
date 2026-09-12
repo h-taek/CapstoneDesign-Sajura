@@ -1,4 +1,4 @@
-"""AI Server 클라이언트 — api_spec.md §8 계약. stateless 서빙(사전 학습 모델 불필요).
+"""AI Server 클라이언트 — 07_api_spec.md §8 계약. stateless 서빙(사전 학습 모델 불필요).
 
 AI 서버가 꺼져있거나 응답이 422(이력 부족 등)면 DomainError로 변환해 상위에서
 "준비 중"으로 정직하게 표시할 수 있게 한다.

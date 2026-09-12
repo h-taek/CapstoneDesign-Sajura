@@ -1,4 +1,4 @@
-"""사업자등록증 파일 저장 — security.md §4.2.
+"""사업자등록증 파일 저장 — 12_security.md §4.2.
 
 서버 볼륨(UPLOAD_DIR)에 저장하고 DB엔 경로만 둔다. 파일명은 store_id + uuid로
 생성해 사용자 입력 경로(path traversal)를 차단한다. 형식·용량 검증 포함.

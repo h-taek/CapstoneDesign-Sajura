@@ -1,6 +1,6 @@
 """재고 품목 DTOs — 재고관리·발주추천 화면.
 
-lots/FIFO 기반 입출고 이력(schema.md §3.9~11)은 후속 마일스톤. 그 전까지
+lots/FIFO 기반 입출고 이력(08_schema.md §3.9~11)은 후속 마일스톤. 그 전까지
 current_quantity 단일 수치로 관리하는 간소화 버전.
 """
 from __future__ import annotations
