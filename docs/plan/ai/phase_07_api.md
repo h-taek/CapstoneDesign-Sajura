@@ -1,6 +1,6 @@
 # Phase 7 AI Server API — AI
 
-> 상위: [../plan_gantt.md](../plan_gantt.md) §2 Phase 7 / §4 `ai_api`
+> 상위: [../04_gantt.md](../04_gantt.md) §2 Phase 7 / §4 `ai_api`
 > Day: 25~30 (선행: `ai_model` 종료)
 
 ## 마일스톤

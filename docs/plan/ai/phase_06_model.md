@@ -1,6 +1,6 @@
 # Phase 6 AI 모델 개발 — AI
 
-> 상위: [../plan_gantt.md](../plan_gantt.md) §2 Phase 6 / §4 `ai_data`·`ai_model`
+> 상위: [../04_gantt.md](../04_gantt.md) §2 Phase 6 / §4 `ai_data`·`ai_model`
 > Day: 7~25 (Plan 직후 BE/FE와 병렬 출발)
 > 선행: `plan`
 

@@ -1,6 +1,6 @@
 # Phase 12 AI hookup — AI
 
-> 상위: [../plan_gantt.md](../plan_gantt.md) §2 Phase 12 / §4 `n8n_data_hookup`·`ord_be_hookup`·`ord_fe_hookup` (AI 측 input)
+> 상위: [../04_gantt.md](../04_gantt.md) §2 Phase 12 / §4 `n8n_data_hookup`·`ord_be_hookup`·`ord_fe_hookup` (AI 측 input)
 > Day: 33~49 (각 input은 자기 의존 마일스톤 종료 직후 즉시 전달)
 > 선행: `ai_model` 완료(Day 25)
 
@@ -27,8 +27,8 @@
 
 ## 참조
 
-- [docs/plan/be/phase_12_hookup.md](../be/phase_12_hookup.md) — BE 수신 측 마일스톤 (M12.B1~B5)
-- [docs/plan/fe/phase_12_hookup.md](../fe/phase_12_hookup.md) — FE 수신 측 마일스톤 (M12.F1~F5)
+- [docs/plan/01_be.md](../be/phase_12_hookup.md) — BE 수신 측 마일스톤 (M12.B1~B5)
+- [docs/plan/02_fe.md](../fe/phase_12_hookup.md) — FE 수신 측 마일스톤 (M12.F1~F5)
 - [HANDOFF.md AI 의존성 4가지](../../../HANDOFF.md)
 
 ## Phase 통합 종료 조건 (M12)

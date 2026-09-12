@@ -2,7 +2,7 @@
 
 Spec refs:
   - docs/spec/09_service_design.md §10 미들웨어 등록 순서
-  - docs/plan/be/phase_02_infra.md M2.B2
+  - docs/plan/01_be.md M2.B2
 """
 from __future__ import annotations
 

@@ -1,6 +1,6 @@
 # Phase 0 Research — AI
 
-> 상위: [../plan_gantt.md](../plan_gantt.md) §2 Phase 0 / §4 `res_ai`
+> 상위: [../04_gantt.md](../04_gantt.md) §2 Phase 0 / §4 `res_ai`
 > Day: 0~4
 
 ## 마일스톤

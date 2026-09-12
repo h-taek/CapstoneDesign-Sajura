@@ -1,6 +1,6 @@
 # Phase 13 통합 검증·배포 — AI
 
-> 상위: [../plan_gantt.md](../plan_gantt.md) §2 Phase 13 / §4 `test_release` (AI 측)
+> 상위: [../04_gantt.md](../04_gantt.md) §2 Phase 13 / §4 `test_release` (AI 측)
 > Day: 49~58 (선행: `auto`, `dash`, `ord_fe_hookup`, `n8n_data_hookup`)
 
 ## 마일스톤

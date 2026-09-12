@@ -4,7 +4,7 @@ import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
 import { VitePWA } from "vite-plugin-pwa";
 
-// FE 부트스트랩 — 10_frontend_design.md §1, plan/fe/phase_02_infra.md M2.F1·F5
+// FE 부트스트랩 — 10_frontend_design.md §1, plan/02_fe.md M2.F1·F5
 export default defineConfig({
   resolve: {
     alias: { "@": path.resolve(__dirname, "src") },

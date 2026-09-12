@@ -1,4 +1,4 @@
-"""Health endpoint — plan/be/phase_02_infra.md M2.B2 검증."""
+"""Health endpoint — plan/01_be.md M2.B2 검증."""
 from fastapi import APIRouter
 
 router = APIRouter(tags=["health"])

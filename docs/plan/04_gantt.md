@@ -148,20 +148,20 @@ flowchart TD
 
 | Phase | 이름 | Day | BE 파일 | FE 파일 | AI 파일 |
 |:-:|------|:-:|------|------|------|
-| 0 | Research | 0~4 | [phase_00_research.md](be/phase_00_research.md) | [phase_00_research.md](fe/phase_00_research.md) | [phase_00_research.md](ai/phase_00_research.md) |
-| 1 | Plan | 4~7 | 본 plan_gantt.md 자체 — 별도 파일 없음 | 본 plan_gantt.md 자체 — 별도 파일 없음 | 본 plan_gantt.md 자체 — 별도 파일 없음 |
-| 2 | 인프라 | 7~12 | [phase_02_infra.md](be/phase_02_infra.md) | [phase_02_infra.md](fe/phase_02_infra.md) | [phase_02_infra.md](ai/phase_02_infra.md) |
-| 3 | 인증·온보딩 | 12~21 | [phase_03_auth.md](be/phase_03_auth.md) | [phase_03_auth.md](fe/phase_03_auth.md) | — (AI 무관) |
-| 4 | POS·데이터 | 21~26 | [phase_04_pos.md](be/phase_04_pos.md) | [phase_04_pos.md](fe/phase_04_pos.md) | — (AI 무관) |
-| 5 | 도메인 | 21~35 | [phase_05_domain.md](be/phase_05_domain.md) | [phase_05_domain.md](fe/phase_05_domain.md) | — (AI 무관) |
+| 0 | Research | 0~4 | [phase_00_research.md](01_be.md#phase_00_research.md) | [phase_00_research.md](02_fe.md#phase_00_research.md) | [phase_00_research.md](ai/phase_00_research.md) |
+| 1 | Plan | 4~7 | 본 04_gantt.md 자체 — 별도 파일 없음 | 본 04_gantt.md 자체 — 별도 파일 없음 | 본 04_gantt.md 자체 — 별도 파일 없음 |
+| 2 | 인프라 | 7~12 | [phase_02_infra.md](01_be.md#phase_02_infra.md) | [phase_02_infra.md](02_fe.md#phase_02_infra.md) | [phase_02_infra.md](ai/phase_02_infra.md) |
+| 3 | 인증·온보딩 | 12~21 | [phase_03_auth.md](01_be.md#phase_03_auth.md) | [phase_03_auth.md](02_fe.md#phase_03_auth.md) | — (AI 무관) |
+| 4 | POS·데이터 | 21~26 | [phase_04_pos.md](01_be.md#phase_04_pos.md) | [phase_04_pos.md](02_fe.md#phase_04_pos.md) | — (AI 무관) |
+| 5 | 도메인 | 21~35 | [phase_05_domain.md](01_be.md#phase_05_domain.md) | [phase_05_domain.md](02_fe.md#phase_05_domain.md) | — (AI 무관) |
 | 6 | AI 모델 | 7~25 | — | — | [phase_06_model.md](ai/phase_06_model.md) |
 | 7 | AI Server API | 25~30 | — (AIServerClient는 BE 작업, spec 합의 Phase 12 기준) | — | [phase_07_api.md](ai/phase_07_api.md) |
-| 8 | n8n 배치 (골격) | 30~38 | [phase_08_n8n.md](be/phase_08_n8n.md) | — BE only | — (BE 주도, AI 데이터 협의) |
-| 9 | 예측·발주 UI (골격) | 38~46 | [phase_09_order.md](be/phase_09_order.md) | [phase_09_order.md](fe/phase_09_order.md) | — |
-| 10 | 쿠팡 자동화 | 42~49 | [phase_10_automation.md](be/phase_10_automation.md) | [phase_10_automation.md](fe/phase_10_automation.md) | — |
-| 11 | 대시보드·알림 | 42~49 | [phase_11_dashboard.md](be/phase_11_dashboard.md) | [phase_11_dashboard.md](fe/phase_11_dashboard.md) | — |
-| 12 | AI hookup | 33~49 | [phase_12_hookup.md](be/phase_12_hookup.md) | [phase_12_hookup.md](fe/phase_12_hookup.md) | [phase_12_hookup.md](ai/phase_12_hookup.md) |
-| 13 | 통합 검증·배포 | 49~58 | [phase_13_release.md](be/phase_13_release.md) | [phase_13_release.md](fe/phase_13_release.md) | [phase_13_release.md](ai/phase_13_release.md) |
+| 8 | n8n 배치 (골격) | 30~38 | [phase_08_n8n.md](01_be.md#phase_08_n8n.md) | — BE only | — (BE 주도, AI 데이터 협의) |
+| 9 | 예측·발주 UI (골격) | 38~46 | [phase_09_order.md](01_be.md#phase_09_order.md) | [phase_09_order.md](02_fe.md#phase_09_order.md) | — |
+| 10 | 쿠팡 자동화 | 42~49 | [phase_10_automation.md](01_be.md#phase_10_automation.md) | [phase_10_automation.md](02_fe.md#phase_10_automation.md) | — |
+| 11 | 대시보드·알림 | 42~49 | [phase_11_dashboard.md](01_be.md#phase_11_dashboard.md) | [phase_11_dashboard.md](02_fe.md#phase_11_dashboard.md) | — |
+| 12 | AI hookup | 33~49 | [phase_12_hookup.md](01_be.md#phase_12_hookup.md) | [phase_12_hookup.md](02_fe.md#phase_12_hookup.md) | [phase_12_hookup.md](ai/phase_12_hookup.md) |
+| 13 | 통합 검증·배포 | 49~58 | [phase_13_release.md](01_be.md#phase_13_release.md) | [phase_13_release.md](02_fe.md#phase_13_release.md) | [phase_13_release.md](ai/phase_13_release.md) |
 
 > **시계열 흐름** (Phase 번호 ≠ 도달 순서): Day 4 → 7 → 12 → 21 → 25(AI M6) → 26 → 30(AI M7) → 35 → 38 → 46 → 49(M10·M11·M12 동시 도달) → 58
 >

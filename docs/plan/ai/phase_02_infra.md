@@ -1,6 +1,6 @@
 # Phase 2 인프라 부트스트랩 — AI
 
-> 상위: [../plan_gantt.md](../plan_gantt.md) §2 Phase 2 / §4 `inf` (AI 측)
+> 상위: [../04_gantt.md](../04_gantt.md) §2 Phase 2 / §4 `inf` (AI 측)
 > Day: 7~12 (선행: `plan`)
 
 ## 마일스톤
