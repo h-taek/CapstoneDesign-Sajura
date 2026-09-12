@@ -174,6 +174,24 @@ HANDOFF.md E단계 9개 검증 시나리오 수행 + 발견된 결함 일괄 정
 
 ## 2. 문서 수정 이력
 
+### 2026-09-12 — 문서 구조 정합: spec 평탄화 · plan 합치기 · PROGRESS 분할
+
+`CLAUDE.md` 문서 규칙(파일명 `순번_이름.md`, spec에 실측치·구현 방법 금지, 덧대지 않는다)과 어긋난 구조를 일괄 정리했다. 구현에는 손대지 않았다.
+
+**spec** 16파일 9폴더 → 13파일 0폴더. 폴더 번호 07이 backend/frontend로 중복되던 것도 해소. 흡수 3건 — `erd` → `08_schema` §7~§10, `feature_list` 분류표 → `04_feature_spec` 선두 절, `model_spec`+`ml_pipeline` → `11_ai_spec`. `09_service_design` §4 서비스별 주요 메서드(176줄·시그니처 85행)는 구현 분해라 `plan/01_be.md`로 이관하고 §번호는 포인터로 유지(참조 212곳 보호).
+
+**AI spec 합치기**: `model_spec`과 `ml_pipeline`이 입력·학습·출력·예측근거 4쌍을 거울처럼 중복해 "초기 모델 확정 ↔ 미확정" 모순이 생겨 있었다. 한 문서로 합치고 실측치·기각 이력을 research로 이전 — `research/ai/01_model_selection.md`(신설, 30차에 폐기한 파일명 재사용 — 내용은 무관) · `02_preprocessing.md`(신설). §참조 61곳은 평탄화 직전 커밋의 줄 내용을 키로 원본 문서를 판정해 재매핑했다.
+
+**plan** 28파일 → 4파일. 졸업 시연 범위 확정으로 실행되지 않는 계획 5개(phase_08·10·13) 폐기 후 트랙별 합침 — `01_be`·`02_fe`·`03_ai`·`04_gantt`.
+
+**PROGRESS** 413줄 1파일 → 공통 92줄 + 담당자별 4개(HT·DY·MY·CH). 귀속은 커밋 작성자로 판정. §4 개발 이력 순서를 역시간순으로 정정하고 §1 전체 단계 표를 실제 구현 범위로 현행화.
+
+**폐기 6건**: `docs/사주라_기술문서.md`(1,415줄 — spec 중복 + 과제 제출용 분석은 3분류 밖), `디자인_핸드오프.md`, `research/README.md`·`frontend/README.md`(3중 인덱스), `research/ai/00_ml_guide_reference.md`(외부 전재 1,189줄), `research/SUMMARY.md`(spec이 근거로 참조하는 SSOT 역전).
+
+**연동 수정**: 참조 1,083곳 + AI §참조 61곳 갱신. `docs/README.md` 전면 재작성, `CLAUDE.md`·`AGENTS.md`가 20차에 폐기된 `docs/spec/prompts/08_ai_handoff.md`를 읽으라고 지시하던 것 정정 + 팀원 저작 문서 규칙 신설, `04_gantt.md` §6 색인 재작성.
+
+검증: 깨진 마크다운 링크 0건, 옛 파일명 참조 0건(이력 서술 제외), `NN_NN_` 이중 접두 0건. docs 76파일 18,449줄 → 44파일 약 14,900줄.
+
 ### 2026-05-30 (36차) — Phase 4 BE+FE 본구현 + UX 정정 + OAuth 회귀 픽스 + /review·/qa
 
 본 회차 문서 작업: ① §4 개발 이력에 **Phase 4 — POS·CSV 데이터 적재 구현** 항목 추가(BE M4.B1~B3 + FE M4.F1~F3 + 골든패스 + 10만 행 실측 + OAuth 회귀 픽스 + /review 픽스 포함). ② `04_feature_spec.md §4.4` + `07_api_spec.md §6` POST `/api/sales/upload`에 `auto_create_menus` 옵션·`auto_created_menus` 응답 필드·`skipped_reasons` 그룹화 정책 명시.

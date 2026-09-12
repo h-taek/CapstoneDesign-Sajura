@@ -1,12 +1,12 @@
 # Frontend 구현 설계
 
-> Frontend 구현의 확정 사실 원본. 기술 스택 상세는 `docs/research/SUMMARY.md` §11~18 참조 (본 문서에서 재기술하지 않음). 결정 근거는 각 `docs/research/frontend/0X_*.md` 참조.
+> Frontend 구현의 확정 사실 원본. 결정 근거는 각 `docs/research/frontend/0X_*.md` 참조.
 
 ---
 
 ## 1. 기술 스택 (확정값 요약)
 
-> 상세 버전·역할·근거: `docs/research/SUMMARY.md` §11~18
+> 결정 근거: `docs/research/frontend/01~11`
 
 | 영역 | 확정 결정 |
 |------|----------|

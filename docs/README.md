@@ -59,7 +59,7 @@ plan        어떻게 만들지 분해한다
 | `08_schema.md` | DB 구조 — 컬럼·타입·FK·인덱스(§1~§6), 도메인·ERD·데이터 흐름(§7~§10) |
 | `09_service_design.md` | BE 기술 스택, 계층 구조, 권한·에러·캐시·미들웨어·운영 토폴로지 |
 | `10_frontend_design.md` | FE 기술 스택, 라우팅·상태·인증 통합·PWA·CI |
-| `11_ai_spec.md` | 모델 설계 — 목적·초기 모델·피처·학습·출력·예측 근거 |
+| `11_ai_spec.md` | AI 설계 — 모델, 입력 데이터·피처, 전처리, 학습, 출력, 예측 근거, 파이프라인 |
 | `12_security.md` | 토큰 정책, 암호화, 접근 통제, 감사 로그 |
 | `13_performance.md` | API·배치 SLA, 성능 전략 |
 
@@ -79,7 +79,7 @@ spec 하나를 고치면 함께 확인할 파일이다.
 | `08_schema.md` | `09_service_design.md`, `11_ai_spec.md` |
 | `09_service_design.md` | `07_api_spec.md`, `06_sequence.md`, `10_frontend_design.md`, `plan/01_be.md` |
 | `10_frontend_design.md` | `07_api_spec.md`, `12_security.md`, `04_feature_spec.md` |
-| `11_ai_spec.md` | `04_feature_spec.md`, `13_performance.md` |
+| `11_ai_spec.md` | `04_feature_spec.md`, `13_performance.md`, `08_schema.md`, `research/ai/01~02` |
 | `12_security.md` | `04_feature_spec.md`, `07_api_spec.md` |
 | `13_performance.md` | `03_mvp_scope.md`, `11_ai_spec.md` |
 
@@ -87,13 +87,11 @@ spec 하나를 고치면 함께 확인할 파일이다.
 
 ## 3. research 문서 목록
 
-> 인덱스: `research/README.md`
-
 `backend/01~11·13·14` — 웹 프레임워크, 앱 서버, 리버스 프록시, 데이터 계층, 인증·보안, 외부 연동, 캐시·관측, 비동기 파이프라인, 테스트·품질, 배포, 기타, POS 어댑터, 보안 미결 항목
 
 `frontend/01~11` — 프레임워크·빌드, 라우팅·상태, 데이터·HTTP, UI·스타일, 폼·검증, PWA·푸시, 차트, 인증·보안, 테스트·품질, 배포, 관측
 
-`ai/00·03` — ML 통합가이드 참고문서, 외부 데이터 소스 조사
+`ai/01~03` — 모델 선정 비교·실측·기각 이력, 전처리 임계값 실험, 외부 데이터 소스 조사
 
 ---
 
@@ -103,7 +101,7 @@ spec 하나를 고치면 함께 확인할 파일이다.
 |---|---|
 | `01_be.md` | Backend — Phase별 마일스톤 + 서비스별 주요 메서드 시그니처 |
 | `02_fe.md` | Frontend — Phase별 마일스톤 |
-| `ai/phase_*.md` | AI 트랙 Phase별 마일스톤 |
+| `03_ai.md` | AI — Phase별 마일스톤 |
 | `04_gantt.md` | 전체 작업 흐름, 파트 간 의존관계 |
 
 ---

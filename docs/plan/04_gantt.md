@@ -144,24 +144,27 @@ flowchart TD
 
 ## 6. 마일스톤
 
-각 Phase 안에 다수 마일스톤이 존재. **BE 마일스톤은 [`be/phase_XX_*.md`](be/), FE 마일스톤은 [`fe/phase_XX_*.md`](fe/), AI 마일스톤은 [`ai/phase_XX_*.md`](ai/)** 에서 정의·관리. 본 §6은 Phase별 파일 색인.
+각 Phase의 마일스톤은 트랙별 파일에서 정의·관리한다 — BE [`01_be.md`](01_be.md), FE [`02_fe.md`](02_fe.md), AI [`03_ai.md`](03_ai.md). 본 §6은 Phase별 색인이다.
 
-| Phase | 이름 | Day | BE 파일 | FE 파일 | AI 파일 |
-|:-:|------|:-:|------|------|------|
-| 0 | Research | 0~4 | [phase_00_research.md](01_be.md#phase_00_research.md) | [phase_00_research.md](02_fe.md#phase_00_research.md) | [phase_00_research.md](ai/phase_00_research.md) |
-| 1 | Plan | 4~7 | 본 04_gantt.md 자체 — 별도 파일 없음 | 본 04_gantt.md 자체 — 별도 파일 없음 | 본 04_gantt.md 자체 — 별도 파일 없음 |
-| 2 | 인프라 | 7~12 | [phase_02_infra.md](01_be.md#phase_02_infra.md) | [phase_02_infra.md](02_fe.md#phase_02_infra.md) | [phase_02_infra.md](ai/phase_02_infra.md) |
-| 3 | 인증·온보딩 | 12~21 | [phase_03_auth.md](01_be.md#phase_03_auth.md) | [phase_03_auth.md](02_fe.md#phase_03_auth.md) | — (AI 무관) |
-| 4 | POS·데이터 | 21~26 | [phase_04_pos.md](01_be.md#phase_04_pos.md) | [phase_04_pos.md](02_fe.md#phase_04_pos.md) | — (AI 무관) |
-| 5 | 도메인 | 21~35 | [phase_05_domain.md](01_be.md#phase_05_domain.md) | [phase_05_domain.md](02_fe.md#phase_05_domain.md) | — (AI 무관) |
-| 6 | AI 모델 | 7~25 | — | — | [phase_06_model.md](ai/phase_06_model.md) |
-| 7 | AI Server API | 25~30 | — (AIServerClient는 BE 작업, spec 합의 Phase 12 기준) | — | [phase_07_api.md](ai/phase_07_api.md) |
-| 8 | n8n 배치 (골격) | 30~38 | [phase_08_n8n.md](01_be.md#phase_08_n8n.md) | — BE only | — (BE 주도, AI 데이터 협의) |
-| 9 | 예측·발주 UI (골격) | 38~46 | [phase_09_order.md](01_be.md#phase_09_order.md) | [phase_09_order.md](02_fe.md#phase_09_order.md) | — |
-| 10 | 쿠팡 자동화 | 42~49 | [phase_10_automation.md](01_be.md#phase_10_automation.md) | [phase_10_automation.md](02_fe.md#phase_10_automation.md) | — |
-| 11 | 대시보드·알림 | 42~49 | [phase_11_dashboard.md](01_be.md#phase_11_dashboard.md) | [phase_11_dashboard.md](02_fe.md#phase_11_dashboard.md) | — |
-| 12 | AI hookup | 33~49 | [phase_12_hookup.md](01_be.md#phase_12_hookup.md) | [phase_12_hookup.md](02_fe.md#phase_12_hookup.md) | [phase_12_hookup.md](ai/phase_12_hookup.md) |
-| 13 | 통합 검증·배포 | 49~58 | [phase_13_release.md](01_be.md#phase_13_release.md) | [phase_13_release.md](02_fe.md#phase_13_release.md) | [phase_13_release.md](ai/phase_13_release.md) |
+| Phase | 이름 | Day | BE | FE | AI |
+|:-:|------|:-:|:-:|:-:|:-:|
+| 0 | Research | 0~4 | O | O | O |
+| 1 | Plan | 4~7 | 본 문서 | 본 문서 | 본 문서 |
+| 2 | 인프라 | 7~12 | O | O | O |
+| 3 | 인증·온보딩 | 12~21 | O | O | — |
+| 4 | POS·데이터 | 21~26 | O | O | — |
+| 5 | 도메인 | 21~35 | O | O | — |
+| 6 | AI 모델 | 7~25 | — | — | O |
+| 7 | AI Server API | 25~30 | — | — | O |
+| 8 | n8n 배치 | 30~38 | 범위 밖 | — | — |
+| 9 | 예측·발주 UI | 38~46 | O | O | — |
+| 10 | 쿠팡 자동화 | 42~49 | 범위 밖 | 범위 밖 | — |
+| 11 | 대시보드·알림 | 42~49 | O | O | — |
+| 12 | AI hookup | 33~49 | O | O | O |
+| 13 | 통합 검증·배포 | 49~58 | 범위 밖 | 범위 밖 | O |
+
+> '범위 밖'은 졸업 시연까지로 범위가 확정되어 계획을 폐기한 Phase다 (2026-09-12).
+> Phase 7의 AIServerClient는 BE 작업이며 spec 합의상 Phase 12 기준이다.
 
 > **시계열 흐름** (Phase 번호 ≠ 도달 순서): Day 4 → 7 → 12 → 21 → 25(AI M6) → 26 → 30(AI M7) → 35 → 38 → 46 → 49(M10·M11·M12 동시 도달) → 58
 >
