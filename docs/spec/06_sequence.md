@@ -84,21 +84,21 @@ sequenceDiagram
             alt CSV 모드 (MVP 기본 경로)
                 사용자->>사주라UI: CSV 파일 업로드
                 사주라UI->>사주라서버: POST /api/sales/upload
-                사주라서버->>DB: pos_mode=CSV_MODE 저장 + 판매 데이터 적재
+                사주라서버->>DB: pos_connections.status=CSV_MODE 저장 + 판매 데이터 적재
             else POS API 연동 [2단계]
                 사용자->>사주라UI: POS 종류·자격증명 입력
                 사주라UI->>사주라서버: POST /api/store/pos
                 사주라서버->>DB: POS 정보 저장
                 alt POS 연동 성공
-                    사주라서버-->>사주라UI: 연동 성공 (pos_mode: CONNECTED)
+                    사주라서버-->>사주라UI: 연동 성공 (status: CONNECTED)
                 else POS 연동 실패
-                    사주라서버-->>사주라UI: 연동 실패 → CSV 모드로 전환 (pos_mode: CSV_MODE)
+                    사주라서버-->>사주라UI: 연동 실패 → CSV 모드로 전환 (status: CSV_MODE)
                 end
             end
             Note over 사주라UI: CSV·POS API 양쪽 모두 수요예측·자동발주 활성화
 
             사용자->>사주라UI: 초기 재고 / 초기 메뉴 입력
-            사주라UI->>사주라서버: POST /api/inventory/items, POST /api/menus (각각)
+            사주라UI->>사주라서버: POST /api/inventory, POST /api/menus (각각)
             사주라서버->>DB: 재고·메뉴 저장
 
             사주라UI->>사주라서버: POST /api/store/onboarding/complete
@@ -129,7 +129,7 @@ sequenceDiagram
         n8n->>n8n: 외부 데이터 수집 (날씨·유동인구·행사[조사 중] 등)
         n8n->>n8n: 전처리·정규화
         n8n->>AIServer: POST /ai/forecast/predict (예측 요청)
-        AIServer-->>n8n: 예측 결과 + 예측 근거(형태는 research §3) 반환
+        AIServer-->>n8n: 예측 결과 + 예측 근거(11_ai_spec.md §8) 반환
         n8n->>DB: forecast_results 저장 (UPSERT)
         n8n->>AIServer: POST /ai/orders/recommend (추천발주 요청)
         AIServer-->>n8n: 추천발주안 반환
@@ -228,10 +228,10 @@ sequenceDiagram
     n8n->>ExternalAPI: 날씨·유동인구·검색량[조사 중]·행사 정보[조사 중] 수집
     n8n->>n8n: 전처리·정규화 (결측값 처리, 이상치 필터링, 단위 통일, 외부 변수 병합)
     n8n->>AIServer: POST /ai/forecast/predict
-    AIServer-->>n8n: 예측 결과 + 예측 근거(형태는 research §3) 반환
+    AIServer-->>n8n: 예측 결과 + 예측 근거(11_ai_spec.md §8) 반환
     n8n->>AIServer: POST /ai/orders/recommend
     AIServer-->>n8n: 추천발주안 반환
-    n8n->>DB: forecast_results UPSERT (예측 결과; 근거 저장 컬럼은 research §3 확정 후 정의)
+    n8n->>DB: forecast_results UPSERT (예측 결과 — 08_schema.md §3.15)
     n8n->>DB: order_recommendations INSERT (추천발주안)
 
     alt 전체 성공
@@ -262,7 +262,7 @@ sequenceDiagram
 
     POS->>사주라서버: 판매 데이터 동기화 (어댑터 공통 스키마)
     사주라서버->>사주라서버: 이상치 감지
-    Note over 사주라서버: 탐지 방법·임계값·이상 데이터 처리·알림 트리거는 research §3 확정 후 정의
+    Note over 사주라서버: 탐지 방법·임계값·이상 데이터 처리·알림 트리거는 별도 확정 예정
     사주라서버->>DB: 정상 판매 데이터 저장 (sale_records)
 
     loop 판매된 메뉴별

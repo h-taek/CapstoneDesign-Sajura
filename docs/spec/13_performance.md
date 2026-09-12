@@ -91,10 +91,21 @@
 - 해당 매장은 직전 배치의 예측 결과를 유지한다.
 - 점주에게 별도 안내 없음 (예측 완료 알림 미수신으로 인지)
 
-### 2.4 서버 분리
+### 2.5 서버 분리
 
 - ML 서버와 Backend 서버를 분리 배포한다.
 - 학습 작업이 Backend API 응답에 영향을 주지 않도록 한다.
+
+### 2.6 Playwright 자동화 타임아웃
+
+> 재시도 정책 기준: 04_feature_spec.md 섹션 7.2 (재시도 없음 확정)
+
+| 기준 | 값 |
+|------|-----|
+| 품목당 최대 타임아웃 | 10초 |
+| 전체 발주 건 최대 타임아웃 | 30초 |
+| 타임아웃 초과 시 처리 | 해당 품목을 실패로 처리하고 나머지 품목 계속 진행 |
+| 재시도 | 없음 — 실패 즉시 실패 품목 목록 반환 및 수동 처리 안내 |
 
 ## 3. 성능 리스크
 
@@ -111,6 +122,7 @@
 - MySQL은 복잡한 쿼리와 JSON 필드를 지원한다.
 - DB 인덱싱, 파티셔닝, 슬레이브 복제를 통한 확장 대응이 가능하다.
 - 운영 인덱스는 `08_schema.md` §4에서 정의한다. 파티셔닝은 MVP 50매장 규모에서 필요 없으며 매장 수·데이터량 증가 시 적용 검토한다.
+> DB 인덱스 설계 상세: `08_schema.md` §4 인덱스 설계 요약
 
 ## 5. 모니터링
 
@@ -120,17 +132,3 @@
 - 에러·성능 추적은 **Sentry SDK (sentry-sdk[fastapi])**를 사용한다. PII scrubbing 활성, `traces_sample_rate=0.1`(prod), `environment` 분리, Release tagging은 Git commit SHA 환경변수 주입 (`07_cache_observability.md` §3.3).
 - **FE 에러·성능 추적은 `@sentry/react` + `@sentry/vite-plugin`을 사용한다.** BE와 동일 Sentry 플랫폼·동일 release(`git-<sha-short>`, `VITE_APP_VERSION` 주입)로 BE↔FE 에러 상관관계 추적. `sendDefaultPii: false` + `beforeSend` 마스킹(Authorization·Cookie·이메일·전화·사업자번호) 필수. 소스맵은 `@sentry/vite-plugin`이 빌드 시 Sentry 업로드 후 `deleteFilesAfterUpload: true`로 dist에서 제거(public 노출 차단). `sampleRate=1.0`(에러 100%) + `tracesSampleRate=0.05`(트랜잭션 5%). 결정 근거: `docs/research/frontend/11_observability.md`.
 - 메트릭 수집(Prometheus)·분산 트레이싱(OpenTelemetry)은 MVP 미채택이며 매장 300+·BE 노드 2+·Sentry 이벤트 한도 초과 등 트리거 충족 시 도입한다 (`07_cache_observability.md` §2.5).
-
-### 2.5 Playwright 자동화 타임아웃
-
-> 재시도 정책 기준: 04_feature_spec.md 섹션 7.2 (재시도 없음 확정)
-
-| 기준 | 값 |
-|------|-----|
-| 품목당 최대 타임아웃 | 10초 |
-| 전체 발주 건 최대 타임아웃 | 30초 |
-| 타임아웃 초과 시 처리 | 해당 품목을 실패로 처리하고 나머지 품목 계속 진행 |
-| 재시도 | 없음 — 실패 즉시 실패 품목 목록 반환 및 수동 처리 안내 |
-
-> DB 인덱스 설계 상세: 08_schema.md 인덱스 설계 요약 섹션
-

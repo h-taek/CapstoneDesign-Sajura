@@ -189,25 +189,8 @@
 
 ### DB 계정 접근 정책
 
-DB 직접 접근은 용도별 전용 계정으로 분리한다. 개발자·운영팀의 DB 직접 접근은 VPN 또는 배스천 호스트를 경유한다.
-
-| 계정 | 용도 | 권한 요약 |
-|---|---|---|
-| `app_user` | Backend 애플리케이션 | SELECT, INSERT, UPDATE, DELETE (DDL 없음) |
-| `n8n_user` | n8n 배치 워크플로우 | SELECT(조회), INSERT/UPDATE(배치 산출물), DELETE 없음 |
-| `dev_readonly` | 개발자 디버깅·조회 | SELECT (전체 테이블), VPN 경유 필수 |
-| `ops_readonly` | 운영팀 모니터링 | SELECT (`pipeline_jobs`, `stores` 집계), VPN 경유 필수 |
-
-**n8n_user 권한 상세**
-
-| 권한 | 테이블 |
-|---|---|
-| SELECT | `stores`, `menus`, `recipes`, `recipe_ingredients`, `inventory_items`, `inventory_lots`, `sale_records`, `forecast_results`, `order_recommendations`, `order_recommendation_items`, `order_approval_logs` |
-| INSERT | `pipeline_jobs`, `forecast_results`, `order_recommendations`, `order_recommendation_items` |
-| UPDATE | `pipeline_jobs` |
-| DELETE | 없음 |
-
-n8n은 운영 데이터 원본을 삭제하지 않는다. n8n의 쓰기 대상은 배치 산출물과 실행 이력 테이블로 제한한다.
+DB 직접 접근은 용도별 전용 계정으로 분리하고, 개발자·운영팀은 VPN 또는 배스천 호스트를 경유한다.
+계정별 권한과 `n8n_user` 권한 상세는 `08_schema.md` §5에서 정의한다.
 
 ### 리소스별 소유권 확인 대상
 
@@ -389,7 +372,7 @@ n8n은 운영 데이터 원본을 삭제하지 않는다. n8n의 쓰기 대상�
 | `n8n` | `n8nio/n8n` | AI 파이프라인 오케스트레이션 |
 | `caddy` | 자체 빌드 (`Dockerfile.caddy` — `caddy:2-alpine` 베이스 + FE `dist/` COPY) | 리버스 프록시 + 자동 HTTPS + PWA 정적 파일 서빙. FE Vite 빌드 산출을 이미지에 포함하여 atomic 배포·롤백. 상세: `docs/research/frontend/10_deployment.md` §3.4 |
 
-> AI Server는 `13_performance.md` §2.4 분리 배포 원칙에 따라 본 Compose 외부에 별도 배포.
+> AI Server는 `13_performance.md` §2.5 분리 배포 원칙에 따라 본 Compose 외부에 별도 배포.
 
 ### 11.2 환경 분리
 

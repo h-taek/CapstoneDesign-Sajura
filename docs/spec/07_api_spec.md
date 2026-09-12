@@ -1096,7 +1096,7 @@ Authorization: Bearer <access_token>
 | 값 | 설명 |
 |----|------|
 | `USER_CONFIGURED` | 리드타임과 안전재고를 모두 점주가 설정한 값으로 계산 |
-| `DEFAULT_USED` | 미설정 값이 있어 기본값(리드타임 1일, 안전재고 = `low_stock_threshold`)을 사용해 계산 |
+| `DEFAULT_USED` | 미설정 값이 있어 시스템 기본값(리드타임 1일, 안전재고 0 — `04_feature_spec.md` §6.1)을 사용해 계산 |
 
 기본값 대체 여부는 BE가 판단한다(AI Server는 전달받은 값으로만 계산한다).
 
@@ -1411,7 +1411,7 @@ Authorization: Bearer <access_token>
 | Method | Path | 설명 | 단계 |
 |--------|------|------|------|
 | `GET` | `/api/dashboard` | 대시보드 전체 요약 데이터 조회 | [MVP] |
-| `GET` | `/api/dashboard/roi` | ROI 지표 조회 (폐기 비용·폐기율·재고 회전율·예측 정확도 지표 — 지표 선정은 research §3) | [2단계] |
+| `GET` | `/api/dashboard/roi` | ROI 지표 조회 (폐기 비용·폐기율·재고 회전율·예측 정확도 지표 — 지표 선정은 별도 확정 예정) | [2단계] |
 | `GET` | `/api/dashboard/waste` | 폐기 현황 조회 | [MVP] |
 | `GET` | `/api/pipeline/status` | 파이프라인 최근 실행 상태 조회 | [MVP] |
 | `POST` | `/api/pipeline/run` | 사용자 수동 실행 요청 | [MVP] |

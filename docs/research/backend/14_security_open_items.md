@@ -1,6 +1,6 @@
 # 보안 정책 — 미확정 항목 정리
 
-> **목적**: `12_security.md` §206에서 본 문서로 이관된 보안 정책 미확정 항목의 결정·종결·보류·외부 의존 처리.
+> **목적**: `docs/spec/12_security.md` 말미 미확정 항목 각주에서 본 문서로 이관된 보안 정책 미확정 항목의 결정·종결·보류·외부 의존 처리.
 > **연결 spec**: `docs/spec/12_security.md`, `docs/spec/07_api_spec.md`, `docs/spec/09_service_design.md`, `docs/spec/08_schema.md`
 
 ---

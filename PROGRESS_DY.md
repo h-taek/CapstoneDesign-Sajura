@@ -78,7 +78,7 @@ AI 트랙 plan 폴더가 부재했던 점을 30차 후속으로 보강. `be/`·`
 
 - `docs/plan/04_gantt.md` §6 — Phase 색인 표 "AI 파일" 열 신설, Phase 6·7·12·13의 "AI 팀 영역, 본인 작업 아님" 빈 칸 채움. 마일스톤 ID 규칙에 `M{Phase}.A{n}` 추가.
 
-브랜치: `docs/plan-ai-bootstrap` → PR → main (CLAUDE.md §4 정합).
+브랜치: `docs/plan-ai-bootstrap` → PR → main (당시 CLAUDE.md 브랜치 규칙 정합).
 
 ### 2026-05-28 (30차) — research/ai/01·02 폐기 + spec 위임 표현 일괄 정리
 

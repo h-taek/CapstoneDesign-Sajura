@@ -205,7 +205,7 @@
 | `n8n` | `n8nio/n8n` | `08_async_pipeline.md` §2.4 |
 | `caddy` | `caddy:alpine` | `03_reverse_proxy.md` §4 |
 
-> AI Server는 `13_performance.md` §2.4에 따라 별도 머신·별도 stack — 본 Compose 외부.
+> AI Server는 `13_performance.md` §2.5에 따라 별도 머신·별도 stack — 본 Compose 외부.
 
 ### 4.2 환경 분리
 

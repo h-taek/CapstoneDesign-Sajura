@@ -66,8 +66,8 @@
 5. POS 연동 방식을 선택한다.
    - **CSV 모드 (MVP 기본 경로)** → CSV 템플릿 다운로드 → 보유 POS 데이터 업로드
    - **POS API 연동 [2단계]** → POS 종류·자격증명 입력 → 연동 시도
-     - 성공: `pos_mode=api`, "POS 연동 완료" 배지
-     - 실패: CSV 모드로 진행 (`pos_mode=csv`)
+     - 성공: `pos_connections.status=CONNECTED`, "POS 연동 완료" 배지
+     - 실패: CSV 모드로 진행 (`status=CSV_MODE`)
    - 양쪽 모두 수요예측·자동발주 추천 활성화
    - 설정 화면에서 모드 전환 가능
 6. 초기 재고와 초기 메뉴를 입력한다.

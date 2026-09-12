@@ -15,7 +15,7 @@
 | 추천발주 | 품목별 권장 발주 수량, 예상 소진 시점, 점주 확인·수정·승인 | §6 |
 | 발주 실행 보조 | 쿠팡 장바구니 자동 담기, 결제 안내 | §7 |
 | 대시보드 | 매출·예측 시각화, ROI 지표 | §8 |
-| 예측 근거 | 근거 산출·출력, 신뢰도 경고 | §9 |
+| 예측 근거 | 근거 산출·출력, 신뢰도 경고 | §9 (산출·형태 원본 `11_ai_spec.md` §8) |
 | 데이터 파이프라인 | n8n 야간 배치 — 수집·전처리·학습·예측·캐싱·알림 | §10 |
 | 알림 | 점주 3채널 알림, 파이프라인 실패 알림 | §11 |
 | 화면 | 화면별 UI 구성 (화면 IA 원본) | §12 |
@@ -100,8 +100,8 @@ Frontend → GET /api/auth/login/kakao
 4. POS 연동 방식 선택
      ├─ CSV 모드 (MVP 기본 경로) → CSV 템플릿 다운로드 → 보유 POS 데이터 업로드
      └─ POS API 연동 [2단계] → POS 종류·자격증명 입력 → 연동 시도
-                              ├─ 성공: pos_mode=api
-                              └─ 실패: CSV 모드로 진행 (pos_mode=csv)
+                              ├─ 성공: pos_connections.status=CONNECTED
+                              └─ 실패: CSV 모드로 진행 (status=CSV_MODE)
      · 양쪽 모두 수요예측·자동발주 추천 활성화
      · 설정 화면에서 모드 전환 가능
 5. 초기 재고 / 초기 메뉴 입력
@@ -133,7 +133,7 @@ Frontend → GET /api/auth/login/kakao
 
 > 시연·테스트용 강제 패스: 입력 사업자번호가 환경변수 마스터 코드(`NTS_MASTER_BYPASS_CODE`)와 일치하면 국세청 호출·등록증 업로드 없이 곧바로 `VERIFIED` 처리한다. 상세·위험은 `12_security.md` §2.4.
 
-> POS 연동 상태(`CONNECTED` / `CSV_MODE` / `DISCONNECTED`)는 온보딩 완료 후 `GET /api/store/pos/status`로 별도 조회한다.
+> POS 연동 상태(`pos_connections.status` — `CONNECTED` / `ERROR` / `CSV_MODE` / `DISCONNECTED`, `08_schema.md` §3.4)는 온보딩 완료 후 `GET /api/store/pos/status`로 별도 조회한다.
 
 ## 2. 메뉴 관리
 
@@ -361,7 +361,7 @@ Frontend → GET /api/auth/login/kakao
 |---|---|---|
 | 입력 | 공통 스키마 변환된 데이터 | |
 | 출력 | 정상 데이터 | 학습 데이터셋 편입 |
-| | 이상치 탐지 결과 | 후속 처리(분리/수정·알림)는 research 확정 후 정의 |
+| | 이상치 탐지 결과 | 후속 처리(분리/수정·알림)는 별도 확정 예정 |
 
 ## 4-1. 판매 데이터 조회
 
@@ -400,7 +400,7 @@ Frontend → GET /api/auth/login/kakao
 | 구분 | 항목 |
 |---|---|
 | 입력 | 과거 판매 데이터, 날씨, 요일/공휴일, 유동인구, 검색량[조사 중], SNS 노출도[조사 중], 주변 행사 정보[조사 중], 레시피 |
-| 출력 | 메뉴별 1~3일 예상 수요, 예측 근거(산출 방법·형태는 research §3), 예측 신뢰도 점수 |
+| 출력 | 메뉴별 1~3일 예상 수요, 예측 근거(`11_ai_spec.md` §8), 예측 신뢰도 배지(§5.3) |
 
 ### 5.2 예측 결과 조회 (점주 요청)
 
@@ -411,7 +411,7 @@ Frontend → GET /api/auth/login/kakao
 |---|---|---|
 | 입력 | store_id, menu_id (선택) | |
 | 출력 | 메뉴별 1~3일 예상 수요 | |
-| | 예측 근거 | 산출 방법·출력 형태는 별도 확정 |
+| | 예측 근거 | `11_ai_spec.md` §8 |
 | | 신뢰도 낮음 경고 배지 | 아래 조건 중 하나라도 해당 시 표시 |
 
 ### 5.3 신뢰도 경고 기준
@@ -595,12 +595,11 @@ Frontend → GET /api/auth/login/kakao
 
 ## 9. 예측 근거
 
-### 9.1 예측 근거 생성
+> 산출 방법·출력 형태 원본: `11_ai_spec.md` §8. API 응답 필드: `07_api_spec.md` §7 `explanation`.
 
-- 예측 결과와 함께 점주가 이해할 수 있는 근거를 생성한다.
-- 산출 방법·출력 형태는 별도 확정 예정.
-- 출력 형태가 확정되면 (a) DB 저장 컬럼, (b) AI Server API 응답 필드, (c) 별도 상세 조회 API 필요 여부가 함께 정의된다.
-- 예측 결과 화면에서 메뉴별로 펼쳐서 확인할 수 있다.
+- 예측 결과 화면에서 메뉴별로 펼쳐서 확인한다.
+- 근거는 신뢰도 배지(§5.3)·P10/P90 구간과 항상 동반 노출한다. 단독 노출을 금지한다.
+- 별도 상세 조회 API를 두지 않는다 — 근거는 예측 응답 필드로 함께 반환한다.
 
 ## 10. 데이터 파이프라인
 
@@ -622,7 +621,7 @@ Frontend → GET /api/auth/login/kakao
 | 4. 입력 데이터 전처리/정규화 | n8n Function/Code Node에서 결측값 처리, 이상치 필터링, 단위 통일, 날짜/시간 기준 정렬, 메뉴/재료 매핑, 외부 변수 병합 후 AI Server 입력 스키마로 변환 | 3회 재시도 → Slack 알림 |
 | 5. 수요예측 실행 | n8n이 AI Server `/ai/forecast/predict`를 호출 | 3회 재시도 → Slack 알림 |
 | 6. 추천발주 생성 | n8n이 AI Server `/ai/orders/recommend`를 호출 | 3회 재시도 → Slack 알림 |
-| 7. 예측 결과 저장 | n8n이 `forecast_results`에 예측 결과를 INSERT/UPSERT (예측 근거 저장 컬럼은 research §3 확정 후 추가) | 3회 재시도 → Slack 알림 |
+| 7. 예측 결과 저장 | n8n이 `forecast_results`에 예측 결과를 INSERT/UPSERT (`08_schema.md` §3.15) | 3회 재시도 → Slack 알림 |
 | 8. 추천발주 저장 | n8n이 `order_recommendations`, `order_recommendation_items`에 추천발주 결과를 INSERT | 3회 재시도 → Slack 알림 |
 | 9. 작업 종료/알림 | n8n이 `pipeline_jobs`를 `DONE` 또는 `FAILED`로 UPDATE하고 Slack 또는 앱 알림 발송 | 로깅만 수행 |
 
@@ -647,7 +646,7 @@ Frontend → GET /api/auth/login/kakao
 
 | 알림 상황 | 채널 | 긴급도 |
 |---|---|---|
-| 이상치 감지(임계 조건은 research 확정) | 앱 내 알림 | 경고 |
+| 이상치 감지(임계 조건은 별도 확정 예정) | 앱 내 알림 | 경고 |
 | 재고 부족 ("재고 확인 필요") | 앱 내 알림 | 경고 |
 | 소비기한 D-3일 임박 | 앱 내 알림 | 경고 |
 | 소비기한 D-1일 임박 | 앱 내 알림 | 긴급 |
@@ -767,7 +766,7 @@ Frontend → GET /api/auth/login/kakao
 |---|---|
 | 일자 탭 | 1일 후 / 2일 후 / 3일 후 |
 | 메뉴별 예측 카드 | 메뉴명, 예상 판매량, 신뢰도 낮음 경고 배지 |
-| 예측 근거 (펼치기) | 산출 방법·출력 형태는 research §3 확정 |
+| 예측 근거 (펼치기) | top-3 기여 요인 + 자연어 1문장 (`11_ai_spec.md` §8) |
 | 신뢰도 경고 상세 | 배지 탭 시 경고 사유 표시 (예측 정확도 부족 / 데이터 부족 / 결측값 과다) |
 
 ### 12.9 추천발주
