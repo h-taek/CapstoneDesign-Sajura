@@ -1009,95 +1009,86 @@ Authorization: Bearer <access_token>
 
 | Method | Path | 설명 |
 |--------|------|------|
-| `GET` | `/api/forecast` | 수요예측 결과 조회 |
-| `POST` | `/api/forecast/run` | 수요예측 즉시 실행 요청 |
+| `GET` | `/api/forecast` | 수요예측 결과 조회 (매장 일 매출 D+1~D+3) |
+| `POST` | `/api/forecast/run` | 수요예측 즉시 실행 요청 [2단계] |
 | `GET` | `/api/orders/recommend` | 추천발주 목록 조회 |
-| `PATCH` | `/api/orders/recommend` | 추천발주 수량 수정안 저장 |
+| `PATCH` | `/api/orders/recommend` | 추천발주 수량 수정안 저장 [2단계] |
 | `POST` | `/api/orders/approve` | 발주 확정 |
 | `GET` | `/api/orders` | 발주 내역 목록 조회 |
 | `GET` | `/api/orders/{order_id}` | 발주 내역 상세 조회 |
-| `POST` | `/api/orders/{order_id}/automate` | 쿠팡 장바구니 자동 담기 요청 |
+| `POST` | `/api/orders/{order_id}/automate` | 쿠팡 장바구니 자동 담기 요청 [2단계] |
 | `GET` | `/api/orders/{order_id}/approval-log` | 발주 수정 이력 조회 |
 
 ### GET /api/forecast
 
-```json
-// Query: ?target_date=2026-05-07
-// Response 200
-{
-  "target_date": "2026-05-07",
-  "generated_at": "2026-05-06T02:00:00Z",
-  "is_low_confidence": false,
-  "low_confidence_reason": null,
-  "items": [
-    {
-      "menu_id": "uuid",
-      "menu_name": "아메리카노",
-      "predicted_quantity": 52,
-      "confidence_score": 0.87
-      // 예측 근거 필드는 산출 방법·출력 형태 확정 후 추가
-    }
-  ]
-}
-```
-
-### POST /api/forecast/run
-
-```json
-// Request
-{
-  "target_date": "2026-05-07"
-}
-// Response 200: GET /api/forecast 와 동일 구조
-// 수동 실행이 허용된 경우 AI Server 단건 예측 호출 후 반환
-```
-
-### GET /api/orders/recommend
-
-> `coupang_url`은 `inventory_item_sites` JOIN 결과 (쿠팡 사이트 기준). `last_price`는 추천 생성 시 기록된 스냅샷(`order_recommendation_items.last_price`).
+> **계약 v2 (2026-09-12)** — §8 `POST /ai/forecast/predict` v2와 `11_ai_spec.md` §2·§3을 BE 응답으로 재노출한다.
+> 예측 대상은 메뉴별 수량이 아니라 **매장 일 매출**이며, 대상일은 판매 이력 마지막 영업일 기준 D+1~D+3 고정이다(선행일별 신뢰도 차등 — `11_ai_spec.md` §3.3).
+> 사전 생성(배치 → `forecast_results` 조회) 구조는 [2단계]이고, MVP는 요청 시 AI Server를 호출해 즉석 산출한다.
 
 ```json
 // Response 200
 {
-  "generated_at": "2026-05-06T02:00:00Z",
-  "items": [
+  "predictions": [
     {
-      "item_id": "uuid",
-      "item_name": "원두",
-      "unit": "g",
-      "recommended_quantity": 5000.0,
-      "adjusted_quantity": 5000.0,
-      "lead_time_days": 2,
-      "safety_stock": 1000.0,
-      "config_status": "USER_CONFIGURED",
-      "last_price": 28000,
-      "coupang_url": "https://www.coupang.com/..."
-    },
-    {
-      "item_id": "uuid",
-      "item_name": "우유",
-      "unit": "ml",
-      "recommended_quantity": 3000.0,
-      "adjusted_quantity": 3000.0,
-      "lead_time_days": 1,
-      "safety_stock": 0.0,
-      "config_status": "DEFAULT_USED",
-      "last_price": 6200,
-      "coupang_url": "https://www.coupang.com/..."
-    }
-  ],
-  "missing_config_items": [
-    {
-      "item_id": "uuid",
-      "item_name": "우유",
-      "missing_fields": ["lead_time_days", "safety_stock"],
-      "defaults_used": {
-        "lead_time_days": 1,
-        "safety_stock": 0.0
+      "target_date": "2026-07-28",
+      "horizon_days": 1,
+      "predicted_sales": 850000,
+      "interval_p10": 520000,          // 80% 예측 구간 (LightGBM quantile)
+      "interval_p90": 1310000,
+      "is_low_confidence": false,
+      "low_confidence_reason": null,   // SHORT_HISTORY | MISSING_FEATURES | SPECIAL_DAY | LONG_HORIZON | WIDE_INTERVAL | DRIFT (04_feature_spec.md §5.3)
+      "explanation": {                 // 11_ai_spec.md §8 — SHAP 합 = 편차, rule-based 문장(LLM 미사용)
+        "baseline": "직전 7영업일 평균",
+        "deviation_vs_baseline": 0.12,
+        "top_factors": [
+          { "feature": "dow_3", "label": "목요일 효과", "pct": 0.18 }
+        ],
+        "sentence": "07월 28일(화)은 평소보다 약 12% 높을 것으로 예상됩니다 — 주요 요인: ..."
       }
     }
   ]
 }
+// 422 AI_INSUFFICIENT_HISTORY: 판매 이력 없음 또는 영업일 이력 < 10일
+// 503 AI_SERVER_UNAVAILABLE: AI Server 호출 실패
+```
+
+### POST /api/forecast/run [2단계]
+
+사전 생성된 예측을 점주·관리자가 수동으로 갱신하는 경로다. MVP의 `GET /api/forecast`가 이미 요청 시 산출하므로, 별도 실행 경로는 사전 생성 구조를 도입할 때 함께 정의한다 (`03_mvp_scope.md` §4).
+
+### GET /api/orders/recommend
+
+> **계약 v2 (2026-09-12)** — §8 `POST /ai/orders/recommend` v2를 BE 응답으로 재노출한다.
+> 매장 일 매출 예측 × 메뉴 비중 분해 × 점주 레시피(BOM) 전개 × 재고·리드타임·안전재고로 산출한 **참고치**이며,
+> 예측 신뢰도 배지를 동반한다 — 배지 없이 단독 노출 금지 (`11_ai_spec.md` §8).
+> `menu_name`·`item_name`·`unit`은 BE가 `menus`·`inventory_items`를 조인해 채운다(AI Server는 ID만 반환).
+> `last_price`·`coupang_url`(쿠팡 단가 스냅샷)과 `adjusted_quantity`(수정안 저장)는 쿠팡 자동화·사전 생성 구조 전제라 [2단계]다.
+
+```json
+// Response 200
+{
+  "target_dates": ["2026-07-28", "2026-07-29", "2026-07-30"],
+  "is_low_confidence": true,                 // 예측 신뢰도 전파 — UI는 배지와 함께 노출
+  "low_confidence_reason": "LONG_HORIZON",   // 04_feature_spec.md §5.3 코드
+  "menu_forecast": [                         // 대상 기간 합계 메뉴별 예상 수량(참고치), 내림차순
+    { "menu_id": "uuid", "menu_name": "아메리카노", "expected_quantity": 37.5 }
+  ],
+  "recommendations": [
+    {
+      "item_id": "uuid",
+      "item_name": "원두",
+      "unit": "g",
+      "recommended_quantity": 5000.0,        // max(0, 대상기간+리드타임 예상 소모 + 안전재고 − 현재고)
+      "expected_stockout_date": "2026-07-30",
+      "lead_time_days": 2,
+      "safety_stock": 1000.0,
+      "config_status": "DEFAULT_USED",
+      "recommendation_reason": "향후 3일+리드타임 2일 예상 소모 6.4kg + 안전재고 1 − 현재고 2.4"
+    }
+  ]
+}
+// 422: 영업일 이력 < 10일 · 메뉴 판매 이력 < 10영업일 · 두 이력의 날짜 미교차
+// 레시피 미연결 재료는 recommended_quantity 0 + "예상 소모 없음" 사유로 응답
 ```
 
 `config_status` 값:
@@ -1105,22 +1096,13 @@ Authorization: Bearer <access_token>
 | 값 | 설명 |
 |----|------|
 | `USER_CONFIGURED` | 리드타임과 안전재고를 모두 점주가 설정한 값으로 계산 |
-| `DEFAULT_USED` | 미설정 값이 있어 시스템 기본값(리드타임 1일, 안전재고 0)을 사용해 계산 |
+| `DEFAULT_USED` | 미설정 값이 있어 기본값(리드타임 1일, 안전재고 = `low_stock_threshold`)을 사용해 계산 |
 
-### PATCH /api/orders/recommend
+기본값 대체 여부는 BE가 판단한다(AI Server는 전달받은 값으로만 계산한다).
 
-```json
-// Request (점주 수정안)
-{
-  "adjustments": [
-    {
-      "item_id": "uuid",
-      "adjusted_quantity": 3000.0
-    }
-  ]
-}
-// Response 200: GET /api/orders/recommend 와 동일 구조 (adjusted_quantity 반영)
-```
+### PATCH /api/orders/recommend [2단계]
+
+점주 수정안을 `order_recommendations`에 저장하는 경로다. MVP는 추천을 저장하지 않고 요청 시 산출하므로 저장 대상이 없다. 수정은 발주 확정 시점에 수량을 바꿔 `POST /api/orders/approve`로 보내는 방식으로 처리한다.
 
 ### POST /api/orders/approve
 
