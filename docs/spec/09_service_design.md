@@ -23,10 +23,10 @@
 | **cryptography** | `pos_connections.api_key` AES-256-GCM 암호화·복호화. python-jose `[cryptography]` extras 백엔드. `12_security.md` §4.1 적용 |
 | **Playwright (async)** | 쿠팡 장바구니 자동 담기 및 단가 조회용 브라우저 자동화 |
 | **Alembic** | DB 스키마 변경 이력 관리 및 자동 마이그레이션 |
-| **httpx** | AI Server·국세청·외부 공공 API 호출용 async HTTP 클라이언트 (sync 스크립트는 `httpx.Client`) |
+| **httpx** | AI Server·국세청·KAMIS 등 외부 공공 API 호출용 async HTTP 클라이언트 (sync 스크립트는 `httpx.Client`) |
 | **tenacity** | 외부 API 호출 재시도. `stop_after_attempt(3)` + `wait_exponential_jitter` (`04_feature_spec.md` §10 정합) |
 | **aiobreaker** | AI Server 호출 차단기. CLOSED→OPEN→HALF_OPEN 자동 회복 |
-| **BeautifulSoup4 (lxml 파서)** | Playwright `page.content()` HTML 파싱 — 쿠팡 단가·재고 표시 추출 |
+| **BeautifulSoup4 (lxml 파서)** | Playwright `page.content()` HTML 파싱 — 쿠팡 단가·재고 표시 추출. 품목↔쿠팡 상품 매핑 도메인 완성 후 적용 (`04_feature_spec.md` §3.1) |
 | **slack_sdk** | 파이프라인 실패 알림(개발팀 채널). `AsyncWebhookClient` 단방향 |
 | **pywebpush** | 점주 Web Push 알림 (VAPID 표준, iOS Safari 16.4+). `push_subscriptions` 테이블 사용 |
 | **fastapi-mail** | 회원 탈퇴 증빙·파기 통보 이메일 (SMTP + Jinja) |
@@ -108,7 +108,7 @@
 | `ForecastService` | 저장된 수요예측 결과 조회, 점주/관리자 수동 예측 실행 보조 |
 | `OrderService` | 저장된 추천발주 조회, 점주 수정안 저장, 발주 확정, 승인 이력 |
 | `AutomationService` | Playwright 쿠팡 장바구니 자동화 |
-| `SiteScrapingService` | Playwright 쿠팡 단가 조회 |
+| `SiteScrapingService` | 쿠팡 품목 단가 조회 — 품목↔쿠팡 상품 매핑 도메인 완성 후 (`04_feature_spec.md` §3.1). 그 전까지 시세는 KAMIS 어댑터가 담당 |
 | `DashboardService` | 대시보드 집계, 폐기 현황 [MVP] / ROI 집계 [2단계, `03_mvp_scope.md` §4] |
 | `PipelineService` | 파이프라인 실행 이력 조회 및 상태 표시 |
 | `DataService` | 데이터 CSV 내보내기, 전체 데이터 삭제 |
