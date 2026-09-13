@@ -645,6 +645,7 @@ Authorization: Bearer <access_token>
 | `GET` | `/api/inventory/{item_id}/lots` | 로트 목록 조회 |
 | `PATCH` | `/api/inventory/{item_id}/lots/{lot_id}` | 로트 수량/소비기한 수정 |
 | `POST` | `/api/inventory/{item_id}/dispose` | 폐기 처리 |
+| `GET` | `/api/prices/ingredients` | 주요 식자재 시세 조회 (KAMIS) |
 
 ### GET /api/inventory
 
@@ -867,6 +868,27 @@ Authorization: Bearer <access_token>
 ```
 
 ---
+
+### GET /api/prices/ingredients
+
+> 품목별 쿠팡 최저가 자동 조회가 가능해지기 전까지의 시세 참고 경로다 (`04_feature_spec.md` §3.1).
+> 출처는 KAMIS 농산물유통정보 오픈API `dailySalesList`(일별 주요 농축산물 소매가격).
+> 매장 재고 품목이 아니라 주요 식자재 고정 목록을 반환한다 — `inventory_items`와 연결되지 않는다.
+> API 키 미설정 시 샘플 데이터를 반환한다(시연·로컬용 stub 모드).
+
+```json
+// Response 200
+[
+  {
+    "item_name": "양파",
+    "price": 1980,
+    "unit": "1kg",
+    "direction": "DOWN",          // UP | DOWN | SAME (전일 대비)
+    "change_percent": -3.2,
+    "source": "KAMIS"
+  }
+]
+```
 
 ## 6. 판매 API
 
