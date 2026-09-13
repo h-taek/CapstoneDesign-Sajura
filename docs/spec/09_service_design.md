@@ -33,7 +33,7 @@
 | **structlog** | 구조화 JSON 로깅. `request_id`·`user_id`·`store_id` contextvars 자동 부여. 표준 `logging` bridge |
 | **asgi-correlation-id** | ASGI 미들웨어. `X-Request-ID` 처리·UUID 생성·contextvars 저장 |
 | **sentry-sdk[fastapi]** | 에러·성능 추적. `environment` 분리·PII scrubbing·`traces_sample_rate=0.1`(prod) |
-| **ARQ** | Redis 기반 async 잡 큐 + 정기 작업(cron). 쿠팡 자동화·단가 일괄 갱신·예약 발송 등 영속 잡과 BE 도메인 cron(소비기한 일일 체크 매일 02:00 등)을 함께 처리. 운영 시 BE Gunicorn 컨테이너와 별도 워커 컨테이너로 실행 (`arq <module>.WorkerSettings` — `functions` + `cron_jobs`). 짧은 후처리(1~3초)는 FastAPI BackgroundTasks 사용 |
+| **ARQ** | Redis 기반 async 잡 큐 + 정기 작업(cron). 쿠팡 자동화·단가 일괄 갱신·예약 발송 등 영속 잡과 BE 도메인 cron(소비기한 일일 체크 매일 01:30 등)을 함께 처리. 운영 시 BE Gunicorn 컨테이너와 별도 워커 컨테이너로 실행 (`arq <module>.WorkerSettings` — `functions` + `cron_jobs`). 짧은 후처리(1~3초)는 FastAPI BackgroundTasks 사용 |
 | **fastapi-limiter** | Redis 기반 async Rate Limit. 인증 API `5/min`(login·register)·`30/min`(refresh), 알림 발송 `30/min`, 알림 조회 `60/min`. 일반 API 미적용 |
 | **phonenumbers** | `stores.phone` 검증·정규화 (Google libphonenumber). KR 국가 코드 검증 후 NATIONAL 형식(`010-1234-5678`)으로 저장 |
 

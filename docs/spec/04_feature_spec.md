@@ -269,7 +269,7 @@ Frontend → GET /api/auth/login/kakao
 
 ### 3.6 소비기한 관리
 
-- 매일 02:00 BE가 ARQ `cron_jobs`로 전체 로트의 소비기한을 체크한다 (AI 야간 배치와 분리 — AI 파이프라인은 n8n, 재고 도메인 cron은 BE ARQ).
+- 매일 01:30 BE가 ARQ `cron_jobs`로 전체 로트의 소비기한을 체크한다 (AI 야간 배치와 분리 — AI 파이프라인은 n8n 02:00, 재고 도메인 cron은 BE ARQ 01:30. 같은 호스트에서 도는 두 배치를 겹치지 않게 둔다).
 - 점주가 직접 소비기한 초과 재료를 폐기 처리한다.
 
 | 조건 | 처리 |
@@ -282,7 +282,7 @@ Frontend → GET /api/auth/login/kakao
 
 | 단계 | 작업 | 실패 처리 |
 |---|---|---|
-| 1. cron 트리거 | ARQ `cron_jobs`가 매일 02:00에 `InventoryService.check_expiry_batch` 호출 | ARQ 재시도 정책 |
+| 1. cron 트리거 | ARQ `cron_jobs`가 매일 01:30에 `InventoryService.check_expiry_batch` 호출 | ARQ 재시도 정책 |
 | 2. 로트 조회 | `InventoryService.check_expiry_batch`가 `inventory_lots`에서 `expiry_date` 기준 D-3·D-1·초과 매칭 로트 조회 | sentry-sdk 자동 포착 |
 | 3. 알림 발송 | `NotificationService.create_and_push` 호출 → `notifications` INSERT + `push_subscriptions` 대상 Web Push (pywebpush) | NotificationService 내부 처리 |
 
@@ -393,7 +393,7 @@ Frontend → GET /api/auth/login/kakao
 
 - n8n이 매일 02:00에 야간 예측 워크플로우를 트리거한다.
 - n8n은 DB에서 판매 데이터, 메뉴, 레시피, 재고 등 예측 입력 데이터를 직접 조회한다.
-- n8n은 날씨, 유동인구, 검색량[조사 중], 행사 정보[조사 중] 등 외부 데이터를 API로 수집한다.
+- n8n은 외부 데이터를 수집한다 (`11_ai_spec.md` §4.2 MVP 항목).
 - n8n은 수집한 데이터를 전처리 및 정규화한 뒤 AI Server의 예측 API에 전달하고, 반환된 예측 결과를 DB에 직접 저장한다.
 - n8n 전처리에는 결측값 처리, 이상치 필터링, 단위 통일, 날짜/시간 기준 정렬, 메뉴/재료 매핑, 외부 변수 병합이 포함된다.
 - 예측 대상은 재고 차감 여부와 무관하게 전체 메뉴이다.
@@ -401,7 +401,7 @@ Frontend → GET /api/auth/login/kakao
 
 | 구분 | 항목 |
 |---|---|
-| 입력 | 과거 판매 데이터, 날씨, 요일/공휴일, 유동인구, 검색량[조사 중], SNS 노출도[조사 중], 주변 행사 정보[조사 중], 레시피 |
+| 입력 | `11_ai_spec.md` §4 입력 데이터·피처 |
 | 출력 | 메뉴별 1~3일 예상 수요, 예측 근거(`11_ai_spec.md` §8), 예측 신뢰도 배지(§5.3) |
 
 ### 5.2 예측 결과 조회 (점주 요청)
@@ -623,11 +623,11 @@ Frontend → GET /api/auth/login/kakao
 |---|---|---|
 | 1. 작업 시작 기록 | n8n이 매장별로 `pipeline_jobs`에 `store_id`, `type=FORECAST`, `triggered_by=N8N`, `status=RUNNING`으로 INSERT | 3회 재시도 → Slack 알림 |
 | 2. DB 데이터 조회 | n8n이 DB에서 판매 데이터, 메뉴, 레시피, 재고, 리드타임, 안전재고, 기존 예측/발주 이력을 조회 | 3회 재시도 → Slack 알림 |
-| 3. 외부 데이터 수집 | n8n이 날씨, 유동인구, 검색량[조사 중], 행사 정보[조사 중] API를 호출 | 3회 재시도 → Slack 알림 |
+| 3. 외부 데이터 수집 | n8n이 `11_ai_spec.md` §4.2 MVP 항목의 외부 API를 호출 | 3회 재시도 → Slack 알림 |
 | 4. 입력 데이터 전처리/정규화 | n8n Function/Code Node에서 결측값 처리, 이상치 필터링, 단위 통일, 날짜/시간 기준 정렬, 메뉴/재료 매핑, 외부 변수 병합 후 AI Server 입력 스키마로 변환 | 3회 재시도 → Slack 알림 |
 | 5. 수요예측 실행 | n8n이 AI Server `/ai/forecast/predict`를 호출 | 3회 재시도 → Slack 알림 |
 | 6. 추천발주 생성 | n8n이 AI Server `/ai/orders/recommend`를 호출 | 3회 재시도 → Slack 알림 |
-| 7. 예측 결과 저장 | n8n이 `forecast_results`에 예측 결과를 INSERT/UPSERT (`08_schema.md` §3.15) | 3회 재시도 → Slack 알림 |
+| 7. 예측 결과 저장 | n8n이 `forecast_results`·`forecast_menu_items`에 예측 결과를 INSERT/UPSERT (`08_schema.md` §3.15·§3.16) | 3회 재시도 → Slack 알림 |
 | 8. 추천발주 저장 | n8n이 `order_recommendations`, `order_recommendation_items`에 추천발주 결과를 INSERT | 3회 재시도 → Slack 알림 |
 | 9. 작업 종료/알림 | n8n이 `pipeline_jobs`를 `DONE` 또는 `FAILED`로 UPDATE하고 Slack 또는 앱 알림 발송 | 로깅만 수행 |
 

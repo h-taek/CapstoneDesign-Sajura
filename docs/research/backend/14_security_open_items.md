@@ -169,7 +169,7 @@
 
 ## 7. OrderApprovalLog 스키마 — 종결
 
-`08_schema.md` §3.20 + `12_security.md` §5.3에 이미 정의 완료. 본 audit 단계 변경 사항 없음.
+`08_schema.md` §3.21 + `12_security.md` §5.3에 이미 정의 완료. 본 audit 단계 변경 사항 없음.
 
 ---
 
