@@ -5,7 +5,7 @@
 > - `03_mvp_scope.md` §3 (PWA + 푸시·인앱 알림 MVP 포함)
 > - `09_service_design.md` §1 (BE pywebpush)·§4 NotificationService·§11 (Caddy 정적 서빙)
 > - `07_api_spec.md` §10 (알림 5개 endpoint)
-> - `08_schema.md` §3.22 `notifications`·§3.23 `push_subscriptions`
+> - `08_schema.md` §3.23 `notifications`·§3.24 `push_subscriptions`
 > - `docs/research/backend/06_external_integration.md` §3.4 (pywebpush 결정·VAPID·iOS Safari 16.4+ 지원)
 > - `docs/research/backend/14_security_open_items.md` §6 (다중 디바이스 — 각 디바이스 자체 토큰)
 > - `04_feature_spec.md` §11 (알림 정책 6개 상황)
@@ -161,7 +161,7 @@ registerRoute(
 
 `docs/research/backend/06_external_integration.md` §3.4에서 결정:
 - **BE 라이브러리**: pywebpush (VAPID 표준·Google 비종속·iOS Safari 16.4+)
-- **DB**: `push_subscriptions(endpoint UNIQUE, p256dh, auth, user_agent)` (`08_schema.md` §3.23)
+- **DB**: `push_subscriptions(endpoint UNIQUE, p256dh, auth, user_agent)` (`08_schema.md` §3.24)
 - **endpoint**: `POST /api/notifications/subscribe` · `DELETE /api/notifications/subscribe/{id}` (`07_api_spec.md` §10)
 - **발송 트리거**: BE `NotificationService.create_and_push` (`09_service_design.md` §4)
 
@@ -378,7 +378,7 @@ export function useUnreadNotifications() {
 | `DELETE /api/notifications/subscribe/{id}` | 동상 | 설정 화면 — 알림 끄기 |
 | `GET /api/notifications` | 동상 | TanStack Query 폴링 |
 | `PATCH /api/notifications/{id}/read` · `PATCH /api/notifications/read-all` | 동상 | mutation + invalidate query |
-| `push_subscriptions` `user_agent` 필드 | `08_schema.md` §3.23 | `navigator.userAgent` 전달 |
+| `push_subscriptions` `user_agent` 필드 | `08_schema.md` §3.24 | `navigator.userAgent` 전달 |
 | 다중 디바이스 — 각 디바이스 자체 구독 | `14_security_open_items.md` §6 | 디바이스마다 `endpoint` UNIQUE — 자연 동작 |
 
 ---

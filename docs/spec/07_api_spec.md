@@ -1032,9 +1032,9 @@ Authorization: Bearer <access_token>
 | Method | Path | 설명 |
 |--------|------|------|
 | `GET` | `/api/forecast` | 수요예측 결과 조회 (매장 일 매출 D+1~D+3) |
-| `POST` | `/api/forecast/run` | 수요예측 즉시 실행 요청 [2단계] |
+| `POST` | `/api/forecast/run` | 수요예측 즉시 실행 요청 (캐시 없을 때 수동 실행 보조) |
 | `GET` | `/api/orders/recommend` | 추천발주 목록 조회 |
-| `PATCH` | `/api/orders/recommend` | 추천발주 수량 수정안 저장 [2단계] |
+| `PATCH` | `/api/orders/recommend` | 추천발주 수량 수정안 저장 |
 | `POST` | `/api/orders/approve` | 발주 확정 |
 | `GET` | `/api/orders` | 발주 내역 목록 조회 |
 | `GET` | `/api/orders/{order_id}` | 발주 내역 상세 조회 |
@@ -1045,10 +1045,12 @@ Authorization: Bearer <access_token>
 ### GET /api/forecast
 
 > **계약 v2 (2026-09-12)** — §8 `POST /ai/forecast/predict` v2와 `11_ai_spec.md` §2·§3을 BE 응답으로 재노출한다.
-> 예측 대상은 메뉴별 수량이 아니라 **매장 일 매출**이며, 대상일은 판매 이력 마지막 영업일 기준 D+1~D+3 고정이다(선행일별 신뢰도 차등 — `11_ai_spec.md` §3.3).
-> 사전 생성(배치 → `forecast_results` 조회) 구조는 [2단계]이고, MVP는 요청 시 AI Server를 호출해 즉석 산출한다.
+> 예측 대상은 메뉴별 수량이 아니라 **매장 일 매출**이며, 대상일은 판매 이력 마지막 영업일 기준 D+1~D+3이다(선행일별 신뢰도 차등 — `11_ai_spec.md` §3.3).
+> n8n 야간 배치가 사전 생성해 `forecast_results`·`forecast_menu_items`에 저장한 결과를 반환한다 (`11_ai_spec.md` §7.2).
+> 저장된 결과가 없고 수동 실행이 허용된 경우 `POST /api/forecast/run`으로 단건 생성한다.
 
 ```json
+// Query: ?target_date=2026-07-28 (선택 — 생략 시 저장된 D+1~D+3 전체)
 // Response 200
 {
   "predictions": [
@@ -1071,13 +1073,24 @@ Authorization: Bearer <access_token>
     }
   ]
 }
+// 404 FORECAST_NOT_FOUND: 저장된 예측 없음 (POST /api/forecast/run 안내)
 // 422 AI_INSUFFICIENT_HISTORY: 판매 이력 없음 또는 영업일 이력 < 10일
 // 503 AI_SERVER_UNAVAILABLE: AI Server 호출 실패
 ```
 
-### POST /api/forecast/run [2단계]
+> 메뉴별 예상 수량(`forecast_menu_items`)은 `GET /api/orders/recommend`의 `menu_forecast`로 반환한다. 수요예측 화면의 메뉴별 카드(`04_feature_spec.md` §12.8)는 그 값을 쓴다.
 
-사전 생성된 예측을 점주·관리자가 수동으로 갱신하는 경로다. MVP의 `GET /api/forecast`가 이미 요청 시 산출하므로, 별도 실행 경로는 사전 생성 구조를 도입할 때 함께 정의한다 (`03_mvp_scope.md` §4).
+### POST /api/forecast/run
+
+> 저장된 예측이 없거나 점주·관리자가 갱신을 요청할 때 AI Server를 단건 호출하고 결과를 저장한다 (`11_ai_spec.md` §7.2).
+
+```json
+// Request
+{
+  "target_date": "2026-07-28"   // 생략 시 D+1~D+3 전체
+}
+// Response 200: GET /api/forecast 와 동일 구조
+```
 
 ### GET /api/orders/recommend
 
@@ -1085,7 +1098,7 @@ Authorization: Bearer <access_token>
 > 매장 일 매출 예측 × 메뉴 비중 분해 × 점주 레시피(BOM) 전개 × 재고·리드타임·안전재고로 산출한 **참고치**이며,
 > 예측 신뢰도 배지를 동반한다 — 배지 없이 단독 노출 금지 (`11_ai_spec.md` §8).
 > `menu_name`·`item_name`·`unit`은 BE가 `menus`·`inventory_items`를 조인해 채운다(AI Server는 ID만 반환).
-> `last_price`·`coupang_url`(쿠팡 단가 스냅샷)과 `adjusted_quantity`(수정안 저장)는 쿠팡 자동화·사전 생성 구조 전제라 [2단계]다.
+> `last_price`·`coupang_url`은 품목↔쿠팡 상품 매핑 도메인 완성 후 채워진다 (`04_feature_spec.md` §3.1). `adjusted_quantity`는 `PATCH /api/orders/recommend` 저장값이다.
 
 ```json
 // Response 200
@@ -1123,9 +1136,19 @@ Authorization: Bearer <access_token>
 
 기본값 대체 여부는 BE가 판단한다(AI Server는 전달받은 값으로만 계산한다).
 
-### PATCH /api/orders/recommend [2단계]
+### PATCH /api/orders/recommend
 
-점주 수정안을 `order_recommendations`에 저장하는 경로다. MVP는 추천을 저장하지 않고 요청 시 산출하므로 저장 대상이 없다. 수정은 발주 확정 시점에 수량을 바꿔 `POST /api/orders/approve`로 보내는 방식으로 처리한다.
+> 점주 수정안을 `order_recommendation_items.adjusted_quantity`에 저장한다 (`08_schema.md` §3.18).
+
+```json
+// Request
+{
+  "adjustments": [
+    { "item_id": "uuid", "adjusted_quantity": 3000.0 }
+  ]
+}
+// Response 200: GET /api/orders/recommend 와 동일 구조 (adjusted_quantity 반영)
+```
 
 ### POST /api/orders/approve
 
@@ -1661,7 +1684,7 @@ Authorization: Bearer <access_token>
 
 ## 10. 알림 API
 
-> 알림 정책 기준: `04_feature_spec.md` §11 / 저장 스키마: `08_schema.md` §3.22 `notifications`·§3.23 `push_subscriptions`
+> 알림 정책 기준: `04_feature_spec.md` §11 / 저장 스키마: `08_schema.md` §3.23 `notifications`·§3.24 `push_subscriptions`
 > 알림 채널·라이브러리: `docs/research/backend/06_external_integration.md` §3
 
 ### Endpoints

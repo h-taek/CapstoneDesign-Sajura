@@ -306,26 +306,45 @@ CREATE TABLE sale_records (
 
 ### 3.15 forecast_results
 
+> 예측 대상은 매장 일 매출이다 (`11_ai_spec.md` §2 ①). 메뉴별 예상 수량은 §3.16에 분리 저장한다.
+
 ```sql
 CREATE TABLE forecast_results (
     forecast_id             CHAR(36)        NOT NULL,
     store_id                CHAR(36)        NOT NULL,
-    menu_id                 CHAR(36)        NOT NULL,
     target_date             DATE            NOT NULL,
-    predicted_quantity      INT             NOT NULL,
-    confidence_score        DECIMAL(4,3)    NOT NULL,
+    horizon_days            TINYINT         NOT NULL COMMENT '선행일 1~3 (11_ai_spec.md §3.3)',
+    predicted_sales         INT             NOT NULL COMMENT '예측 일 매출(원)',
+    interval_p10            INT             NOT NULL COMMENT '80% 예측 구간 하한 (LightGBM quantile)',
+    interval_p90            INT             NOT NULL COMMENT '80% 예측 구간 상한',
     is_low_confidence       TINYINT(1)      NOT NULL DEFAULT 0,
-    low_confidence_reason   VARCHAR(255)    NULL,
+    low_confidence_reason   VARCHAR(32)     NULL COMMENT '04_feature_spec.md §5.3 코드 6종',
+    explanation             JSON            NULL COMMENT '예측 근거 — 11_ai_spec.md §8 응답 스키마',
     generated_at            DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    -- 예측 근거 저장 컬럼은 산출 방법·출력 형태 확정 후 추가
     PRIMARY KEY (forecast_id),
-    UNIQUE KEY uq_forecast_store_menu_date (store_id, menu_id, target_date),
-    CONSTRAINT fk_forecast_results_store FOREIGN KEY (store_id) REFERENCES stores (store_id),
-    CONSTRAINT fk_forecast_results_menu FOREIGN KEY (menu_id) REFERENCES menus (menu_id)
+    UNIQUE KEY uq_forecast_store_date (store_id, target_date),
+    CONSTRAINT fk_forecast_results_store FOREIGN KEY (store_id) REFERENCES stores (store_id)
 );
 ```
 
-### 3.16 order_recommendations
+### 3.16 forecast_menu_items
+
+> 매출 예측을 메뉴 비중으로 분해한 참고치 (`11_ai_spec.md` §2 ②·§3.2). 신뢰도 배지는 §3.15의 값을 따른다.
+
+```sql
+CREATE TABLE forecast_menu_items (
+    id                  CHAR(36)        NOT NULL,
+    forecast_id         CHAR(36)        NOT NULL,
+    menu_id             CHAR(36)        NOT NULL,
+    expected_quantity   DECIMAL(10,3)   NOT NULL COMMENT '대상일 예상 판매 수량(참고치)',
+    PRIMARY KEY (id),
+    UNIQUE KEY uq_forecast_menu (forecast_id, menu_id),
+    CONSTRAINT fk_forecast_menu_items_forecast FOREIGN KEY (forecast_id) REFERENCES forecast_results (forecast_id) ON DELETE CASCADE,
+    CONSTRAINT fk_forecast_menu_items_menu FOREIGN KEY (menu_id) REFERENCES menus (menu_id)
+);
+```
+
+### 3.17 order_recommendations
 
 ```sql
 CREATE TABLE order_recommendations (
@@ -339,7 +358,7 @@ CREATE TABLE order_recommendations (
 );
 ```
 
-### 3.17 order_recommendation_items
+### 3.18 order_recommendation_items
 
 ```sql
 CREATE TABLE order_recommendation_items (
@@ -359,7 +378,7 @@ CREATE TABLE order_recommendation_items (
 );
 ```
 
-### 3.18 orders
+### 3.19 orders
 
 ```sql
 CREATE TABLE orders (
@@ -378,7 +397,7 @@ CREATE TABLE orders (
 );
 ```
 
-### 3.19 order_items
+### 3.20 order_items
 
 ```sql
 CREATE TABLE order_items (
@@ -395,7 +414,7 @@ CREATE TABLE order_items (
 );
 ```
 
-### 3.20 order_approval_logs
+### 3.21 order_approval_logs
 
 ```sql
 CREATE TABLE order_approval_logs (
@@ -413,7 +432,7 @@ CREATE TABLE order_approval_logs (
 );
 ```
 
-### 3.21 pipeline_jobs
+### 3.22 pipeline_jobs
 
 ```sql
 CREATE TABLE pipeline_jobs (
@@ -432,7 +451,7 @@ CREATE TABLE pipeline_jobs (
 );
 ```
 
-### 3.22 notifications
+### 3.23 notifications
 
 ```sql
 CREATE TABLE notifications (
@@ -457,7 +476,7 @@ CREATE TABLE notifications (
 
 > 인앱 알림 저장소. `04_feature_spec.md` §11 알림 정책 모두 본 테이블에 INSERT된다. Web Push 발송은 `push_subscriptions`를 참조해 BE Service가 비동기로 수행한다.
 
-### 3.23 push_subscriptions
+### 3.24 push_subscriptions
 
 ```sql
 CREATE TABLE push_subscriptions (
@@ -488,7 +507,8 @@ CREATE TABLE push_subscriptions (
 | `sale_records` | `(store_id, sold_at)` | 기간별 판매 조회 (가장 빈번) |
 | `sale_records` | `(store_id, source, external_sale_id)` UNIQUE | POS/CSV 원본 ID가 있는 판매 데이터 중복 수집 방지 |
 | `inventory_lots` | `expiry_date` | 소비기한 경고 배치 조회 |
-| `forecast_results` | `(store_id, menu_id, target_date)` UNIQUE | 중복 예측 방지 + 빠른 조회 |
+| `forecast_results` | `(store_id, target_date)` UNIQUE | 중복 예측 방지 + 빠른 조회 |
+| `forecast_menu_items` | `(forecast_id, menu_id)` UNIQUE | 예측 1건당 메뉴 중복 방지 |
 | `orders` | `(store_id, approved_at)` | 발주 이력 기간 조회 |
 | `pipeline_jobs` | `status` | 실행 중 작업 모니터링 |
 | `refresh_tokens` | `token_hash` UNIQUE | 토큰 검증 |
@@ -512,8 +532,8 @@ DB 직접 접근은 용도별 전용 계정으로 분리한다. 개발자·운�
 
 | 권한 | 테이블 |
 |------|--------|
-| SELECT | `stores`, `menus`, `recipes`, `recipe_ingredients`, `inventory_items`, `inventory_lots`, `sale_records`, `forecast_results`, `order_recommendations`, `order_recommendation_items`, `order_approval_logs` |
-| INSERT | `pipeline_jobs`, `forecast_results`, `order_recommendations`, `order_recommendation_items` |
+| SELECT | `stores`, `menus`, `recipes`, `recipe_ingredients`, `inventory_items`, `inventory_lots`, `sale_records`, `forecast_results`, `forecast_menu_items`, `order_recommendations`, `order_recommendation_items`, `order_approval_logs` |
+| INSERT | `pipeline_jobs`, `forecast_results`, `forecast_menu_items`, `order_recommendations`, `order_recommendation_items` |
 | UPDATE | `pipeline_jobs` |
 | DELETE | 없음 |
 
@@ -542,12 +562,12 @@ n8n은 운영 데이터 원본을 삭제하지 않는다. n8n의 쓰기 대상�
 | 메뉴/레시피 | `menus`, `recipes`, `recipe_ingredients` |
 | 재고 | `inventory_items`, `inventory_lots`, `inventory_adjustment_logs`, `disposal_logs`, `sites`, `inventory_item_sites` |
 | 판매 | `sale_records` |
-| 수요예측 | `forecast_results` |
+| 수요예측 | `forecast_results`, `forecast_menu_items` |
 | 발주 | `order_recommendations`, `order_recommendation_items`, `orders`, `order_items`, `order_approval_logs` |
 | 파이프라인 | `pipeline_jobs` |
 | 알림 | `notifications`, `push_subscriptions` |
 
-총 23개 테이블
+총 24개 테이블
 
 ---
 
@@ -566,6 +586,7 @@ erDiagram
     stores ||--o{ disposal_logs : "1:N"
     stores ||--o{ sale_records : "1:N"
     stores ||--o{ forecast_results : "1:N"
+    forecast_results ||--o{ forecast_menu_items : "1:N"
     stores ||--o{ order_recommendations : "1:N"
     stores ||--o{ orders : "1:N"
     stores ||--o{ pipeline_jobs : "1:N"
@@ -574,7 +595,7 @@ erDiagram
     users ||--o{ push_subscriptions : "1:N"
     menus ||--o| recipes : "1:1"
     menus ||--o{ sale_records : "1:N"
-    menus ||--o{ forecast_results : "1:N"
+    menus ||--o{ forecast_menu_items : "1:N"
     recipes ||--o{ recipe_ingredients : "1:N"
     recipe_ingredients }o--|| inventory_items : "N:1"
     inventory_items ||--o{ inventory_lots : "1:N"
@@ -610,6 +631,7 @@ stores (1) ── (N) inventory_adjustment_logs
 stores (1) ── (N) disposal_logs
 stores (1) ── (N) sale_records
 stores (1) ── (N) forecast_results
+forecast_results (1) ── (N) forecast_menu_items
 stores (1) ── (N) order_recommendations
 stores (1) ── (N) orders
 stores (1) ── (N) pipeline_jobs
@@ -620,7 +642,7 @@ users  (1) ── (N) push_subscriptions
 
 menus  (1) ── (1) recipes
 menus  (1) ── (N) sale_records
-menus  (1) ── (N) forecast_results
+menus  (1) ── (N) forecast_menu_items
 
 recipes (1) ── (N) recipe_ingredients
 recipe_ingredients (N) ── (1) inventory_items
@@ -660,7 +682,7 @@ n8n 야간 배치 (매일 02:00)
 → 외부 API 데이터 수집
 → AI Server 수요예측 호출
 → AI Server 추천발주 호출
-→ forecast_results 저장
+→ forecast_results + forecast_menu_items 저장
 → order_recommendations + order_recommendation_items 저장
 → pipeline_jobs 상태 갱신
 

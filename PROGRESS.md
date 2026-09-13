@@ -12,11 +12,11 @@
 | 2. 설계 (기능·API·DB·백엔드·프론트·AI) | `docs/spec/` 전체 | 완료 |
 | 3. 리서치 | `docs/research/` (backend·frontend·ai) | 완료 |
 | 4. 구현 계획 | `docs/plan/` | 완료 |
-| 5. 구현 | Phase 2·3·4·5·6·7·11·12 구현됨 / Phase 8(n8n 배치)·10(자동화)·알림 미착수 | 진행 중 |
-| 6. 테스트 & 배포 | 졸업 시연 범위 | 예정 |
+| 5. 구현 | Phase 2·3·4·5·6·7·11·12 구현됨 / Phase 8(n8n 배치)·10(쿠팡 자동 담기)·알림 미착수 | 진행 중 |
+| 6. 테스트 & 배포 | Phase 13 — 자체 운영 서버(Mac mini) SSH 배포 | 예정 |
 
 > Phase 5·9·11은 코드가 존재하나 `docs/plan/`의 마일스톤 대조는 아직 하지 않았다.
-> 구현과 spec이 어긋난 지점은 2026-09-12 정합 검수로 확인했다. 목록과 처리 순서는 `HANDOFF.md`에 있다.
+> 구현과 spec이 어긋난 지점은 2026-09-12~13 정합 검수로 확인했다. 목록과 처리 순서는 `HANDOFF.md`에 있다.
 
 ---
 
@@ -38,13 +38,18 @@ docs/plan/       → 구현 계획 (단계별 작업, 순서, 역할 분담)
 
 ## 3. 정책 결정 이력 (요약)
 
-세부 audit 결과는 spec/research 본문에 반영되어 있어 본 표에는 **현재 살아 있는 핵심 결정**만 한 줄로 추상화한다. 신규 결정은 표에 행을 추가하고, 폐기·번복 시 해당 행만 갱신한다. 회차별 상세 변경은 §5 문서 수정 이력의 차수 항목과 git log 참조.
+세부 audit 결과는 spec/research 본문에 반영되어 있어 본 표에는 **현재 살아 있는 핵심 결정**만 한 줄로 추상화한다. 신규 결정은 표에 행을 추가하고, 폐기·번복 시 해당 행만 갱신한다. 회차별 상세 변경은 §4 이력 문서의 차수 항목과 git log 참조.
 
 | 영역 | 결정 | 근거 위치 |
 |---|---|---|
 | 문서 구조 | spec(확정 사실) · research(spec 작성 위한 조사) · plan(구현 계획) 3폴더 분리 + research 하위 backend/frontend/ai 도메인 폴더 | `docs/README.md` |
-| spec 폴더 순서 | contract-first / outside-in: 요구사항 → MVP → 기능 → 흐름 → API → DB → Backend → AI → 비기능 | `docs/spec/` 폴더 번호 |
+| spec 파일 순서 | contract-first / outside-in: 요구사항 → MVP → 기능 → 흐름 → API → DB → Backend → FE → AI → 비기능 → 확장 (2026-09-12 평탄화, 폴더 없음) | `docs/README.md` §2 |
 | MVP 데이터 | **CSV-only** (POS API는 [2단계]). 모든 spec에 `[MVP]`/`[2단계]` 라벨 부착 | `docs/spec/03_mvp_scope.md` |
+| 쿠팡 자동 담기 | 서버 Playwright 폐기 → **사주라 브라우저 확장**이 점주 브라우저에서 수행. 서버는 상품 선택(LLM)·결과 기록만 하고 쿠팡 자격증명을 보유하지 않는다 (2026-09-13) | `14_extension_design.md` |
+| 시연 범위 | Phase 8(n8n 배치)·10(자동 담기)·13(통합 검증·배포) 모두 범위 안. 배포 대상은 자체 운영 서버(Mac mini) SSH. Phase 10은 착수 우선순위 최하 (2026-09-13) | `plan/04_gantt.md` §6 |
+| 식자재 단가 | 쿠팡 최저가를 목표로 유지. 품목↔쿠팡 상품 매핑 도메인 완성 전까지 KAMIS 오픈API 시세로 대체 (2026-09-13) | `04_feature_spec.md` §3.1 |
+| 예측 저장 구조 | `forecast_results`(매장 일 매출·P10/P90·근거) + `forecast_menu_items`(메뉴 분해) 2테이블. 구 메뉴별 단일 테이블 폐기 (2026-09-13) | `08_schema.md` §3.15·§3.16 |
+| 배치 시각 | ARQ 소비기한 점검 01:30 / n8n 예측 배치 02:00 — 같은 호스트라 분산 (2026-09-13) | `04_feature_spec.md` §3.6·§10.1 |
 | 웹 프레임워크 | FastAPI + Pydantic v2 + orjson | `09_service_design.md` §1 |
 | 앱 서버 | dev Uvicorn / prod Gunicorn + uvicorn.workers (워커 4, --max-requests 1000, --preload) | `research/backend/02_app_server.md` |
 | 리버스 프록시 | Caddy v2 (TLS 1.3 강제, FE dist를 caddy 이미지에 COPY) | `research/backend/03_reverse_proxy.md` |
@@ -52,7 +57,7 @@ docs/plan/       → 구현 계획 (단계별 작업, 순서, 역할 분담)
 | 인증·암호화 | Authlib + python-jose + passlib[bcrypt] + cryptography(AES-256-GCM) | `12_security.md` §2·§4 |
 | OAuth 콜백 응답 | 302 Redirect to FE root + Set-Cookie refresh_token (Access Token 본문/URL 미노출, FE 첫 진입에서 `POST /api/auth/refresh`로 동기) | `07_api_spec.md` §2, `06_sequence.md` §2 |
 | 외부 연동 | httpx + tenacity + aiobreaker + BeautifulSoup4(lxml) + Playwright(Chromium 단일) | `09_service_design.md` §1 |
-| 알림 | 점주 3채널(인앱·Web Push·이메일) — pywebpush + fastapi-mail + `notifications` 테이블. Slack은 운영자 모니터링 전용 | `09_service_design.md` §4, `08_schema.md` §3.22~23 |
+| 알림 | 점주 3채널(인앱·Web Push·이메일) — pywebpush + fastapi-mail + `notifications` 테이블. Slack은 운영자 모니터링 전용 | `09_service_design.md` §4, `08_schema.md` §3.23~24 |
 | 인앱 알림 폴링 | 5분 고정 (코드 상수, 사용자 설정 미노출) + 수동 새로고침 권장 — BE rate limit 보호 | `10_frontend_design.md`, `research/frontend/06_pwa_push.md` |
 | 캐시·관측 | Redis + redis-py(async) + structlog + asgi-correlation-id + Sentry(BE+FE 동일 release `git-<sha>`, PII scrubbing, traces 5%) | `09_service_design.md` §1, `13_performance.md` §5 |
 | 비동기 작업 분리 | n8n = AI 파이프라인(외부 데이터 수집·AI Server 호출). ARQ cron_jobs = BE 도메인 정기 작업(소비기한 점검 등). BackgroundTasks = 짧은 후처리 | `research/backend/08_async_pipeline.md` §1.4 |

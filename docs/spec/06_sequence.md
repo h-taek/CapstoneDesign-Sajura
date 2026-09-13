@@ -126,11 +126,11 @@ sequenceDiagram
 
     par 사전 예측 배치 (매일 02:00)
         n8n->>DB: 판매 데이터·메뉴·레시피·재고 조회
-        n8n->>n8n: 외부 데이터 수집 (날씨·유동인구·행사[조사 중] 등)
+        n8n->>n8n: 외부 데이터 수집 (11_ai_spec.md §4.2 MVP 항목)
         n8n->>n8n: 전처리·정규화
         n8n->>AIServer: POST /ai/forecast/predict (예측 요청)
         AIServer-->>n8n: 예측 결과 + 예측 근거(11_ai_spec.md §8) 반환
-        n8n->>DB: forecast_results 저장 (UPSERT)
+        n8n->>DB: forecast_results·forecast_menu_items 저장 (UPSERT)
         n8n->>AIServer: POST /ai/orders/recommend (추천발주 요청)
         AIServer-->>n8n: 추천발주안 반환
         n8n->>DB: order_recommendations 저장
@@ -235,13 +235,13 @@ sequenceDiagram
     Note over n8n: 매일 02:00 트리거
     n8n->>DB: pipeline_jobs INSERT (type=FORECAST, status=RUNNING, triggered_by=N8N)
     n8n->>DB: 판매 데이터·메뉴·레시피·재고·리드타임·안전재고 조회
-    n8n->>ExternalAPI: 날씨·유동인구·검색량[조사 중]·행사 정보[조사 중] 수집
+    n8n->>ExternalAPI: 외부 데이터 수집 (11_ai_spec.md §4.2 MVP 항목)
     n8n->>n8n: 전처리·정규화 (결측값 처리, 이상치 필터링, 단위 통일, 외부 변수 병합)
     n8n->>AIServer: POST /ai/forecast/predict
     AIServer-->>n8n: 예측 결과 + 예측 근거(11_ai_spec.md §8) 반환
     n8n->>AIServer: POST /ai/orders/recommend
     AIServer-->>n8n: 추천발주안 반환
-    n8n->>DB: forecast_results UPSERT (예측 결과 — 08_schema.md §3.15)
+    n8n->>DB: forecast_results·forecast_menu_items UPSERT (08_schema.md §3.15·§3.16)
     n8n->>DB: order_recommendations INSERT (추천발주안)
 
     alt 전체 성공
@@ -298,7 +298,7 @@ sequenceDiagram
 
 ## 7. 소비기한 배치 및 알림 시퀀스
 
-> 매일 02:00 BE ARQ `cron_jobs`에서 실행. 자동 폐기 없음 — 점주 수동 처리 원칙.
+> 매일 01:30 BE ARQ `cron_jobs`에서 실행 (n8n 예측 배치 02:00과 분산). 자동 폐기 없음 — 점주 수동 처리 원칙.
 > 소비기한 체크는 **재고 도메인 비즈니스 로직**이므로 BE가 책임 (n8n은 AI 파이프라인 도구라 책임 영역 아님).
 
 ```mermaid
@@ -308,7 +308,7 @@ sequenceDiagram
     participant DB
     participant Push as Web Push
 
-    Note over ARQ: 매일 02:00 트리거
+    Note over ARQ: 매일 01:30 트리거
     ARQ->>BE: InventoryService.check_expiry_batch 호출
     BE->>DB: inventory_lots에서 expiry_date 기준 D-3·D-1·초과 매칭 로트 조회
 

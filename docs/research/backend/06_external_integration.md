@@ -297,8 +297,8 @@ Slack 2개 + 푸시 3개 + 이메일 2개 + 모바일 메시지 1개 = **총 8�
 
 | 영향 영역 | 정의 위치 |
 |---------|---------|
-| `notifications` 테이블 (인앱 알림 저장) | `08_schema.md` §3.22 |
-| `push_subscriptions` 테이블 (VAPID 구독 정보) | `08_schema.md` §3.23 |
+| `notifications` 테이블 (인앱 알림 저장) | `08_schema.md` §3.23 |
+| `push_subscriptions` 테이블 (VAPID 구독 정보) | `08_schema.md` §3.24 |
 | n8n_user 권한 — `notifications` SELECT/INSERT | `08_schema.md` §5 |
 | 알림 5개 endpoint (구독 등록/해제·목록 조회·읽음 처리) | `07_api_spec.md` §10 |
 | `NotificationService` 클래스·메서드 | `09_service_design.md` §3·§4 |
