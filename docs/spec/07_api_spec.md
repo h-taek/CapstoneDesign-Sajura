@@ -52,7 +52,7 @@ Authorization: Bearer <access_token>
 | `404` | 리소스 없음 | 존재하지 않는 ID 조회 |
 | `409` | 충돌 | 중복 사업자번호 가입 |
 | `422` | 처리 불가 | 비즈니스 로직 오류 (재고 0인데 차감 등) |
-| `429` | 요청 과다 | Playwright 자동화 중복 호출 등 |
+| `429` | 요청 과다 | 자동 담기 중복 호출 등 |
 | `500` | 서버 오류 | 예상치 못한 서버 에러 |
 | `503` | 서비스 불가 | AI Server 다운, POS 연동 불가 |
 
@@ -1038,7 +1038,8 @@ Authorization: Bearer <access_token>
 | `POST` | `/api/orders/approve` | 발주 확정 |
 | `GET` | `/api/orders` | 발주 내역 목록 조회 |
 | `GET` | `/api/orders/{order_id}` | 발주 내역 상세 조회 |
-| `POST` | `/api/orders/{order_id}/automate` | 쿠팡 장바구니 자동 담기 요청 [2단계] |
+| `POST` | `/api/orders/{order_id}/automate/match` | 확장이 수집한 검색 결과로 담을 상품 선택 |
+| `POST` | `/api/orders/{order_id}/automate/result` | 확장의 담기 결과 기록 |
 | `GET` | `/api/orders/{order_id}/approval-log` | 발주 수정 이력 조회 |
 
 ### GET /api/forecast
@@ -1195,25 +1196,61 @@ Authorization: Bearer <access_token>
 }
 ```
 
-### POST /api/orders/{order_id}/automate
+### POST /api/orders/{order_id}/automate/match
+
+> 브라우저 조작은 사주라 확장이 점주 브라우저에서 수행한다. 서버는 담을 상품을 고르는 판단만 한다.
+> 전체 흐름·데이터 화이트리스트: `14_extension_design.md` §3·§4.
 
 ```json
-// Request: body 없음
-
-// Response 200 (성공)
+// Request — 확장이 수집한 품목별 검색 결과 (전체 품목 1회 전송)
 {
-  "order_id": "uuid",
-  "status": "AUTOMATED",
-  "automated_at": "2026-05-06T10:05:00Z",
-  "coupang_result": "SUCCESS"
+  "candidates": [
+    {
+      "item_id": "uuid",
+      "query": "돼지고기 삼겹살 냉장",
+      "results": [
+        {
+          "product_name": "○○농장 삼겹살 1kg",
+          "price": 18900,
+          "unit_text": "1kg",
+          "product_url": "https://www.coupang.com/vp/products/..."
+        }
+      ]
+    }
+  ]
 }
 
-// Response 200 (실패 — 재시도 없이 즉시 수동 안내)
+// Response 200 — 품목별 선택 1개. 적합한 상품이 없으면 selected: null
+{
+  "selections": [
+    {
+      "item_id": "uuid",
+      "selected": {
+        "product_url": "https://www.coupang.com/vp/products/...",
+        "quantity": 5,
+        "reason": "발주 5kg = 1kg 5개"
+      }
+    }
+  ]
+}
+```
+
+### POST /api/orders/{order_id}/automate/result
+
+```json
+// Request — 확장의 담기 결과
+{
+  "succeeded": [{ "item_id": "uuid", "product_url": "https://..." }],
+  "failed": [{ "item_id": "uuid", "reason": "NO_RESULT" }]
+}
+// reason: NO_RESULT | SELECTOR_MISMATCH | TIMEOUT | EXTENSION_UNAVAILABLE
+
+// Response 200
 {
   "order_id": "uuid",
-  "status": "MANUAL_REQUIRED",
-  "coupang_result": "FAILED",
-  "manual_guide_url": "https://www.coupang.com/..."
+  "status": "AUTOMATED",              // 전체 성공. 하나라도 실패면 MANUAL_REQUIRED
+  "automated_at": "2026-05-06T10:05:00Z",
+  "manual_guide_url": null            // MANUAL_REQUIRED 시 쿠팡 검색 링크
 }
 ```
 

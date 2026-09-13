@@ -13,7 +13,7 @@
 [발주 흐름]
 6. 점주가 추천발주안 확인 / 수정 / 확정
 7. 발주 내역 DB 저장
-8. Playwright → 쿠팡 장바구니 자동 담기
+8. 사주라 확장 → 점주 브라우저의 쿠팡 장바구니 자동 담기
 9. 실제 결제는 쿠팡에서 진행
 
 [배치 흐름 — n8n 주도]
@@ -156,7 +156,8 @@ sequenceDiagram
 
 ## 4. 발주 확정 및 쿠팡 자동화 시퀀스
 
-> 발주 확정과 쿠팡 자동화는 별도 엔드포인트로 분리된다. 07_api_spec.md 기준.
+> 발주 확정과 쿠팡 자동화는 별도 엔드포인트로 분리된다. `07_api_spec.md` 기준.
+> 브라우저 조작은 사주라 확장이 점주 브라우저에서 수행한다 — 구조 원본 `14_extension_design.md`.
 
 ```mermaid
 sequenceDiagram
@@ -164,7 +165,7 @@ sequenceDiagram
     participant 사주라UI
     participant 사주라서버
     participant DB
-    participant Playwright
+    participant 확장 as 사주라확장
     participant 쿠팡
 
     사용자->>사주라UI: 추천발주 화면 진입
@@ -186,24 +187,33 @@ sequenceDiagram
     사주라서버-->>사주라UI: 발주 확정 완료
 
     사용자->>사주라UI: 쿠팡 자동 담기 요청
-    사주라UI->>사주라서버: POST /api/orders/{order_id}/automate
-    사주라서버->>Playwright: 쿠팡 장바구니 담기 요청
-    Playwright->>쿠팡: 품목별 장바구니 추가 시도
+    사주라UI->>확장: 품목 목록 전달 (externally_connectable)
+    확장->>쿠팡: 품목별 검색
+    쿠팡-->>확장: 검색 결과 페이지
+    확장-->>사주라UI: 상품 카드 목록 (상품명·가격·용량·링크만)
+    사주라UI->>사주라서버: POST /api/orders/{order_id}/automate/match
+    사주라서버->>사주라서버: LLM 호출 — 품목별 상품 1개 선택
+    사주라서버-->>사주라UI: 선택 결과
+    사주라UI->>확장: 선택 결과 전달
+    확장->>쿠팡: 장바구니 담기 (고정 셀렉터)
 
     alt 전체 성공
-        쿠팡-->>Playwright: 담기 완료
-        Playwright-->>사주라서버: 성공 응답
-        사주라서버-->>사주라UI: 쿠팡 결제 진행 안내
+        쿠팡-->>확장: 담기 완료
+        확장-->>사주라UI: 성공 품목 목록
+        사주라UI->>사주라서버: POST /api/orders/{order_id}/automate/result
+        사주라서버->>DB: orders.status = AUTOMATED
         사주라UI-->>사용자: 쿠팡 결제 진행 안내 표시
     else 부분 실패
-        쿠팡-->>Playwright: 일부 품목 실패
-        Playwright-->>사주라서버: 성공 품목 + 실패 품목 목록
-        사주라서버-->>사주라UI: 부분 실패 응답
+        쿠팡-->>확장: 일부 품목 실패
+        확장-->>사주라UI: 성공 품목 + 실패 품목 목록
+        사주라UI->>사주라서버: POST /api/orders/{order_id}/automate/result
+        사주라서버->>DB: orders.status = MANUAL_REQUIRED
         사주라UI-->>사용자: 성공 품목 완료 안내 + 실패 품목 수동 처리 안내
-    else 전체 실패
-        Playwright-->>사주라서버: 전체 실패 응답
-        사주라서버-->>사주라UI: 전체 실패 응답 + manual_guide_url
-        사주라UI-->>사용자: 전체 품목 수동 처리 안내
+    else 확장 미설치·전체 실패
+        확장-->>사주라UI: 전체 실패
+        사주라UI->>사주라서버: POST /api/orders/{order_id}/automate/result
+        사주라서버->>DB: orders.status = MANUAL_REQUIRED
+        사주라UI-->>사용자: 전체 품목 수동 처리 안내 + manual_guide_url
     end
 ```
 
