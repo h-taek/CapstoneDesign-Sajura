@@ -78,7 +78,7 @@
 | `/sales` | 판매 데이터 조회 | 동상 |
 | `/forecast` | 수요예측 (1·2·3일 탭) | 동상 |
 | `/orders` | 추천발주·승인 | 동상 |
-| `/orders/{id}/result` | 쿠팡 자동화 결과 | 동상 |
+| `/orders/{id}/result` | 쿠팡 자동화 결과 (사주라 확장 연동 — `14_extension_design.md`) | 동상 |
 | `/settings/*` | 설정 (POS·단가·알림·계정·앱 정보) | 동상 |
 | `/admin/verifications` | (관리자) 사업자 검증 심사 큐 — 등록증 확인·승인/반려 | 인증 + `role=ADMIN` |
 

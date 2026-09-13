@@ -671,7 +671,7 @@ n8n 야간 배치 (매일 02:00)
 → orders + order_items 생성
 → order_approval_logs 기록 (추천값 vs 최종값)
 
-Playwright 쿠팡 자동화
+사주라 확장 쿠팡 자동화
 → orders.status 업데이트 (AUTOMATED 또는 MANUAL_REQUIRED)
 
 판매 발생

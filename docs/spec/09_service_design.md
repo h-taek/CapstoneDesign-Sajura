@@ -21,12 +21,10 @@
 | **passlib (bcrypt)** | 이메일 로그인용 비밀번호 bcrypt 해싱 |
 | **Authlib** | Google/카카오 OAuth 2.0 흐름 처리 (인가 URL 생성, 코드 교환, 사용자 정보 조회) |
 | **cryptography** | `pos_connections.api_key` AES-256-GCM 암호화·복호화. python-jose `[cryptography]` extras 백엔드. `12_security.md` §4.1 적용 |
-| **Playwright (async)** | 쿠팡 장바구니 자동 담기 및 단가 조회용 브라우저 자동화 |
 | **Alembic** | DB 스키마 변경 이력 관리 및 자동 마이그레이션 |
 | **httpx** | AI Server·국세청·KAMIS 등 외부 공공 API 호출용 async HTTP 클라이언트 (sync 스크립트는 `httpx.Client`) |
 | **tenacity** | 외부 API 호출 재시도. `stop_after_attempt(3)` + `wait_exponential_jitter` (`04_feature_spec.md` §10 정합) |
 | **aiobreaker** | AI Server 호출 차단기. CLOSED→OPEN→HALF_OPEN 자동 회복 |
-| **BeautifulSoup4 (lxml 파서)** | Playwright `page.content()` HTML 파싱 — 쿠팡 단가·재고 표시 추출. 품목↔쿠팡 상품 매핑 도메인 완성 후 적용 (`04_feature_spec.md` §3.1) |
 | **slack_sdk** | 파이프라인 실패 알림(개발팀 채널). `AsyncWebhookClient` 단방향 |
 | **pywebpush** | 점주 Web Push 알림 (VAPID 표준, iOS Safari 16.4+). `push_subscriptions` 테이블 사용 |
 | **fastapi-mail** | 회원 탈퇴 증빙·파기 통보 이메일 (SMTP + Jinja) |
@@ -84,7 +82,7 @@
 - 트랜잭션 관리
 - 권한 검사
 - 캐시 조회 및 무효화
-- 외부 서비스 호출 조율 (AIServerClient, Playwright)
+- 외부 서비스 호출 조율 (AIServerClient, LLM 클라이언트)
 - 로깅
 
 ### 2.3 Model (Repository)
@@ -107,8 +105,8 @@
 | `SaleService` | 판매 데이터 조회, CSV 업로드, POS 판매 저장 |
 | `ForecastService` | 저장된 수요예측 결과 조회, 점주/관리자 수동 예측 실행 보조 |
 | `OrderService` | 저장된 추천발주 조회, 점주 수정안 저장, 발주 확정, 승인 이력 |
-| `AutomationService` | Playwright 쿠팡 장바구니 자동화 |
-| `SiteScrapingService` | 쿠팡 품목 단가 조회 — 품목↔쿠팡 상품 매핑 도메인 완성 후 (`04_feature_spec.md` §3.1). 그 전까지 시세는 KAMIS 어댑터가 담당 |
+| `AutomationService` | 쿠팡 자동 담기 — 확장이 보낸 검색 결과로 상품 선택(LLM) + 담기 결과 기록. 브라우저 조작은 확장이 수행 (`14_extension_design.md`) |
+| `SiteScrapingService` | 쿠팡 품목 단가 조회 — 품목↔쿠팡 상품 매핑 도메인 완성 후 (`04_feature_spec.md` §3.1). 그 전까지 시세는 KAMIS 어댑터가 담당. 조회 주체는 확장이며 서버는 스크래핑하지 않는다 |
 | `DashboardService` | 대시보드 집계, 폐기 현황 [MVP] / ROI 집계 [2단계, `03_mvp_scope.md` §4] |
 | `PipelineService` | 파이프라인 실행 이력 조회 및 상태 표시 |
 | `DataService` | 데이터 CSV 내보내기, 전체 데이터 삭제 |
@@ -151,7 +149,7 @@
 | n8n 재학습 워크플로우 [2단계] | n8n → DB 조회 → AI Server `/ai/forecast/train` → AI Server `/ai/forecast/status` polling → DB 상태 갱신 | n8n이 주간 재학습 흐름과 재시도를 오케스트레이션. MVP 기간 데이터 축적 부족으로 비활성 (`03_mvp_scope.md` §4) |
 | 발주 확정 후 단가 갱신 | `OrderService.approve_order` → `SiteScrapingService.scrape_prices_bulk` | 발주 확정 시 쿠팡 등 연결 사이트의 최신 단가를 일괄 갱신 |
 | 초기 단가 자동 조회 | `InventoryService.update_item`(coupang_url 설정 시) → `inventory_item_sites` UPSERT → `SiteScrapingService.scrape_price` | 재고 품목에 coupang_url이 처음 등록될 때 즉시 단가를 조회하여 `inventory_item_sites.last_price`에 저장. 온보딩 초기 재고 등록 시에도 동일하게 적용 |
-| 쿠팡 자동 담기 | Frontend `POST /api/orders/{order_id}/automate` → `AutomationService.automate_coupang` → Playwright → `AutomationService.update_order_status` | 발주 확정(`approve_order`)과 독립적인 별도 요청. 점주가 확정 후 명시적으로 자동화 버튼을 눌러야 실행됨. 성공 시 `AUTOMATED`, 실패 시 `MANUAL_REQUIRED` + 수동 URL 안내 |
+| 쿠팡 자동 담기 | 확장(쿠팡 검색) → Frontend `POST /api/orders/{order_id}/automate/match` → `AutomationService.select_products`(LLM) → 확장(담기) → Frontend `POST /api/orders/{order_id}/automate/result` → `AutomationService.update_order_status` | 발주 확정(`approve_order`)과 독립적인 별도 요청. 점주가 확정 후 명시적으로 자동화 버튼을 눌러야 실행됨. 성공 시 `AUTOMATED`, 실패 시 `MANUAL_REQUIRED` + 수동 URL 안내. 흐름 원본 `14_extension_design.md` §3 |
 | 수동 파이프라인 실행 | Frontend `POST /api/pipeline/run` → `PipelineService.run_pipeline` → `pipeline_jobs` 생성 → `AIServerClient.predict` 또는 `AIServerClient.train` 호출 → `pipeline_jobs.status` 갱신 | n8n 정기 배치와 독립적으로 점주/관리자가 직접 예측 또는 재학습을 트리거할 때 사용. 동일 타입 실행 중이면 `PIPELINE_ALREADY_RUNNING` 반환 |
 
 ---

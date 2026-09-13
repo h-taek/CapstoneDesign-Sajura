@@ -62,6 +62,7 @@ plan        어떻게 만들지 분해한다
 | `11_ai_spec.md` | AI 설계 — 모델, 입력 데이터·피처, 전처리, 학습, 출력, 예측 근거, 파이프라인 |
 | `12_security.md` | 토큰 정책, 암호화, 접근 통제, 감사 로그 |
 | `13_performance.md` | API·배치 SLA, 성능 전략 |
+| `14_extension_design.md` | 사주라 브라우저 확장 — 권한·통신·데이터 범위·LLM 사용 경계 |
 
 ### 2-1. 연동 수정 파일 맵
 
@@ -82,6 +83,7 @@ spec 하나를 고치면 함께 확인할 파일이다.
 | `11_ai_spec.md` | `04_feature_spec.md`, `13_performance.md`, `08_schema.md`, `research/ai/01~02` |
 | `12_security.md` | `04_feature_spec.md`, `07_api_spec.md` |
 | `13_performance.md` | `03_mvp_scope.md`, `11_ai_spec.md` |
+| `14_extension_design.md` | `04_feature_spec.md`, `07_api_spec.md`, `12_security.md`, `09_service_design.md` |
 
 ---
 
