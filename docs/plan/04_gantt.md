@@ -14,9 +14,9 @@
 
 | 파트 | 담당 업무 | 팀원 |
 |------|----------|------|
-| Frontend (FE) | 화면 설계, React/PWA, 수요예측·재고·발주 UI | 정동욱, 이민욱, 임형택 |
+| Frontend (FE) | 화면 설계, React/PWA, 수요예측·재고·발주 UI, 사주라 브라우저 확장 | 정동욱, 이민욱, 임형택 |
 | AI Modeling (AI) | 데이터 수집·전처리, 모델 학습·평가, XAI, n8n 연동 | 정동욱, 이민욱, 서창현 |
-| Backend (BE) | REST API, DB, n8n 배치 파이프라인, 쿠팡 자동화 | 서창현, 임형택 |
+| Backend (BE) | REST API, DB, n8n 배치 파이프라인, 쿠팡 자동 담기 서버 측(상품 선택·결과 기록) | 서창현, 임형택 |
 
 **공유 책임**
 - n8n 파이프라인 설계: BE 주도, AI 연동 협의
@@ -38,7 +38,7 @@
 | 7 | AI Server API | `/ai/forecast/*`, `/ai/orders/recommend`, `/ai/xai/*`, `/ai/health` + Backend AIServerClient | AI+BE |
 | 8 | n8n 배치 (골격) | 외부 데이터 수집 + **전처리 더미 노드** + 야간 예측·주간 재학습 배치 + Slack 알림 | BE 주도 + AI 연동 |
 | 9 | 예측·발주 UI (골격) | ForecastService 수량·OrderService + 수요예측·추천발주·홈 배지 화면 골격(근거·임계값 placeholder) | BE+FE |
-| 10 | 쿠팡 자동화 | Playwright 자동화 + 결과 화면 | BE+FE |
+| 10 | 쿠팡 자동 담기 | 사주라 브라우저 확장 + 상품 선택(LLM) + 결과 화면 | BE+FE |
 | 11 | 대시보드·알림 | DashboardService(매출/예측), 인앱 알림, 대시보드 화면, **관리자 종합 관리도구 확장**(사용자·매장 관리 — Phase 3 최소 심사에서 확장) | BE+FE |
 | 12 | **AI hookup** | AI 팀 확정 결과 반영 — n8n 전처리 실제 로직·예측 근거 응답/UI·신뢰도 임계값 | BE+FE |
 | 13 | 통합 검증·배포 | 데모 시나리오 end-to-end, 성능·보안 검증, CI/CD 배포 | 전 파트 |
@@ -82,6 +82,7 @@ flowchart TD
 - BE/FE/AI 세 트랙의 **1차 합류는 Phase 8 골격**(인터페이스만 있으면 진행), **2차 합류는 Phase 12 hookup**(AI 결정 4가지 확정 후)
 - Phase 12 AI hookup이 다루는 4가지: 예측 근거 응답/UI·신뢰도 임계값·n8n 전처리 실제 로직·예측 정확도 지표 (`HANDOFF.md` "AI 의존성")
 - Phase 13은 모든 트랙 종착 후 진행 (`test_release` 의존에 hookup 끝점 포함)
+- **Phase 10(쿠팡 자동 담기)은 마지막에 착수한다.** 의존관계상으로는 Day 42부터 가능하나, 브라우저 확장이 별개 산출물이고 시연 필수 경로가 아니라 다른 Phase를 끝낸 뒤 시작한다
 
 ---
 
@@ -108,7 +109,7 @@ flowchart TD
 | `n8n_run` | 야간 예측 배치(02:00) + 주간 재학습 배치(일요일) + Slack 알림·재시도 | 8 | 5 | n8n_data_skeleton | BE |
 | `ord_be_skeleton` | ForecastService(예측 수량 응답·근거 필드 placeholder·임계값 env 자리) + OrderService(추천 조회·수정·승인) | 9 | 4 | n8n_run | BE |
 | `ord_fe_skeleton` | 수요예측 화면(수량 표시·근거 영역 placeholder) + 추천발주 화면 + 홈 배지 골격 | 9 | 4 | ord_be_skeleton | FE |
-| `auto` | AutomationService(Playwright) + 자동화 결과 화면 | 10 | 7 | ord_be_skeleton | ALL |
+| `auto` | 사주라 확장(검색·담기) + AutomationService(상품 선택·결과 기록) + 결과 화면 | 10 | 7 | ord_be_skeleton | ALL |
 | `dash` | DashboardService(매출/예측 집계) + 인앱 알림 + 대시보드 화면 | 11 | 7 | ord_be_skeleton | ALL |
 | `n8n_data_hookup` | n8n 전처리 노드 실제 로직 반영 (결측 보간·이상치 탐지·AI 팀 확정 규칙) | 12 | 2 | n8n_data_skeleton, ai_model | BE |
 | `ord_be_hookup` | ForecastService 예측 근거 응답 필드 형태 확정 반영 + 신뢰도 임계값 env 값 채움 | 12 | 2 | ord_be_skeleton, ai_model | BE |
@@ -133,7 +134,7 @@ flowchart TD
 | 7 | AI Server API | 25 | 30 | |
 | 8 | n8n 배치 (골격) | 30 | 38 | 더미 전처리 노드 |
 | 9 | 예측·발주 UI (골격) | 38 | 46 | 근거·임계값 placeholder |
-| 10 | 쿠팡 자동화 | 42 | 49 | ord_be_skeleton 후 시작 |
+| 10 | 쿠팡 자동 담기 | 42 | 49 | ord_be_skeleton 후 착수 가능하나 **착수 우선순위는 최하** — 다른 Phase를 끝낸 뒤 시작한다 |
 | 11 | 대시보드·알림 | 42 | 49 | ord_be_skeleton 후 시작 |
 | 12 | AI hookup | 33 | 49 | n8n hookup은 Day 33부터·예측 hookup은 Day 42부터 (deps 차이) |
 | 13 | 통합 검증·배포 | 49 | 58 | 차트 우측 끝 |
@@ -156,15 +157,15 @@ flowchart TD
 | 5 | 도메인 | 21~35 | O | O | — |
 | 6 | AI 모델 | 7~25 | — | — | O |
 | 7 | AI Server API | 25~30 | — | — | O |
-| 8 | n8n 배치 | 30~38 | 범위 밖 | — | — |
+| 8 | n8n 배치 | 30~38 | O | — | — |
 | 9 | 예측·발주 UI | 38~46 | O | O | — |
-| 10 | 쿠팡 자동화 | 42~49 | 범위 밖 | 범위 밖 | — |
+| 10 | 쿠팡 자동 담기 | 42~49 | O | O | — |
 | 11 | 대시보드·알림 | 42~49 | O | O | — |
 | 12 | AI hookup | 33~49 | O | O | O |
-| 13 | 통합 검증·배포 | 49~58 | 범위 밖 | 범위 밖 | O |
+| 13 | 통합 검증·배포 | 49~58 | O | O | O |
 
-> '범위 밖'은 졸업 시연까지로 범위가 확정되어 계획을 폐기한 Phase다 (2026-09-12).
 > Phase 7의 AIServerClient는 BE 작업이며 spec 합의상 Phase 12 기준이다.
+> Phase 10(쿠팡 자동 담기)은 의존상 Day 42부터 가능하지만 **착수 우선순위는 최하**다 — 2026-09-13 확정.
 
 > **시계열 흐름** (Phase 번호 ≠ 도달 순서): Day 4 → 7 → 12 → 21 → 25(AI M6) → 26 → 30(AI M7) → 35 → 38 → 46 → 49(M10·M11·M12 동시 도달) → 58
 >
