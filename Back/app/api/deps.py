@@ -6,10 +6,12 @@ from typing import Annotated
 
 from fastapi import Depends, Header
 from jose import ExpiredSignatureError, JWTError
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core import errors, security
 from app.db import get_session
+from app.models.store import BusinessStatus, Store
 from app.models.user import User, UserRole
 
 
@@ -56,3 +58,19 @@ async def get_admin_user(
 
 
 AdminUserDep = Annotated[CurrentUser, Depends(get_admin_user)]
+
+
+async def require_business_access(current: CurrentUserDep, session: SessionDep) -> None:
+    """사업자 검증 게이트 — PENDING·VERIFIED이고 탈퇴 유예 중이 아니면 통과 (12_security.md §5.1).
+
+    관리자 반려가 발급된 토큰에도 즉시 반영되도록 상태를 DB에서 조회한다.
+    """
+    status = await session.scalar(
+        select(Store.business_status)
+        .join(User, User.user_id == Store.user_id)
+        .where(Store.user_id == current.user_id, User.withdrawn_at.is_(None))
+    )
+    if status not in (BusinessStatus.PENDING, BusinessStatus.VERIFIED):
+        raise errors.DomainError(
+            status_code=403, error_code="BUSINESS_NOT_VERIFIED", message="사업자 검증이 필요합니다."
+        )

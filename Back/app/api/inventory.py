@@ -1,9 +1,9 @@
 """/api/inventory — 재고 품목 CRUD + 임계값 기반 발주추천."""
 from __future__ import annotations
 
-from fastapi import APIRouter, Response, status
+from fastapi import APIRouter, Depends, Response, status
 
-from app.api.deps import CurrentUserDep, SessionDep
+from app.api.deps import CurrentUserDep, SessionDep, require_business_access
 from app.models.inventory_item import InventoryItem
 from app.schemas.inventory import (
     InventoryItemCreateRequest,
@@ -15,7 +15,9 @@ from app.schemas.inventory import (
 from app.services.inventory_service import InventoryService
 from app.services.store_service import StoreService
 
-router = APIRouter(prefix="/api/inventory", tags=["inventory"])
+router = APIRouter(
+    prefix="/api/inventory", tags=["inventory"], dependencies=[Depends(require_business_access)]
+)
 
 
 async def _store_id(session, user_id: str) -> str:

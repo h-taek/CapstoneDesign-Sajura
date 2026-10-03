@@ -8,6 +8,15 @@
 
 ## 1. 개발 이력
 
+### 보안 3건 — POS 키 암호화·BE 사업자 검증 게이트·탈퇴 30일 유예 (2026-10-03)
+
+- POS 키 — `pos_connections.api_key`를 AES-256-GCM으로 저장(`core/crypto.py`). 행마다 새 nonce, `store_id`를 연관 데이터로 묶음. 응답은 복호화 후 마스킹. 기존 평문 행은 마이그레이션 `0008`이 암호화(평문 행으로 upgrade·downgrade 왕복 확인)
+- BE 단계 가드 — `require_business_access`를 메뉴·재고·판매·발주·예측·POS·단가 라우터와 매장 수정·온보딩 완료에 적용. `PENDING`·`VERIFIED`이고 탈퇴 유예가 아닐 때만 통과, 그 외 403 `BUSINESS_NOT_VERIFIED`. 상태는 요청마다 DB 조회. FE는 이 403을 받으면 me를 다시 받아 검증 화면으로 보낸다
+- 탈퇴 — `users.withdrawn_at`(마이그레이션 `0009`). 탈퇴 즉시 Refresh Token 전부 폐기, 로그인 403·재가입 409 `AUTH_ACCOUNT_WITHDRAWN`, OAuth 콜백은 `/login?error=withdrawn`으로 302. 철회 없음. ARQ 크론 매일 03:00 KST `AccountPurgeService`가 30일 지난 계정을 매장 데이터·등록증 파일과 함께 삭제. 증빙 이메일은 알림 작업으로 미룸
+- FE — 계정 설정에 회원 탈퇴(이메일 계정 비밀번호 확인 + 파기 동의 체크), 로그인 화면 탈퇴 안내 2종
+- spec — `12_security.md` §3.1·§4.1·§5.1, `07_api_spec.md`(403 사례·POS 입력 상한·탈퇴 응답 표), `08_schema.md` users, `09_service_design.md` ARQ cron
+- 검증: BE pytest 57 통과(신규 12), FE Vitest 37 통과(신규 5), typecheck 통과. 재빌드한 arq-worker가 크론 등록 상태로 기동, 컨테이너 안에서 파기 잡 1회 실행 확인
+
 ### AI 추천 → 발주 확정 연결 — `8d6a81f` (2026-10-03)
 
 - 발주 저장을 spec 5테이블(`08_schema.md` §3.17~§3.21)로 전환. ORM 신설(`models/order.py`), `purchase_orders`·`POST /api/orders/confirm` 폐기(마이그레이션 `0007`, 기존 행 미이전)

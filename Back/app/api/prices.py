@@ -1,13 +1,15 @@
 """/api/prices — 홈 화면 "실시간 최저가 추천" (KAMIS 연동)."""
 from __future__ import annotations
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
 
-from app.api.deps import CurrentUserDep
+from app.api.deps import CurrentUserDep, require_business_access
 from app.integrations import kamis
 from app.schemas.prices import IngredientPriceResponse
 
-router = APIRouter(prefix="/api/prices", tags=["prices"])
+router = APIRouter(
+    prefix="/api/prices", tags=["prices"], dependencies=[Depends(require_business_access)]
+)
 
 
 @router.get("/ingredients", response_model=list[IngredientPriceResponse])

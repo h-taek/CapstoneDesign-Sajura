@@ -3,10 +3,10 @@ from __future__ import annotations
 
 from typing import Annotated
 
-from fastapi import APIRouter, File, Form, UploadFile, status
+from fastapi import APIRouter, Depends, File, Form, UploadFile, status
 
 from app.adapters.pos.csv_adapter import CSVAdapter
-from app.api.deps import CurrentUserDep, SessionDep
+from app.api.deps import CurrentUserDep, SessionDep, require_business_access
 from app.core import errors
 from app.schemas.sales import (
     CSVUploadResponse,
@@ -19,7 +19,9 @@ from app.schemas.sales import (
 from app.services.sale_service import SaleService
 from app.services.store_service import StoreService
 
-router = APIRouter(prefix="/api/sales", tags=["sales"])
+router = APIRouter(
+    prefix="/api/sales", tags=["sales"], dependencies=[Depends(require_business_access)]
+)
 
 # 업로드 크기 상한 — 10만 행 CSV가 평균 5~10 MB 수준. 안전 마진으로 50 MB.
 MAX_UPLOAD_BYTES = 50 * 1024 * 1024

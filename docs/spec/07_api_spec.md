@@ -48,7 +48,7 @@ Authorization: Bearer <access_token>
 | `204` | 성공 (body 없음) | DELETE 성공, 로그아웃 등 |
 | `400` | 잘못된 요청 | validation 실패, 형식 오류 |
 | `401` | 인증 실패 | 토큰 없음/만료 |
-| `403` | 권한 없음 | 다른 매장 데이터 접근 시도 |
+| `403` | 권한 없음 | 다른 매장 데이터 접근 시도, 사업자 검증 전·반려 상태의 매장 데이터 접근(`BUSINESS_NOT_VERIFIED`, `12_security.md` §5.1) |
 | `404` | 리소스 없음 | 존재하지 않는 ID 조회 |
 | `409` | 충돌 | 중복 사업자번호 가입 |
 | `422` | 처리 불가 | 비즈니스 로직 오류 (재고 0인데 차감 등) |
@@ -251,13 +251,25 @@ Authorization: Bearer <access_token>
 
 ### DELETE /api/auth/me
 
+> 계정을 탈퇴 유예 상태로 바꾸고 모든 Refresh Token을 폐기한다. 30일 뒤 배치가 파기한다 (`12_security.md` §3.1).
+
 ```json
 // Request
 {
-  "password": "string"
+  "password": "string"   // 이메일 계정만 확인. 소셜 계정은 빈 문자열
 }
 // Response: 204 No Content
+// 401 AUTH_INVALID_CREDENTIALS: 비밀번호 불일치
 ```
+
+탈퇴 유예 중인 계정의 다른 경로 응답:
+
+| 경로 | 응답 |
+|---|---|
+| `POST /api/auth/login` | 403 `AUTH_ACCOUNT_WITHDRAWN` |
+| `POST /api/auth/register` (같은 이메일) | 409 `AUTH_ACCOUNT_WITHDRAWN` |
+| `GET /api/auth/callback/{provider}` | 302 → FE `/login?error=withdrawn` |
+| `POST /api/auth/refresh` | 401 `AUTH_REFRESH_TOKEN_INVALID` (탈퇴 시 폐기됨) |
 
 ---
 
@@ -391,7 +403,7 @@ Authorization: Bearer <access_token>
 // Response 200
 {
   "pos_type": "UNIONPOS",
-  "api_key": "***masked***",
+  "api_key": "un*******34",   // 앞 2자·뒤 2자만 노출
   "store_code": "12345",
   "connected_at": "2026-01-01T00:00:00Z"
 }
@@ -403,7 +415,7 @@ Authorization: Bearer <access_token>
 // Request
 {
   "pos_type": "UNIONPOS",
-  "api_key": "string",
+  "api_key": "string",   // 1~150자. 암호화 저장 (12_security.md §4.1)
   "store_code": "12345"
 }
 // Response 201: GET /api/store/pos 와 동일 구조

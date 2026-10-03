@@ -49,7 +49,7 @@ docs/plan/       → 구현 계획 (단계별 작업, 순서, 역할 분담)
 | 시연 범위 | Phase 8(n8n 배치)·10(자동 담기)·13(통합 검증·배포) 모두 범위 안. 배포 대상은 자체 운영 서버(Mac mini) SSH. Phase 10은 착수 우선순위 최하 (2026-09-13) | `plan/04_gantt.md` §6 |
 | 식자재 단가 | 쿠팡 최저가를 목표로 유지. 품목↔쿠팡 상품 매핑 도메인 완성 전까지 KAMIS 오픈API 시세로 대체 (2026-09-13) | `04_feature_spec.md` §3.1 |
 | 예측 저장 구조 | `forecast_results`(매장 일 매출·P10/P90·근거) + `forecast_menu_items`(메뉴 분해) 2테이블. 구 메뉴별 단일 테이블 폐기 (2026-09-13) | `08_schema.md` §3.15·§3.16 |
-| 배치 시각 | ARQ 소비기한 점검 01:30 / n8n 예측 배치 02:00 — 같은 호스트라 분산 (2026-09-13) | `04_feature_spec.md` §3.6·§10.1 |
+| 배치 시각 | ARQ 소비기한 점검 01:30 / n8n 예측 배치 02:00 / ARQ 탈퇴 계정 파기 03:00 — 같은 호스트라 분산 (2026-10-03 파기 추가) | `04_feature_spec.md` §3.6·§10.1, `12_security.md` §3.1 |
 | 웹 프레임워크 | FastAPI + Pydantic v2 + orjson | `09_service_design.md` §1 |
 | 앱 서버 | dev Uvicorn / prod Gunicorn + uvicorn.workers (워커 4, --max-requests 1000, --preload) | `research/backend/02_app_server.md` |
 | 리버스 프록시 | Caddy v2 (TLS 1.3 강제, FE dist를 caddy 이미지에 COPY) | `research/backend/03_reverse_proxy.md` |
@@ -83,6 +83,8 @@ docs/plan/       → 구현 계획 (단계별 작업, 순서, 역할 분담)
 | AI 모델 ② 메뉴 분해 확정 (39차) | 산출 구조 = **2모델**(담당자 정정 — "공통 모델 없음"은 매장 간 통일 모델 부재의 뜻, 매장별 분해 유지): 모델 ① 매출 예측(V1-t) + **모델 ② 매장별 메뉴 비중 분해 = 최근 28영업일 합산 수량 비중(S1)** — 요일 조건부는 검증 5 fold 전패로 기각(요일은 총량의 문제). recommend는 **계약 v2(A안 단일 호출)**: 서버 내부 ①×②→점주 레시피(BOM) 전개→재고·리드타임 발주 참고치 + 신뢰도 배지 전파. 재료 리스트업(레시피 등록)은 점주 관리 유지 | `11_ai_spec.md` §3·§2 + `07_api_spec.md` §8 + `AI/notebooks/11_menu_decomposition.ipynb`·`AI/app/model/decompose.py`·`AI/app/api/orders.py` (ai 브랜치) |
 | AI 학습 데이터 확대 방향 (38차 후속) | **파일럿 5~7월 신규 매출분 부재 확인(담당자)** — 전향적 검증 불가. 모델링 트릭에 의한 유효 표본 확대는 **멀티 호라이즌 풀링(학습 행 3배) 실험 기각**(사전 등록 규칙 — D+1 +2.6%p 악화·개강 fold 붕괴)으로 종결, 부수 진단에서 **서빙의 h=1 단일 모델 재사용 전략이 h별 개별 모델보다 우위**로 확인(서빙 무변경 확정, MA-7 대비 D+1 -10.2/D+2 -4.1/D+3 -1.4%). 남은 확대 레버 = 실데이터: ① 2025-04 이전 과거분 소급(점주 문의) ② 유사 매장 확보 시 통합 학습. **외부 검증은 Kaggle Recruit로 완료(사전 기준 충족 — 814곳 승률 92.6%·중앙값 −10.1%, SHORT_HISTORY 60일 임계 실증)**; KADX 영수증별 POS는 접근 권한 없음 확정, 행정동 집계류 공공데이터는 부적합 판정 | `11_ai_spec.md` §3·§6 + `AI/notebooks/06_enhancement.ipynb` §6·`10_recruit_validation.ipynb` (ai 브랜치) |
 | 발주 저장 구조 | spec 5테이블(`order_recommendations`·`order_recommendation_items`·`orders`·`order_items`·`order_approval_logs`) 사용, `purchase_orders` JSON 스냅샷 폐기. 확정 요청은 `recommendation_id`로 추천안을 지목하고, 추천안 없는 발주는 `null` (2026-10-03) | `07_api_spec.md` §7 |
+| 사업자 검증 게이트 BE 강제 | 매장 데이터 API는 `business_status` ∈ {PENDING, VERIFIED}이고 탈퇴 유예가 아닐 때만 통과, 상태는 요청마다 DB 조회해 관리자 반려가 즉시 반영 (2026-10-03) | `12_security.md` §5.1 |
+| 회원 탈퇴 | 탈퇴 즉시 로그인 차단·철회 없음, 유예 30일 동안 같은 계정 재가입 불가, 파기 증빙 이메일은 알림 구현 시 (2026-10-03) | `12_security.md` §3.1 |
 | 매출 CSV 재업로드 dedup 정책 (2026-08-17) | `UNIQUE(store_id, source, external_sale_id)`는 MySQL에서 NULL끼리 서로 다르게 취급되어, 영수증번호 컬럼 없이(FE 기본값) 업로드한 CSV는 재업로드 시 DB 레벨 중복 방지가 전혀 동작하지 않는다 — 실사례로 소주 8,984개가 98,824개(11배)로 중복 적재. `external_sale_id`가 NULL이면 `(menu_id, sold_at)` 합성 식별자를 만들어 같은 UNIQUE 제약 경로를 타도록 애플리케이션 레벨에서 정규화(스키마 변경 없음) | `Back/app/services/sale_service.py` `_insert_chunk` |
 
 ---

@@ -42,6 +42,15 @@ def auth_refresh_token_invalid() -> DomainError:
     return DomainError(status_code=401, error_code="AUTH_REFRESH_TOKEN_INVALID", message="Refresh Token이 유효하지 않습니다.")
 
 
+def auth_account_withdrawn(status_code: int) -> DomainError:
+    return DomainError(
+        status_code=status_code, error_code="AUTH_ACCOUNT_WITHDRAWN",
+        message=(
+            "탈퇴 처리된 계정입니다. 탈퇴 후 30일이 지나면 같은 계정으로 다시 가입할 수 있습니다."
+        ),
+    )
+
+
 def state_conflict(message: str = "현재 상태에서는 수행할 수 없습니다.") -> DomainError:
     return DomainError(status_code=409, error_code="STATE_CONFLICT", message=message)
 

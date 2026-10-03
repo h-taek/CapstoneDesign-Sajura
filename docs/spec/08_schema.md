@@ -31,6 +31,7 @@ CREATE TABLE users (
     role          ENUM('OWNER','ADMIN')               NOT NULL DEFAULT 'OWNER' COMMENT '점주/관리자 — 관리자는 운영자 계정만 수동 지정 (12_security.md §5.1)',
     auth_provider ENUM('LOCAL','KAKAO','GOOGLE')      NOT NULL DEFAULT 'LOCAL',
     social_id     VARCHAR(100)                        NULL COMMENT '소셜 서비스의 사용자 고유 ID',
+    withdrawn_at  DATETIME                            NULL COMMENT '회원 탈퇴 시각 — 값이 있으면 파기 유예 중 (12_security.md §3.1)',
     created_at    DATETIME                            NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at    DATETIME                            NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     PRIMARY KEY (user_id),

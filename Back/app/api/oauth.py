@@ -105,10 +105,18 @@ async def callback(
             message="OAuth 토큰 교환에 실패했습니다.",
         )
     profile = await _fetch_userinfo(provider, access)
-    tokens, _ = await AuthService(session).login_with_oauth(
-        provider=provider, social_id=profile["social_id"],
-        email=profile["email"], name=profile["name"],
-    )
+    try:
+        tokens, _ = await AuthService(session).login_with_oauth(
+            provider=provider, social_id=profile["social_id"],
+            email=profile["email"], name=profile["name"],
+        )
+    except errors.DomainError as exc:
+        # 브라우저 이동 중이라 JSON 대신 FE 로그인 화면으로 사유를 넘긴다 (07_api_spec.md §2)
+        if exc.detail.get("error") != "AUTH_ACCOUNT_WITHDRAWN":
+            raise
+        resp = RedirectResponse(url=f"{_fe_landing_url()}/login?error=withdrawn", status_code=302)
+        resp.delete_cookie(STATE_COOKIE_NAME, path="/")
+        return resp
     s = get_settings()
     resp = RedirectResponse(url=_fe_landing_url(), status_code=302)
     resp.set_cookie(

@@ -103,6 +103,11 @@ export async function verifyBusiness(
   return api.post("store/business/verify", { body: form }).json<VerifyBusinessResponse>();
 }
 
+/** 회원 탈퇴 — 30일 유예 후 파기 (12_security.md §3.1). 소셜 계정은 빈 비밀번호. */
+export async function deleteAccount(password: string): Promise<void> {
+  await api.delete("auth/me", { json: { password } });
+}
+
 export async function logout(): Promise<void> {
   await api.post("auth/logout");
 }

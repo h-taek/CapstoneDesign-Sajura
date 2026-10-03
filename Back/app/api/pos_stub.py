@@ -1,30 +1,33 @@
-"""/api/store/pos/* — M3.B6 stub."""
+"""/api/store/pos/* — M3.B6 stub. api_key는 AES-256-GCM 암호화 저장 (12_security.md §4.1)."""
 from __future__ import annotations
 
 from datetime import UTC, datetime
 from typing import Literal
 
-from fastapi import APIRouter, Response, status
-from pydantic import BaseModel
+from fastapi import APIRouter, Depends, Response, status
+from pydantic import BaseModel, Field
 from sqlalchemy import select
 
-from app.api.deps import CurrentUserDep, SessionDep
-from app.core import errors
+from app.api.deps import CurrentUserDep, SessionDep, require_business_access
+from app.core import crypto, errors
 from app.models.pos_connection import PosConnection, PosStatus
 from app.services.store_service import StoreService
 
-router = APIRouter(prefix="/api/store/pos", tags=["pos"])
+router = APIRouter(
+    prefix="/api/store/pos", tags=["pos"], dependencies=[Depends(require_business_access)]
+)
 
 
+# api_key 150자 = 암호문 base64가 VARCHAR(255)에 들어가는 상한 (12_security.md §4.1)
 class PosCreateRequest(BaseModel):
     pos_type: str
-    api_key: str
+    api_key: str = Field(min_length=1, max_length=150)
     store_code: str
 
 
 class PosUpdateRequest(BaseModel):
     pos_type: str | None = None
-    api_key: str | None = None
+    api_key: str | None = Field(default=None, min_length=1, max_length=150)
     store_code: str | None = None
 
 
@@ -56,7 +59,7 @@ def _mask(k: str) -> str:
 
 def _to_dto(p: PosConnection) -> PosResponse:
     return PosResponse(
-        pos_type=p.pos_type, api_key=_mask(p.api_key),
+        pos_type=p.pos_type, api_key=_mask(crypto.decrypt(p.api_key, aad=p.store_id)),
         store_code=p.store_code, connected_at=p.connected_at,
     )
 
@@ -84,7 +87,7 @@ async def create_pos(
         )
     pos = PosConnection(
         store_id=store.store_id, pos_type=payload.pos_type,
-        api_key=payload.api_key, store_code=payload.store_code,
+        api_key=crypto.encrypt(payload.api_key, aad=store.store_id), store_code=payload.store_code,
         status=PosStatus.CONNECTED,
     )
     session.add(pos)
@@ -104,7 +107,7 @@ async def update_pos(
     if payload.pos_type is not None:
         pos.pos_type = payload.pos_type
     if payload.api_key is not None:
-        pos.api_key = payload.api_key
+        pos.api_key = crypto.encrypt(payload.api_key, aad=store.store_id)
     if payload.store_code is not None:
         pos.store_code = payload.store_code
     await session.commit()

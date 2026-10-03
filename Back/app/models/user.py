@@ -40,6 +40,8 @@ class User(Base):
         Enum(AuthProvider, name="auth_provider"), nullable=False, default=AuthProvider.LOCAL
     )
     social_id: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    # 회원 탈퇴 시각 — 값이 있으면 파기 유예 중 (12_security.md §3.1)
+    withdrawn_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, server_default=func.current_timestamp())
     updated_at: Mapped[datetime] = mapped_column(
         DateTime, nullable=False, server_default=func.current_timestamp(), onupdate=func.current_timestamp()

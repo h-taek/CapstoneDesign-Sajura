@@ -30,6 +30,8 @@ class AuthService:
         # 가입 후 별도 단계(StoreService.verify_business, 온보딩)에서 채운다.
         existing = await self.session.scalar(select(User).where(User.email == email))
         if existing is not None:
+            if existing.withdrawn_at is not None:
+                raise errors.auth_account_withdrawn(409)
             raise errors.auth_email_duplicate()
 
         user = User(
@@ -58,6 +60,8 @@ class AuthService:
             raise errors.auth_invalid_credentials()
         if not security.verify_password(password, user.password_hash):
             raise errors.auth_invalid_credentials()
+        if user.withdrawn_at is not None:
+            raise errors.auth_account_withdrawn(403)
         store = await self.session.scalar(select(Store).where(Store.user_id == user.user_id))
         tokens = await self._issue_tokens(
             user_id=user.user_id, store_id=store.store_id if store else None
@@ -72,6 +76,8 @@ class AuthService:
         user = await self.session.scalar(
             select(User).where(User.auth_provider == ap, User.social_id == social_id)
         )
+        if user is not None and user.withdrawn_at is not None:
+            raise errors.auth_account_withdrawn(403)
         if user is None:
             user = User(email=email, password_hash=None, name=name, auth_provider=ap, social_id=social_id)
             self.session.add(user)
@@ -170,11 +176,17 @@ class AuthService:
         await self.session.commit()
 
     async def delete_account(self, *, user_id: str, password: str) -> None:
+        """탈퇴 유예 진입 — 30일 뒤 AccountPurgeService가 파기한다 (12_security.md §3.1)."""
         user = await self.get_user(user_id)
         if user.auth_provider == AuthProvider.LOCAL:
             if user.password_hash is None or not security.verify_password(password, user.password_hash):
                 raise errors.auth_invalid_credentials()
-        await self.session.delete(user)
+        user.withdrawn_at = datetime.now(UTC).replace(tzinfo=None)
+        await self.session.execute(
+            update(RefreshToken)
+            .where(RefreshToken.user_id == user_id, RefreshToken.is_revoked.is_(False))
+            .values(is_revoked=True)
+        )
         await self.session.commit()
 
     async def _issue_tokens(self, *, user_id: str, store_id: str | None) -> IssuedTokens:

@@ -1,6 +1,6 @@
 // HTTP 클라이언트 — 10_frontend_design.md §1 (ky 1.x) + §2 (401 단일 refresh 인터셉터).
 import ky from "ky";
-import { useAuthStore } from "../stores/auth-store";
+import { type AuthUser, useAuthStore } from "../stores/auth-store";
 
 const BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "/api";
 
@@ -52,6 +52,22 @@ export const api = ky.create({
         }
         request.headers.set("Authorization", `Bearer ${newToken}`);
         return ky(request);
+      },
+      // BE 사업자 검증 게이트(12_security.md §5.1) — 관리자 반려 등으로 상태가 바뀌었으니
+      // me를 다시 받아 스토어를 갱신한다. 이후 RequireStage가 /verify-business로 보낸다.
+      async (_request, _options, response) => {
+        if (response.status !== 403) return response;
+        const body = (await response
+          .clone()
+          .json()
+          .catch(() => null)) as { error?: string } | null;
+        if (body?.error !== "BUSINESS_NOT_VERIFIED") return response;
+        const me = await api
+          .get("auth/me")
+          .json<AuthUser>()
+          .catch(() => null);
+        if (me) useAuthStore.getState().setUser(me);
+        return response;
       },
     ],
   },

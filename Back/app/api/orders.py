@@ -4,9 +4,9 @@ from __future__ import annotations
 
 import math
 
-from fastapi import APIRouter, Query, status
+from fastapi import APIRouter, Depends, Query, status
 
-from app.api.deps import CurrentUserDep, SessionDep
+from app.api.deps import CurrentUserDep, SessionDep, require_business_access
 from app.models.order import Order
 from app.schemas.forecast import AIRecommendResponse
 from app.schemas.orders import (
@@ -22,7 +22,9 @@ from app.schemas.orders import (
 from app.services.order_service import OrderService
 from app.services.store_service import StoreService
 
-router = APIRouter(prefix="/api/orders", tags=["orders"])
+router = APIRouter(
+    prefix="/api/orders", tags=["orders"], dependencies=[Depends(require_business_access)]
+)
 
 
 async def _store_id(session, user_id: str) -> str:

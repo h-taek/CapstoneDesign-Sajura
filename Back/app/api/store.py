@@ -3,9 +3,9 @@ from __future__ import annotations
 
 from typing import Annotated
 
-from fastapi import APIRouter, File, Form, UploadFile
+from fastapi import APIRouter, Depends, File, Form, UploadFile
 
-from app.api.deps import CurrentUserDep, SessionDep
+from app.api.deps import CurrentUserDep, SessionDep, require_business_access
 from app.schemas.store import (
     BusinessVerifyResponse,
     OnboardingCompleteResponse,
@@ -50,7 +50,9 @@ async def get_store(session: SessionDep, current: CurrentUserDep) -> StoreRespon
     return _to_dto(await StoreService(session).get_store(current.user_id))
 
 
-@router.patch("", response_model=StoreResponse)
+@router.patch(
+    "", response_model=StoreResponse, dependencies=[Depends(require_business_access)]
+)
 async def update_store(
     payload: StoreUpdateRequest, session: SessionDep, current: CurrentUserDep
 ) -> StoreResponse:
@@ -63,7 +65,11 @@ async def update_store(
     return _to_dto(store)
 
 
-@router.post("/onboarding/complete", response_model=OnboardingCompleteResponse)
+@router.post(
+    "/onboarding/complete",
+    response_model=OnboardingCompleteResponse,
+    dependencies=[Depends(require_business_access)],
+)
 async def complete_onboarding(
     session: SessionDep, current: CurrentUserDep
 ) -> OnboardingCompleteResponse:

@@ -3,7 +3,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation } from "@tanstack/react-query";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
-import { Link, useLocation, useNavigate } from "react-router";
+import { Link, useLocation, useNavigate, useSearchParams } from "react-router";
 import { authErrorMessage, fetchMe, loginWithEmail, oauthLoginUrl } from "../api/endpoints/auth";
 import eyeIcon from "../assets/login/eye-icon.svg";
 import googleG1 from "../assets/login/google-g-1.svg";
@@ -18,13 +18,21 @@ import { type LoginValues, loginSchema } from "../schemas/auth";
 import { useAuthStore } from "../stores/auth-store";
 import { landingPath } from "./guards";
 
+const WITHDRAWN_MESSAGE =
+  "탈퇴 처리된 계정입니다. 탈퇴 후 30일이 지나면 같은 계정으로 다시 가입할 수 있습니다.";
+
 export default function LoginPage() {
   const navigate = useNavigate();
   const location = useLocation();
-  const registeredEmail = (location.state as { registeredEmail?: string } | null)?.registeredEmail;
+  const navState = location.state as { registeredEmail?: string; withdrawn?: boolean } | null;
+  const registeredEmail = navState?.registeredEmail;
+  // OAuth 콜백이 탈퇴 유예 계정을 /login?error=withdrawn으로 돌려보낸다 (07_api_spec.md §2)
+  const [searchParams] = useSearchParams();
   const setAccessToken = useAuthStore((s) => s.setAccessToken);
   const setUser = useAuthStore((s) => s.setUser);
-  const [formError, setFormError] = useState<string | null>(null);
+  const [formError, setFormError] = useState<string | null>(
+    searchParams.get("error") === "withdrawn" ? WITHDRAWN_MESSAGE : null,
+  );
   const [showPassword, setShowPassword] = useState(false);
 
   const {
@@ -86,6 +94,11 @@ export default function LoginPage() {
           {registeredEmail ? (
             <output className="block rounded-md bg-emerald-50 p-3 text-sm text-emerald-700">
               회원가입이 완료되었습니다. 로그인해주세요.
+            </output>
+          ) : null}
+          {navState?.withdrawn ? (
+            <output className="block rounded-md bg-[#f3f4f6] p-3 text-sm text-[#364153]">
+              탈퇴가 접수되었습니다. 30일 뒤 매장 데이터를 포함한 모든 정보가 삭제됩니다.
             </output>
           ) : null}
 

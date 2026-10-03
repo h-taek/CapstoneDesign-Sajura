@@ -1,10 +1,17 @@
 // 계정 정보 — 실제 GET/PATCH /api/auth/me + /api/store + PATCH /api/auth/password로 연결.
+// 회원 탈퇴는 DELETE /api/auth/me — 즉시 로그인 차단, 30일 뒤 파기 (12_security.md §3.1).
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
+import { useNavigate } from "react-router";
 import { z } from "zod";
-import { changePassword, updateMe } from "../../api/endpoints/auth";
+import {
+  authErrorMessage,
+  changePassword,
+  deleteAccount,
+  updateMe,
+} from "../../api/endpoints/auth";
 import { getStore, patchStore } from "../../api/endpoints/store";
 import { DashboardShell } from "../../components/dashboard/shell";
 import { Button } from "../../components/ui/button";
@@ -80,6 +87,25 @@ export default function AccountSettingsPage() {
     },
     onError: () => setPwError("비밀번호 변경에 실패했습니다. 현재 비밀번호를 확인하세요."),
   });
+
+  const navigate = useNavigate();
+  const clearAuth = useAuthStore((s) => s.clear);
+  const isLocal = user?.auth_provider === "LOCAL";
+  const [withdrawPassword, setWithdrawPassword] = useState("");
+  const [withdrawConfirmed, setWithdrawConfirmed] = useState(false);
+  const [withdrawError, setWithdrawError] = useState<string | null>(null);
+  const withdrawMutation = useMutation({
+    mutationFn: () => deleteAccount(isLocal ? withdrawPassword : ""),
+    onSuccess: () => {
+      queryClient.clear();
+      clearAuth();
+      navigate("/login", { replace: true, state: { withdrawn: true } });
+    },
+    onError: async (error) =>
+      setWithdrawError(await authErrorMessage(error, "탈퇴에 실패했습니다.")),
+  });
+  const canWithdraw =
+    withdrawConfirmed && (!isLocal || withdrawPassword.length > 0) && !withdrawMutation.isPending;
 
   return (
     <DashboardShell active="settings">
@@ -222,6 +248,53 @@ export default function AccountSettingsPage() {
             </Button>
           </div>
         </form>
+
+        <section className="space-y-4 rounded-xl border border-red-200 bg-white p-6">
+          <h2 className="text-lg font-semibold text-[#101828]">회원 탈퇴</h2>
+          <p className="text-sm text-[#61646b]">
+            탈퇴하면 즉시 로그인할 수 없고 되돌릴 수 없습니다. 30일 뒤 매장·판매·재고·발주 데이터와
+            사업자등록증이 모두 삭제되며, 그 전까지 같은 계정으로 다시 가입할 수 없습니다.
+          </p>
+          {isLocal && (
+            <FormField label="비밀번호 확인" htmlFor="withdraw_password">
+              <Input
+                id="withdraw_password"
+                type="password"
+                autoComplete="current-password"
+                value={withdrawPassword}
+                onChange={(e) => setWithdrawPassword(e.target.value)}
+                className="h-11 rounded-xl border-[#d1d5dc] bg-[#f3f4f6]"
+              />
+            </FormField>
+          )}
+          <label className="flex items-center gap-2 text-sm text-[#364153]">
+            <input
+              type="checkbox"
+              checked={withdrawConfirmed}
+              onChange={(e) => setWithdrawConfirmed(e.target.checked)}
+              className="size-4 accent-red-600"
+            />
+            30일 뒤 모든 데이터가 영구 삭제됨을 확인했습니다.
+          </label>
+          {withdrawError && (
+            <p className="text-sm text-red-600" role="alert">
+              {withdrawError}
+            </p>
+          )}
+          <div className="flex justify-end">
+            <Button
+              type="button"
+              onClick={() => {
+                setWithdrawError(null);
+                withdrawMutation.mutate();
+              }}
+              disabled={!canWithdraw}
+              className="h-10 rounded-full bg-red-600 px-6 font-semibold hover:bg-red-700"
+            >
+              회원 탈퇴
+            </Button>
+          </div>
+        </section>
       </div>
     </DashboardShell>
   );
