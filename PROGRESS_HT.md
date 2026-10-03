@@ -8,6 +8,17 @@
 
 ## 1. 개발 이력
 
+### AI 추천 → 발주 확정 연결 — `feat/order-approve` (2026-10-03)
+
+- 발주 저장을 spec 5테이블(`08_schema.md` §3.17~§3.21)로 전환. ORM 신설(`models/order.py`), `purchase_orders`·`POST /api/orders/confirm` 폐기(마이그레이션 `0007`, 기존 행 미이전)
+- `GET /api/orders/recommend` — AI 결과를 추천안으로 저장하고 `recommendation_id` 반환. 발주에 연결되지 않은 당일 추천안은 대체. `config_status`를 BE가 판정(AI의 `OK` 대신 `USER_CONFIGURED`/`DEFAULT_USED`)
+- `POST /api/orders/approve`·`GET /api/orders`(페이지네이션)·`GET /api/orders/{id}`·`GET /api/orders/{id}/approval-log` 구현. 수정 이력은 추천 품목 전체 + 추가 품목
+- 재고 삭제 — 발주 내역에 포함된 재료는 409, 추천 스냅샷 행은 함께 삭제
+- FE `orders.tsx` — AI 추천 표에 선택·수량 수정·확정 추가(`recommendation_id` 동반), 임계값 표는 `null`로 확정, 이력은 펼쳐서 상세 조회. 미설정 재료에 '설정 필요' 배지
+- spec — `07_api_spec.md` §7(추천안 저장·`recommendation_id`·단가 단위·수정 이력 규칙·400/404), 재고 삭제 409
+- 검증: BE pytest 45 통과(신규 7), FE Vitest 32 통과(신규 3), typecheck 통과. 실 BE + 실 AI 서버 스모크(45일 판매·레시피 2종)로 추천 → 확정 → 내역·이력 → 삭제 409 확인
+- 부수: FE `node_modules`가 vitest 2.1.9로 남아 typecheck가 깨져 있던 것을 lockfile 기준 재설치로 해소(3.2.4)
+
 ### Phase 4 — POS·CSV 데이터 적재 구현 + dev 통합 (2026-05-30, 36차)
 
 35차 plan 정합(CSV-only) 위에 BE + FE 본구현 + 골든패스 검증 완료.

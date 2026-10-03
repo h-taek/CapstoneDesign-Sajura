@@ -1,32 +1,67 @@
-// 추천발주 조회 + 발주 확정 API — 07_api_spec.md §7.
+// 추천발주 조회 + 발주 확정·내역 API — 07_api_spec.md §7.
 import { api } from "../../lib/api";
 
-export interface OrderConfirmItem {
+export interface OrderApproveItem {
   item_id: string;
-  quantity: number;
+  final_quantity: number;
+  unit_price?: number;
 }
 
-export interface OrderItem {
-  item_id: string;
-  name: string;
-  unit: string;
-  quantity: number;
+export interface OrderApproveRequest {
+  recommendation_id: string | null;
+  items: OrderApproveItem[];
+  note?: string;
 }
 
-export interface PurchaseOrder {
+export type OrderStatus = "APPROVED" | "AUTOMATED" | "MANUAL_REQUIRED";
+
+export interface OrderApproveResponse {
   order_id: string;
-  items: OrderItem[];
-  status: string;
-  created_at: string;
+  approved_at: string;
+  total_estimated_cost: number;
+  status: OrderStatus;
 }
 
-export async function confirmOrder(items: OrderConfirmItem[]): Promise<PurchaseOrder> {
-  return api.post("orders/confirm", { json: { items } }).json<PurchaseOrder>();
+export interface OrderSummary extends OrderApproveResponse {
+  item_count: number;
 }
 
-export async function listOrders(): Promise<PurchaseOrder[]> {
-  const res = await api.get("orders").json<{ orders: PurchaseOrder[] }>();
-  return res.orders;
+export interface OrderList {
+  items: OrderSummary[];
+  total: number;
+  page: number;
+  size: number;
+  total_pages: number;
+}
+
+export interface OrderDetailItem {
+  item_id: string;
+  item_name: string;
+  final_quantity: number;
+  unit: string;
+  unit_price: number;
+  subtotal: number;
+}
+
+export interface OrderDetail {
+  order_id: string;
+  approved_at: string;
+  status: OrderStatus;
+  total_estimated_cost: number;
+  note: string | null;
+  items: OrderDetailItem[];
+}
+
+export async function approveOrder(body: OrderApproveRequest): Promise<OrderApproveResponse> {
+  return api.post("orders/approve", { json: body }).json<OrderApproveResponse>();
+}
+
+export async function listOrders(page = 1, size = 20): Promise<OrderList> {
+  return api.get("orders", { searchParams: { page, size } }).json<OrderList>();
+}
+
+export async function getOrder(orderId: string): Promise<OrderDetail> {
+  return api.get(`orders/${orderId}`).json<OrderDetail>();
 }
 
 export interface MenuForecastItem {
@@ -43,11 +78,12 @@ export interface OrderRecommendation {
   expected_stockout_date: string | null;
   lead_time_days: number;
   safety_stock: number;
-  config_status: string;
+  config_status: "USER_CONFIGURED" | "DEFAULT_USED";
   recommendation_reason: string;
 }
 
 export interface AIRecommendResponse {
+  recommendation_id: string;
   target_dates: string[];
   is_low_confidence: boolean;
   low_confidence_reason: string | null;

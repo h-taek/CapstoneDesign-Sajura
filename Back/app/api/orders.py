@@ -1,21 +1,24 @@
-"""/api/orders — 추천발주 조회 + 승인(확정) 기록 (07_api_spec.md §7)."""
+"""/api/orders — 추천발주 조회 + 발주 확정·내역 (07_api_spec.md §7)."""
+
 from __future__ import annotations
 
-from fastapi import APIRouter, status
-from sqlalchemy import select
+import math
+
+from fastapi import APIRouter, Query, status
 
 from app.api.deps import CurrentUserDep, SessionDep
-from app.models.inventory_item import InventoryItem
-from app.models.menu import Menu
-from app.models.purchase_order import PurchaseOrder
+from app.models.order import Order
 from app.schemas.forecast import AIRecommendResponse
 from app.schemas.orders import (
-    OrderConfirmRequest,
-    OrderItemResponse,
-    PurchaseOrderListResponse,
-    PurchaseOrderResponse,
+    ApprovalLogItem,
+    ApprovalLogResponse,
+    OrderApproveRequest,
+    OrderApproveResponse,
+    OrderDetailItem,
+    OrderDetailResponse,
+    OrderListResponse,
+    OrderSummary,
 )
-from app.services.forecast_service import ForecastService
 from app.services.order_service import OrderService
 from app.services.store_service import StoreService
 
@@ -26,75 +29,101 @@ async def _store_id(session, user_id: str) -> str:
     return (await StoreService(session).get_store(user_id)).store_id
 
 
-def _to_dto(order: PurchaseOrder) -> PurchaseOrderResponse:
-    return PurchaseOrderResponse(
+def _approve_dto(order: Order) -> OrderApproveResponse:
+    return OrderApproveResponse(
         order_id=order.order_id,
-        items=[OrderItemResponse(**i) for i in order.items],
-        status=order.status,
-        created_at=order.created_at,
+        approved_at=order.approved_at,
+        total_estimated_cost=order.total_estimated_cost,
+        status=order.status.value,
     )
-
-
-@router.post("/confirm", response_model=PurchaseOrderResponse, status_code=status.HTTP_201_CREATED)
-async def confirm_order(
-    payload: OrderConfirmRequest, session: SessionDep, current: CurrentUserDep
-) -> PurchaseOrderResponse:
-    store_id = await _store_id(session, current.user_id)
-    order = await OrderService(session).confirm_order(
-        store_id=store_id, items=[(i.item_id, i.quantity) for i in payload.items]
-    )
-    return _to_dto(order)
-
-
-@router.get("", response_model=PurchaseOrderListResponse)
-async def list_orders(session: SessionDep, current: CurrentUserDep) -> PurchaseOrderListResponse:
-    store_id = await _store_id(session, current.user_id)
-    orders = await OrderService(session).list_orders(store_id=store_id)
-    return PurchaseOrderListResponse(orders=[_to_dto(o) for o in orders])
 
 
 @router.get("/recommend", response_model=AIRecommendResponse)
-async def get_recommendations(
-    session: SessionDep, current: CurrentUserDep
-) -> AIRecommendResponse:
+async def get_recommendations(session: SessionDep, current: CurrentUserDep) -> AIRecommendResponse:
     store_id = await _store_id(session, current.user_id)
-    result = await ForecastService(session).recommend(store_id=store_id)
+    return AIRecommendResponse(**await OrderService(session).recommend(store_id=store_id))
 
-    menu_names = dict(
-        (await session.execute(select(Menu.menu_id, Menu.name).where(Menu.store_id == store_id))).all()
+
+@router.post("/approve", response_model=OrderApproveResponse, status_code=status.HTTP_201_CREATED)
+async def approve_order(
+    payload: OrderApproveRequest, session: SessionDep, current: CurrentUserDep
+) -> OrderApproveResponse:
+    store_id = await _store_id(session, current.user_id)
+    order = await OrderService(session).approve_order(
+        store_id=store_id,
+        recommendation_id=payload.recommendation_id,
+        items=payload.items,
+        note=payload.note,
     )
-    item_rows = (
-        await session.execute(
-            select(InventoryItem.item_id, InventoryItem.name, InventoryItem.unit)
-            .where(InventoryItem.store_id == store_id)
-        )
-    ).all()
-    item_info = {item_id: (name, unit) for item_id, name, unit in item_rows}
+    return _approve_dto(order)
 
-    return AIRecommendResponse(
-        target_dates=result["target_dates"],
-        is_low_confidence=result["is_low_confidence"],
-        low_confidence_reason=result.get("low_confidence_reason"),
-        menu_forecast=[
-            {
-                "menu_id": m["menu_id"],
-                "menu_name": menu_names.get(m["menu_id"], "알 수 없음"),
-                "expected_quantity": m["expected_quantity"],
-            }
-            for m in result["menu_forecast"]
+
+@router.get("", response_model=OrderListResponse)
+async def list_orders(
+    session: SessionDep,
+    current: CurrentUserDep,
+    page: int = Query(default=1, ge=1),
+    size: int = Query(default=20, ge=1, le=100),
+) -> OrderListResponse:
+    store_id = await _store_id(session, current.user_id)
+    rows, total = await OrderService(session).list_orders(store_id=store_id, page=page, size=size)
+    return OrderListResponse(
+        items=[OrderSummary(**_approve_dto(o).model_dump(), item_count=count) for o, count in rows],
+        total=total,
+        page=page,
+        size=size,
+        total_pages=math.ceil(total / size),
+    )
+
+
+@router.get("/{order_id}", response_model=OrderDetailResponse)
+async def get_order(
+    order_id: str, session: SessionDep, current: CurrentUserDep
+) -> OrderDetailResponse:
+    store_id = await _store_id(session, current.user_id)
+    service = OrderService(session)
+    order = await service.get_order(store_id=store_id, order_id=order_id)
+    items = await service.get_order_items(order_id=order_id)
+    return OrderDetailResponse(
+        order_id=order.order_id,
+        approved_at=order.approved_at,
+        status=order.status.value,
+        total_estimated_cost=order.total_estimated_cost,
+        note=order.note,
+        items=[
+            OrderDetailItem(
+                item_id=i.item_id,
+                item_name=name,
+                final_quantity=float(i.final_quantity),
+                unit=unit,
+                unit_price=i.unit_price,
+                subtotal=i.subtotal,
+            )
+            for i, name, unit in items
         ],
-        recommendations=[
-            {
-                "item_id": r["item_id"],
-                "item_name": item_info.get(r["item_id"], ("알 수 없음", ""))[0],
-                "unit": item_info.get(r["item_id"], ("", ""))[1],
-                "recommended_quantity": r["recommended_quantity"],
-                "expected_stockout_date": r.get("expected_stockout_date"),
-                "lead_time_days": r["lead_time_days"],
-                "safety_stock": r["safety_stock"],
-                "config_status": r["config_status"],
-                "recommendation_reason": r["recommendation_reason"],
-            }
-            for r in result["recommendations"]
+    )
+
+
+@router.get("/{order_id}/approval-log", response_model=ApprovalLogResponse)
+async def get_approval_log(
+    order_id: str, session: SessionDep, current: CurrentUserDep
+) -> ApprovalLogResponse:
+    store_id = await _store_id(session, current.user_id)
+    service = OrderService(session)
+    await service.get_order(store_id=store_id, order_id=order_id)
+    logs = await service.get_approval_logs(order_id=order_id)
+    return ApprovalLogResponse(
+        order_id=order_id,
+        items=[
+            ApprovalLogItem(
+                item_id=log.item_id,
+                item_name=name,
+                recommended_quantity=float(log.recommended_quantity),
+                adjusted_quantity=float(log.adjusted_quantity),
+                final_quantity=float(log.final_quantity),
+                unit=unit,
+                was_modified=log.was_modified,
+            )
+            for log, name, unit in logs
         ],
     )

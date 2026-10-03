@@ -10,12 +10,13 @@ from __future__ import annotations
 
 from decimal import Decimal
 
-from sqlalchemy import select
+from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core import errors
-from app.models.menu import RecipeIngredient
 from app.models.inventory_item import InventoryItem
+from app.models.menu import RecipeIngredient
+from app.models.order import OrderApprovalLog, OrderItem, OrderRecommendationItem
 
 
 class InventoryService:
@@ -75,6 +76,19 @@ class InventoryService:
                 status_code=409, error_code="INVENTORY_ITEM_IN_USE",
                 message="레시피에서 사용 중인 재료는 삭제할 수 없습니다.",
             )
+        ordered = await self.session.scalar(
+            select(OrderItem.id).where(OrderItem.item_id == item_id).limit(1)
+        ) or await self.session.scalar(
+            select(OrderApprovalLog.id).where(OrderApprovalLog.item_id == item_id).limit(1)
+        )
+        if ordered is not None:
+            raise errors.DomainError(
+                status_code=409, error_code="INVENTORY_ITEM_IN_USE",
+                message="발주 내역에 포함된 재료는 삭제할 수 없습니다.",
+            )
+        await self.session.execute(
+            delete(OrderRecommendationItem).where(OrderRecommendationItem.item_id == item_id)
+        )
         await self.session.delete(item)
         await self.session.commit()
 

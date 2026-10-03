@@ -55,6 +55,7 @@ async def _cleanup_test_users() -> AsyncIterator[None]:
         from sqlalchemy import select as _select
 
         from app.models.menu import Menu
+        from app.models.order import Order, OrderRecommendation
         from app.models.sale_record import SaleRecord
         from app.models.store import Store
 
@@ -66,6 +67,11 @@ async def _cleanup_test_users() -> AsyncIterator[None]:
             )
         ).all()
         if store_ids:
+            # orders·order_recommendations도 stores FK가 CASCADE가 아니다. 하위 행은 DB가 연쇄 삭제
+            await session.execute(delete(Order).where(Order.store_id.in_(store_ids)))
+            await session.execute(
+                delete(OrderRecommendation).where(OrderRecommendation.store_id.in_(store_ids))
+            )
             await session.execute(
                 delete(SaleRecord).where(SaleRecord.store_id.in_(store_ids))
             )

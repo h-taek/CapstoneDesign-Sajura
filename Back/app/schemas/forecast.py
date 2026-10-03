@@ -53,6 +53,7 @@ class OrderRecommendation(BaseModel):
 
 
 class AIRecommendResponse(BaseModel):
+    recommendation_id: str
     target_dates: list[date]
     is_low_confidence: bool
     low_confidence_reason: str | None = None

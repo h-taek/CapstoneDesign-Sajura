@@ -767,7 +767,10 @@ Authorization: Bearer <access_token>
 
 ```
 // Response: 204 No Content
+// 409 INVENTORY_ITEM_IN_USE: 레시피에서 사용 중이거나 발주 내역(`order_items`·`order_approval_logs`)에 포함된 재료
 ```
+
+> 추천발주 스냅샷(`order_recommendation_items`)의 해당 품목 행은 함께 삭제한다.
 
 ### POST /api/inventory/{item_id}/lots
 
@@ -1099,10 +1102,12 @@ Authorization: Bearer <access_token>
 > 예측 신뢰도 배지를 동반한다 — 배지 없이 단독 노출 금지 (`11_ai_spec.md` §8).
 > `menu_name`·`item_name`·`unit`은 BE가 `menus`·`inventory_items`를 조인해 채운다(AI Server는 ID만 반환).
 > `last_price`·`coupang_url`은 품목↔쿠팡 상품 매핑 도메인 완성 후 채워진다 (`04_feature_spec.md` §3.1). `adjusted_quantity`는 `PATCH /api/orders/recommend` 저장값이다.
+> 사전 생성된 당일 추천안이 없으면 AI Server를 호출해 산출하고 `order_recommendations`·`order_recommendation_items`에 저장한다. 이때 같은 매장·같은 날짜의 추천안 중 발주에 연결되지 않은 것은 대체한다. `recommendation_id`는 `POST /api/orders/approve`가 추천안을 지목하는 키다.
 
 ```json
 // Response 200
 {
+  "recommendation_id": "uuid",
   "target_dates": ["2026-07-28", "2026-07-29", "2026-07-30"],
   "is_low_confidence": true,                 // 예측 신뢰도 전파 — UI는 배지와 함께 노출
   "low_confidence_reason": "LONG_HORIZON",   // 04_feature_spec.md §5.3 코드
@@ -1152,17 +1157,20 @@ Authorization: Bearer <access_token>
 
 ### POST /api/orders/approve
 
+> 발주와 수정 이력(`order_approval_logs`)은 한 트랜잭션으로 저장한다 (`09_service_design.md` §5).
+
 ```json
 // Request
 {
+  "recommendation_id": "uuid",     // 확정 대상 추천안. 추천안 없이 발주하면 null (임계값 추천·수동 발주)
   "items": [
     {
       "item_id": "uuid",
-      "final_quantity": 3000.0,
-      "unit_price": 28000
+      "final_quantity": 3000.0,    // > 0
+      "unit_price": 28             // 재료 단위(unit)당 단가(원). 생략 시 0
     }
   ],
-  "note": "이번 주 행사로 원두 줄임"
+  "note": "이번 주 행사로 원두 줄임" // 선택, 500자 이하
 }
 
 // Response 201
@@ -1172,7 +1180,24 @@ Authorization: Bearer <access_token>
   "total_estimated_cost": 84000,
   "status": "APPROVED"
 }
+// 404 NOT_FOUND: 매장에 없는 재료 또는 추천안
+// 400 VALIDATION_ERROR: items 비어 있음, 같은 item_id 중복, final_quantity ≤ 0
 ```
+
+| 산출 값 | 규칙 |
+|---|---|
+| `subtotal` | `round(final_quantity × unit_price)` |
+| `total_estimated_cost` | `subtotal` 합계 |
+
+`recommendation_id`가 있으면 수정 이력을 품목별로 남긴다.
+
+| 대상 품목 | `recommended_quantity` · `adjusted_quantity` | `final_quantity` |
+|---|---|---|
+| 추천안에 있고 발주에 포함 | 추천안 값 | 확정 수량 |
+| 추천안에 있고 발주에서 제외 | 추천안 값 | 0 |
+| 추천안에 없고 발주에 추가 | 0 | 확정 수량 |
+
+`was_modified`는 `final_quantity ≠ recommended_quantity`이다.
 
 ### GET /api/orders
 
