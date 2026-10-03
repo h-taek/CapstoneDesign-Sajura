@@ -8,7 +8,7 @@
 
 ## 1. 개발 이력
 
-### AI 추천 → 발주 확정 연결 — `feat/order-approve` (2026-10-03)
+### AI 추천 → 발주 확정 연결 — `8d6a81f` (2026-10-03)
 
 - 발주 저장을 spec 5테이블(`08_schema.md` §3.17~§3.21)로 전환. ORM 신설(`models/order.py`), `purchase_orders`·`POST /api/orders/confirm` 폐기(마이그레이션 `0007`, 기존 행 미이전)
 - `GET /api/orders/recommend` — AI 결과를 추천안으로 저장하고 `recommendation_id` 반환. 발주에 연결되지 않은 당일 추천안은 대체. `config_status`를 BE가 판정(AI의 `OK` 대신 `USER_CONFIGURED`/`DEFAULT_USED`)
