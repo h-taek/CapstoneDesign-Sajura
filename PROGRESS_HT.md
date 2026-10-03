@@ -8,7 +8,7 @@
 
 ## 1. 개발 이력
 
-### 보안 3건 — POS 키 암호화·BE 사업자 검증 게이트·탈퇴 30일 유예 (2026-10-03)
+### 보안 3건 — POS 키 암호화·BE 사업자 검증 게이트·탈퇴 30일 유예 — `837d095` (2026-10-03)
 
 - POS 키 — `pos_connections.api_key`를 AES-256-GCM으로 저장(`core/crypto.py`). 행마다 새 nonce, `store_id`를 연관 데이터로 묶음. 응답은 복호화 후 마스킹. 기존 평문 행은 마이그레이션 `0008`이 암호화(평문 행으로 upgrade·downgrade 왕복 확인)
 - BE 단계 가드 — `require_business_access`를 메뉴·재고·판매·발주·예측·POS·단가 라우터와 매장 수정·온보딩 완료에 적용. `PENDING`·`VERIFIED`이고 탈퇴 유예가 아닐 때만 통과, 그 외 403 `BUSINESS_NOT_VERIFIED`. 상태는 요청마다 DB 조회. FE는 이 403을 받으면 me를 다시 받아 검증 화면으로 보낸다
