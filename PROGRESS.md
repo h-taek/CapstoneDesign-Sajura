@@ -92,8 +92,8 @@ docs/plan/       → 구현 계획 (단계별 작업, 순서, 역할 분담)
 | 문서 | 담당자 | 담당 범위 |
 |---|---|---|
 | [PROGRESS_HT.md](PROGRESS_HT.md) | 임형택 | Backend + Frontend + 문서·플랜 운영 |
-| [PROGRESS_DY.md](PROGRESS_DY.md) | 정동욱 | AI 모델링 — 모델 선정·전처리·서빙·AI spec |
-| [PROGRESS_MY.md](PROGRESS_MY.md) | 이민욱 | AI 모델링 |
+| [PROGRESS_DW.md](PROGRESS_DW.md) | 정동욱 | AI 모델링 — 모델 선정·전처리·서빙·AI spec |
+| [PROGRESS_MW.md](PROGRESS_MW.md) | 이민욱 | AI 모델링 |
 | [PROGRESS_CH.md](PROGRESS_CH.md) | 서창현 | Backend + Frontend — 8월 리디자인·실데이터 연동 |
 
 새 항목은 본인 문서에 쓴다. 새 정책·방향 결정은 사람과 무관하므로 위 §3에 쓴다.
