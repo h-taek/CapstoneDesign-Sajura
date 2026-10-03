@@ -15,7 +15,7 @@
 2. **한 파일 수정 시 연동 파일 즉시 함께 수정** — 연동 관계는 `docs/README.md` §2-1 연동 수정 파일 맵. "나중에" 없음
 3. **세션 종료 전** 본인 `PROGRESS_*.md` §2 문서 수정 이력 갱신. 새 정책·방향 결정은 `PROGRESS.md` §3 표에 행 추가
 4. **팀원이 직접 쓴 문서는 확인받고 고친다** — `docs/spec/11_ai_spec.md`, `docs/plan/ai/`, `docs/research/ai/`는 DW 저작이다. 임의로 고치지 않고 무엇을 왜 고쳐야 하는지 먼저 알린다
-5. **main 전용 문서(PROGRESS 계열·docs/·루트 README·CLAUDE·AGENTS)는 main 기준으로 작업한다** — 작업 직전 `git checkout main && git fetch origin && git pull --ff-only origin main`. 담당자(h-taek)는 main 직접 푸시 가능하고, 끝나면 `dev`로 백머지한다. 워크트리를 만들지 않는다
+5. **작업은 최신 main에서 시작한다** — 작업 직전 `git checkout main && git fetch origin && git pull --ff-only origin main`. 브랜치 전략은 GitHub flow(`README.md` §5). 담당자(h-taek)는 main 직접 푸시 또는 PR, 그 외 팀원은 PR. 워크트리를 만들지 않는다
 
 ---
 

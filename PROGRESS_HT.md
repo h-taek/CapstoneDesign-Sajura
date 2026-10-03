@@ -174,6 +174,10 @@ HANDOFF.md E단계 9개 검증 시나리오 수행 + 발견된 결함 일괄 정
 
 ## 2. 문서 수정 이력
 
+### 2026-10-03 — 브랜치 전략 GitHub flow 전환
+
+main을 `dev`(`ef17204`)까지 fast-forward해 Phase 2~7·11·12 구현 코드를 처음으로 main에 올렸다. 장수 브랜치 `dev`·`be`·`fe`·`ai`를 폐기하고 짧은 작업 브랜치 → main PR로 바꿨다. 담당자는 직접 푸시 또는 PR, 그 외 팀원은 PR 필수. 저장소에 머지 후 브랜치 자동 삭제를 켰고, 중복된 PR #36(DW 이름 변경)은 닫았다. 문서: `README.md` §5 전면 교체, `PROGRESS.md` §3 2행 교체·1행 정리, `CLAUDE.md`·`AGENTS.md` 규칙 5, `AI/README.md`, `docs/README.md` §5-3.
+
 ### 2026-10-03 — 팀원 이력 문서 이니셜 정정
 
 `PROGRESS_DY.md` → `PROGRESS_DW.md`(정동욱), `PROGRESS_MY.md` → `PROGRESS_MW.md`(이민욱). 참조처 `PROGRESS.md` §4·`plan/03_ai.md`·`CLAUDE.md`·`AGENTS.md`를 함께 고쳤다. 검증: 추적 파일 내 옛 파일명 0건.

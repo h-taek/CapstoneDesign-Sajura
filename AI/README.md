@@ -58,4 +58,4 @@ jupyter nbconvert --to notebook --execute --inplace 01_eda.ipynb 02_features.ipy
 
 ## 배포
 - 별도 컨테이너(`docker/ai/Dockerfile`)
-- be+fe와는 HTTP API로만 연동 (`docs/README.md` §5 브랜치 전략 — `ai` 브랜치는 `main`으로 직접 PR)
+- be+fe와는 HTTP API로만 연동

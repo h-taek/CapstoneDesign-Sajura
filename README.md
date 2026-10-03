@@ -42,94 +42,42 @@
 * 캐시 파일(`__pycache__`), OS 임시 파일(`.DS_Store`), IDE 설정 파일(`.vscode/`) 등은 커밋하지 않습니다.
 * 의도치 않은 파일이 `git status`에 뜨면 커밋 전 반드시 `.gitignore`에 먼저 등록합니다.
 
-### 5. 브랜치 전략
+### 5. 브랜치 전략 — GitHub flow
 
 ```
-main                        배포/릴리즈 (보호됨, 직접 푸시 금지)
-├── ai                      AI 서버 (독립 배포, be+fe와 합쳐지지 않음)
-└── dev                     be+fe 통합 베이스
-    ├── be                  백엔드 통합 스테이지
-    │   └── feat/be-<name>  백엔드 피처
-    └── fe                  프론트엔드 통합 스테이지
-        └── feat/fe-<name>  프론트엔드 피처
+main               항상 동작하는 상태. 배포 기준
+└── <종류>/<이름>   짧은 작업 브랜치. 머지 후 자동 삭제
 ```
 
-**머지 흐름**
-* be+fe: `feat/be-*` → `be` → `dev` → `main` (FE도 동일)
-* AI: `ai` → `main` (별도 서버로 독립 배포되므로 `dev`와 합치지 않음)
+**흐름**
+1. 최신 main에서 작업 브랜치를 딴다 — `git checkout main && git pull --ff-only origin main && git checkout -b feat/<이름>`
+2. 작업 후 push하고 main으로 PR을 연다 — `gh pr create --base main`
+3. 머지하면 GitHub이 작업 브랜치를 자동 삭제한다
+
+**브랜치 이름** — `feat/`(기능), `fix/`(버그), `docs/`(문서), `chore/`(설정·의존성). 영역이 드러나게 쓴다(예: `feat/be-csv-upload`, `feat/ai-recommend`).
+
+**main 변경 권한**
+
+| 누구 | 방법 |
+|---|---|
+| 담당자(h-taek) | 직접 푸시 또는 PR |
+| 그 외 팀원 | PR 필수 (승인 의무 없음, 본인이 머지) |
+
+main 보호 설정: PR 필수(관리자 예외), force push·브랜치 삭제 차단.
 
 **작업 규칙**
-* 모든 be/fe 작업은 `feat/be-<name>` 또는 `feat/fe-<name>` 피처 브랜치에서 진행합니다. `main`, `dev`, `be`, `fe`에 직접 푸시하지 않습니다.
-* 피처 브랜치는 해당 베이스(`be` 또는 `fe`)에서 따고, 완료되면 베이스로 PR을 올립니다.
-* `be` / `fe` → `dev` 머지는 통합 검증이 끝난 시점에 진행합니다.
-* `dev` → `main` 머지는 릴리즈 단위로만 진행합니다.
-* AI 서버는 별도 배포 단위이므로 `ai` 브랜치에서 작업 후 `main`으로 직접 PR합니다. be+fe와는 HTTP API로만 연동됩니다.
+* 작업 브랜치는 짧게 유지한다. 길어지면 main을 자주 받아 충돌을 줄인다.
+* 작업 시작 전 항상 최신 main을 받는다. 옛 main 위에서 고치면 다른 사람의 변경을 덮어쓴다. AI 에이전트도 같다 — `CLAUDE.md` · `AGENTS.md` 참고.
+* 코드 옆 문서(`Back/README.md`, `Front/README.md`, `AI/README.md`)는 코드와 같은 PR에 넣는다.
+* `PROGRESS*.md` · `docs/` · 루트 `README.md` · `CLAUDE.md` · `AGENTS.md`만 바꾸는 작업은 코드 PR에 섞지 않고 `docs/<주제>` 브랜치로 따로 올린다.
+* `HANDOFF.md`는 커밋하지 않는다(`.gitignore`, 개인용).
+* AI 서버는 별도 컨테이너로 배포하지만 브랜치 흐름은 같다. be·fe와는 HTTP API로만 연동한다.
+* Contract-first: BE는 `docs/spec/07_api_spec.md` 계약을 먼저 안정화하고, FE는 `pnpm gen:api` 타입 코드젠 + MSW mock으로 선행 개발한다.
 
-**main 브랜치 보호 (GitHub)**
-* 직접 푸시 금지, PR 필수 (승인 의무 없음).
-* force push / 브랜치 삭제 차단.
+**작업 상황 공유**
 
-**피처 브랜치 작업 예시**
-```bash
-git checkout be && git pull
-git checkout -b feat/be-csv-upload
-# 작업 후
-git push -u origin feat/be-csv-upload
-gh pr create --base be
-```
-
-**트랙 간 동기화 (be ↔ fe)**
-
-be와 fe는 서로 진행 사항을 공유해야 하므로 아래 규칙을 따른다.
-
-* **Contract-first**: BE는 `docs/spec/07_api_spec.md`(OpenAPI 계약)를 먼저 안정화한다. FE는 BE 완성 전이라도 `pnpm gen:api`로 타입 코드젠 + MSW mock으로 선행 개발한다.
-* **be/fe → dev promote**: 마일스톤(Phase) 끝나면 `be` / `fe`를 즉시 `dev`로 promote PR한다. dev는 항상 양 트랙의 "최신 truth"가 된다.
-* **dev → fe / dev → be back-merge**: 새 피처 브랜치를 따기 전 또는 매주 정기적으로 `git checkout fe && git merge origin/dev && git push`(또는 be)로 base를 최신화한다. 이후 따는 모든 `feat/*`는 자동으로 최신 상태에서 출발.
-* **충돌 최소화**: 이미 진행 중인 `feat/*` 브랜치는 그대로 두고 마무리한 다음, 다음 피처부터 back-merge된 base에서 따는 것이 깔끔하다.
-
-**문서 커밋 위치**
-
-| 문서 종류 | 커밋 위치 | 비고 |
-|---|---|---|
-| `docs/spec/`, `docs/plan/`, `PROGRESS.md`, 루트 `README.md` | **`main` 전용** — admin은 직접 푸시, 그 외 팀원은 `docs/<주제>` 브랜치 → main PR | 모든 트랙이 즉시 참조. `main` 외 브랜치에서 직접 수정 금지 |
-| `Back/README.md`, `Front/README.md`, `AI/README.md` 등 코드 옆 문서 | 해당 트랙(be/fe/ai) 브랜치에 코드와 함께 | 코드 변경과 한 쌍 |
-| `HANDOFF.md` | 커밋 안 함 (`.gitignore`, 개인용) | — |
-
-> 문서 변경을 BE/FE 피처 브랜치에 섞으면 머지 시 노이즈가 된다. 코드 옆 README가 아니라면 분리한다.
-
-**main 전용 문서 운영 규칙 (충돌 방지)**
-
-* `PROGRESS.md` · `docs/spec/*` · `docs/plan/*` · 루트 `README.md` 는 **오직 `main` 브랜치에서만 수정**한다. 다른 브랜치(`feat/*`, `be`, `fe`, `dev`, `ai`)에서 직접 수정하지 않는다.
-* 단방향 정책(main → 다른 브랜치) 덕분에 back-merge 시 충돌 없이 fast-forward로 흡수된다.
-* 본인 작업 파일은 `git merge main`을 해도 **사라지지 않는다**. merge는 추가지 교체가 아님. 한쪽에만 있는 파일은 양쪽 모두 보존된다.
-
-**팀원별 main 변경 절차**
-
-| 누구 | 절차 |
-|---|---|
-| Repo admin (htaeky) | (a) `git push origin main` 직접 (PR 생략) **또는** (b) PR 흐름 |
-| 그 외 팀원 | **PR 흐름 필수** — `git checkout -b docs/<주제>` → 수정 → push → `gh pr create --base main` → 자기가 머지 (승인 의무 없음) |
-
-> 팀원 PR은 base 브랜치 push 권한 없이도 가능하다. `docs/*` feature 브랜치는 누구나 push 가능(main만 보호).
-
-**⚠️ 문서 작업 시작 전 필수 절차 — 최신 main 동기화**
-
-main 전용 문서(`PROGRESS.md` · `docs/spec/*` · `docs/plan/*` · 루트 `README.md` · `CLAUDE.md` · `AGENTS.md`)를 수정하기 전에는 **항상 최신 `origin/main`을 먼저 받아온 다음** 작업한다. 이를 어기면 다른 팀원/이전 세션의 변경분을 덮어쓰거나, 머지 시 불필요한 충돌이 발생한다.
-
-| 단계 | 명령 |
-|---|---|
-| 1. main 체크아웃 + 최신화 | `git checkout main && git fetch origin && git pull --ff-only origin main` |
-| 2. (admin 직접 푸시) 그 자리에서 수정 → 커밋 → `git push origin main` | — |
-| 2. (팀원 PR 흐름) 최신 main에서 작업 브랜치 분기 | `git checkout -b docs/<주제>` → 수정 → push → `gh pr create --base main` → 머지 |
-| 3. 머지 후 모든 장수 브랜치에 main을 back-merge하여 정합 | `git checkout <be|fe|dev|ai> && git merge origin/main && git push` |
-
-> **순서 절대 금지**: 옛 main 상태에서 수정 → 커밋 → push 시도 → 충돌/거부. 항상 "1. 최신 main 받기 → 2. 수정"의 순서를 지킨다. AI 에이전트(Claude·Codex 등)도 이 규칙을 따른다 — `CLAUDE.md` · `AGENTS.md` 참고.
-
-**작업 상황 실시간 공유는 git/PR**
-
-* `PROGRESS.md` 는 **마일스톤 종료 후 정리되는 역사 기록**(왜 그렇게 했나) — 실시간 작업 공유 도구가 아니다.
-* "누가 지금 뭐 하고 있나"는 `gh pr list`, 브랜치 그래프(`git log --all --oneline --graph`), Notion Gantt로 확인.
-* PROGRESS는 Phase 종료 / 정책 결정 / audit 시점에만 차수 단위로 추가한다.
+* "누가 지금 뭐 하고 있나"는 `gh pr list`와 Notion Gantt로 확인한다.
+* `PROGRESS.md`는 끝난 작업과 결정의 기록이다. 실시간 공유 도구가 아니다.
 
 ---
 
