@@ -180,7 +180,7 @@ asyncmy는 Cython으로 aiomysql 대비 2~3배 빠르나 다음 사유로 보존
 |------|-------|------|
 | CSV 파싱 (수천~수만 행) | **필수** | `POST /api/sales/upload`, `01_basic_design.md` §3.4.2 CSVAdapter |
 | 결측·집계 | **필수** | 기간별 매출 집계, ROI |
-| IQR/Z-score 통계 | **필수** | `11_ai_spec.md` 이상치 탐지 |
+| IQR/Z-score 통계 | **필수** | `05_ai.md` 이상치 탐지 |
 | 메모리 효율 | 중요 | M2 Pro 16GB · 워커 4개 동시 업로드 시도 시 |
 | 자료·생태계 | 중요 | 1인 운영 디버깅 자료 |
 | Excel 지원 | 참고 | 현 spec엔 CSV만 |

@@ -1,6 +1,6 @@
 # 전처리 — 임계값 실험과 기각 이력
 
-> 관찰 결과만 담는다. 확정된 규칙은 `docs/spec/11_ai_spec.md` §5를 본다.
+> 관찰 결과만 담는다. 확정된 규칙은 `docs/spec/05_ai.md` §5를 본다.
 > 실험 본체: `AI/notebooks/03_preprocessing.ipynb` · 구현: `AI/data_prep/preprocess.py` (ai 브랜치).
 
 ---

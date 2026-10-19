@@ -33,7 +33,7 @@
 
 | 영역 | 보류 이유 |
 |------|---------|
-| 데이터 품질 검증 도구 (Great Expectations · Pandera) | ML 파이프라인 입력 데이터(결측·이상치) 검증 영역. `docs/spec/11_ai_spec.md`의 결측·이상치 처리 기준 확정 후 본 카테고리에서 검증 도구 결정 |
+| 데이터 품질 검증 도구 (Great Expectations · Pandera) | ML 파이프라인 입력 데이터(결측·이상치) 검증 영역. `docs/spec/05_ai.md`의 결측·이상치 처리 기준 확정 후 본 카테고리에서 검증 도구 결정 |
 
 ---
 
@@ -175,11 +175,11 @@
 **보류 이유:**
 
 데이터 품질 검증은 ML 파이프라인 입력 데이터의 결측·이상치 처리와 직결된다. 검증 규칙 자체가 다음 spec 항목 결정 이후에야 의미를 갖는다:
-- `docs/spec/11_ai_spec.md` 결측·이상치 처리 기준
+- `docs/spec/05_ai.md` 결측·이상치 처리 기준
 
 **보류 종료 조건:**
 
-위 문서의 결측·이상치 처리 기준이 확정되면 본 §3을 다시 열어 Great Expectations vs Pandera vs 미채택(Pydantic + pandas 직접) 결정을 수행한다. 결정 결과는 `03_be.md` §1에 반영하고, n8n 전처리 단계와의 결합 흐름은 `01_basic_design.md` §3.11 또는 `11_ai_spec.md`에서 별도 정의한다.
+위 문서의 결측·이상치 처리 기준이 확정되면 본 §3을 다시 열어 Great Expectations vs Pandera vs 미채택(Pydantic + pandas 직접) 결정을 수행한다. 결정 결과는 `03_be.md` §1에 반영하고, n8n 전처리 단계와의 결합 흐름은 `01_basic_design.md` §3.11 또는 `05_ai.md`에서 별도 정의한다.
 
 > 본 보류는 BE 8 카테고리 13개 결정 항목 중 1개에 한정된다. 본 research의 나머지 결정은 위 보류와 독립적으로 spec에 반영된다.
 

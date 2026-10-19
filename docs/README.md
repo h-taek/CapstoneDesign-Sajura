@@ -54,7 +54,7 @@ plan        어떻게 만들지 분해한다
 | `02_implementation_design.md` | 구현 설계 — MVP 범위(포함·제외·2단계), 시퀀스, API 계약(AI Server 계약 §3.8 포함), DB 스키마 |
 | `03_be.md` | Backend — 기술 스택, 계층·서비스·트랜잭션, 인증·토큰, 권한·접근 통제, 감사 로그, 암호화, 에러 코드, 캐시, 미들웨어, 성능 전략, 운영 토폴로지 |
 | `04_fe.md` | Frontend — 기술 스택, 인증 통합, 라우팅, 화면 IA·화면별 구성, 상태·API 통합, 폼, 에러 모니터링, 빌드·CI, 브라우저 확장 |
-| `11_ai_spec.md` | AI 설계 — 모델, 입력 데이터·피처, 전처리, 학습, 출력, 예측 근거, 파이프라인 (DW 확인 전까지 현 위치 유지) |
+| `05_ai.md` | AI 설계 — 모델, 입력 데이터·피처, 전처리, 학습, 출력, 예측 근거, 파이프라인 |
 
 ### 2-1. 연동 수정 파일 맵
 
@@ -63,10 +63,10 @@ spec 하나를 고치면 함께 확인할 파일이다.
 | 수정 파일 | 함께 확인 |
 |---|---|
 | `01_basic_design.md` | `02_implementation_design.md`(§1 범위·§3 API), `04_fe.md` §4 |
-| `02_implementation_design.md` | `01_basic_design.md` §3, `03_be.md`, `04_fe.md`, `11_ai_spec.md` |
+| `02_implementation_design.md` | `01_basic_design.md` §3, `03_be.md`, `04_fe.md`, `05_ai.md` |
 | `03_be.md` | `02_implementation_design.md` §3·§4, `04_fe.md`, `plan/01_be.md` |
 | `04_fe.md` | `01_basic_design.md` §3·§4, `02_implementation_design.md` §3, `03_be.md` §7, `plan/02_fe.md` |
-| `11_ai_spec.md` | `01_basic_design.md` §3.6·§3.7, `02_implementation_design.md` §3.8·§4, `03_be.md` §14, `research/ai/01~02` |
+| `05_ai.md` | `01_basic_design.md` §3.6·§3.7, `02_implementation_design.md` §3.8·§4, `03_be.md` §14, `research/ai/01~02` |
 
 ---
 
@@ -108,7 +108,7 @@ spec 하나를 고치면 함께 확인할 파일이다.
 
 **한 문서를 바꾸면 연동 문서를 즉시 함께 수정한다.** 연동 관계는 §2-1 참고.
 
-**팀원이 직접 쓴 문서는 확인받고 고친다.** 다른 담당자가 본문을 쓴 문서(`spec/11_ai_spec.md`, `plan/ai/`, `research/ai/`)는 임의로 고치지 않고 무엇을 왜 고쳐야 하는지 먼저 알린다.
+**팀원이 직접 쓴 문서는 확인받고 고친다.** 다른 담당자가 본문을 쓴 문서(`spec/05_ai.md`, `plan/ai/`, `research/ai/`)는 임의로 고치지 않고 무엇을 왜 고쳐야 하는지 먼저 알린다.
 
 ### 5-2. 문체·형식
 

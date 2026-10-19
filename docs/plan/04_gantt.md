@@ -4,7 +4,7 @@
 >
 > - 단위: **상대 일수(Day)**, 의존관계는 각 작업의 `deps` 필드로 표현
 > - 참조: `PROGRESS.md`(전체 단계), `docs/spec/02_implementation_design.md` §1(역할 분담), `docs/spec/03_be.md`(서비스 클래스), `docs/spec/01_basic_design.md` §3(기능)
-> - 본 차트는 **Research → Plan → 구현 → 통합·배포** 흐름을 다룬다. spec 작성·`../spec/11_ai_spec.md` 미확정 항목 조사는 본 차트 범위 밖
+> - 본 차트는 **Research → Plan → 구현 → 통합·배포** 흐름을 다룬다. spec 작성·`../spec/05_ai.md` 미확정 항목 조사는 본 차트 범위 밖
 
 ---
 

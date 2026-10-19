@@ -1,10 +1,12 @@
-"""추천발주 라우터 — 07_api_spec.md §8 POST /ai/orders/recommend 계약 v2 (M7.A3, A안: 단일 호출).
+"""추천발주 라우터 — 02_implementation_design.md §3.8 POST /ai/orders/recommend.
+
+계약 v2 (M7.A3, A안: 단일 호출).
 
 파이프라인(전 단계 매장별·요청 단위 stateless):
   ① V1-t 매출 예측(app/model/predictor.py)
   × ② 메뉴 비중 분해(app/model/decompose.py — 검증: notebooks/11_menu_decomposition.ipynb)
   → 메뉴별 예상 수량 → 점주 레시피(BOM) 전개 → 재고·리드타임·안전재고 반영 발주 참고치.
-③ 이후는 결정론 — 예측 불확실성은 is_low_confidence로 동반 전파(참고치 원칙, 11_ai_spec.md §8).
+③ 이후는 결정론 — 예측 불확실성은 is_low_confidence로 동반 전파(참고치 원칙, 05_ai.md §8).
 """
 from __future__ import annotations
 

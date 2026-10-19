@@ -46,6 +46,7 @@
 - 주간 모델 재학습 배치 — 매주 일요일 n8n이 `pipeline_jobs`(TRAIN)를 만들고 AI Server 재학습 호출
 - 모델 재학습 API — `POST /ai/forecast/train`, `GET /ai/forecast/status`의 학습 작업 조회, `GET /ai/health`의 `last_trained_at` 채움
 - 모델 고도화 — 초기 모델의 예측 품질 개선
+- 외부 변수 확장 — 방문인구(SK 지오비전)·경제지표(한국은행 ECOS)·검색량(네이버 데이터랩)·SNS 노출도·지역 이벤트 피처 추가, SNS 노출도·지역 이벤트는 AI SDK로 수집
 - ROI 대시보드 — 폐기율·회전율·예측 정확도 지표 집계
 - ROI 지표 API — `GET /api/dashboard/roi`
 - Cold-start — 유사 매장 매칭
@@ -77,7 +78,7 @@
 | 1. 로그인 및 온보딩 | 소셜 로그인 → 사업자번호 검증 → 매장 정보 입력 → CSV 임시 모드 선택 | 국세청 API 검증 결과, onboarding_completed 전환 |
 | 2. 데이터 적재 | 주점 POS 데이터 CSV 업로드 → 메뉴·레시피 등록 → 초기 재고 입력 | 업로드 파싱 성공 건수, 이상치 감지 결과 |
 | 3. 배치 실행 | n8n 워크플로우 수동 트리거 → AI Server 예측·추천발주 생성 → DB 저장 | pipeline_jobs 상태 DONE 전환, forecast_results 생성 확인 |
-| 4. 수요예측 확인 | 메뉴별 1~3일 예상 수요 조회 → 예측 근거 확인 → 신뢰도 배지 확인 | 예측 근거 표시(`11_ai_spec.md` §8), 신뢰도 낮음 배지 동작 |
+| 4. 수요예측 확인 | 메뉴별 1~3일 예상 수요 조회 → 예측 근거 확인 → 신뢰도 배지 확인 | 예측 근거 표시(`05_ai.md` §8), 신뢰도 낮음 배지 동작 |
 | 5. 추천발주 승인 | 품목별 권장 수량·예상 소진 시점 확인 → 수량 수정 → 발주 확정 | 수정 이력 저장 (order_approval_logs), 발주 확정 처리 |
 | 6. 쿠팡 자동화 | 사주라 확장이 쿠팡 장바구니에 품목 자동 담기 → 결과 화면 표시 | 성공 품목·실패 품목 분리 표시, 수동 처리 안내 |
 
@@ -90,7 +91,7 @@
 | 항목 | 기준 |
 |------|------|
 | 수요예측 결과 표시 | 메뉴별 1~3일 예측값 + 신뢰도 배지 화면 정상 표시 |
-| 예측 근거 표시 | top-3 기여 요인 + 자연어 1문장 정상 표시 (`11_ai_spec.md` §8) |
+| 예측 근거 표시 | top-3 기여 요인 + 자연어 1문장 정상 표시 (`05_ai.md` §8) |
 | 추천발주 이력 기록 | 점주 수정·승인 후 `order_approval_logs`에 이력 저장 확인 |
 | 쿠팡 자동화 | 성공·부분 실패·전체 실패 분기 모두 화면 정상 처리 |
 | n8n 배치 | 수동 트리거 시 `pipeline_jobs` 상태가 DONE으로 전환 |
@@ -124,7 +125,7 @@ POS 연동 API 없이 보유 중인 주점 POS 데이터를 사용한다.
 | 파트 | 담당 업무 | 팀원 |
 |------|----------|------|
 | Frontend | 화면 설계, React 개발, PWA 기술 적용, 수요예측·재고·발주 UI, 사주라 브라우저 확장 | 정동욱, 이민욱, 임형택 |
-| AI Modeling | 데이터 수집·전처리, 모델 학습·평가, 예측 근거 구현(`11_ai_spec.md` §8), n8n AI 파이프라인 연동 | 정동욱, 이민욱, 서창현 |
+| AI Modeling | 데이터 수집·전처리, 모델 학습·평가, 예측 근거 구현(`05_ai.md` §8), n8n AI 파이프라인 연동 | 정동욱, 이민욱, 서창현 |
 | Backend | REST API 서버, DB 설계·운영, n8n 배치 파이프라인, 쿠팡 자동 담기 서버 측(상품 선택·결과 기록) | 서창현, 임형택 |
 
 파트 간 공유 책임:
@@ -258,10 +259,10 @@ sequenceDiagram
 
     par 사전 예측 배치 (야간)
         n8n->>DB: 판매 데이터·메뉴·레시피·재고 조회
-        n8n->>n8n: 외부 데이터 수집 (11_ai_spec.md §4.2 MVP 항목)
+        n8n->>n8n: 외부 데이터 수집 (05_ai.md §4.2 MVP 항목)
         n8n->>n8n: 전처리·정규화
         n8n->>AIServer: POST /ai/forecast/predict (예측 요청)
-        AIServer-->>n8n: 예측 결과 + 예측 근거(11_ai_spec.md §8) 반환
+        AIServer-->>n8n: 예측 결과 + 예측 근거(05_ai.md §8) 반환
         n8n->>DB: forecast_results·forecast_menu_items 저장 (UPSERT)
         n8n->>AIServer: POST /ai/orders/recommend (추천발주 요청)
         AIServer-->>n8n: 추천발주안 반환
@@ -363,10 +364,10 @@ sequenceDiagram
     Note over n8n: 야간 배치 트리거
     n8n->>DB: pipeline_jobs INSERT (type=FORECAST, status=RUNNING, triggered_by=N8N)
     n8n->>DB: 판매 데이터·메뉴·레시피·재고·리드타임·안전재고 조회
-    n8n->>ExternalAPI: 외부 데이터 수집 (11_ai_spec.md §4.2 MVP 항목)
+    n8n->>ExternalAPI: 외부 데이터 수집 (05_ai.md §4.2 MVP 항목)
     n8n->>n8n: 전처리·정규화
     n8n->>AIServer: POST /ai/forecast/predict
-    AIServer-->>n8n: 예측 결과 + 예측 근거(11_ai_spec.md §8) 반환
+    AIServer-->>n8n: 예측 결과 + 예측 근거(05_ai.md §8) 반환
     n8n->>AIServer: POST /ai/orders/recommend
     AIServer-->>n8n: 추천발주안 반환
     n8n->>DB: forecast_results·forecast_menu_items UPSERT (§4.3.15·§4.3.16)
@@ -1564,9 +1565,9 @@ Authorization: Bearer <access_token>
 
 #### GET /api/forecast
 
-> §3.8 `POST /ai/forecast/predict`와 `11_ai_spec.md` §2·§3을 BE 응답으로 재노출한다.
-> 예측 대상은 메뉴별 수량이 아니라 매장 일 매출이며, 대상일은 판매 이력 마지막 영업일 기준 D+1~D+3이다(선행일별 신뢰도 차등 — `11_ai_spec.md` §3.3).
-> n8n 야간 배치가 사전 생성해 `forecast_results`·`forecast_menu_items`에 저장한 결과를 반환한다 (`11_ai_spec.md` §7.2).
+> §3.8 `POST /ai/forecast/predict`와 `05_ai.md` §2·§3을 BE 응답으로 재노출한다.
+> 예측 대상은 메뉴별 수량이 아니라 매장 일 매출이며, 대상일은 판매 이력 마지막 영업일 기준 D+1~D+3이다(선행일별 신뢰도 차등 — `05_ai.md` §3.3).
+> n8n 야간 배치가 사전 생성해 `forecast_results`·`forecast_menu_items`에 저장한 결과를 반환한다 (`05_ai.md` §7.2).
 > 저장된 결과가 없고 수동 실행이 허용된 경우 `POST /api/forecast/run`으로 단건 생성한다.
 
 ```json
@@ -1582,7 +1583,7 @@ Authorization: Bearer <access_token>
       "interval_p90": 1310000,
       "is_low_confidence": false,
       "low_confidence_reason": null,   // SHORT_HISTORY | MISSING_FEATURES | SPECIAL_DAY | LONG_HORIZON | WIDE_INTERVAL | DRIFT (01_basic_design.md §3.6.3)
-      "explanation": {                 // 11_ai_spec.md §8 — SHAP 합 = 편차, rule-based 문장(LLM 미사용)
+      "explanation": {                 // 05_ai.md §8 — SHAP 합 = 편차, rule-based 문장(LLM 미사용)
         "baseline": "직전 7영업일 평균",
         "deviation_vs_baseline": 0.12,
         "top_factors": [
@@ -1602,7 +1603,7 @@ Authorization: Bearer <access_token>
 
 #### POST /api/forecast/run
 
-> 저장된 예측이 없거나 점주·관리자가 갱신을 요청할 때 AI Server를 단건 호출하고 결과를 저장한다 (`11_ai_spec.md` §7.2).
+> 저장된 예측이 없거나 점주·관리자가 갱신을 요청할 때 AI Server를 단건 호출하고 결과를 저장한다 (`05_ai.md` §7.2).
 
 ```json
 // Request
@@ -1615,7 +1616,7 @@ Authorization: Bearer <access_token>
 #### GET /api/orders/recommend
 
 > §3.8 `POST /ai/orders/recommend`를 BE 응답으로 재노출한다.
-> 산출 방식은 `01_basic_design.md` §3.7.2. 결과는 참고치이며 예측 신뢰도 배지를 동반한다 — 배지 없이 단독 노출 금지 (`11_ai_spec.md` §8).
+> 산출 방식은 `01_basic_design.md` §3.7.2. 결과는 참고치이며 예측 신뢰도 배지를 동반한다 — 배지 없이 단독 노출 금지 (`05_ai.md` §8).
 > `menu_name`·`item_name`·`unit`은 BE가 `menus`·`inventory_items`를 조인해 채운다(AI Server는 ID만 반환). `adjusted_quantity`는 `PATCH /api/orders/recommend` 저장값이다.
 > 사전 생성된 당일 추천안이 없으면 AI Server를 호출해 산출하고 `order_recommendations`·`order_recommendation_items`에 저장한다. 이때 같은 매장·같은 날짜의 추천안 중 발주에 연결되지 않은 것은 대체한다. `recommendation_id`는 `POST /api/orders/approve`가 추천안을 지목하는 키다.
 
@@ -1854,7 +1855,7 @@ Authorization: Bearer <access_token>
 
 #### POST /ai/forecast/predict
 
-> 타깃은 매장 일 매출이다(`11_ai_spec.md` §2·§3). 메뉴별 입력·출력은 없다. 대상일은 D+1~D+3(선행일별 신뢰도 차등)이고, P10/P90 예측 구간·예측 근거·신뢰도 배지(`01_basic_design.md` §3.6.3)를 포함한다.
+> 타깃은 매장 일 매출이다(`05_ai.md` §2·§3). 메뉴별 입력·출력은 없다. 대상일은 D+1~D+3(선행일별 신뢰도 차등)이고, P10/P90 예측 구간·예측 근거·신뢰도 배지(`01_basic_design.md` §3.6.3)를 포함한다.
 > 공휴일·학사일정은 AI Server 내장 지식이라 payload로 받지 않는다. 기상은 과거 관측 + 대상일 예보를 함께 전달한다(단기예보의 TMN/TMX — 평균기온은 (min+max)/2 근사). 구현: `AI/app/api/forecast.py`.
 
 ```json
@@ -1883,7 +1884,7 @@ Authorization: Bearer <access_token>
       "interval_p90": 1310000,
       "is_low_confidence": false,
       "low_confidence_reason": null,   // SHORT_HISTORY | MISSING_FEATURES | SPECIAL_DAY | LONG_HORIZON | WIDE_INTERVAL | DRIFT
-      "explanation": {                 // 11_ai_spec.md §8 — SHAP 합 = 편차, rule-based 문장(LLM 미사용)
+      "explanation": {                 // 05_ai.md §8 — SHAP 합 = 편차, rule-based 문장(LLM 미사용)
         "baseline": "직전 7영업일 평균",
         "deviation_vs_baseline": 0.12,
         "top_factors": [
@@ -1900,9 +1901,9 @@ Authorization: Bearer <access_token>
 
 #### POST /ai/orders/recommend
 
-> 단일 호출로 서버가 내부에서 ① 매출 예측 × ② 매장별 메뉴 비중 분해(최근 28영업일 합산 비중) → 점주 레시피(BOM) 전개 → 재고·리드타임·안전재고 반영 발주 참고치까지 수행한다(`11_ai_spec.md` §3).
+> 단일 호출로 서버가 내부에서 ① 매출 예측 × ② 매장별 메뉴 비중 분해(최근 28영업일 합산 비중) → 점주 레시피(BOM) 전개 → 재고·리드타임·안전재고 반영 발주 참고치까지 수행한다(`05_ai.md` §3).
 > 레시피(`recipes`)는 점주 관리 데이터를 BE가 전달한다.
-> 메뉴별 예상 수량은 서버 산출물(`menu_forecast`)로 응답에 포함되며, ①의 신뢰도 배지가 응답에 동반 전파된다(참고치 원칙 — 배지 없이 단독 노출 금지, `11_ai_spec.md` §8).
+> 메뉴별 예상 수량은 서버 산출물(`menu_forecast`)로 응답에 포함되며, ①의 신뢰도 배지가 응답에 동반 전파된다(참고치 원칙 — 배지 없이 단독 노출 금지, `05_ai.md` §8).
 > 구현: `AI/app/api/orders.py` + `AI/app/model/decompose.py`.
 
 ```json
@@ -1987,7 +1988,7 @@ Authorization: Bearer <access_token>
     "holidays":          { "status": "ok" }
   }
 }
-// AI Server 다운 시 호출 주체(Backend 또는 n8n)가 실패 처리, degraded는 운영 알림(11_ai_spec.md §10)
+// AI Server 다운 시 호출 주체(Backend 또는 n8n)가 실패 처리, degraded는 운영 알림(05_ai.md §10)
 ```
 
 ### 3.9 대시보드 / 파이프라인 API
@@ -2510,20 +2511,20 @@ CREATE TABLE sale_records (
 
 #### 4.3.15 forecast_results
 
-> 예측 대상은 매장 일 매출이다 (`11_ai_spec.md` §2 ①). 메뉴별 예상 수량은 §4.3.16에 분리 저장한다.
+> 예측 대상은 매장 일 매출이다 (`05_ai.md` §2 ①). 메뉴별 예상 수량은 §4.3.16에 분리 저장한다.
 
 ```sql
 CREATE TABLE forecast_results (
     forecast_id             CHAR(36)        NOT NULL,
     store_id                CHAR(36)        NOT NULL,
     target_date             DATE            NOT NULL,
-    horizon_days            TINYINT         NOT NULL COMMENT '선행일 1~3 (11_ai_spec.md §3.3)',
+    horizon_days            TINYINT         NOT NULL COMMENT '선행일 1~3 (05_ai.md §3.3)',
     predicted_sales         INT             NOT NULL COMMENT '예측 일 매출(원)',
     interval_p10            INT             NOT NULL COMMENT '80% 예측 구간 하한 (LightGBM quantile)',
     interval_p90            INT             NOT NULL COMMENT '80% 예측 구간 상한',
     is_low_confidence       TINYINT(1)      NOT NULL DEFAULT 0,
     low_confidence_reason   VARCHAR(32)     NULL COMMENT '01_basic_design.md §3.6.3 코드 6종',
-    explanation             JSON            NULL COMMENT '예측 근거 — 11_ai_spec.md §8 응답 스키마',
+    explanation             JSON            NULL COMMENT '예측 근거 — 05_ai.md §8 응답 스키마',
     generated_at            DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (forecast_id),
     UNIQUE KEY uq_forecast_store_date (store_id, target_date),
@@ -2533,7 +2534,7 @@ CREATE TABLE forecast_results (
 
 #### 4.3.16 forecast_menu_items
 
-> 매출 예측을 메뉴 비중으로 분해한 참고치 (`11_ai_spec.md` §2 ②·§3.2). 신뢰도 배지는 §4.3.15의 값을 따른다.
+> 매출 예측을 메뉴 비중으로 분해한 참고치 (`05_ai.md` §2 ②·§3.2). 신뢰도 배지는 §4.3.15의 값을 따른다.
 
 ```sql
 CREATE TABLE forecast_menu_items (
@@ -2725,8 +2726,8 @@ DB 직접 접근은 용도별 전용 계정으로 분리한다. 개발자·운�
 |------|------|-----------|
 | `app_user` | Backend 애플리케이션 | SELECT, INSERT, UPDATE, DELETE (운영 테이블 전체, DDL 없음) |
 | `n8n_user` | n8n 배치 워크플로우 | 아래 표 참조 |
-| `dev_readonly` | 개발자 디버깅·조회 | SELECT (전체 테이블), VPN 경유 필수 |
-| `ops_readonly` | 운영팀 모니터링 | SELECT (`pipeline_jobs`, `stores` 집계), VPN 경유 필수 |
+| `dev_master` | 개발자 마스터 계정 | 전체 권한(DDL 포함), VPN 경유 필수 |
+| `ops_readonly` | 운영팀 모니터링·감사 로그 조회 | SELECT (`pipeline_jobs`, `stores` 집계, 감사 로그 테이블 `order_approval_logs`·`disposal_logs`·`inventory_adjustment_logs`), VPN 경유 필수 |
 
 #### n8n_user 권한 상세
 

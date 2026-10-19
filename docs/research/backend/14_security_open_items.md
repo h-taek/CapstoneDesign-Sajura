@@ -62,7 +62,7 @@
 | 항목 | 결정 |
 |------|------|
 | 보관 기간 | **1년** (개인정보보호법 일반 권장 + 디스크 부담 적정) |
-| 조회 권한 | `ops_readonly` 계정 (`02_implementation_design.md` §4.5 정의) — VPN 경유 필수 |
+| 조회 권한 | `ops_readonly` 계정·개발자 마스터 계정 `dev_master` (`02_implementation_design.md` §4.5 정의) — VPN 경유 필수 |
 | 무결성 보장 | **DB append-only (INSERT only) + 정기 백업**. 해시 체인 등 추가 무결성 메커니즘은 운영 부담 대비 가치 작음 — MVP 미적용 |
 | 보관 기간 초과 데이터 | 매월 1회 배치로 1년 초과 행 archive(별도 cold storage 이전 또는 삭제) |
 
