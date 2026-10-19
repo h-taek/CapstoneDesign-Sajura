@@ -1,0 +1,664 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>사주라 와이어플로우</title>
+<style>
+:root{--bg:#F4F5F7;--ink:#1F2937;--mute:#6B7280;--line:#D1D5DB;--acc:#2563EB;--ff:-apple-system,BlinkMacSystemFont,'Apple SD Gothic Neo',sans-serif}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--ff)}
+header{padding:24px 32px 8px;display:flex;flex-wrap:wrap;align-items:flex-end;gap:12px 28px}
+h1{margin:0;font-size:20px}
+.sub{font-size:12px;color:var(--mute);margin-top:4px}
+.sub a{color:var(--ink)}
+.legend{display:flex;flex-wrap:wrap;gap:6px 16px;font-size:12px;color:var(--mute);align-items:center}
+.legend i{display:inline-block;width:22px;height:0;border-top:2px solid var(--ink);vertical-align:middle;margin-right:6px}
+.legend .bd{position:static;display:inline-flex;width:16px;height:16px;font:700 10px/16px var(--ff);justify-content:center;margin-right:6px;vertical-align:middle;box-shadow:none}
+.legend .pl{display:inline-block;font-size:11px;border:1px solid var(--line);background:#fff;border-radius:10px;padding:0 7px;margin-right:6px;color:var(--ink)}
+.zoom{display:flex;gap:4px;margin-left:auto}
+.zoom button{font:600 12px var(--ff);padding:6px 10px;border:1px solid var(--line);background:#fff;border-radius:6px;cursor:pointer;color:var(--ink)}
+.zoom button[aria-pressed=true]{background:var(--ink);color:#fff;border-color:var(--ink)}
+.scroller{overflow:auto;padding:8px 32px 24px}
+.zw{position:relative}
+.board{position:absolute;left:0;top:0;transform-origin:0 0}
+.lane{position:absolute;left:0;border-radius:14px;background:rgba(0,0,0,.03)}
+.lane b{position:absolute;left:18px;top:50%;transform:translateY(-50%);font-size:15px;line-height:1.5;width:130px}
+.lane b small{display:block;font-size:11px;font-weight:400;color:var(--mute)}
+.fr{position:absolute;margin:0;width:461px}
+.fr figcaption{height:56px;padding-bottom:4px;display:flex;flex-direction:column;justify-content:flex-end}
+.fr figcaption b{font-size:12.5px;line-height:18px}
+.fr figcaption b a{font-weight:600;font-size:11px;color:var(--acc);text-decoration:none;margin-left:8px}
+.fr figcaption b a:hover{text-decoration:underline}
+.fr figcaption>span{font-size:11px;line-height:15px;color:var(--mute);max-width:92%}
+.thumb{width:461px;height:259px;border:1px solid var(--line);border-radius:6px;overflow:hidden;background:#fff;cursor:zoom-in;box-shadow:0 1px 3px rgba(0,0,0,.06)}
+.thumb:hover,.thumb:focus-visible{outline:2px solid var(--ink)}
+.thumb>.scr{transform:scale(.36);transform-origin:0 0;pointer-events:none}
+.wires{position:absolute;left:0;top:0;pointer-events:none;overflow:visible}
+.wires path.e{fill:none;stroke-width:1.7;stroke:var(--ink)}
+.wires .sync{stroke-dasharray:6 4}
+.lb{position:absolute;white-space:nowrap;font-size:11.5px;font-weight:600;background:var(--bg);padding:1px 6px;border-radius:4px;color:var(--ink)}
+.lb.c{transform:translateX(-50%)}
+.pill{position:absolute;display:inline-block;white-space:nowrap;font-size:11.5px;border:1px solid var(--line);background:#fff;border-radius:12px;padding:3px 10px;color:var(--ink);text-decoration:none}
+a.pill:hover{border-color:var(--ink)}
+.bd{position:absolute;min-width:22px;height:22px;padding:0 4px;border-radius:11px;color:#fff;font:700 12px/22px var(--ff);text-align:center;box-shadow:0 0 0 2px #fff;background:var(--acc)}
+.ib{display:inline-block;min-width:16px;height:16px;border-radius:8px;color:#fff;font:700 10.5px/16px var(--ff);text-align:center;padding:0 3px;margin:0 2px;vertical-align:1px;background:var(--acc)}
+.keynode{position:absolute;background:#fff;border:2px solid var(--ink);border-radius:8px;padding:8px 12px;font:600 12.5px/1.6 var(--ff);color:var(--ink);width:400px}
+.keynode small{display:block;font-weight:400;font-size:11.5px;color:var(--mute)}
+.fr.flash .thumb{outline:3px solid var(--acc);outline-offset:3px}
+section.doc{max-width:1180px;padding:8px 32px 48px}
+section.doc h2{font-size:16px;margin:28px 0 10px}
+section.doc p,section.doc li{font-size:13px;line-height:1.7}
+section.doc ul{padding-left:18px;margin:6px 0}
+section.doc a{color:var(--acc)}
+table{border-collapse:collapse;width:100%;font-size:12.5px;background:#fff}
+th,td{border:1px solid var(--line);padding:7px 10px;text-align:left;vertical-align:top;line-height:1.55}
+th{background:#EEF1F5;font-weight:600}
+code{font-size:12px}
+dialog{border:0;padding:0;background:transparent;max-width:none;max-height:none}
+dialog::backdrop{background:rgba(15,23,42,.72)}
+dialog .full{border-radius:8px;overflow:hidden}
+dialog .full>.scr{transform-origin:0 0}
+dialog .cap{color:#fff;font:600 14px var(--ff);margin:0 0 8px;display:flex;gap:12px;align-items:center}
+dialog .cap a{color:#93c5fd;font-size:13px}
+dialog form{text-align:right;margin-top:8px}
+dialog form button{font:600 13px var(--ff);padding:8px 14px;border-radius:6px;border:0;cursor:pointer}
+
+/* 화면 내부 — 1280x720 좌표 */
+.scr{width:1280px;height:720px;position:relative;overflow:hidden;background:#fff;color:#1f2328;font-size:22px;line-height:1.4;font-family:var(--ff)}
+.win{position:absolute;top:0;left:0;right:0;height:44px;display:flex;align-items:center;gap:12px;padding:0 20px;font-size:19px;font-weight:700;border-bottom:2px solid #d5d9df;background:#f3f4f6;color:#4b5563}
+.body{position:absolute;top:44px;left:0;right:0;bottom:0;padding:22px 26px}
+.app .body{left:230px}
+.side{position:absolute;left:0;top:44px;bottom:0;width:230px;border-right:2px solid #d5d9df;background:#fafafa;padding:16px 12px;display:flex;flex-direction:column;gap:6px}
+.side .logo{font-size:26px;font-weight:800;padding:0 10px 10px}
+.side .ni{font-size:19px;font-weight:700;padding:8px 12px;border-radius:8px;color:#4b5563}
+.side .ni.on{background:#1f2328;color:#fff}
+.side .gap{flex:1}
+.col{display:flex;flex-direction:column;gap:12px}
+.row{display:flex;gap:12px}
+.box{border:3px dashed #9aa1ab;border-radius:10px;padding:10px 14px;background:#fafafa}
+.k{font-size:17px;font-weight:700;color:#6b7280;margin-bottom:4px}
+.v{font-size:22px;font-weight:600}
+.m{font-size:17px;color:#6b7280}
+.t{font-size:30px;font-weight:800}
+.b{display:inline-flex;align-items:center;justify-content:center;height:52px;padding:0 26px;border:3px solid #1f2328;border-radius:10px;font-size:21px;font-weight:700;background:#fff;color:#1f2328;white-space:nowrap}
+.b.pri{background:#1f2328;color:#fff}
+.b.sm{height:40px;padding:0 14px;font-size:17px}
+.lk{font-size:18px;font-weight:700;text-decoration:underline;white-space:nowrap}
+.in{height:44px;border:3px solid #9aa1ab;border-radius:8px;background:#fff;font-size:17px;color:#6b7280;padding:0 12px;display:flex;align-items:center;white-space:nowrap;overflow:hidden}
+.in.off{background:#e9ebee}
+.lbl{font-size:16px;font-weight:700;color:#6b7280;margin-bottom:3px}
+.tbl{border:3px solid #1f2328;border-radius:8px;overflow:hidden;background:#fff}
+.tr{display:flex;align-items:center;gap:10px;padding:7px 12px;border-top:2px solid #e5e7eb;font-size:18px;min-height:42px}
+.tr:first-child{border-top:0}
+.tr.th{background:#eef0f3;font-weight:700;color:#6b7280;font-size:16px}
+.tr>span{flex:1;white-space:nowrap;overflow:hidden}
+.tr>span.w2{flex:2}.tr>span.n{flex:0 0 34px}
+.chip{display:inline-flex;align-items:center;border:3px solid #1f2328;border-radius:24px;padding:1px 12px;font-size:16px;font-weight:700;background:#fff;white-space:nowrap}
+.chip.dk{background:#1f2328;color:#fff}
+.cb{display:inline-block;width:20px;height:20px;border:3px solid #1f2328;border-radius:4px;vertical-align:-3px}
+.cb.on{background:#1f2328}
+.img{background:linear-gradient(to top right,transparent calc(50% - 2px),#c3c8cf 50%,transparent calc(50% + 2px)),linear-gradient(to bottom right,transparent calc(50% - 2px),#c3c8cf 50%,transparent calc(50% + 2px)),#e9ebee;border-radius:8px;position:relative}
+.img>em{position:absolute;left:14px;top:10px;font-style:normal;font-size:17px;font-weight:700;color:#6b7280;background:rgba(255,255,255,.85);padding:2px 8px;border-radius:4px}
+.chart{height:120px;border:3px solid #9aa1ab;border-radius:8px;background:repeating-linear-gradient(to top,#fff 0 28px,#eef0f3 28px 30px);position:relative}
+.chart i{position:absolute;bottom:0;width:22px;background:#9aa1ab;border-radius:4px 4px 0 0}
+.steps{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+.steps span{border:3px solid #9aa1ab;border-radius:8px;padding:4px 10px;font-size:16px;font-weight:700;color:#6b7280}
+.steps span.on{border-color:#1f2328;color:#1f2328}
+.steps span.done{border-style:solid}
+.steps span.todo{border-style:dashed}
+.hs{outline:6px solid var(--acc);outline-offset:4px}
+</style>
+</head>
+<body>
+
+<header>
+<div>
+<h1>사주라 — 점주 웹 와이어플로우</h1>
+<div class="sub">2026-10-19 · 기준 <code>Front/src/routes</code> 현재 코드(재고 로트 반영 <code>1bb672d</code>) · 화면을 누르면 원래 크기로 보고, '목업 ↗'은 페이지 목업을 연다</div>
+</div>
+<div class="legend">
+<span><i></i>화면 전환</span>
+<span><i style="border-top-style:dashed"></i>다른 사용자 조작으로 바뀜</span>
+<span><span class="bd">3</span>누르는 곳</span>
+<span><span class="pl">→ 화면</span>이름으로 잇는 이동</span>
+</div>
+<div class="zoom" role="group" aria-label="확대 비율"><button type="button" data-z="0.35">35%</button><button type="button" data-z="0.5" aria-pressed="true">50%</button><button type="button" data-z="0.75">75%</button><button type="button" data-z="1">100%</button></div>
+</header>
+
+<div class="scroller">
+<div class="zw" id="zw">
+<div class="board" id="board">
+<div class="lane" id="lane-a"><b>진입·온보딩<small>로그인 → 사업자 검증 → 온보딩 4단계</small></b></div>
+<div class="lane" id="lane-b"><b>가입·심사<small>회원가입, 반려, 관리자</small></b></div>
+<div class="lane" id="lane-c"><b>앱<small>사이드바 메뉴 5개</small></b></div>
+<div class="lane" id="lane-d"><b>매출 데이터·설정<small>CSV 업로드, 설정 5종</small></b></div>
+
+<!-- ───────── 진입·온보딩 ───────── -->
+<figure class="fr" data-row="a" data-col="0" id="fig-login"><figcaption><b>로그인 <code>/login</code><a href="01_login.html">목업 ↗</a></b><span>이메일 로그인과 구글·카카오. 로그인 뒤 가는 곳은 가드가 정한다(아래 표)</span></figcaption>
+<div class="thumb" id="f-login" role="button" tabindex="0"><div class="scr">
+<div class="win">/login</div>
+<div class="body row" style="padding:0;gap:0">
+<div class="img" style="width:560px;border-radius:0"><em>히어로 — 소개 문구</em></div>
+<div class="col" style="flex:1;padding:26px 60px;gap:12px">
+<div class="t">Welcome, Sajura</div>
+<div><div class="lbl">ID</div><div class="in">아이디를 입력해 주세요.</div></div>
+<div><div class="lbl">Password</div><div class="in">비밀번호를 입력해 주세요.</div></div>
+<div class="row m" style="justify-content:space-between"><span><span class="cb on"></span> 다음에도 기억하기</span><span style="text-decoration:underline">비밀번호를 잊으셨나요?</span></div>
+<span class="b pri hs" data-n="1" id="hs-1">로그인하기</span>
+<div class="m" style="text-align:center">or continue with</div>
+<div class="col hs" data-n="2" id="hs-2" style="gap:10px"><span class="b">구글로 시작하기</span><span class="b">카카오로 시작하기</span></div>
+<div class="m" style="text-align:center">계정이 없으신가요? <span class="lk hs" data-n="3" id="hs-3">여기서 회원가입 하세요</span></div>
+</div></div></div></div></figure>
+
+<figure class="fr" data-row="a" data-col="1" id="fig-verify"><figcaption><b>사업자 검증 <code>/verify-business</code><a href="03_verify-business.html">목업 ↗</a></b><span>UNVERIFIED·REJECTED만 머문다. 국세청 진위 확인 통과 시 PENDING으로 바로 다음 단계</span></figcaption>
+<div class="thumb" id="f-verify" role="button" tabindex="0"><div class="scr" style="background:#eef0f3">
+<div class="win">/verify-business</div>
+<div class="body" style="display:flex;align-items:center;justify-content:center">
+<div class="col" style="width:620px;background:#fff;border:3px solid #9aa1ab;border-radius:14px;padding:30px 36px;gap:16px">
+<div class="t">매장 인증을 완료해주세요</div>
+<div class="m">사업자등록번호와 등록증을 제출하면 검증 후 다음 단계로 진행합니다.</div>
+<div><div class="lbl">사업자등록번호</div><div class="in">123-45-67890</div></div>
+<div><div class="lbl">사업자등록증</div><div class="row"><div class="in" style="flex:1">사업자등록증(파일을 첨부해주세요)</div><span class="b pri sm" style="height:44px">파일 찾기</span></div></div>
+<span class="b pri hs" data-n="6" id="hs-6">제출하기</span>
+</div></div></div></div></figure>
+
+<figure class="fr" data-row="a" data-col="2" id="fig-ob1"><figcaption><b>온보딩 1 매장 정보 <code>/onboarding/1</code><a href="04_onboarding-store.html">목업 ↗</a></b><span>입력값은 4단계 [온보딩 완료] 때 한꺼번에 저장한다. 완료 전 단계 탭은 누를 수 없다</span></figcaption>
+<div class="thumb" id="f-ob1" role="button" tabindex="0"><div class="scr" style="background:#eef0f3">
+<div class="win">/onboarding/1</div>
+<div class="body col" style="padding:18px 240px;gap:10px">
+<div class="t" style="font-size:26px">매장 온보딩</div>
+<div class="steps"><span class="on">1 매장 정보</span><span class="todo">2 POS 연동</span><span class="todo">3 메뉴 등록</span><span class="todo">4 확인</span></div>
+<div class="col" style="background:#fff;border:3px solid #9aa1ab;border-radius:12px;padding:14px 20px;gap:8px">
+<div><div class="lbl">매장명</div><div class="in">사주라 화덕피자 성수점</div></div>
+<div class="row"><div style="flex:1"><div class="lbl">업종</div><div class="in">양식 ▾</div></div><div style="flex:1"><div class="lbl">매장 규모 · 운영 형태</div><div class="in">소형 ▾ · 홀+배달 ▾</div></div></div>
+<div><div class="lbl">주소 · 전화번호</div><div class="in">서울 성동구 … · 02-123-4567</div></div>
+<div style="display:flex;justify-content:flex-end"><span class="b pri hs" data-n="10" id="hs-10">다음</span></div>
+</div></div></div></div></figure>
+
+<figure class="fr" data-row="a" data-col="3" id="fig-ob2"><figcaption><b>온보딩 2 POS 연동 <code>/onboarding/2</code><a href="05_onboarding-pos.html">목업 ↗</a></b><span>기본값 'CSV 업로드만 사용'. 그때는 API 키·매장 코드 칸이 꺼진다</span></figcaption>
+<div class="thumb" id="f-ob2" role="button" tabindex="0"><div class="scr" style="background:#eef0f3">
+<div class="win">/onboarding/2</div>
+<div class="body col" style="padding:18px 240px;gap:10px">
+<div class="t" style="font-size:26px">매장 온보딩</div>
+<div class="steps"><span class="done">1 매장 정보</span><span class="on">2 POS 연동</span><span class="todo">3 메뉴 등록</span><span class="todo">4 확인</span></div>
+<div class="col" style="background:#fff;border:3px solid #9aa1ab;border-radius:12px;padding:14px 20px;gap:8px">
+<div class="v">김사주님, Sajura에 오신 걸 환영합니다</div>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px"><span class="chip">○ 유니온포스</span><span class="chip">○ OKPOS</span><span class="chip">○ POSBANK</span><span class="chip dk">● CSV 업로드만 사용</span></div>
+<div class="row"><div style="flex:1"><div class="lbl">POS API 키</div><div class="in off"></div></div><div style="flex:1"><div class="lbl">매장 코드</div><div class="in off"></div></div></div>
+<div class="row" style="justify-content:space-between"><span class="b hs" data-n="14" id="hs-14">이전</span><span class="b pri hs" data-n="11" id="hs-11">다음</span></div>
+</div></div></div></div></figure>
+
+<figure class="fr" data-row="a" data-col="4" id="fig-ob3"><figcaption><b>온보딩 3 메뉴 등록 <code>/onboarding/3</code><a href="06_onboarding-menus.html">목업 ↗</a></b><span>행 추가·삭제(마지막 1행은 삭제 불가). 메뉴마다 판매 활성·재고 차감 체크</span></figcaption>
+<div class="thumb" id="f-ob3" role="button" tabindex="0"><div class="scr" style="background:#eef0f3">
+<div class="win">/onboarding/3</div>
+<div class="body col" style="padding:18px 240px;gap:10px">
+<div class="t" style="font-size:26px">매장 온보딩</div>
+<div class="steps"><span class="done">1 매장 정보</span><span class="done">2 POS 연동</span><span class="on">3 메뉴 등록</span><span class="todo">4 확인</span></div>
+<div class="col" style="background:#fff;border:3px solid #9aa1ab;border-radius:12px;padding:14px 20px;gap:8px">
+<div class="box row" style="padding:8px 10px"><div class="in" style="flex:2">마르게리타</div><div class="in" style="flex:1">피자</div><div class="in" style="flex:1">16,000</div><span class="m">🗑</span></div>
+<div class="box row" style="padding:8px 10px"><div class="in" style="flex:2">페페로니 듬뿍</div><div class="in" style="flex:1">피자</div><div class="in" style="flex:1">17,900</div><span class="m">🗑</span></div>
+<span class="b sm" style="align-self:flex-start">+ 메뉴 추가</span>
+<div class="row" style="justify-content:space-between"><span class="b hs" data-n="15" id="hs-15">이전</span><span class="b pri hs" data-n="12" id="hs-12">다음</span></div>
+</div></div></div></div></figure>
+
+<figure class="fr" data-row="a" data-col="5" id="fig-ob4"><figcaption><b>온보딩 4 확인 <code>/onboarding/4</code><a href="07_onboarding-confirm.html">목업 ↗</a></b><span>[온보딩 완료] = 매장 저장 → POS 등록(CSV면 생략) → 메뉴 일괄 등록 → 완료 처리</span></figcaption>
+<div class="thumb" id="f-ob4" role="button" tabindex="0"><div class="scr" style="background:#eef0f3">
+<div class="win">/onboarding/4</div>
+<div class="body col" style="padding:18px 240px;gap:10px">
+<div class="t" style="font-size:26px">매장 온보딩</div>
+<div class="steps"><span class="done">1 매장 정보</span><span class="done">2 POS 연동</span><span class="done">3 메뉴 등록</span><span class="on">4 확인</span></div>
+<div class="col" style="background:#fff;border:3px solid #9aa1ab;border-radius:12px;padding:14px 20px;gap:8px">
+<div class="box"><div class="k">매장</div><div class="m">사주라 화덕피자 성수점 · 양식 · 소형 · 홀+배달</div></div>
+<div class="box"><div class="k">POS</div><div class="m">CSV_ONLY</div></div>
+<div class="box"><div class="k">메뉴 (2개)</div><div class="m">마르게리타 · 피자 · 16,000원 …</div></div>
+<div class="row" style="justify-content:space-between"><span class="b hs" data-n="16" id="hs-16">이전</span><span class="b pri hs" data-n="13" id="hs-13">온보딩 완료</span></div>
+</div></div></div></div></figure>
+
+<!-- ───────── 가입·심사 ───────── -->
+<figure class="fr" data-row="b" data-col="0" id="fig-register"><figcaption><b>회원가입 <code>/register</code><a href="02_register.html">목업 ↗</a></b><span>이메일·이름·비밀번호. 휴대폰 본인인증 없음</span></figcaption>
+<div class="thumb" id="f-register" role="button" tabindex="0"><div class="scr">
+<div class="win">/register</div>
+<div class="body row" style="padding:0;gap:0">
+<div class="img" style="width:560px;border-radius:0"><em>히어로 — 소개 문구</em></div>
+<div class="col" style="flex:1;padding:26px 60px;gap:10px">
+<div class="t">계정 생성</div>
+<div><div class="lbl">ID</div><div class="in">아이디를 입력해 주세요.</div></div>
+<div><div class="lbl">이름</div><div class="in">이름을 입력해 주세요.</div></div>
+<div><div class="lbl">Password · 8자 이상</div><div class="in">비밀번호를 입력해 주세요.</div></div>
+<div><div class="lbl">PW 재입력</div><div class="in">비밀번호를 다시 입력해 주세요.</div></div>
+<span class="b pri hs" data-n="4" id="hs-4">계정 생성</span>
+<div class="m" style="text-align:center">이미 계정이 있으신가요? <span class="lk hs" data-n="5" id="hs-5">여기서 로그인 하세요</span></div>
+</div></div></div></div></figure>
+
+<figure class="fr" data-row="b" data-col="1" id="fig-rejected"><figcaption><b>사업자 검증 — 반려됨 <code>/verify-business</code><a href="03_verify-business.html?state=rejected">목업 ↗</a></b><span>관리자가 반려하면 다음 요청 때 403을 받고 이 화면으로 온다. 반려 사유 표시</span></figcaption>
+<div class="thumb" id="f-rejected" role="button" tabindex="0"><div class="scr" style="background:#eef0f3">
+<div class="win">/verify-business</div>
+<div class="body" style="display:flex;align-items:center;justify-content:center">
+<div class="col" style="width:620px;background:#fff;border:3px solid #9aa1ab;border-radius:14px;padding:26px 36px;gap:14px">
+<div class="t">매장 인증을 완료해주세요</div>
+<div class="box" style="border-style:solid"><div class="v" style="font-size:19px">반려됨: [반려 사유] — 확인 후 다시 제출해주세요.</div></div>
+<div><div class="lbl">사업자등록번호</div><div class="in">123-45-67890</div></div>
+<div><div class="lbl">사업자등록증</div><div class="row"><div class="in" style="flex:1">새 파일 첨부</div><span class="b pri sm" style="height:44px">파일 찾기</span></div></div>
+<span class="b pri hs" data-n="9" id="hs-9">제출하기</span>
+</div></div></div></div></figure>
+
+<figure class="fr" data-row="b" data-col="2" id="fig-admin"><figcaption><b>관리자 사업자 심사 <code>/admin/verifications</code><a href="20_admin-verifications.html">목업 ↗</a></b><span>role=ADMIN만. 내비게이션 링크 없이 주소로 들어온다. PENDING 목록</span></figcaption>
+<div class="thumb" id="f-admin" role="button" tabindex="0"><div class="scr">
+<div class="win">/admin/verifications</div>
+<div class="body col" style="padding:24px 160px;gap:14px">
+<div class="t">사업자 검증 심사</div>
+<div class="box row" style="border-style:solid;align-items:center"><div style="flex:1"><div class="v" style="font-size:20px">owner@sajura.kr</div><div class="m">사업자번호: 123-45-67890</div></div><span class="b sm">등록증 보기</span><span class="b sm pri hs" data-n="7" id="hs-7">승인</span><span class="b sm">반려</span></div>
+<div class="box col" style="border-style:solid;gap:10px"><div class="row" style="align-items:center"><div style="flex:1"><div class="v" style="font-size:20px">pizza@sajura.kr</div><div class="m">사업자번호: 222-33-44444</div></div><span class="b sm">등록증 보기</span><span class="b sm pri">승인</span><span class="b sm">반려</span></div>
+<div class="img" style="height:120px"><em>등록증 미리보기 (이미지·PDF)</em></div>
+<div class="row"><div class="in" style="flex:1">반려 사유</div><span class="b sm pri hs" data-n="8" id="hs-8">반려 확정</span></div></div>
+</div></div></div></figure>
+
+<!-- ───────── 앱 ───────── -->
+<figure class="fr" data-row="c" data-col="0" id="fig-home"><figcaption><b>홈 <code>/</code><a href="08_home.html">목업 ↗</a></b><span>최저가 추천(KAMIS 샘플)·주요지표·매출 그래프·인기 메뉴·재고 현황(경고 품목 먼저 5개)·매출분석</span></figcaption>
+<div class="thumb" id="f-home" role="button" tabindex="0"><div class="scr app">
+<div class="win">/ · 사주라 화덕피자 성수점 · hello, 김사주</div>
+<div class="side"><div class="logo">Sajura</div><div class="ni on">홈</div><div class="ni hs" data-n="17" id="hs-17">매출예측</div><div class="ni hs" data-n="18" id="hs-18">재고관리</div><div class="ni hs" data-n="19" id="hs-19">발주추천</div><div class="ni hs" data-n="20" id="hs-20">레시피 관리</div><div class="gap"></div><div class="ni hs" data-n="21" id="hs-21">설정</div><div class="ni hs" data-n="22" id="hs-22">로그아웃</div></div>
+<div class="body col" style="gap:10px">
+<div class="row"><span class="b sm pri hs" data-n="23" id="hs-23">POS 연동 설정</span><span class="b sm hs" data-n="24" id="hs-24">매출 CSV 업로드</span></div>
+<div class="row" style="gap:12px"><div class="col" style="flex:1;gap:4px"><div class="k">실시간 최저가 추천</div><div class="tbl"><div class="tr th"><span>상품명</span><span>현재가</span><span>변동률</span></div><div class="tr"><span>양파 (1kg)</span><span>2,480</span><span>▲3.2%</span></div><div class="tr"><span>계란 (30구)</span><span>6,900</span><span>▼1.1%</span></div></div></div>
+<div class="col" style="width:330px;gap:4px"><div class="k">주요지표</div><div style="display:grid;grid-template-columns:1fr 1fr;gap:6px"><div class="box"><div class="m">오늘 매출</div><div class="v">₩842,000</div></div><div class="box"><div class="m">판매건수</div><div class="v">57건</div></div><div class="box"><div class="m">재고 경고</div><div class="v">3개</div></div><div class="box"><div class="m">메뉴 수</div><div class="v">18개</div></div></div></div></div>
+<div class="row"><div class="chart" style="flex:1;height:96px"></div><div class="chart" style="flex:1;height:96px"></div><div class="box" style="flex:1;height:96px"><div class="k">인기 메뉴</div><div class="m">1 불새우 루꼴라 · 2 페페로니</div></div></div>
+<div class="row"><div class="col" style="flex:1;gap:4px"><div class="row" style="justify-content:space-between"><span class="k">재고 현황</span><span class="lk hs" data-n="25" id="hs-25">전체 보기</span></div><div class="tbl"><div class="tr"><span>루꼴라</span><span>0 g</span><span><span class="chip">재고 확인 필요</span></span></div></div></div><div class="box" style="width:330px"><div class="k">매출분석</div><div class="m">누적 · 월별/연도별 · 비중</div></div></div>
+</div></div></div></figure>
+
+<figure class="fr" data-row="c" data-col="1" id="fig-forecast"><figcaption><b>매출예측 <code>/forecast</code><a href="09_forecast.html">목업 ↗</a></b><span>보기 전용. AI D+1~D+3 예측. 이력 10일 미만이면 안내, 정확도·오차율은 준비 중</span></figcaption>
+<div class="thumb" id="f-forecast" role="button" tabindex="0"><div class="scr app" data-nav="forecast">
+<div class="win">/forecast</div>
+<div class="body col" style="gap:12px">
+<div class="t" style="font-size:26px">매출 그래프 (예측 매출/실제 매출)</div>
+<div class="row"><div class="box" style="flex:1"><div class="m">예측 정확도</div><div class="v">준비 중</div></div><div class="box" style="flex:1"><div class="m">평균 오차율</div><div class="v">준비 중</div></div><div class="box" style="flex:1"><div class="m">이번 달 누적</div><div class="v">₩18.4M</div></div><div class="box" style="flex:1"><div class="m">전월 대비</div><div class="v">+6.2%</div></div></div>
+<div class="row"><div class="col" style="flex:1;gap:4px"><div class="k">이번 달</div><div class="chart"></div></div><div class="col" style="flex:1;gap:4px"><div class="k">지난 달</div><div class="chart"></div></div></div>
+<div class="k">AI 수요예측 (D+1~D+3)</div>
+<div class="row"><div class="box" style="flex:1"><div class="m">10월 20일(월)</div><div class="v">₩812,000</div></div><div class="box" style="flex:1"><div class="m">10월 21일(화)</div><div class="v">₩790,000</div></div><div class="box" style="flex:1"><div class="m">10월 22일(수) <span class="chip">신뢰도 낮음</span></div><div class="v">₩845,000</div></div></div>
+</div></div></div></figure>
+
+<figure class="fr" data-row="c" data-col="2" id="fig-inventory"><figcaption><b>재고관리 — 목록 <code>/inventory</code><a href="10_inventory.html">목업 ↗</a></b><span>총 수량은 로트 잔여 합계(읽기 전용). 상태: 재고 확인 필요 > 재고 없음 > 소비기한 임박 > 부족 > 정상</span></figcaption>
+<div class="thumb" id="f-inventory" role="button" tabindex="0"><div class="scr app" data-nav="inventory">
+<div class="win">/inventory</div>
+<div class="body col" style="gap:14px">
+<div class="row" style="justify-content:space-between;align-items:center"><div class="t" style="font-size:26px">재고 현황</div><span class="b pri hs" data-n="27" id="hs-27">+ 재료 추가</span></div>
+<div class="tbl"><div class="tr th"><span>재료</span><span>총 수량</span><span>재주문 임계값</span><span>안전재고</span><span>상태</span><span class="n"></span></div>
+<div class="tr"><span class="hs" data-n="26" id="hs-26">▸ 루꼴라</span><span>0 g</span><span>200 g</span><span>100 g</span><span><span class="chip">재고 확인 필요</span></span><span class="n">🗑</span></div>
+<div class="tr"><span>▸ 모짜렐라 치즈</span><span>4,250 g</span><span>2,000 g</span><span>1,000 g</span><span><span class="chip">소비기한 임박</span></span><span class="n">🗑</span></div>
+<div class="tr"><span>▸ 페퍼로니</span><span>380 g</span><span>500 g</span><span>—</span><span><span class="chip">부족</span></span><span class="n">🗑</span></div>
+<div class="tr"><span>▸ 바질</span><span>0 g</span><span>50 g</span><span>—</span><span><span class="chip">재고 없음</span></span><span class="n">🗑</span></div>
+<div class="tr"><span>▸ 피자 도우</span><span>96 개</span><span>40 개</span><span>20 개</span><span><span class="chip">정상</span></span><span class="n">🗑</span></div>
+<div class="tr"><span>▸ 토마토 소스</span><span>7,800 g</span><span>3,000 g</span><span>1,500 g</span><span><span class="chip">정상</span></span><span class="n">🗑</span></div>
+</div></div></div></div></figure>
+
+<figure class="fr" data-row="c" data-col="3" id="fig-lots"><figcaption><b>재고관리 — 로트 펼침 <code>/inventory</code><a href="10_inventory.html?state=lots">목업 ↗</a></b><span>같은 화면. 입고 등록·로트 수정(사유 필수)·폐기. 로트는 소비기한 빠른 순, 기한 없으면 입고일 순</span></figcaption>
+<div class="thumb" id="f-lots" role="button" tabindex="0"><div class="scr app" data-nav="inventory">
+<div class="win">/inventory</div>
+<div class="body col" style="gap:10px">
+<div class="t" style="font-size:26px">재고 현황</div>
+<div class="tbl"><div class="tr th"><span>재료</span><span>총 수량</span><span>임계값</span><span>상태</span></div>
+<div class="tr"><span>▾ 루꼴라</span><span>0 g</span><span>200 g</span><span><span class="chip">재고 확인 필요</span></span></div>
+<div class="col" style="padding:10px 14px;background:#f3f4f6;gap:8px">
+<div class="box" style="border-style:solid;padding:6px 12px"><span class="m">기록상 재고 없이 판매가 차감됐습니다. 입고 또는 실사 조정으로 맞추세요.</span></div>
+<div class="row" style="align-items:flex-end"><div><div class="lbl">입고 수량</div><div class="in" style="width:110px">1000</div></div><div><div class="lbl">입고일</div><div class="in" style="width:150px">2026-10-19</div></div><div><div class="lbl">소비기한</div><div class="in" style="width:150px">2026-10-24</div></div><div><div class="lbl">구매 금액</div><div class="in" style="width:120px">18000</div></div><span class="b sm pri hs" data-n="28" id="hs-28">입고 등록</span></div>
+<div class="tbl"><div class="tr th"><span>입고일</span><span>소비기한</span><span>입고</span><span>잔여</span><span>금액</span><span>　</span></div><div class="tr"><span>10-14</span><span>10-18</span><span>1,000 g</span><span>0 g</span><span>18,000원</span><span><span class="lk hs" data-n="29" id="hs-29">수정</span> <span class="lk hs" data-n="30" id="hs-30" style="margin-left:14px">폐기</span></span></div></div>
+<div class="row" style="align-items:flex-end"><div class="in" style="width:120px">잔여 120</div><div class="in" style="width:150px">실사 조정 ▾</div><div class="in" style="flex:1">메모</div><span class="b sm pri">저장</span></div>
+</div>
+<div class="tr"><span>▸ 모짜렐라 치즈</span><span>4,250 g</span><span>2,000 g</span><span><span class="chip">소비기한 임박</span></span></div>
+</div></div></div></div></figure>
+
+<figure class="fr" data-row="c" data-col="4" id="fig-orders"><figcaption><b>발주추천 <code>/orders</code><a href="11_orders.html">목업 ↗</a></b><span>임계값 추천과 AI 추천을 각각 골라 확정. 확정은 기록만 하고 재고 수량은 바꾸지 않는다</span></figcaption>
+<div class="thumb" id="f-orders" role="button" tabindex="0"><div class="scr app" data-nav="orders">
+<div class="win">/orders</div>
+<div class="body col" style="gap:10px">
+<div class="t" style="font-size:26px">발주 추천</div>
+<div class="row" style="justify-content:space-between;align-items:center"><span class="k">재주문이 필요한 재료</span><span class="b sm pri hs" data-n="31" id="hs-31">임계값 추천 발주 확정 (2)</span></div>
+<div class="tbl"><div class="tr th"><span class="n"></span><span>재료</span><span>현재 수량</span><span>임계값</span><span>발주 수량</span></div><div class="tr"><span class="n"><span class="cb on"></span></span><span>페퍼로니</span><span>380 g</span><span>500 g</span><span><span class="in" style="width:110px;height:34px">620</span></span></div><div class="tr"><span class="n"><span class="cb on"></span></span><span>바질</span><span>0 g</span><span>50 g</span><span><span class="in" style="width:110px;height:34px">100</span></span></div></div>
+<div class="row" style="justify-content:space-between;align-items:center"><span class="k">AI 예측 발주 <span class="chip">신뢰도 낮음</span></span><span class="b sm pri">AI 추천 발주 확정 (3)</span></div>
+<div class="tbl"><div class="tr th"><span class="n"></span><span>재료</span><span>추천</span><span>발주 수량</span><span>소진일</span><span class="w2">근거</span></div><div class="tr"><span class="n"><span class="cb on"></span></span><span>모짜렐라 <span class="chip">설정 필요</span></span><span>3.2 kg</span><span><span class="in" style="width:100px;height:34px">3.2</span></span><span>10-23</span><span class="w2 m">D+3 예측 수요 …</span></div></div>
+<div class="k">발주 확정 이력</div><div class="box" style="padding:6px 12px"><span class="m">2026. 10. 17. 오후 3:12 · 품목 3개 · 확정 ▾</span></div>
+</div></div></div></figure>
+
+<figure class="fr" data-row="c" data-col="5" id="fig-recipes"><figcaption><b>레시피 관리 <code>/recipes</code><a href="12_recipes.html">목업 ↗</a></b><span>메뉴를 고르면 오른쪽에서 재료 구성 편집. 재료가 없으면 재고관리부터 안내</span></figcaption>
+<div class="thumb" id="f-recipes" role="button" tabindex="0"><div class="scr app" data-nav="recipes">
+<div class="win">/recipes</div>
+<div class="body col" style="gap:12px">
+<div class="t" style="font-size:26px">레시피 관리</div>
+<div class="row" style="gap:16px;flex:1">
+<div class="tbl" style="width:270px;align-self:flex-start"><div class="tr" style="background:#1f2328;color:#fff"><span>마르게리타</span></div><div class="tr"><span class="hs" data-n="32" id="hs-32">페페로니 듬뿍</span></div><div class="tr"><span>불새우 루꼴라</span></div><div class="tr"><span>콰트로 치즈</span></div><div class="tr"><span>얼큰 바지락 술찜</span></div></div>
+<div class="col box" style="flex:1;border-style:solid;gap:10px">
+<div class="v">마르게리타</div><div class="m">재고 차감 사용 — 레시피 등록 필요</div>
+<div class="row"><div class="in" style="flex:1">피자 도우 ▾</div><div class="in" style="width:110px">1</div><span class="m">개</span><span class="m">🗑</span></div>
+<div class="row"><div class="in" style="flex:1">토마토 소스 ▾</div><div class="in" style="width:110px">80</div><span class="m">g</span><span class="m">🗑</span></div>
+<div class="row"><div class="in" style="flex:1">모짜렐라 치즈 ▾</div><div class="in" style="width:110px">150</div><span class="m">g</span><span class="m">🗑</span></div>
+<span class="b sm" style="align-self:flex-start">+ 재료 추가</span>
+<div style="display:flex;justify-content:flex-end"><span class="b pri hs" data-n="33" id="hs-33">레시피 저장</span></div>
+</div></div></div></div></div></figure>
+
+<!-- ───────── 매출 데이터·설정 ───────── -->
+<figure class="fr" data-row="d" data-col="0" id="fig-settings"><figcaption><b>설정 <code>/settings</code><a href="14_settings.html">목업 ↗</a></b><span>설정 5종 허브. 상단바 아바타도 여기로 온다</span></figcaption>
+<div class="thumb" id="f-settings" role="button" tabindex="0"><div class="scr app" data-nav="settings">
+<div class="win">/settings</div>
+<div class="body col" style="gap:16px">
+<div class="t" style="font-size:26px">설정</div>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+<div class="box hs" data-n="34" id="hs-34" style="border-style:solid"><div class="v">POS 연동 관리</div><div class="m">연동 상태, CSV 템플릿·업로드</div></div>
+<div class="box hs" data-n="35" id="hs-35" style="border-style:solid"><div class="v">단가 관리</div><div class="m">메뉴별 판매 단가</div></div>
+<div class="box hs" data-n="36" id="hs-36" style="border-style:solid"><div class="v">알림 설정</div><div class="m">재고 부족·발주 알림</div></div>
+<div class="box hs" data-n="37" id="hs-37" style="border-style:solid"><div class="v">계정 정보</div><div class="m">이름, 매장 정보, 비밀번호</div></div>
+<div class="box hs" data-n="38" id="hs-38" style="border-style:solid"><div class="v">앱 정보</div><div class="m">버전, 약관, 개인정보처리방침</div></div>
+</div></div></div></div></figure>
+
+<figure class="fr" data-row="d" data-col="1" id="fig-pos"><figcaption><b>POS 연동 설정 <code>/settings/pos</code><a href="15_settings-pos.html">목업 ↗</a></b><span>현재는 CSV 업로드 모드만. 템플릿은 브라우저에서 바로 만든다</span></figcaption>
+<div class="thumb" id="f-pos" role="button" tabindex="0"><div class="scr app" data-nav="settings">
+<div class="win">/settings/pos</div>
+<div class="body col" style="gap:14px;padding:22px 90px">
+<div class="t" style="font-size:26px">POS 연동 설정</div>
+<div class="box" style="border-style:solid"><div class="k">현재 연동 상태</div><span class="chip">CSV 업로드 모드</span></div>
+<div class="box col" style="border-style:solid;gap:10px"><div class="v">CSV 업로드</div><div class="m">POS 매출 데이터를 사주라 양식 CSV로 변환해 업로드합니다.</div>
+<div class="row"><span class="b hs" data-n="40" id="hs-40">CSV 템플릿 다운로드</span><span class="b pri hs" data-n="39" id="hs-39">업로드 화면으로 이동</span></div>
+<div class="m">· UTF-8 CSV만 · 최대 50 MB · 같은 영수증번호는 건너뜀</div></div>
+<div class="box"><span class="m">외부 POS API 연동은 2단계에서 제공 예정</span></div>
+</div></div></div></figure>
+
+<figure class="fr" data-row="d" data-col="2" id="fig-upload"><figcaption><b>매출 CSV 업로드 <code>/sales/upload</code><a href="13_sales-upload.html">목업 ↗</a></b><span>파일 → 컬럼 매핑 → 업로드. 사이드바는 '홈'이 켜진 상태</span></figcaption>
+<div class="thumb" id="f-upload" role="button" tabindex="0"><div class="scr app" data-nav="home">
+<div class="win">/sales/upload</div>
+<div class="body col" style="gap:10px;padding:16px 90px">
+<div class="t" style="font-size:24px">매출 CSV 업로드</div>
+<div class="box" style="border-style:solid"><div class="k">1. 파일 선택</div><div class="box" style="height:64px;display:flex;align-items:center;justify-content:center"><span class="m">파일을 끌어다 놓거나 눌러서 선택 · 최대 50 MB</span></div></div>
+<div class="box" style="border-style:solid"><div class="k">2. 컬럼명 매핑</div><div style="display:grid;grid-template-columns:1fr 1fr;gap:6px"><div class="in">날짜: 기간</div><div class="in">메뉴명: 상품명</div><div class="in">수량: 판매건수</div><div class="in">금액: 실 판매 금액…</div><div class="in">영수증번호 (선택)</div></div></div>
+<div class="box col" style="border-style:solid;gap:8px"><div class="k">3. 업로드</div><div class="m"><span class="cb"></span> 매장 메뉴에 없는 항목 자동 등록</div><div class="row"><span class="b pri hs" data-n="41" id="hs-41">업로드 시작</span><span class="b hs" data-n="42" id="hs-42">설정으로 돌아가기</span></div></div>
+</div></div></div></figure>
+
+<figure class="fr" data-row="d" data-col="3" id="fig-result"><figcaption><b>업로드 결과 <code>/sales/upload</code><a href="13_sales-upload.html?state=needs">목업 ↗</a></b><span>같은 화면 아래에 결과 카드. 새로 저장된 판매만 재고에서 차감, 모자라면 '재고 확인 필요'</span></figcaption>
+<div class="thumb" id="f-result" role="button" tabindex="0"><div class="scr app" data-nav="home">
+<div class="win">/sales/upload · 결과로 스크롤</div>
+<div class="body col" style="gap:10px;padding:16px 90px">
+<div class="box" style="border-style:solid;opacity:.5"><div class="k">3. 업로드</div><span class="b sm pri">업로드 시작</span></div>
+<div class="col" style="border:4px solid #1f2328;border-radius:12px;padding:14px 18px;gap:10px">
+<div class="row" style="justify-content:space-between"><span class="v">업로드 완료</span><span class="lk hs" data-n="44" id="hs-44">메인 화면으로</span></div>
+<div class="row"><div class="box" style="flex:1;text-align:center"><div class="m">저장</div><div class="v">1,284</div></div><div class="box" style="flex:1;text-align:center"><div class="m">제외</div><div class="v">12</div></div><div class="box" style="flex:1;text-align:center"><div class="m">자동 등록된 메뉴</div><div class="v">2</div></div><div class="box" style="flex:1;text-align:center"><div class="m">이상치 감지</div><div class="v">0</div></div></div>
+<div class="m">재고 차감에 반영된 판매 1,284건</div>
+<div class="box" style="border-style:solid"><span style="font-size:18px">재고 확인 필요: 루꼴라, 바질 — 기록된 재고보다 많이 팔렸습니다. <span class="lk hs" data-n="43" id="hs-43">재고 관리</span>에서 입고 또는 실사 조정</span></div>
+<div class="box"><span class="m">▸ 제외된 행 12건 보기</span></div>
+</div></div></div></div></figure>
+
+<figure class="fr" data-row="d" data-col="4" id="fig-pricing"><figcaption><b>단가 관리 <code>/settings/pricing</code><a href="16_settings-pricing.html">목업 ↗</a></b><span>메뉴 판매 단가만 행 안에서 고친다</span></figcaption>
+<div class="thumb" id="f-pricing" role="button" tabindex="0"><div class="scr app" data-nav="settings">
+<div class="win">/settings/pricing</div>
+<div class="body col" style="gap:14px">
+<div class="t" style="font-size:26px">단가 관리</div>
+<div class="tbl"><div class="tr th"><span>메뉴</span><span>카테고리</span><span>단가</span><span class="n"></span></div>
+<div class="tr"><span>마르게리타</span><span>피자</span><span>₩16,000</span><span class="lk hs" data-n="45" id="hs-45">수정</span></div>
+<div class="tr"><span>페페로니 듬뿍</span><span>피자</span><span><span class="in" style="width:140px;height:34px">17900</span></span><span class="m">취소 · <b>저장</b></span></div>
+<div class="tr"><span>불새우 루꼴라</span><span>피자</span><span>₩19,000</span><span class="lk">수정</span></div>
+<div class="tr"><span>콰트로 치즈</span><span>피자</span><span>₩18,500</span><span class="lk">수정</span></div>
+<div class="tr"><span>머스크멜론하몽</span><span>자동등록</span><span>₩18,000</span><span class="lk">수정</span></div>
+</div></div></div></div></figure>
+
+<figure class="fr" data-row="d" data-col="5" id="fig-notifications"><figcaption><b>알림 설정 <code>/settings/notifications</code><a href="17_settings-notifications.html">목업 ↗</a></b><span>알림 기능이 없어 준비 중 안내만</span></figcaption>
+<div class="thumb" id="f-notifications" role="button" tabindex="0"><div class="scr app" data-nav="settings">
+<div class="win">/settings/notifications</div>
+<div class="body col" style="gap:14px">
+<div class="t" style="font-size:26px">알림 설정</div>
+<div class="m">재고 부족·발주 알림 수신 여부를 설정합니다.</div>
+<div class="box" style="height:110px;display:flex;align-items:center"><span class="m">인앱·이메일·웹푸시 알림 기능은 아직 준비 중입니다.</span></div>
+</div></div></div></figure>
+
+<figure class="fr" data-row="d" data-col="6" id="fig-account"><figcaption><b>계정 정보 <code>/settings/account</code><a href="18_settings-account.html">목업 ↗</a></b><span>내 정보·매장 정보·비밀번호 변경·회원 탈퇴(이메일 계정은 비밀번호 확인, 동의 체크)</span></figcaption>
+<div class="thumb" id="f-account" role="button" tabindex="0"><div class="scr app" data-nav="settings">
+<div class="win">/settings/account</div>
+<div class="body col" style="gap:8px;padding:16px 26px;width:760px">
+<div class="t" style="font-size:24px">계정 정보 <span class="m">owner@sajura.kr</span></div>
+<div class="box" style="border-style:solid;padding:6px 12px"><div class="k">내 정보</div><div class="row"><div class="in" style="flex:1;height:34px">김사주</div><div class="in" style="flex:1;height:34px">사주라 화덕피자 성수점</div><span class="b sm" style="height:34px">저장</span></div></div>
+<div class="box" style="border-style:solid;padding:6px 12px"><div class="k">매장 정보</div><div class="row"><div class="in" style="flex:1;height:34px">양식</div><div class="in" style="flex:2;height:34px">서울 성동구 …</div><span class="b sm" style="height:34px">저장</span></div></div>
+<div class="box" style="border-style:solid;padding:6px 12px"><div class="k">비밀번호 변경</div><div class="row"><div class="in" style="flex:1;height:34px">현재</div><div class="in" style="flex:1;height:34px">새 비밀번호</div><div class="in" style="flex:1;height:34px">확인</div></div></div>
+<div class="box col" style="border-style:solid;padding:6px 12px;gap:6px"><div class="k">회원 탈퇴</div><div class="m">즉시 로그인 불가 · 30일 뒤 모든 데이터 삭제</div><div class="row" style="align-items:center"><div class="in" style="flex:1;height:34px">비밀번호 확인</div><span class="m"><span class="cb on"></span> 영구 삭제 확인</span><span class="b sm pri hs" data-n="46" id="hs-46" style="height:34px">회원 탈퇴</span></div></div>
+</div></div></div></figure>
+
+<figure class="fr" data-row="d" data-col="7" id="fig-appinfo"><figcaption><b>앱 정보 <code>/settings/app-info</code><a href="19_settings-app-info.html">목업 ↗</a></b><span>버전 표시. 약관·방침은 준비 중</span></figcaption>
+<div class="thumb" id="f-appinfo" role="button" tabindex="0"><div class="scr app" data-nav="settings">
+<div class="win">/settings/app-info</div>
+<div class="body col" style="gap:14px;width:780px">
+<div class="t" style="font-size:26px">앱 정보</div>
+<div class="tbl"><div class="tr"><span>버전</span><span style="text-align:right" class="m">0.1.0</span></div><div class="tr" style="display:block"><div>이용약관</div><div class="m">준비 중입니다.</div></div><div class="tr" style="display:block"><div>개인정보처리방침</div><div class="m">준비 중입니다.</div></div></div>
+</div></div></div></figure>
+
+<div class="keynode" id="k-guard">진입 분기는 가드가 정한다<small>로그인 직후, 새로고침, 어떤 주소로 들어와도 단계가 맞지 않으면 맞는 화면으로 돌려보낸다. 아래 '진입 분기' 표</small></div>
+<div class="keynode" id="k-admin">관리자 화면은 별도 진입<small>내비게이션 링크가 없다. role=ADMIN 계정이 주소로 직접 들어온다. 그 외 계정은 자기 단계로 돌려보낸다</small></div>
+<div class="keynode" id="k-side">사이드바 #17~#22는 앱의 모든 화면에 같다<small>홈에서만 번호를 달았다. 상단바 오른쪽 아바타도 설정 허브로 간다</small></div>
+<svg class="wires" id="wires" aria-hidden="true"></svg>
+</div>
+</div>
+</div>
+
+<section class="doc">
+<h2>진입 분기</h2>
+<table>
+<tr><th>사용자 상태</th><th>가는 곳</th><th>가드</th></tr>
+<tr><td>로그인 안 함</td><td><code>/login</code></td><td>나머지 화면은 모두 로그인으로 돌려보낸다</td></tr>
+<tr><td>사업자 상태 UNVERIFIED·REJECTED</td><td><code>/verify-business</code></td><td><code>RequireStage verify</code></td></tr>
+<tr><td>PENDING·VERIFIED, 온보딩 전</td><td><code>/onboarding/1</code></td><td><code>RequireStage onboarding</code></td></tr>
+<tr><td>PENDING·VERIFIED, 온보딩 완료</td><td><code>/</code></td><td><code>RequireStage app</code> — 홈·예측·재고·발주·레시피·업로드·설정</td></tr>
+<tr><td>로그인한 상태로 <code>/login</code>·<code>/register</code></td><td>위 표대로 자기 단계</td><td><code>RequireGuest</code></td></tr>
+<tr><td>role=ADMIN</td><td><code>/admin/verifications</code> (주소 직접 입력)</td><td><code>RequireAdmin</code></td></tr>
+</table>
+<p>PENDING은 관리자 심사 전에도 온보딩과 앱을 쓸 수 있다. 심사에서 반려되면 다음 API 요청이 403 <code>BUSINESS_NOT_VERIFIED</code>를 받고, FE가 사용자 정보를 다시 받아 반려 화면으로 보낸다. 없는 주소는 <code>/</code>로 보낸다.</p>
+
+<h2>화면과 목업 파일</h2>
+<table>
+<tr><th>화면</th><th>경로</th><th>목업</th><th>목업에서 고를 수 있는 상태</th></tr>
+<tr><td>로그인</td><td><code>/login</code></td><td><a href="01_login.html">01_login</a></td><td>기본, 가입 완료, 탈퇴 안내, 로그인 실패</td></tr>
+<tr><td>회원가입</td><td><code>/register</code></td><td><a href="02_register.html">02_register</a></td><td>—</td></tr>
+<tr><td>사업자 검증</td><td><code>/verify-business</code></td><td><a href="03_verify-business.html">03_verify-business</a></td><td>기본, 반려됨</td></tr>
+<tr><td>온보딩 1~4</td><td><code>/onboarding/1</code>~<code>4</code></td><td><a href="04_onboarding-store.html">04</a> · <a href="05_onboarding-pos.html">05</a> · <a href="06_onboarding-menus.html">06</a> · <a href="07_onboarding-confirm.html">07</a></td><td>—</td></tr>
+<tr><td>홈</td><td><code>/</code></td><td><a href="08_home.html">08_home</a></td><td>기본, 연도별, 데이터 없음</td></tr>
+<tr><td>매출예측</td><td><code>/forecast</code></td><td><a href="09_forecast.html">09_forecast</a></td><td>예측 정상, 계산 중, 이력 부족, 서버 오류</td></tr>
+<tr><td>재고관리</td><td><code>/inventory</code></td><td><a href="10_inventory.html">10_inventory</a></td><td>목록, 재료 추가, 로트 펼침, 로트 수정, 로트 폐기</td></tr>
+<tr><td>발주추천</td><td><code>/orders</code></td><td><a href="11_orders.html">11_orders</a></td><td>기본, 확정 완료, AI 오류, 추천 없음</td></tr>
+<tr><td>레시피 관리</td><td><code>/recipes</code></td><td><a href="12_recipes.html">12_recipes</a></td><td>레시피 편집, 재료 없음, 저장 실패</td></tr>
+<tr><td>매출 CSV 업로드</td><td><code>/sales/upload</code></td><td><a href="13_sales-upload.html">13_sales-upload</a></td><td>입력, 업로드 중, 완료, 재고 확인 필요, 실패</td></tr>
+<tr><td>설정</td><td><code>/settings</code></td><td><a href="14_settings.html">14_settings</a></td><td>—</td></tr>
+<tr><td>POS 연동 설정</td><td><code>/settings/pos</code></td><td><a href="15_settings-pos.html">15_settings-pos</a></td><td>CSV 모드, 불러오기 실패</td></tr>
+<tr><td>단가 관리</td><td><code>/settings/pricing</code></td><td><a href="16_settings-pricing.html">16_settings-pricing</a></td><td>목록, 단가 수정</td></tr>
+<tr><td>알림 설정</td><td><code>/settings/notifications</code></td><td><a href="17_settings-notifications.html">17_settings-notifications</a></td><td>—</td></tr>
+<tr><td>계정 정보</td><td><code>/settings/account</code></td><td><a href="18_settings-account.html">18_settings-account</a></td><td>기본, 저장 완료, 탈퇴 확인</td></tr>
+<tr><td>앱 정보</td><td><code>/settings/app-info</code></td><td><a href="19_settings-app-info.html">19_settings-app-info</a></td><td>—</td></tr>
+<tr><td>관리자 사업자 심사</td><td><code>/admin/verifications</code></td><td><a href="20_admin-verifications.html">20_admin-verifications</a></td><td>목록, 등록증 보기, 반려 입력, 대기 없음</td></tr>
+</table>
+<p>목업 오른쪽 아래 막대에서 상태를 바꾸고 다른 화면으로 건너뛸 수 있다. 상태는 주소의 <code>?state=</code>로도 연다.</p>
+
+<h2>지금 코드에서 동작하지 않거나 비어 있는 것</h2>
+<ul>
+<li>로그인 '비밀번호를 잊으셨나요?'는 링크 모양만 있다. '다음에도 기억하기'는 체크 표시만 하고 쓰이지 않는다.</li>
+<li>홈 최저가 추천은 KAMIS 샘플 데이터이고 '추천 공급처'는 —로 나온다.</li>
+<li>매출예측의 예측 정확도·평균 오차율·오차율 분석은 준비 중 표시다.</li>
+<li>알림 설정, 이용약관, 개인정보처리방침은 준비 중 표시다.</li>
+<li>발주 확정은 기록만 한다. 입고는 재고관리에서 따로 등록한다.</li>
+<li>매출 CSV 업로드 화면에서는 사이드바의 '홈'이 켜진다(<code>active="home"</code>).</li>
+<li>재고 품목 삭제와 레시피·발주 연결 확인은 브라우저 확인 창(<code>window.confirm</code>·<code>alert</code>)을 쓴다.</li>
+</ul>
+<p>배치와 형태는 시안 재량이다. 이 판이 고정하는 것은 화면 목록, 누르는 곳, 전환 경로다.</p>
+</section>
+
+<dialog id="dlg"><p class="cap"><span id="cap"></span><a id="caplink" href="#">목업 열기 ↗</a></p><div class="full" id="full"></div><form method="dialog"><button>닫기</button></form></dialog>
+
+<script>
+const FW=461,FH=259,X0=170,P=581,COLS=8,BW=X0+COLS*P;
+const ROW={a:190,b:790,c:1450,d:2110};
+const LANE={a:[60,580],b:[650,580],c:[1270,620],d:[1910,700]};
+const BH=LANE.d[0]+LANE.d[1]+30;
+const cx=c=>X0+c*P;
+const $=id=>document.getElementById(id);
+const board=$('board'),zw=$('zw'),svg=$('wires');
+board.style.width=BW+'px';board.style.height=BH+'px';
+svg.setAttribute('width',BW);svg.setAttribute('height',BH);
+for(const [k,[t,h]] of Object.entries(LANE)) Object.assign($('lane-'+k).style,{top:t+'px',height:h+'px',width:BW+'px'});
+document.querySelectorAll('.fr').forEach(f=>{f.style.left=cx(+f.dataset.col)+'px';f.style.top=(ROW[f.dataset.row]-56)+'px';});
+Object.assign($('k-guard').style,{left:cx(6)+'px',top:(ROW.a+20)+'px'});
+Object.assign($('k-admin').style,{left:cx(3)+'px',top:(ROW.b+20)+'px'});
+Object.assign($('k-side').style,{left:cx(6)+'px',top:(ROW.c+20)+'px'});
+
+// 앱 화면 사이드바 — 홈은 번호를 달아 직접 그렸다
+const NAV=[['home','홈'],['forecast','매출예측'],['inventory','재고관리'],['orders','발주추천'],['recipes','레시피 관리']];
+document.querySelectorAll('.scr.app[data-nav]').forEach(s=>{
+ const on=s.dataset.nav,d=document.createElement('div');d.className='side';
+ d.innerHTML='<div class="logo">Sajura</div>'+NAV.map(([k,l])=>`<div class="ni${k===on?' on':''}">${l}</div>`).join('')+`<div class="gap"></div><div class="ni${on==='settings'?' on':''}">설정</div><div class="ni">로그아웃</div>`;
+ s.insertBefore(d,s.querySelector('.body'));
+});
+
+const B=()=>board.getBoundingClientRect();
+function R(el){const b=B(),r=el.getBoundingClientRect(),z=r.width/el.offsetWidth||1,s=b.width/board.offsetWidth;return{l:(r.left-b.left)/s,t:(r.top-b.top)/s,r:(r.right-b.left)/s,b:(r.bottom-b.top)/s,w:r.width/s,h:r.height/s};}
+
+// 이름으로 잇는 이동 — at: 요소 id 또는 [요소 id, 가로 비율]
+const PILLS=[
+ {id:'p-1',at:['f-login',.93],row:'a',dy:96,dir:'r',html:'→ <a href="#fig-ob1">온보딩 1</a> (검증됨·온보딩 전) · <a href="#fig-home">홈</a> (온보딩 완료)'},
+ {id:'p-2',at:['f-login',.57],row:'a',dy:96,dir:'l',text:'→ 구글·카카오 동의 화면 → #1과 같은 분기'},
+ {id:'p-13',at:'hs-13',row:'a',dy:96,dir:'r',text:'→ 홈',href:'fig-home'},
+ {id:'p-5',at:['f-register',.75],row:'b',dy:96,dir:'r',text:'→ 로그인',href:'fig-login'},
+ {id:'p-7',at:'hs-7',row:'b',dy:96,dir:'r',text:'→ 사용자 VERIFIED · 화면 변화 없음'},
+ {id:'p-22',at:['f-home',.09],row:'c',dy:96,dir:'r',text:'→ 로그인',href:'fig-login'},
+ {id:'p-25',at:'hs-25',row:'c',dy:96,dir:'r',text:'→ 재고관리',href:'fig-inventory'},
+ {id:'p-27',at:'hs-27',row:'c',dy:96,dir:'r',text:'→ 같은 화면에 등록 폼 · 입력한 현재 수량이 첫 로트'},
+ {id:'p-28',at:['f-lots',.62],row:'c',dy:96,dir:'r',text:'#28 #29 #30 → 같은 화면 갱신 · 입고·실사 조정은 \'재고 확인 필요\' 해제'},
+ {id:'p-31',at:'hs-31',row:'c',dy:96,dir:'r',text:'→ 같은 화면에 확정 안내 · 이력에 추가'},
+ {id:'p-32',at:'hs-32',row:'c',dy:96,dir:'l',text:'→ 오른쪽 편집기 전환'},
+ {id:'p-33',at:'hs-33',row:'c',dy:130,dir:'r',text:'→ 저장 · 재고 차감 메뉴는 재료 1개 이상'},
+ {id:'p-40',at:'hs-40',row:'d',dy:200,dir:'l',text:'→ sales_template.csv 내려받기'},
+ {id:'p-44',at:'hs-44',row:'d',dy:200,dir:'r',text:'→ 홈',href:'fig-home'},
+ {id:'p-45',at:'hs-45',row:'d',dy:200,dir:'r',text:'→ 행 안에서 입력·저장'},
+ {id:'p-46',at:'hs-46',row:'d',dy:200,dir:'r',text:'→ 로그인 · 탈퇴 안내',href:'fig-login'},
+];
+// 전환: [출발, 출발 면, 도착, 도착 면, 종류, 이름표, 옵션]
+const EDGES=[
+ ['hs-1','r','f-verify','l','op','#1 사업자 미검증'],
+ ['hs-1','b','p-1','t','op','',{sf:.92}],
+ ['hs-2','b','p-2','t','op','#2',{sf:.1}],
+ ['f-login','b','f-register','t','op','#3',{sf:.8,tf:.8,lt:.25}],
+ ['hs-6','r','f-ob1','l','op','#6 [제출하기]'],
+ ['hs-10','r','f-ob2','l','op','#10 [다음]'],
+ ['hs-11','r','f-ob3','l','op','#11 [다음]'],
+ ['hs-12','r','f-ob4','l','op','#12 [다음]'],
+ ['hs-14','b','f-ob1','b','op','#14 [이전]',{tf:.62,vy:ROW.a+FH+40}],
+ ['hs-15','b','f-ob2','b','op','#15 [이전]',{tf:.62,vy:ROW.a+FH+40}],
+ ['hs-16','b','f-ob3','b','op','#16 [이전]',{tf:.62,vy:ROW.a+FH+40}],
+ ['hs-13','b','p-13','t','op','#13'],
+ ['f-register','t','f-login','b','op','#4 가입 완료 안내',{sf:.66,tf:.66,lt:.7}],
+ ['hs-5','b','p-5','t','op','#5'],
+ ['hs-9','t','f-ob1','b','op','#9 재제출 → PENDING',{tf:.25,vy:ROW.b-110}],
+ ['hs-8','l','f-rejected','r','sync','#8 반려'],
+ ['hs-7','b','p-7','t','sync','#7'],
+ ['f-home','t','f-forecast','t','op','#17 매출예측',{sf:.8,tf:.5,vy:ROW.c-72}],
+ ['f-home','t','f-inventory','t','op','#18 재고관리',{sf:.84,tf:.5,vy:ROW.c-102}],
+ ['f-home','t','f-orders','t','op','#19 발주추천',{sf:.88,tf:.5,vy:ROW.c-132}],
+ ['f-home','t','f-recipes','t','op','#20 레시피 관리',{sf:.92,tf:.5,vy:ROW.c-162}],
+ ['f-home','b','f-settings','t','op','#21 설정',{sf:.02,tf:.02}],
+ ['hs-22','b','p-22','t','op','#22'],
+ ['hs-23','b','f-pos','t','op','#23 POS 연동 설정',{tf:.3,vy:ROW.d-110}],
+ ['hs-24','b','f-upload','t','op','#24 매출 CSV 업로드',{tf:.3,vy:ROW.d-80}],
+ ['hs-25','b','p-25','t','op','#25'],
+ ['hs-26','r','f-lots','l','op','#26 행 펼치기'],
+ ['hs-27','b','p-27','t','op','#27'],
+ ['hs-28','b','p-28','t','op',''],
+ ['hs-29','b','p-28','t','op',''],
+ ['hs-30','b','p-28','t','op',''],
+ ['hs-31','b','p-31','t','op','#31'],
+ ['hs-32','b','p-32','t','op','#32'],
+ ['hs-33','b','p-33','t','op','#33'],
+ ['f-settings','r','f-pos','l','op','#34',{sf:.35}],
+ ['f-settings','b','f-pricing','b','op','#35 단가 관리',{sf:.3,tf:.5,vy:ROW.d+FH+60}],
+ ['f-settings','b','f-notifications','b','op','#36 알림 설정',{sf:.45,tf:.5,vy:ROW.d+FH+90}],
+ ['f-settings','b','f-account','b','op','#37 계정 정보',{sf:.6,tf:.5,vy:ROW.d+FH+120}],
+ ['f-settings','b','f-appinfo','b','op','#38 앱 정보',{sf:.75,tf:.5,vy:ROW.d+FH+150}],
+ ['hs-39','r','f-upload','l','op','#39'],
+ ['hs-40','b','p-40','t','op','#40'],
+ ['hs-41','r','f-result','l','op','#41'],
+ ['hs-42','b','f-pos','b','op','#42 [설정으로 돌아가기]',{tf:.7,vy:ROW.d+FH+30}],
+ ['hs-43','t','f-inventory','b','op','#43 재고 관리 링크',{tf:.7,vy:ROW.c+FH+170}],
+ ['hs-44','b','p-44','t','op','#44'],
+ ['hs-45','b','p-45','t','op','#45'],
+ ['hs-46','b','p-46','t','op','#46'],
+];
+
+function badgeify(el){el.innerHTML=el.innerHTML.replace(/#(\d+)/g,(_,n)=>`<span class="ib">${n}</span>`);}
+function layout(){
+ PILLS.forEach(p=>{
+  const a=document.createElement(p.href?'a':'span');a.className='pill';a.id=p.id;
+  if(p.html)a.innerHTML=p.html;else a.textContent=p.text;badgeify(a);
+  if(p.href){a.href='#'+p.href;}
+  board.appendChild(a);
+  const x=Array.isArray(p.at)?(()=>{const r=R($(p.at[0]));return r.l+r.w*p.at[1];})():(()=>{const r=R($(p.at));return r.l+r.w/2;})();
+  a.style.left=(p.dir==='r'?x-14:x+14-a.offsetWidth)+'px';
+  a.style.top=(ROW[p.row]+FH+p.dy)+'px';
+ });
+ const NS='http://www.w3.org/2000/svg';
+ const defs=document.createElementNS(NS,'defs');
+ defs.innerHTML='<marker id="m" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#1F2937"/></marker>';
+ svg.appendChild(defs);
+ EDGES.forEach(([from,fs,to,ts,kind,label,o={}])=>{
+  const a=R($(from)),b=R($(to));
+  let pts;
+  if(fs==='r'||fs==='l'){
+   const sx=fs==='r'?a.r:a.l, sy=a.t+a.h*(o.sf??.5);
+   const ex=ts==='l'?b.l:b.r;
+   const ey=Math.min(Math.max(sy,b.t+18),b.b-18);
+   if(Math.abs(ey-sy)<1)pts=[[sx,sy],[ex,sy]];
+   else{const mx=o.vx??(sx+ex)/2;pts=[[sx,sy],[mx,sy],[mx,ey],[ex,ey]];}
+  }else{
+   const sx=a.l+a.w*(o.sf??.5), sy=fs==='b'?a.b:a.t;
+   const ex=o.tf===undefined&&ts==='t'&&to.startsWith('p-')?sx:b.l+b.w*(o.tf??.5), ey=ts==='t'?b.t:b.b;
+   if(Math.abs(ex-sx)<1)pts=[[sx,sy],[sx,ey]];
+   else{const vy=o.vy??(sy+ey)/2;pts=[[sx,sy],[sx,vy],[ex,vy],[ex,ey]];}
+  }
+  const n=pts.length,[px,py]=pts[n-2],[qx,qy]=pts[n-1];
+  pts[n-1]=[qx-Math.sign(qx-px)*3,qy-Math.sign(qy-py)*3];
+  const p=document.createElementNS(NS,'path');
+  p.setAttribute('d','M'+pts.map(q=>q.join(',')).join(' L'));
+  p.setAttribute('class','e '+kind);p.setAttribute('marker-end','url(#m)');
+  svg.appendChild(p);
+  if(!label)return;
+  let best=null;
+  for(let i=0;i<n-1;i++){const [x1,y1]=pts[i],[x2,y2]=pts[i+1];const len=Math.hypot(x2-x1,y2-y1),h=Math.abs(y2-y1)<1;
+   if(!best||(h&&!best.h&&len>=60)||(h===best.h&&len>best.len))best={x1,y1,x2,y2,len,h};}
+  const d=document.createElement('div');d.className='lb';d.textContent=label;badgeify(d);
+  // 화면 안 버튼에서 옆으로 나가는 선은 이름표를 화면 사이 빈칸 가운데에 둔다
+  const th=$(from).closest('.thumb');
+  let lx=(best.x1+best.x2)/2;
+  if(best.h&&th&&(fs==='r'||fs==='l')){const tr=R(th);lx=fs==='r'?(tr.r+pts[n-1][0])/2:(tr.l+pts[n-1][0])/2;}
+  if(best.h){d.classList.add('c');d.style.left=lx+'px';d.style.top=(best.y1-22)+'px';}
+  else{d.style.left=(best.x1+8)+'px';d.style.top=(best.y1+(best.y2-best.y1)*(o.lt??.5)-10)+'px';}
+  board.appendChild(d);
+ });
+ document.querySelectorAll('.hs').forEach(h=>{
+  const r=R(h),d=document.createElement('div');
+  d.className='bd';d.textContent=h.dataset.n;
+  d.style.left=(r.l-14)+'px';d.style.top=(r.t-14)+'px';board.appendChild(d);
+ });
+}
+function flash(id){const f=$(id);f.scrollIntoView({behavior:'smooth',block:'center',inline:'center'});f.classList.add('flash');setTimeout(()=>f.classList.remove('flash'),1400);}
+function zoom(z){board.style.transform=`scale(${z})`;zw.style.width=BW*z+'px';zw.style.height=BH*z+'px';
+ document.querySelectorAll('.zoom button').forEach(x=>x.setAttribute('aria-pressed',x.dataset.z==String(z)));}
+layout();
+document.querySelectorAll('.keynode,figcaption span').forEach(badgeify);
+board.addEventListener('click',e=>{const a=e.target.closest('a.pill,.pill a');if(a&&a.getAttribute('href').startsWith('#fig-')){e.preventDefault();flash(a.getAttribute('href').slice(1));}});
+zoom(+new URLSearchParams(location.search).get('z')||.5);
+document.querySelectorAll('.zoom button').forEach(b=>b.addEventListener('click',()=>zoom(+b.dataset.z)));
+const dlg=$('dlg'),full=$('full');
+function open(t){
+ const k=Math.min(innerWidth*.92/1280,innerHeight*.82/720);
+ const s=t.firstElementChild.cloneNode(true);
+ s.querySelectorAll('[id]').forEach(e=>e.removeAttribute('id'));
+ s.style.transform='scale('+k+')';
+ full.replaceChildren(s);full.style.width=1280*k+'px';full.style.height=720*k+'px';
+ const cap=t.closest('figure').querySelector('figcaption b');
+ $('cap').textContent=cap.firstChild.textContent.trim();
+ $('caplink').href=cap.querySelector('a').getAttribute('href');
+ dlg.showModal();
+}
+document.querySelectorAll('.thumb').forEach(t=>{t.addEventListener('click',()=>open(t));t.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();open(t);}});});
+dlg.addEventListener('click',e=>{if(e.target===dlg)dlg.close();});
+</script>
+</body>
+</html>

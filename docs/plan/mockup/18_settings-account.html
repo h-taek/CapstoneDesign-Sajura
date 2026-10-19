@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>계정 정보 — 사주라 목업</title>
+<script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4.0.17"></script>
+<script src="mockup.js" defer></script>
+</head>
+<!-- 원본: Front/src/routes/settings/account.tsx -->
+<body data-page="account" data-states="기본:default,저장 완료:saved,탈퇴 확인:withdraw">
+<div data-shell="settings">
+  <div class="max-w-2xl space-y-6">
+    <header class="space-y-1">
+      <h1 class="text-2xl font-semibold text-[#101828]">계정 정보</h1>
+      <p class="text-sm text-[#99a1af]">owner@sajura.kr</p>
+    </header>
+
+    <form class="space-y-4 rounded-xl border border-[#d1d5dc] bg-white p-6">
+      <h2 class="text-lg font-semibold text-[#101828]">내 정보</h2>
+          <div class="flex flex-col gap-1">
+            <label class="text-sm font-medium text-slate-700">이름</label>
+            <input type="text" value="김사주" class="h-11 w-full rounded-xl border border-[#d1d5dc] bg-[#f3f4f6] px-3 text-sm shadow-sm">
+          </div>
+          <div class="flex flex-col gap-1">
+            <label class="text-sm font-medium text-slate-700">매장명</label>
+            <input type="text" value="사주라 화덕피자 성수점" class="h-11 w-full rounded-xl border border-[#d1d5dc] bg-[#f3f4f6] px-3 text-sm shadow-sm">
+          </div>
+      <div class="flex justify-end">
+        <button type="submit" data-set-state="saved" class="inline-flex h-10 items-center justify-center gap-2 rounded-full bg-[#7a5eff] px-6 text-sm font-semibold text-white transition-colors hover:bg-[#6a4eef]">저장</button>
+      </div>
+      <p data-when="saved" class="text-sm text-emerald-600">저장되었습니다.</p>
+    </form>
+
+    <form class="space-y-4 rounded-xl border border-[#d1d5dc] bg-white p-6">
+      <h2 class="text-lg font-semibold text-[#101828]">매장 정보</h2>
+          <div class="flex flex-col gap-1">
+            <label class="text-sm font-medium text-slate-700">업종</label>
+            <input type="text" value="양식" class="h-11 w-full rounded-xl border border-[#d1d5dc] bg-[#f3f4f6] px-3 text-sm shadow-sm">
+          </div>
+          <div class="flex flex-col gap-1">
+            <label class="text-sm font-medium text-slate-700">주소</label>
+            <input type="text" value="서울특별시 성동구 연무장길 00" class="h-11 w-full rounded-xl border border-[#d1d5dc] bg-[#f3f4f6] px-3 text-sm shadow-sm">
+          </div>
+          <div class="flex flex-col gap-1">
+            <label class="text-sm font-medium text-slate-700">전화번호</label>
+            <input type="text" value="02-000-0000" class="h-11 w-full rounded-xl border border-[#d1d5dc] bg-[#f3f4f6] px-3 text-sm shadow-sm">
+          </div>
+      <div class="flex justify-end">
+        <button type="submit" class="inline-flex h-10 items-center justify-center gap-2 rounded-full bg-[#7a5eff] px-6 text-sm font-semibold text-white transition-colors hover:bg-[#6a4eef]">저장</button>
+      </div>
+    </form>
+
+    <form class="space-y-4 rounded-xl border border-[#d1d5dc] bg-white p-6">
+      <h2 class="text-lg font-semibold text-[#101828]">비밀번호 변경</h2>
+          <div class="flex flex-col gap-1">
+            <label class="text-sm font-medium text-slate-700">현재 비밀번호</label>
+            <input type="password" value="" class="h-11 w-full rounded-xl border border-[#d1d5dc] bg-[#f3f4f6] px-3 text-sm shadow-sm">
+          </div>
+          <div class="flex flex-col gap-1">
+            <label class="text-sm font-medium text-slate-700">새 비밀번호</label>
+            <input type="password" value="" class="h-11 w-full rounded-xl border border-[#d1d5dc] bg-[#f3f4f6] px-3 text-sm shadow-sm">
+          </div>
+          <div class="flex flex-col gap-1">
+            <label class="text-sm font-medium text-slate-700">새 비밀번호 확인</label>
+            <input type="password" value="" class="h-11 w-full rounded-xl border border-[#d1d5dc] bg-[#f3f4f6] px-3 text-sm shadow-sm">
+          </div>
+      <div class="flex justify-end">
+        <button type="submit" class="inline-flex h-10 items-center justify-center gap-2 rounded-full bg-[#7a5eff] px-6 text-sm font-semibold text-white transition-colors hover:bg-[#6a4eef]">비밀번호 변경</button>
+      </div>
+    </form>
+
+    <section class="space-y-4 rounded-xl border border-red-200 bg-white p-6">
+      <h2 class="text-lg font-semibold text-[#101828]">회원 탈퇴</h2>
+      <p class="text-sm text-[#61646b]">탈퇴하면 즉시 로그인할 수 없고 되돌릴 수 없습니다. 30일 뒤 매장·판매·재고·발주 데이터와 사업자등록증이 모두 삭제되며, 그 전까지 같은 계정으로 다시 가입할 수 없습니다.</p>
+      <div class="flex flex-col gap-1">
+        <label class="text-sm font-medium text-slate-700">비밀번호 확인</label>
+        <input data-when="default saved" type="password" value="" class="h-11 w-full rounded-xl border border-[#d1d5dc] bg-[#f3f4f6] px-3 text-sm shadow-sm">
+        <input data-when="withdraw" type="password" value="password1234" class="h-11 w-full rounded-xl border border-[#d1d5dc] bg-[#f3f4f6] px-3 text-sm shadow-sm">
+      </div>
+      <label class="flex items-center gap-2 text-sm text-[#364153]">
+        <input data-when="default saved" type="checkbox" class="size-4 accent-red-600">
+        <input data-when="withdraw" type="checkbox" checked class="size-4 accent-red-600">
+        30일 뒤 모든 데이터가 영구 삭제됨을 확인했습니다.
+      </label>
+      <div class="flex justify-end">
+        <button type="button" disabled data-when="default saved" class="inline-flex h-10 items-center justify-center gap-2 rounded-full bg-slate-400 px-6 text-sm font-semibold text-white">회원 탈퇴</button>
+        <button type="button" data-when="withdraw" data-go="01_login.html?state=withdrawn" class="inline-flex h-10 items-center justify-center gap-2 rounded-full bg-red-600 px-6 text-sm font-semibold text-white transition-colors hover:bg-red-700">회원 탈퇴</button>
+      </div>
+    </section>
+  </div>
+</div>
+</body>
+</html>

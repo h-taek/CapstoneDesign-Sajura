@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>온보딩 4 확인 — 사주라 목업</title>
+<script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4.0.17"></script>
+<script src="mockup.js" defer></script>
+</head>
+<!-- 원본: Front/src/routes/onboarding/layout.tsx, onboarding/step-confirm.tsx -->
+<body data-page="ob4" data-states="기본:default,제출 오류:error">
+<main class="min-h-dvh bg-[#f3f4f6] p-6">
+  <div class="mx-auto w-full max-w-2xl space-y-6 py-6">
+    <header class="space-y-1">
+      <h1 class="text-3xl font-semibold text-[#101828]">매장 온보딩</h1>
+      <p class="text-base text-[#364153]">기본 정보를 4단계로 입력하면 메인 화면으로 이동합니다.</p>
+    </header>
+    <ol class="grid grid-cols-4 gap-2" aria-label="온보딩 단계">
+      <li class="flex flex-col items-start rounded-xl border border-[#d1d5dc] bg-white px-3 py-2"><span class="text-xs">Step 1</span><a href="04_onboarding-store.html" class="text-sm font-medium text-[#364153]">매장 정보</a></li>
+      <li class="flex flex-col items-start rounded-xl border border-[#d1d5dc] bg-white px-3 py-2"><span class="text-xs">Step 2</span><a href="05_onboarding-pos.html" class="text-sm font-medium text-[#364153]">POS 연동</a></li>
+      <li class="flex flex-col items-start rounded-xl border border-[#d1d5dc] bg-white px-3 py-2"><span class="text-xs">Step 3</span><a href="06_onboarding-menus.html" class="text-sm font-medium text-[#364153]">메뉴 등록</a></li>
+      <li aria-current="step" class="flex flex-col items-start rounded-xl border border-[#7a5eff] bg-white px-3 py-2"><span class="text-xs text-[#7a5eff]">Step 4</span><a href="07_onboarding-confirm.html" class="text-sm font-medium text-[#101828]">확인</a></li>
+    </ol>
+    <section class="rounded-2xl bg-white p-8 shadow-sm">
+      <div class="space-y-4">
+        <section>
+          <h2 class="font-medium">매장</h2>
+          <dl class="mt-1 grid grid-cols-2 text-sm text-slate-700">
+            <dt>매장명</dt><dd>사주라 화덕피자 성수점</dd>
+            <dt>업종</dt><dd>양식</dd>
+            <dt>규모</dt><dd>MEDIUM</dd>
+            <dt>운영</dt><dd>BOTH</dd>
+            <dt>주소</dt><dd>서울 성동구 성수이로 00</dd>
+            <dt>전화</dt><dd>02-000-0000</dd>
+          </dl>
+        </section>
+        <section>
+          <h2 class="font-medium">POS</h2>
+          <p class="text-sm text-slate-700">CSV_ONLY</p>
+        </section>
+        <section>
+          <h2 class="font-medium">메뉴 (3개)</h2>
+          <ul class="text-sm text-slate-700">
+            <li>마르게리타 화덕피자 · 피자 · 16,000원</li>
+            <li>페페로니 듬뿍 화덕피자 · 피자 · 18,000원</li>
+            <li>콜라 · 음료 · 2,500원</li>
+          </ul>
+        </section>
+        <p data-when="error" role="alert" class="text-sm text-red-600">온보딩 제출 중 오류가 발생했습니다.</p>
+        <div class="flex justify-between pt-2">
+          <button type="button" data-go="06_onboarding-menus.html" class="inline-flex h-10 items-center justify-center gap-2 rounded-md border border-slate-300 bg-white px-4 text-sm font-medium text-slate-900 transition-colors hover:bg-slate-50">이전</button>
+          <button type="button" data-go="08_home.html" class="inline-flex h-10 items-center justify-center gap-2 rounded-md bg-slate-900 px-4 text-sm font-medium text-white transition-colors hover:bg-slate-800">온보딩 완료</button>
+        </div>
+      </div>
+    </section>
+  </div>
+</main>
+</body>
+</html>

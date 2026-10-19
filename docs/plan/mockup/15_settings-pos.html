@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>POS 연동 설정 — 사주라 목업</title>
+<script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4.0.17"></script>
+<script src="mockup.js" defer></script>
+</head>
+<!-- 원본: Front/src/routes/settings/pos.tsx -->
+<body data-page="pos" data-states="CSV 모드:default,불러오기 실패:error">
+<div data-shell="settings">
+  <header class="mx-auto max-w-3xl pb-6">
+    <h1 class="text-2xl font-semibold text-[#101828]">POS 연동 설정</h1>
+    <p class="text-base text-[#364153]">현재 매장의 POS 연동 상태와 CSV 업로드 도구를 한곳에서 관리합니다.</p>
+  </header>
+
+  <section class="mx-auto max-w-3xl space-y-4">
+    <article class="rounded-2xl bg-white p-6 shadow-sm">
+      <h2 class="text-sm font-medium text-[#364153]">현재 연동 상태</h2>
+      <div data-when="default" class="mt-2 space-y-2">
+        <span class="inline-flex items-center rounded-full bg-blue-50 px-3 py-1 text-sm font-medium text-blue-700 ring-1 ring-blue-200">CSV 업로드 모드</span>
+        <p class="text-xs text-slate-500">마지막 동기화: 2026. 10. 18. 오후 9:42:10</p>
+      </div>
+      <div data-when="error" class="mt-2 flex items-center gap-3">
+        <p class="text-red-600">상태를 불러오지 못했습니다.</p>
+        <button type="button" data-set-state="default" class="inline-flex h-9 items-center justify-center gap-2 rounded-full border border-[#d1d5dc] bg-white px-4 text-sm font-medium text-[#364153] transition-colors hover:bg-[#f3f4f6]">다시 시도</button>
+      </div>
+    </article>
+
+    <article class="rounded-2xl bg-white p-6 shadow-sm">
+      <h2 class="text-lg font-semibold text-[#101828]">CSV 업로드</h2>
+      <p class="mt-1 text-sm text-[#364153]">보유한 POS 매출 데이터를 사주라 양식의 CSV 파일로 변환해 업로드합니다.</p>
+      <div class="mt-4 flex flex-wrap gap-3">
+        <button type="button" class="inline-flex h-11 items-center justify-center gap-2 rounded-full border border-[#d1d5dc] bg-white px-5 text-sm font-medium text-[#364153] transition-colors hover:bg-[#f3f4f6]">CSV 템플릿 다운로드</button>
+        <button type="button" data-go="13_sales-upload.html" class="inline-flex h-11 items-center justify-center gap-2 rounded-full bg-[#7a5eff] px-5 text-sm font-semibold text-white transition-colors hover:bg-[#6a4eef]">업로드 화면으로 이동</button>
+      </div>
+      <ul class="mt-4 list-disc space-y-1 pl-5 text-xs text-[#99a1af]">
+        <li>UTF-8 CSV 형식만 지원합니다 (Excel은 .xlsx 미지원).</li>
+        <li>최대 50 MB까지 업로드할 수 있습니다.</li>
+        <li>같은 영수증번호가 이미 등록되어 있으면 자동으로 건너뜁니다.</li>
+      </ul>
+    </article>
+
+    <article class="rounded-2xl bg-[#f3f4f6] p-4 text-xs text-[#99a1af]">외부 POS API 연동(TossPlace·키움페이·OKPOS)은 2단계에서 제공될 예정입니다.</article>
+  </section>
+</div>
+</body>
+</html>

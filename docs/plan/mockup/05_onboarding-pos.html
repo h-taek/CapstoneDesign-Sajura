@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>온보딩 2 POS 연동 — 사주라 목업</title>
+<script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4.0.17"></script>
+<script src="mockup.js" defer></script>
+</head>
+<!-- 원본: Front/src/routes/onboarding/layout.tsx, onboarding/step-pos.tsx -->
+<body data-page="ob2" data-states="CSV만 사용:default,POS 선택:pos">
+<main class="min-h-dvh bg-[#f3f4f6] p-6">
+  <div class="mx-auto w-full max-w-2xl space-y-6 py-6">
+    <header class="space-y-1">
+      <h1 class="text-3xl font-semibold text-[#101828]">매장 온보딩</h1>
+      <p class="text-base text-[#364153]">기본 정보를 4단계로 입력하면 메인 화면으로 이동합니다.</p>
+    </header>
+    <ol class="grid grid-cols-4 gap-2" aria-label="온보딩 단계">
+      <li class="flex flex-col items-start rounded-xl border border-[#d1d5dc] bg-white px-3 py-2"><span class="text-xs">Step 1</span><a href="04_onboarding-store.html" class="text-sm font-medium text-[#364153]">매장 정보</a></li>
+      <li aria-current="step" class="flex flex-col items-start rounded-xl border border-[#7a5eff] bg-white px-3 py-2"><span class="text-xs text-[#7a5eff]">Step 2</span><a href="05_onboarding-pos.html" class="text-sm font-medium text-[#101828]">POS 연동</a></li>
+      <li class="flex flex-col items-start rounded-xl border border-dashed border-[#d1d5dc] bg-white px-3 py-2 text-[#99a1af]"><span class="text-xs">Step 3</span><span class="text-sm font-medium">메뉴 등록</span></li>
+      <li class="flex flex-col items-start rounded-xl border border-dashed border-[#d1d5dc] bg-white px-3 py-2 text-[#99a1af]"><span class="text-xs">Step 4</span><span class="text-sm font-medium">확인</span></li>
+    </ol>
+    <section class="rounded-2xl bg-white p-8 shadow-sm">
+      <form class="space-y-6" novalidate>
+        <div class="space-y-1">
+          <h2 class="text-2xl font-semibold text-[#101828]">김사주님, Sajura에 오신 걸 환영합니다</h2>
+          <p class="text-base text-[#364153]">POS 데이터를 연동해주세요.</p>
+        </div>
+
+        <div class="space-y-2">
+          <span class="text-sm font-medium text-[#364153]">POS 종류</span>
+          <div class="grid grid-cols-2 gap-3" role="radiogroup" aria-label="POS 종류">
+            <label data-set-state="pos" class="flex cursor-pointer items-center gap-3 rounded-xl border px-4 py-3 text-sm font-medium transition-colors border-[#d1d5dc] bg-white text-[#364153] hover:bg-[#f3f4f6]"><input type="radio" name="pos_type" class="size-4 accent-[#7a5eff]">유니온포스</label>
+            <label data-set-state="pos" class="flex cursor-pointer items-center gap-3 rounded-xl border px-4 py-3 text-sm font-medium transition-colors border-[#d1d5dc] bg-white text-[#364153] hover:bg-[#f3f4f6]" data-when="default"><input type="radio" name="pos_type" class="size-4 accent-[#7a5eff]">OKPOS</label>
+            <label class="flex cursor-pointer items-center gap-3 rounded-xl border px-4 py-3 text-sm font-medium transition-colors border-[#7a5eff] bg-[#7a5eff]/5 text-[#101828]" data-when="pos"><input type="radio" name="pos_type_selected" checked class="size-4 accent-[#7a5eff]">OKPOS</label>
+            <label data-set-state="pos" class="flex cursor-pointer items-center gap-3 rounded-xl border px-4 py-3 text-sm font-medium transition-colors border-[#d1d5dc] bg-white text-[#364153] hover:bg-[#f3f4f6]"><input type="radio" name="pos_type" class="size-4 accent-[#7a5eff]">POSBANK</label>
+            <label data-set-state="default" class="flex cursor-pointer items-center gap-3 rounded-xl border px-4 py-3 text-sm font-medium transition-colors border-[#7a5eff] bg-[#7a5eff]/5 text-[#101828]" data-when="default"><input type="radio" name="pos_type" checked class="size-4 accent-[#7a5eff]">CSV 업로드만 사용</label>
+            <label data-set-state="default" class="flex cursor-pointer items-center gap-3 rounded-xl border px-4 py-3 text-sm font-medium transition-colors border-[#d1d5dc] bg-white text-[#364153] hover:bg-[#f3f4f6]" data-when="pos"><input type="radio" name="pos_type" class="size-4 accent-[#7a5eff]">CSV 업로드만 사용</label>
+          </div>
+        </div>
+
+        <div class="flex flex-col gap-1">
+          <label for="api_key" class="text-sm font-medium text-slate-700">POS API 키</label>
+          <input id="api_key" data-when="default" disabled class="h-11 w-full rounded-xl border border-[#d1d5dc] bg-[#f3f4f6] px-3 text-sm shadow-sm disabled:bg-slate-100">
+          <input data-when="pos" value="okpos-demo-key-0000" class="h-11 w-full rounded-xl border border-[#d1d5dc] bg-[#f3f4f6] px-3 text-sm shadow-sm">
+          <p data-when="default" class="text-xs text-slate-500">CSV 업로드 모드는 자격증명 없이 진행합니다.</p>
+        </div>
+        <div class="flex flex-col gap-1">
+          <label for="store_code" class="text-sm font-medium text-slate-700">매장 코드</label>
+          <input id="store_code" data-when="default" disabled class="h-11 w-full rounded-xl border border-[#d1d5dc] bg-[#f3f4f6] px-3 text-sm shadow-sm disabled:bg-slate-100">
+          <input data-when="pos" value="STORE-0001" class="h-11 w-full rounded-xl border border-[#d1d5dc] bg-[#f3f4f6] px-3 text-sm shadow-sm">
+        </div>
+
+        <div class="flex justify-between pt-2">
+          <button type="button" data-go="04_onboarding-store.html" class="inline-flex h-11 items-center justify-center gap-2 rounded-full border border-[#d1d5dc] bg-white px-6 text-sm font-medium text-[#364153] transition-colors hover:bg-[#f3f4f6]">이전</button>
+          <button type="submit" data-go="06_onboarding-menus.html" class="inline-flex h-11 items-center justify-center gap-2 rounded-full bg-[#7a5eff] px-8 text-sm font-semibold text-white transition-colors hover:bg-[#6a4eef]">다음</button>
+        </div>
+      </form>
+    </section>
+  </div>
+</main>
+</body>
+</html>

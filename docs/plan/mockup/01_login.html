@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>로그인 — 사주라 목업</title>
+<script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4.0.17"></script>
+<script src="mockup.js" defer></script>
+</head>
+<!-- 원본: Front/src/routes/login.tsx, components/auth/hero-panel.tsx -->
+<body data-page="login" data-states="기본:default,가입 완료:registered,탈퇴 안내:withdrawn,로그인 실패:error">
+<main class="grid min-h-dvh bg-white lg:grid-cols-[1fr_minmax(480px,820px)]">
+  <section class="relative hidden overflow-hidden bg-gradient-to-br from-[#926bff] to-[#8397ff] lg:block">
+    <img src="../../../Front/src/assets/auth/hero-photo.png" alt="" class="absolute inset-0 h-full w-full object-cover opacity-30">
+    <div class="absolute inset-0 bg-gradient-to-r from-white/0 to-[#9071ff]/80"></div>
+    <p class="relative px-16 pt-14 text-5xl font-semibold text-white">Sajura</p>
+    <div class="absolute bottom-24 left-16 right-16 space-y-6">
+      <h2 class="text-5xl font-semibold leading-tight text-white">내 가게를 쉽게 관리하다</h2>
+      <p class="text-2xl text-white/90">사주라는 소상공인을 위한 자동화 가게 재고 정리 서비스입니다.<br>어려웠던 재고관리 사주라로 쉽게 관리해보세요</p>
+    </div>
+  </section>
+
+  <section class="flex items-center justify-center p-6 lg:p-16">
+    <div class="w-full max-w-[688px] space-y-8">
+      <header class="space-y-2">
+        <h1 class="text-4xl font-semibold text-[#101828] lg:text-5xl">Welcome,Sajura</h1>
+        <p class="text-xl font-medium text-[#364153] lg:text-2xl">로그인을 하고 재고를 쉽게 관리해보아요</p>
+      </header>
+
+      <output data-when="registered" class="block rounded-md bg-emerald-50 p-3 text-sm text-emerald-700">회원가입이 완료되었습니다. 로그인해주세요.</output>
+      <output data-when="withdrawn" class="block rounded-md bg-[#f3f4f6] p-3 text-sm text-[#364153]">탈퇴가 접수되었습니다. 30일 뒤 매장 데이터를 포함한 모든 정보가 삭제됩니다.</output>
+
+      <form class="space-y-6" novalidate>
+        <div class="flex flex-col gap-1">
+          <label for="email" class="text-sm font-medium text-slate-700">ID</label>
+          <input id="email" type="email" placeholder="아이디를 입력해 주세요." value="owner@sajura.kr" class="h-[58px] w-full rounded-xl border border-[#d1d5dc] bg-[#f3f4f6] px-4 text-base shadow-sm">
+        </div>
+        <div class="flex flex-col gap-1">
+          <label for="password" class="text-sm font-medium text-slate-700">Password</label>
+          <div class="relative">
+            <input id="password" type="password" placeholder="비밀번호를 입력해 주세요." value="password1234" class="h-[58px] w-full rounded-xl border border-[#d1d5dc] bg-[#f3f4f6] px-4 pr-12 text-base shadow-sm">
+            <button type="button" class="absolute right-4 top-1/2 -translate-y-1/2 text-[#99a1af]" aria-label="비밀번호 표시">
+              <img src="../../../Front/src/assets/login/eye-icon.svg" alt="" class="size-6">
+            </button>
+          </div>
+        </div>
+
+        <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+          <label class="flex items-center gap-3 text-base text-[#99a1af]">
+            <input type="checkbox" checked class="size-6 rounded accent-[#7a5eff]"> 다음에도 기억하기
+          </label>
+          <span class="cursor-default text-base text-[#99a1af] underline">비밀번호를 잊으셨나요?</span>
+        </div>
+
+        <p data-when="error" class="text-sm text-red-600" role="alert">이메일 또는 비밀번호가 올바르지 않습니다.</p>
+
+        <button type="submit" data-go="08_home.html" class="inline-flex h-[68px] w-full items-center justify-center gap-2 rounded-full bg-[#7a5eff] px-4 text-xl font-semibold text-white transition-colors hover:bg-[#6a4eef]">로그인하기</button>
+      </form>
+
+      <div class="flex items-center gap-4">
+        <span class="h-px flex-1 bg-[#d1d5dc]"></span>
+        <span class="text-lg text-[#364153]">or continue with</span>
+        <span class="h-px flex-1 bg-[#d1d5dc]"></span>
+      </div>
+
+      <div class="space-y-4">
+        <button type="button" data-go="08_home.html" class="inline-flex h-[68px] w-full items-center justify-center gap-2 rounded-full border-2 border-[#d1d5dc] bg-[#f3f4f6] px-4 text-xl font-semibold text-[#364153] transition-colors hover:bg-[#e5e7eb]">
+          <span class="relative size-8 shrink-0">
+            <img src="../../../Front/src/assets/login/google-g-1.svg" alt="" class="absolute inset-0 size-full">
+            <img src="../../../Front/src/assets/login/google-g-2.svg" alt="" class="absolute inset-0 size-full">
+            <img src="../../../Front/src/assets/login/google-g-3.svg" alt="" class="absolute inset-0 size-full">
+            <img src="../../../Front/src/assets/login/google-g-4.svg" alt="" class="absolute inset-0 size-full">
+          </span>
+          구글로 시작하기
+        </button>
+        <button type="button" data-go="08_home.html" class="inline-flex h-[68px] w-full items-center justify-center gap-2 rounded-full bg-[#ffdf20] px-4 text-xl font-semibold text-[#364153] transition-colors hover:bg-[#f5d500]">
+          <img src="../../../Front/src/assets/login/kakao-icon.svg" alt="" class="h-[30px] w-[33px] shrink-0">
+          카카오로 시작하기
+        </button>
+      </div>
+
+      <p class="text-center text-base text-[#99a1af]">계정이 없으신가요? <a href="02_register.html" class="font-medium text-[#364153] hover:underline">여기서 회원가입 하세요</a></p>
+    </div>
+  </section>
+</main>
+</body>
+</html>

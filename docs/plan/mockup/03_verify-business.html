@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>사업자 검증 — 사주라 목업</title>
+<script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4.0.17"></script>
+<script src="mockup.js" defer></script>
+</head>
+<!-- 원본: Front/src/routes/verify-business.tsx -->
+<body data-page="verify" data-states="기본:default,반려됨:rejected">
+<main class="grid min-h-dvh place-items-center bg-[#f3f4f6] p-6">
+  <section class="w-full max-w-[560px] space-y-8 rounded-2xl bg-white p-10 shadow-sm">
+    <header class="space-y-2">
+      <h1 class="text-3xl font-semibold text-[#101828]">매장 인증을 완료해주세요</h1>
+      <p class="text-base text-[#364153]">사업자등록번호와 등록증을 제출하면 검증 후 다음 단계로 진행합니다.</p>
+    </header>
+
+    <output data-when="rejected" class="block rounded-md bg-red-50 p-3 text-sm text-red-700">반려됨: 사업자등록증 이미지가 흐려 번호를 확인할 수 없습니다 — 확인 후 다시 제출해주세요.</output>
+
+    <form class="space-y-6" novalidate>
+      <div class="flex flex-col gap-1">
+        <label for="business_no" class="text-sm font-medium text-slate-700">사업자등록번호</label>
+        <input id="business_no" inputmode="numeric" placeholder="사업자등록번호를 입력해 주세요." value="123-45-67890" class="h-[58px] w-full rounded-xl border border-[#d1d5dc] bg-[#f3f4f6] px-4 text-base shadow-sm">
+        <p class="text-xs text-slate-500">123-45-67890</p>
+      </div>
+
+      <div class="flex flex-col gap-1">
+        <label for="cert" class="text-sm font-medium text-slate-700">사업자등록증</label>
+        <div class="flex items-center gap-3">
+          <div class="flex h-[58px] flex-1 items-center rounded-xl border border-[#d1d5dc] bg-[#f3f4f6] px-4 text-base text-[#99a1af]">사업자등록증_사주라화덕피자.pdf</div>
+          <button type="button" class="inline-flex h-[58px] shrink-0 items-center justify-center gap-2 rounded-xl bg-[#101828] px-6 text-base font-medium text-white transition-colors hover:bg-[#1f2937]">파일 찾기</button>
+        </div>
+        <p class="text-xs text-slate-500">이미지(jpg/png) 또는 PDF, 최대 10MB</p>
+      </div>
+
+      <button type="submit" data-go="04_onboarding-store.html" class="inline-flex h-[68px] w-full items-center justify-center gap-2 rounded-full bg-[#7a5eff] px-4 text-xl font-semibold text-white transition-colors hover:bg-[#6a4eef]">제출하기</button>
+    </form>
+  </section>
+</main>
+</body>
+</html>

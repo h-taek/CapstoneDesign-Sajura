@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>설정 — 사주라 목업</title>
+<script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4.0.17"></script>
+<script src="mockup.js" defer></script>
+</head>
+<!-- 원본: Front/src/routes/settings/index.tsx -->
+<body data-page="settings">
+<div data-shell="settings">
+  <div class="space-y-6">
+    <h1 class="text-2xl font-semibold text-[#101828]">설정</h1>
+    <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+      <a href="15_settings-pos.html" class="flex items-start gap-4 rounded-xl border border-[#d1d5dc] bg-white p-5 transition-colors hover:border-[#7a5eff]">
+        <span class="flex size-11 shrink-0 items-center justify-center rounded-full bg-[#7a5eff]/10 text-[#7a5eff]"><span data-icon="store" class="size-5"></span></span>
+        <span>
+          <span class="block text-base font-semibold text-[#101828]">POS 연동 관리</span>
+          <span class="block text-sm text-[#99a1af]">POS 연동 상태 확인, CSV 템플릿 다운로드·업로드</span>
+        </span>
+      </a>
+      <a href="16_settings-pricing.html" class="flex items-start gap-4 rounded-xl border border-[#d1d5dc] bg-white p-5 transition-colors hover:border-[#7a5eff]">
+        <span class="flex size-11 shrink-0 items-center justify-center rounded-full bg-[#7a5eff]/10 text-[#7a5eff]"><span data-icon="card" class="size-5"></span></span>
+        <span>
+          <span class="block text-base font-semibold text-[#101828]">단가 관리</span>
+          <span class="block text-sm text-[#99a1af]">메뉴별 판매 단가 조회 및 수정</span>
+        </span>
+      </a>
+      <a href="17_settings-notifications.html" class="flex items-start gap-4 rounded-xl border border-[#d1d5dc] bg-white p-5 transition-colors hover:border-[#7a5eff]">
+        <span class="flex size-11 shrink-0 items-center justify-center rounded-full bg-[#7a5eff]/10 text-[#7a5eff]"><span data-icon="bell" class="size-5"></span></span>
+        <span>
+          <span class="block text-base font-semibold text-[#101828]">알림 설정</span>
+          <span class="block text-sm text-[#99a1af]">재고 부족·발주 알림 수신 설정</span>
+        </span>
+      </a>
+      <a href="18_settings-account.html" class="flex items-start gap-4 rounded-xl border border-[#d1d5dc] bg-white p-5 transition-colors hover:border-[#7a5eff]">
+        <span class="flex size-11 shrink-0 items-center justify-center rounded-full bg-[#7a5eff]/10 text-[#7a5eff]"><span data-icon="user" class="size-5"></span></span>
+        <span>
+          <span class="block text-base font-semibold text-[#101828]">계정 정보</span>
+          <span class="block text-sm text-[#99a1af]">이름, 매장 정보, 비밀번호 변경</span>
+        </span>
+      </a>
+      <a href="19_settings-app-info.html" class="flex items-start gap-4 rounded-xl border border-[#d1d5dc] bg-white p-5 transition-colors hover:border-[#7a5eff]">
+        <span class="flex size-11 shrink-0 items-center justify-center rounded-full bg-[#7a5eff]/10 text-[#7a5eff]"><span data-icon="info" class="size-5"></span></span>
+        <span>
+          <span class="block text-base font-semibold text-[#101828]">앱 정보</span>
+          <span class="block text-sm text-[#99a1af]">버전, 이용약관, 개인정보처리방침</span>
+        </span>
+      </a>
+    </div>
+  </div>
+</div>
+</body>
+</html>

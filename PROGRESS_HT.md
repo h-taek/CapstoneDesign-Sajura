@@ -203,6 +203,10 @@ HANDOFF.md E단계 9개 검증 시나리오 수행 + 발견된 결함 일괄 정
 
 ## 2. 문서 수정 이력
 
+### 2026-10-19 — 점주 웹 와이어플로우·화면 목업
+
+`docs/plan/mockup/` 신설. `00_wireflow.html`은 현재 `Front/src/routes` 기준 화면 22장을 4개 흐름(진입·온보딩, 가입·심사, 앱, 매출 데이터·설정)에 놓고 누르는 곳 46개와 전환 경로, 진입 분기 표, 화면별 목업 상태, 코드상 미동작 항목을 한 장에 담았다. `01`~`20`은 화면별 목업으로, 원본 tsx의 Tailwind 클래스를 그대로 옮기고 데이터만 가짜로 채웠다(Tailwind v4 브라우저 빌드, 공용 `mockup.js`가 셸·차트·상태 전환·이동 막대 담당). 상태는 `?state=`로 연다. 헤드리스 Chrome 스크린샷으로 상태별 렌더링 확인. `docs/README.md` §1 폴더 구조에 반영.
+
 ### 2026-10-19 — 재고 로트·FIFO spec 빈칸 정리
 
 구현 전에 막히던 6건을 닫았다. 판매 차감은 품목별 '차감 기준 시각' 이후 판매만(시작값 등록 시각, 중복 행 제외), 품목 등록 수량은 첫 로트로 저장, 폐기는 로트 지정, 소비기한 없는 로트는 기한 있는 로트 뒤에 입고일 순, '재고 확인 필요'는 품목 상태(`needs_check`)로 두고 입고·실사 조정 시 해제, 로트 금액은 구매 총액(`purchase_price`). 레시피 단위는 재고 단위로 보고 환산하지 않는다. `09_service_design.md` §5의 업로드 트랜잭션을 실제 구현(청크 단위 커밋)에 맞췄다. 문서: `04_feature_spec.md` §3.1~§3.5·§8 폐기 비용·§12 폼, `05_user_flow.md` §5, `06_sequence.md` §6, `07_api_spec.md` §5·§6 업로드 응답·§8 재고 수량 주석, `08_schema.md` §3.8·§3.9, `09_service_design.md` §5, `plan/01_be.md` InventoryService, `PROGRESS.md` §3 '재고 차감' 행. 구현 중 보완: `08_schema.md` `deducted_until`은 매장 현지 시각, `07_api_spec.md` 품목 삭제 시 로트·조정·폐기 이력 함께 삭제, `plan/01_be.md` `deduction_context`·`deduct_stock` 행.
