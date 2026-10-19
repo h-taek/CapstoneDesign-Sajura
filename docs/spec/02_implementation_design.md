@@ -40,9 +40,9 @@
 
 2단계
 
-- POS API 연동 — TossPlace·키움페이·OKPOS API로 판매 데이터 자동 수집
-- POS 연동 관리 API — `GET`·`POST`·`PATCH`·`DELETE /api/store/pos`(조회·등록·수정·해제), `POST /api/store/pos/sync`(수동 동기화)
-- 온보딩 POS API 연동 분기 — POS 종류·자격증명 입력, 연동 실패 시 CSV 모드 전환
+- POS API 연동 — TossPlace·키움페이·OKPOS API로 판매 데이터 자동 수집 (`01_basic_design.md` §3.4.3)
+- POS 연동 관리 API — `GET`·`POST`·`PATCH`·`DELETE /api/store/pos`(조회·등록·수정·해제), `POST /api/store/pos/sync`(수동 동기화) (§3.3)
+- 온보딩 POS API 연동 분기 — POS 종류·자격증명 입력, 연동 실패 시 CSV 모드 전환 (§2.2, `01_basic_design.md` §3.1.4)
 - 주간 모델 재학습 배치 — 매주 일요일 n8n이 `pipeline_jobs`(TRAIN)를 만들고 AI Server 재학습 호출
 - 모델 재학습 API — `POST /ai/forecast/train`, `GET /ai/forecast/status`의 학습 작업 조회, `GET /ai/health`의 `last_trained_at` 채움
 - 모델 고도화 — 초기 모델의 예측 품질 개선
@@ -214,11 +214,22 @@ sequenceDiagram
             사주라UI->>사주라서버: PATCH /api/store
             사주라서버->>DB: 매장 정보 저장
 
-            사용자->>사주라UI: POS 연동 모드 선택 (CSV)
-            사용자->>사주라UI: CSV 파일 업로드
-            사주라UI->>사주라서버: POST /api/sales/upload
-            사주라서버->>DB: pos_connections.status=CSV_MODE 저장 + 판매 데이터 적재
-            Note over 사주라UI: CSV 모드에서 수요예측·자동발주 활성화
+            사용자->>사주라UI: POS 연동 모드 선택 (CSV / POS API[2단계])
+            alt CSV 모드
+                사용자->>사주라UI: CSV 파일 업로드
+                사주라UI->>사주라서버: POST /api/sales/upload
+                사주라서버->>DB: pos_connections.status=CSV_MODE 저장 + 판매 데이터 적재
+            else POS API 연동 [2단계]
+                사용자->>사주라UI: POS 종류·자격증명 입력
+                사주라UI->>사주라서버: POST /api/store/pos
+                사주라서버->>DB: POS 정보 저장
+                alt POS 연동 성공
+                    사주라서버-->>사주라UI: 연동 성공 (status: CONNECTED)
+                else POS 연동 실패
+                    사주라서버-->>사주라UI: 연동 실패 → CSV 모드로 전환 (status: CSV_MODE)
+                end
+            end
+            Note over 사주라UI: CSV·POS API 양쪽 모두 수요예측·자동발주 활성화
 
             사용자->>사주라UI: 초기 재고 / 초기 메뉴 입력
             사주라UI->>사주라서버: POST /api/inventory, POST /api/menus (각각)
@@ -748,7 +759,7 @@ Authorization: Bearer <access_token>
 
 ### 3.3 매장/POS API
 
-> POS 연동은 CSV 업로드(`POST /api/sales/upload`)와 `GET /api/store/pos/status` 조회만 쓴다. POS API 연동은 §1.4.
+> `/api/store/pos/*` 계열(등록·수정·해제·sync)은 [2단계] POS API 연동 범위(§1.4). MVP는 CSV 업로드(`POST /api/sales/upload`)와 `/api/store/pos/status` 조회만 사용한다.
 
 #### Endpoints
 
@@ -762,6 +773,11 @@ Authorization: Bearer <access_token>
 | `GET` | `/api/admin/verifications/{store_id}/cert` | (ADMIN) 업로드된 사업자등록증 파일 조회 |
 | `POST` | `/api/admin/verifications/{store_id}/approve` | (ADMIN) 승인 → VERIFIED |
 | `POST` | `/api/admin/verifications/{store_id}/reject` | (ADMIN) 반려 → REJECTED (+사유) |
+| `GET` | `/api/store/pos` | POS 연동 정보 조회 [2단계] |
+| `POST` | `/api/store/pos` | POS 연동 등록 [2단계] |
+| `PATCH` | `/api/store/pos` | POS 연동 정보 수정 [2단계] |
+| `DELETE` | `/api/store/pos` | POS 연동 해제 [2단계] |
+| `POST` | `/api/store/pos/sync` | POS 데이터 수동 동기화 요청 [2단계] |
 | `GET` | `/api/store/pos/status` | POS 연동 상태 조회 (`CSV_MODE`·`CONNECTED`·`ERROR`·`DISCONNECTED`) |
 
 > 1계정 1매장 구조라 `/api/store/{id}` 대신 `/api/store`를 쓴다.
@@ -864,6 +880,57 @@ Authorization: Bearer <access_token>
 ```
 
 > 온보딩 Step 4(초기 재고/메뉴 입력) 완료 후 Frontend가 호출한다. `stores.onboarding_completed`를 `true`로 업데이트하고, 이후 로그인 응답에 `onboarding_completed: true`가 반환된다. 이미 완료된 상태에서 재호출 시 동일 응답을 반환(멱등).
+
+#### GET /api/store/pos [2단계]
+
+```json
+// Response 200
+{
+  "pos_type": "UNIONPOS",
+  "api_key": "un*******34",   // 앞 2자·뒤 2자만 노출
+  "store_code": "12345",
+  "connected_at": "2026-01-01T00:00:00Z"
+}
+```
+
+#### POST /api/store/pos [2단계]
+
+```json
+// Request
+{
+  "pos_type": "UNIONPOS",
+  "api_key": "string",   // 1~150자. 암호화 저장 (03_be.md §10.1)
+  "store_code": "12345"
+}
+// Response 201: GET /api/store/pos 와 동일 구조
+```
+
+#### PATCH /api/store/pos [2단계]
+
+```json
+// Request (변경할 필드만)
+{
+  "api_key": "new_string"
+}
+// Response 200: GET /api/store/pos 와 동일 구조
+```
+
+#### DELETE /api/store/pos [2단계]
+
+```
+// Response: 204 No Content
+```
+
+#### POST /api/store/pos/sync [2단계]
+
+```json
+// Request: body 없음
+// Response 200
+{
+  "synced_at": "2026-05-06T02:00:00Z",
+  "records_synced": 142
+}
+```
 
 #### GET /api/store/pos/status
 

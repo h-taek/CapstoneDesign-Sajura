@@ -86,17 +86,20 @@
 8a. (비동기) 관리자(`role=ADMIN`)가 `/admin` 심사 큐에서 등록증을 확인해 승인(`VERIFIED`) 또는 반려(`REJECTED`+사유)한다. 반려 시 사용자는 재검증한다.
 9. 사용자가 매장명, 업종, 연락처, 주소, 매장 규모 구간, 운영 형태를 입력한다.
 10. Backend가 매장 정보를 DB에 저장한다.
-11. 사용자가 POS 연동 방식으로 CSV 모드를 선택하며, 이 경우 `pos_connections.status`를 `CSV_MODE`로 설정한다.
-12. 사용자가 초기 재고를 입력한다.
-13. Backend가 초기 재고를 DB에 저장한다.
-14. 사용자가 초기 메뉴와 레시피를 입력한다.
-15. Backend가 메뉴와 레시피를 DB에 저장한다.
-16. Backend가 온보딩 완료 상태를 저장한다.
-17. Frontend가 메인 화면을 제공한다.
+11. 사용자가 POS 연동 정보를 입력하고 연동을 시도한다. [POS API 연동은 2단계 — MVP는 CSV 모드로 진입]
+12. POS API 연동 성공 시 `pos_connections.status`를 `CONNECTED`로 설정한다. [2단계]
+13. POS API 미연동 또는 연동 실패 시 사용자가 CSV 모드를 선택하며, 이 경우 `pos_connections.status`를 `CSV_MODE`로 설정한다. (MVP 기본 경로)
+14. 사용자가 초기 재고를 입력한다.
+15. Backend가 초기 재고를 DB에 저장한다.
+16. 사용자가 초기 메뉴와 레시피를 입력한다.
+17. Backend가 메뉴와 레시피를 DB에 저장한다.
+18. Backend가 온보딩 완료 상태를 저장한다.
+19. Frontend가 메인 화면을 제공한다.
 
 #### 대안 흐름
 
 - 사업자등록번호 검증 결과가 휴업·폐업·미등록·형식오류이거나 관리자가 반려(`REJECTED`)하면 계정을 삭제하지 않고 유지한 채 사업자 검증 화면에 머무르며, 미등록/형식은 재입력을, 휴업/폐업·반려는 사유를 안내한다. `UNVERIFIED`·`REJECTED` 상태에서는 온보딩으로 넘어가지 못한다(`PENDING`부터 허용).
+- POS API 미연동·연동 실패 시 CSV 모드로 진행한다. CSV 모드에서도 수요예측·자동발주 추천 기능은 동일하게 동작한다 (`02_implementation_design.md` §1.3·§1.6 데모 시나리오 기준). [2단계]
 - 온보딩 도중 이탈한 사용자는 다음 로그인 시 `onboarding_completed: false` 상태로 기존 단계부터 재진입한다.
 
 #### 사후 조건
@@ -362,8 +365,13 @@ Frontend → GET /api/auth/login/{provider}
             · PENDING부터 온보딩 진행 허용 (관리자 승인을 기다리지 않음)
             · 관리자 승인 → VERIFIED / 반려 → REJECTED(사유) → 재검증
 3. 매장 정보 입력 (매장명, 업종, 연락처, 주소, 매장 규모 구간, 운영 형태)
-4. POS 연동 방식 선택 — CSV 모드 (pos_connections.status=CSV_MODE)
-     · CSV 모드에서도 수요예측·자동발주 추천 기능은 동일하게 동작한다
+4. POS 연동 방식 선택
+     ├─ CSV 모드 (pos_connections.status=CSV_MODE)
+     └─ POS API 연동 [2단계] → POS 종류·자격증명 입력 → 연동 시도
+                              ├─ 성공: pos_connections.status=CONNECTED
+                              └─ 실패: CSV 모드로 진행 (status=CSV_MODE)
+     · 양쪽 모두 수요예측·자동발주 추천 활성화
+     · 설정 화면에서 모드 전환 가능
 5. 초기 재고 / 초기 메뉴 입력
 6. 메인 화면 진입 (onboarding_completed=true)
 ```
@@ -388,6 +396,7 @@ Frontend → GET /api/auth/login/{provider}
 | | 주소 | 필수 (AI 예측 지역 변수 활용) |
 | | 매장 규모 구간 | 필수, 선택지 제공 (소형 ~10석 / 중형 11~30석 / 대형 31석~) |
 | | 운영 형태 | 필수, 선택지 제공 (홀 운영 / 배달 전용 / 홀+배달 병행) |
+| | POS 종류 및 자격증명 | [2단계] POS API 선택 시 필수. MVP는 CSV 모드 선택이 기본 |
 | 출력 | store_id | |
 | | business_status | UNVERIFIED / PENDING / VERIFIED / REJECTED |
 | | onboarding_completed | boolean |
@@ -561,21 +570,33 @@ Frontend → GET /api/auth/login/{provider}
 #### 3.4.1 지원 방식
 
 - CSV 업로드
+- POS API 연동 [2단계]
 
 #### 3.4.2 어댑터 구조
 
 | POS 소스 | 어댑터 | 공통 스키마 |
 |---|---|---|
 | CSV 업로드 | CSVAdapter | `{ "sold_at": ..., "external_sale_id": ..., "menu_name": ..., "quantity": ..., "unit_price": ..., "total_price": ... }` |
+| 토스플레이스 [2단계] | TossPlaceAdapter | 동일 공통 스키마 |
+| 키움페이 [2단계] | KiwoomAdapter | 동일 공통 스키마 |
+| OKPOS [2단계] | OKPOSAdapter | 동일 공통 스키마 |
 
 - POS 어댑터의 공통 스키마는 판매 메뉴 단위의 표준 판매 데이터이다.
 - Backend는 공통 스키마의 `menu_name`을 매장 메뉴와 매핑하여 내부 `menu_id`를 결정한다.
 - `external_sale_id`는 POS/CSV 원본 판매 식별자이며, 제공되지 않는 CSV 데이터에서는 NULL을 허용한다.
 - 매핑 실패 시 해당 행은 저장하지 않고 업로드/동기화 결과의 `skipped` 항목으로 반환한다.
 
-#### 3.4.3 POS API 연동
+#### 3.4.3 POS API 연동 [2단계]
 
-MVP 제외 기능이다 (`02_implementation_design.md` §1.4).
+MVP 범위 외 — `02_implementation_design.md` §1.4 참조. 아래 시그니처는 2단계 설계 기준.
+
+| 구분 | 항목 | 비고 |
+|---|---|---|
+| 입력 | POS 종류 선택 | TossPlace / 키움페이 / OKPOS |
+| | API 자격증명 | |
+| | store_id | |
+| 출력 | 연동 성공/실패 여부 | |
+| | 초기 데이터 수집 건수 | |
 
 #### 3.4.4 CSV 업로드
 
@@ -891,9 +912,10 @@ MVP 제외 기능이다 (`02_implementation_design.md` §1.4).
 
 [온보딩 흐름]
 매장 정보 입력
-→ POS 연동 방식 선택 (CSV 모드)
-→ 초기 재고/메뉴 입력
-→ 메인 홈
+→ POS 연동 방식 선택
+    ├─ POS API 성공 [2단계] → 초기 재고/메뉴 입력 → 메인 홈
+    └─ CSV 모드 → 초기 재고/메뉴 입력 → 메인 홈
+                (양쪽 모두 수요예측·자동발주 활성화)
 
 [일일 운영 흐름]
 메인 홈 접속
@@ -918,7 +940,13 @@ MVP 제외 기능이다 (`02_implementation_design.md` §1.4).
    - 계속사업자(또는 마스터 코드) → 사업자등록증 업로드 → `business_status=PENDING` → 온보딩 진행 (관리자 승인 전이라도 진입 가능)
    - 관리자 심사: 승인 → `VERIFIED` / 반려 → `REJECTED`(사유) → 재검증
 4. 매장명, 업종, 연락처, 주소, 매장 규모 구간, 운영 형태를 입력한다.
-5. POS 연동 방식으로 CSV 모드를 선택한다 (`pos_connections.status=CSV_MODE`). CSV 템플릿 다운로드와 업로드는 POS 연동 설정 화면에서 한다(§3.4.4).
+5. POS 연동 방식을 선택한다.
+   - CSV 모드 (`pos_connections.status=CSV_MODE`). CSV 템플릿 다운로드와 업로드는 POS 연동 설정 화면에서 한다(§3.4.4).
+   - POS API 연동 [2단계] → POS 종류·자격증명 입력 → 연동 시도
+     - 성공: `pos_connections.status=CONNECTED`, "POS 연동 완료" 배지
+     - 실패: CSV 모드로 진행 (`status=CSV_MODE`)
+   - 양쪽 모두 수요예측·자동발주 추천 활성화
+   - 설정 화면에서 모드 전환 가능
 6. 초기 재고와 초기 메뉴를 입력한다.
 7. 메인 홈 화면으로 이동한다.
 
@@ -1038,7 +1066,7 @@ MVP 제외 기능이다 (`02_implementation_design.md` §1.4).
 
 | 항목 | 흐름 |
 |---|---|
-| POS 연동 관리 | 현재 연동 상태 확인 → CSV 업로드 |
+| POS 연동 관리 | 현재 연동 상태 확인 → POS 재연동 시도[2단계] 또는 CSV 업로드 선택 |
 | 단가 관리 | 재료별 단가 및 최종 업데이트 일시 확인 → 수동 단가 수정 |
 | 알림 설정 | 알림 유형별 on/off 토글 (소비기한 임박 / 재고 부족 / 예측 완료 / 이상치 감지) |
 | 계정 정보 | 매장 정보 수정 / 로그아웃 / 회원 탈퇴 (보유 기간 규칙: §5.2.1) |
