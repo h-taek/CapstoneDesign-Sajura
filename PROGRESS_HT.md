@@ -8,6 +8,15 @@
 
 ## 1. 개발 이력
 
+### 재고 로트·FIFO 판매 차감 — `1bb672d` (2026-10-19)
+
+- 스키마 — 마이그레이션 `0010`: `current_quantity`를 로트(`purchase_price` 0, 입고일 = 등록일 KST)로 옮기고 컬럼 삭제, `deducted_until`(초기값 등록 시각 KST)·`needs_check` 추가, `unit_price` → `purchase_price`. downgrade는 로트 합계로 수량을 복원하고 로트·조정·폐기 이력을 비운다
+- 판매 차감 — `InventoryService.deduction_context`·`deduct_stock`. 업로드 시작 시 차감 기준 시각을 스냅샷으로 잡고, 청크마다 INSERT 전에 기존 `external_sale_id`를 조회해 새 행만 차감. 품목·로트 행 잠금(FOR UPDATE), 청크 커밋은 `SaleService`. 업로드 응답에 `inventory_deduction`
+- 재고 API 12개 — 등록 시 첫 로트, 로트 입고·조회·조정(`STOCKTAKE`면 `needs_check` 해제)·폐기(422 `INVENTORY_DISPOSE_EXCEEDS`), `alert_status`(NEEDS_CHECK > EMPTY > EXPIRED_SOON > LOW > NORMAL)·summary·alerts. 예측 입력의 재고 수량도 로트 합계
+- FE — 재고 표 행을 펼쳐 로트 입고·수정·폐기, `AlertBadge`, 홈 재고 카드, 업로드 결과의 차감 건수·'재고 확인 필요' 안내
+- 수정 — 재고 등록 폼에서 안전재고·리드타임을 비우면 0이 전송되던 문제(zod union 순서). 안전재고 0은 '직접 설정'으로 판정돼 '설정 필요' 배지가 빠졌었다
+- 검증: BE pytest 65 통과(신규 8), FE Vitest 42 통과(신규 5), typecheck 통과. `0010`은 임시 품목(수량 있음·없음, UTC 20시 생성)으로 upgrade → downgrade → upgrade 왕복 확인. 10만 행 합성 CSV(메뉴 96개, 재료 8개·로트 3개씩) 업로드 차감 없음 9.26초 / 차감 있음 10.28초
+
 ### 보안 3건 — POS 키 암호화·BE 사업자 검증 게이트·탈퇴 30일 유예 — `837d095` (2026-10-03)
 
 - POS 키 — `pos_connections.api_key`를 AES-256-GCM으로 저장(`core/crypto.py`). 행마다 새 nonce, `store_id`를 연관 데이터로 묶음. 응답은 복호화 후 마스킹. 기존 평문 행은 마이그레이션 `0008`이 암호화(평문 행으로 upgrade·downgrade 왕복 확인)
@@ -196,7 +205,7 @@ HANDOFF.md E단계 9개 검증 시나리오 수행 + 발견된 결함 일괄 정
 
 ### 2026-10-19 — 재고 로트·FIFO spec 빈칸 정리
 
-구현 전에 막히던 6건을 닫았다. 판매 차감은 품목별 '차감 기준 시각' 이후 판매만(시작값 등록 시각, 중복 행 제외), 품목 등록 수량은 첫 로트로 저장, 폐기는 로트 지정, 소비기한 없는 로트는 기한 있는 로트 뒤에 입고일 순, '재고 확인 필요'는 품목 상태(`needs_check`)로 두고 입고·실사 조정 시 해제, 로트 금액은 구매 총액(`purchase_price`). 레시피 단위는 재고 단위로 보고 환산하지 않는다. `09_service_design.md` §5의 업로드 트랜잭션을 실제 구현(청크 단위 커밋)에 맞췄다. 문서: `04_feature_spec.md` §3.1~§3.5·§8 폐기 비용·§12 폼, `05_user_flow.md` §5, `06_sequence.md` §6, `07_api_spec.md` §5·§6 업로드 응답·§8 재고 수량 주석, `08_schema.md` §3.8·§3.9, `09_service_design.md` §5, `plan/01_be.md` InventoryService, `PROGRESS.md` §3 '재고 차감' 행.
+구현 전에 막히던 6건을 닫았다. 판매 차감은 품목별 '차감 기준 시각' 이후 판매만(시작값 등록 시각, 중복 행 제외), 품목 등록 수량은 첫 로트로 저장, 폐기는 로트 지정, 소비기한 없는 로트는 기한 있는 로트 뒤에 입고일 순, '재고 확인 필요'는 품목 상태(`needs_check`)로 두고 입고·실사 조정 시 해제, 로트 금액은 구매 총액(`purchase_price`). 레시피 단위는 재고 단위로 보고 환산하지 않는다. `09_service_design.md` §5의 업로드 트랜잭션을 실제 구현(청크 단위 커밋)에 맞췄다. 문서: `04_feature_spec.md` §3.1~§3.5·§8 폐기 비용·§12 폼, `05_user_flow.md` §5, `06_sequence.md` §6, `07_api_spec.md` §5·§6 업로드 응답·§8 재고 수량 주석, `08_schema.md` §3.8·§3.9, `09_service_design.md` §5, `plan/01_be.md` InventoryService, `PROGRESS.md` §3 '재고 차감' 행. 구현 중 보완: `08_schema.md` `deducted_until`은 매장 현지 시각, `07_api_spec.md` 품목 삭제 시 로트·조정·폐기 이력 함께 삭제, `plan/01_be.md` `deduction_context`·`deduct_stock` 행.
 
 ### 2026-10-03 — 브랜치 전략 GitHub flow 전환
 
