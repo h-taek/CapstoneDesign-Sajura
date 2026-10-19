@@ -28,6 +28,7 @@ import { IngredientIcon } from "../components/dashboard/ingredient-icon";
 import { MenuSharePieChart } from "../components/dashboard/menu-share-chart";
 import { RevenueBarChart } from "../components/dashboard/revenue-chart";
 import { DashboardShell } from "../components/dashboard/shell";
+import { AlertBadge } from "../components/inventory/alert-badge";
 
 const won = new Intl.NumberFormat("ko-KR", { style: "currency", currency: "KRW" });
 
@@ -92,9 +93,10 @@ export default function HomePage() {
     .sort(([a], [b]) => a.localeCompare(b))
     .map(([year, revenue]) => ({ label: `${year}년`, revenue }));
 
-  const lowStockCount = inventory.filter((i) => i.is_low_stock).length;
+  const alerting = (i: (typeof inventory)[number]) => i.alert_status !== "NORMAL";
+  const lowStockCount = inventory.filter(alerting).length;
   const inventoryPreview = [...inventory]
-    .sort((a, b) => Number(b.is_low_stock) - Number(a.is_low_stock))
+    .sort((a, b) => Number(alerting(b)) - Number(alerting(a)))
     .slice(0, 5);
   const hasSalesData = (summary?.total_sales_count ?? 0) > 0;
 
@@ -110,7 +112,7 @@ export default function HomePage() {
       icon: Receipt,
     },
     {
-      label: "재고 부족 상품",
+      label: "재고 경고 품목",
       value: `${lowStockCount}개`,
       icon: AlertTriangle,
     },
@@ -284,21 +286,16 @@ export default function HomePage() {
                       <tr key={item.item_id} className="border-t border-[#eef1f4]">
                         <td className="px-4 py-3 font-medium text-[#364153]">{item.name}</td>
                         <td className="px-4 py-3 text-[#364153]">
-                          {item.current_quantity} {item.unit}
+                          {Number(item.total_quantity).toLocaleString("ko-KR", {
+                            maximumFractionDigits: 3,
+                          })}{" "}
+                          {item.unit}
                         </td>
                         <td className="px-4 py-3 text-[#364153]">
                           {item.low_stock_threshold} {item.unit}
                         </td>
                         <td className="px-4 py-3">
-                          {item.is_low_stock ? (
-                            <span className="rounded-full bg-red-50 px-2.5 py-1 text-xs font-medium text-red-600">
-                              부족
-                            </span>
-                          ) : (
-                            <span className="rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-medium text-emerald-700">
-                              정상
-                            </span>
-                          )}
+                          <AlertBadge status={item.alert_status} />
                         </td>
                         <td className="px-4 py-3 text-[#99a1af]">
                           {new Date(item.updated_at).toLocaleDateString("ko-KR")}

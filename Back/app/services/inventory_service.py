@@ -1,60 +1,159 @@
-"""InventoryService — 재고 품목 CRUD + 임계값 기반 발주추천.
+"""InventoryService — 재고 품목·로트·폐기·경고·FIFO 차감 (04_feature_spec.md §3).
 
-발주추천은 AI 서버(AI/app/api/orders.py)에 실제 수요예측 기반 추천 엔진이 있지만
-그 입력으로 필요한 실시간 재고 수량을 BE가 아직 보유하지 않아 (재고관리
-current_quantity 도입 전) 호출할 수 없었다. 이 서비스가 그 수량을 갖게 되면서,
-우선 AI 없이도 정직하게 계산 가능한 "임계값 이하 재고" 기준 추천을 제공한다.
-AI 예측 기반 추천(리드타임 중 예상 소비량 반영)은 별도 후속 작업.
+수량은 품목에 두지 않고 로트(`inventory_lots.remaining_quantity`) 합계로 계산한다.
+판매 차감 규칙(차감 기준 시각·로트 순서·재고 확인 필요)은 04_feature_spec.md §3.3.
 """
+
 from __future__ import annotations
 
+from collections import defaultdict
+from dataclasses import dataclass, field
+from datetime import date, datetime, timedelta
 from decimal import Decimal
+from zoneinfo import ZoneInfo
 
-from sqlalchemy import delete, select
+from sqlalchemy import delete, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core import errors
-from app.models.inventory_item import InventoryItem
-from app.models.menu import RecipeIngredient
+from app.models.inventory_item import (
+    AdjustmentReason,
+    DisposalLog,
+    InventoryAdjustmentLog,
+    InventoryItem,
+    InventoryLot,
+)
+from app.models.menu import Menu, Recipe, RecipeIngredient
 from app.models.order import OrderApprovalLog, OrderItem, OrderRecommendationItem
+
+KST = ZoneInfo("Asia/Seoul")
+EXPIRY_WARN_DAYS = 3  # 04_feature_spec.md §3.6 D-3
+
+# FIFO 순서 — 소비기한 빠른 순, 소비기한 없는 로트는 뒤에 입고일 순 (04_feature_spec.md §3.3)
+FIFO_ORDER = (
+    InventoryLot.expiry_date.is_(None),
+    InventoryLot.expiry_date,
+    InventoryLot.received_at,
+    InventoryLot.created_at,
+)
+
+
+def now_kst() -> datetime:
+    """판매 시각(sold_at)과 같은 기준의 매장 현지 시각 (naive)."""
+    return datetime.now(KST).replace(tzinfo=None)
+
+
+@dataclass
+class ItemStock:
+    item: InventoryItem
+    total_quantity: Decimal
+    nearest_expiry: date | None  # 잔여 수량이 남은 로트 중 가장 빠른 소비기한
+
+    def alert_status(self, today: date) -> str:
+        # 07_api_spec.md §5 — 여러 조건이면 위쪽 값
+        if self.item.needs_check:
+            return "NEEDS_CHECK"
+        if self.total_quantity <= 0:
+            return "EMPTY"
+        if self.nearest_expiry is not None and self.nearest_expiry <= today + timedelta(
+            days=EXPIRY_WARN_DAYS
+        ):
+            return "EXPIRED_SOON"
+        if self.total_quantity <= self.item.low_stock_threshold:
+            return "LOW"
+        return "NORMAL"
+
+
+@dataclass
+class DeductionContext:
+    """업로드 1회분 차감 준비물. 기준 시각은 업로드 시작 시점 값으로 고정한다 —
+    파일 안 판매 순서가 섞여 있어도 같은 기준으로 거른다."""
+
+    recipes: dict[str, list[tuple[str, Decimal]]]  # menu_id → [(item_id, 메뉴 1개당 사용량)]
+    deducted_until: dict[str, datetime]  # item_id → 업로드 시작 시점의 차감 기준 시각
+
+
+@dataclass
+class DeductionResult:
+    deducted_sales: int = 0
+    needs_check_items: list[tuple[str, str]] = field(default_factory=list)  # (item_id, name)
 
 
 class InventoryService:
     def __init__(self, session: AsyncSession) -> None:
         self.session = session
 
-    async def list_items(self, *, store_id: str) -> list[InventoryItem]:
-        rows = (
+    # ------------------------------------------------------------------ 품목
+
+    async def list_stocks(self, *, store_id: str) -> list[ItemStock]:
+        items = (
             await self.session.scalars(
-                select(InventoryItem).where(InventoryItem.store_id == store_id).order_by(InventoryItem.name)
+                select(InventoryItem)
+                .where(InventoryItem.store_id == store_id)
+                .order_by(InventoryItem.name)
             )
         ).all()
-        return list(rows)
+        agg = await self._lot_aggregates([i.item_id for i in items])
+        return [ItemStock(i, *agg.get(i.item_id, (Decimal(0), None))) for i in items]
+
+    async def get_stock(self, *, store_id: str, item_id: str) -> ItemStock:
+        item = await self.get_item(store_id=store_id, item_id=item_id)
+        agg = await self._lot_aggregates([item_id])
+        return ItemStock(item, *agg.get(item_id, (Decimal(0), None)))
 
     async def get_item(self, *, store_id: str, item_id: str) -> InventoryItem:
         item = await self.session.get(InventoryItem, item_id)
         if item is None:
-            raise errors.DomainError(status_code=404, error_code="NOT_FOUND", message="재료를 찾을 수 없습니다.")
+            raise errors.DomainError(
+                status_code=404, error_code="NOT_FOUND", message="재료를 찾을 수 없습니다."
+            )
         if item.store_id != store_id:
             raise errors.forbidden()
         return item
 
     async def create_item(
-        self, *, store_id: str, name: str, unit: str, current_quantity: Decimal,
-        low_stock_threshold: Decimal, lead_time_days: int | None, safety_stock: Decimal | None,
-    ) -> InventoryItem:
+        self,
+        *,
+        store_id: str,
+        name: str,
+        unit: str,
+        quantity: Decimal,
+        expiry_date: date | None,
+        purchase_price: int | None,
+        low_stock_threshold: Decimal,
+        lead_time_days: int | None,
+        safety_stock: Decimal | None,
+    ) -> ItemStock:
         await self._assert_unique_name(store_id=store_id, name=name)
+        now = now_kst()
         item = InventoryItem(
-            store_id=store_id, name=name, unit=unit, current_quantity=current_quantity,
-            low_stock_threshold=low_stock_threshold, lead_time_days=lead_time_days,
+            store_id=store_id,
+            name=name,
+            unit=unit,
+            low_stock_threshold=low_stock_threshold,
+            lead_time_days=lead_time_days,
             safety_stock=safety_stock,
+            deducted_until=now,
         )
         self.session.add(item)
+        await self.session.flush()
+        if quantity > 0:
+            # 등록 수량은 첫 로트로 저장 (04_feature_spec.md §3.1)
+            self.session.add(
+                InventoryLot(
+                    item_id=item.item_id,
+                    quantity=quantity,
+                    remaining_quantity=quantity,
+                    purchase_price=purchase_price or 0,
+                    received_at=now.date(),
+                    expiry_date=expiry_date,
+                )
+            )
         await self.session.commit()
         await self.session.refresh(item)
-        return item
+        return ItemStock(item, quantity, expiry_date if quantity > 0 else None)
 
-    async def update_item(self, *, store_id: str, item_id: str, patch: dict) -> InventoryItem:
+    async def update_item(self, *, store_id: str, item_id: str, patch: dict) -> ItemStock:
         item = await self.get_item(store_id=store_id, item_id=item_id)
         new_name = patch.get("name")
         if new_name is not None and new_name != item.name:
@@ -63,8 +162,7 @@ class InventoryService:
             if v is not None:
                 setattr(item, k, v)
         await self.session.commit()
-        await self.session.refresh(item)
-        return item
+        return await self.get_stock(store_id=store_id, item_id=item_id)
 
     async def delete_item(self, *, store_id: str, item_id: str) -> None:
         item = await self.get_item(store_id=store_id, item_id=item_id)
@@ -73,7 +171,8 @@ class InventoryService:
         )
         if used is not None:
             raise errors.DomainError(
-                status_code=409, error_code="INVENTORY_ITEM_IN_USE",
+                status_code=409,
+                error_code="INVENTORY_ITEM_IN_USE",
                 message="레시피에서 사용 중인 재료는 삭제할 수 없습니다.",
             )
         ordered = await self.session.scalar(
@@ -83,24 +182,266 @@ class InventoryService:
         )
         if ordered is not None:
             raise errors.DomainError(
-                status_code=409, error_code="INVENTORY_ITEM_IN_USE",
+                status_code=409,
+                error_code="INVENTORY_ITEM_IN_USE",
                 message="발주 내역에 포함된 재료는 삭제할 수 없습니다.",
             )
         await self.session.execute(
             delete(OrderRecommendationItem).where(OrderRecommendationItem.item_id == item_id)
         )
+        # 조정·폐기 이력은 로트 FK가 CASCADE가 아니라 먼저 지운다. 로트는 품목 삭제에 CASCADE
+        await self.session.execute(
+            delete(InventoryAdjustmentLog).where(InventoryAdjustmentLog.item_id == item_id)
+        )
+        await self.session.execute(delete(DisposalLog).where(DisposalLog.item_id == item_id))
         await self.session.delete(item)
         await self.session.commit()
 
-    async def get_reorder_suggestions(self, *, store_id: str) -> list[tuple[InventoryItem, Decimal]]:
-        items = await self.list_items(store_id=store_id)
-        out: list[tuple[InventoryItem, Decimal]] = []
-        for item in items:
-            target = item.safety_stock if item.safety_stock is not None else item.low_stock_threshold
-            if item.current_quantity <= item.low_stock_threshold:
-                suggested = max(Decimal(0), target - item.current_quantity)
-                out.append((item, suggested))
+    async def get_summary(self, *, store_id: str) -> dict[str, int]:
+        today = now_kst().date()
+        statuses = [s.alert_status(today) for s in await self.list_stocks(store_id=store_id)]
+        return {
+            "total_items": len(statuses),
+            "low_stock_count": statuses.count("LOW"),
+            "expired_soon_count": statuses.count("EXPIRED_SOON"),
+            "empty_count": statuses.count("EMPTY"),
+            "needs_check_count": statuses.count("NEEDS_CHECK"),
+        }
+
+    async def get_alerts(self, *, store_id: str) -> list[tuple[ItemStock, str, str]]:
+        """경고 품목만 (stock, alert_status, alert_message)."""
+        today = now_kst().date()
+        out: list[tuple[ItemStock, str, str]] = []
+        for s in await self.list_stocks(store_id=store_id):
+            status = s.alert_status(today)
+            if status != "NORMAL":
+                out.append((s, status, _alert_message(s, status, today)))
         return out
+
+    async def total_quantities(self, *, store_id: str) -> dict[str, Decimal]:
+        return {s.item.item_id: s.total_quantity for s in await self.list_stocks(store_id=store_id)}
+
+    async def get_reorder_suggestions(self, *, store_id: str) -> list[tuple[ItemStock, Decimal]]:
+        out: list[tuple[ItemStock, Decimal]] = []
+        for s in await self.list_stocks(store_id=store_id):
+            item = s.item
+            target = (
+                item.safety_stock if item.safety_stock is not None else item.low_stock_threshold
+            )
+            if s.total_quantity <= item.low_stock_threshold:
+                out.append((s, max(Decimal(0), target - s.total_quantity)))
+        return out
+
+    # ------------------------------------------------------------------ 로트
+
+    async def add_lot(
+        self,
+        *,
+        store_id: str,
+        item_id: str,
+        quantity: Decimal,
+        received_at: date,
+        expiry_date: date | None,
+        purchase_price: int,
+    ) -> InventoryLot:
+        item = await self.get_item(store_id=store_id, item_id=item_id)
+        lot = InventoryLot(
+            item_id=item_id,
+            quantity=quantity,
+            remaining_quantity=quantity,
+            purchase_price=purchase_price,
+            received_at=received_at,
+            expiry_date=expiry_date,
+        )
+        self.session.add(lot)
+        item.needs_check = False
+        await self.session.commit()
+        await self.session.refresh(lot)
+        return lot
+
+    async def get_lots(
+        self, *, store_id: str, item_id: str
+    ) -> tuple[InventoryItem, list[InventoryLot]]:
+        item = await self.get_item(store_id=store_id, item_id=item_id)
+        lots = (
+            await self.session.scalars(
+                select(InventoryLot).where(InventoryLot.item_id == item_id).order_by(*FIFO_ORDER)
+            )
+        ).all()
+        return item, list(lots)
+
+    async def update_lot(
+        self,
+        *,
+        store_id: str,
+        item_id: str,
+        lot_id: str,
+        user_id: str,
+        changes: dict,
+        reason: AdjustmentReason,
+        memo: str | None,
+    ) -> InventoryAdjustmentLog:
+        """changes에는 보낸 필드만 담긴다 (remaining_quantity, expiry_date)."""
+        item = await self.get_item(store_id=store_id, item_id=item_id)
+        lot = await self._get_lot(item_id=item_id, lot_id=lot_id)
+        before_qty, before_exp = lot.remaining_quantity, lot.expiry_date
+        if changes.get("remaining_quantity") is not None:
+            lot.remaining_quantity = changes["remaining_quantity"]
+        if "expiry_date" in changes:
+            lot.expiry_date = changes["expiry_date"]
+        if reason == AdjustmentReason.STOCKTAKE:
+            item.needs_check = False
+        log = InventoryAdjustmentLog(
+            lot_id=lot_id,
+            item_id=item_id,
+            store_id=store_id,
+            user_id=user_id,
+            before_quantity=before_qty,
+            after_quantity=lot.remaining_quantity,
+            delta_quantity=lot.remaining_quantity - before_qty,
+            before_expiry_date=before_exp,
+            after_expiry_date=lot.expiry_date,
+            reason=reason,
+            memo=memo,
+        )
+        self.session.add(log)
+        await self.session.commit()
+        await self.session.refresh(log)
+        return log
+
+    async def dispose(
+        self,
+        *,
+        store_id: str,
+        item_id: str,
+        lot_id: str,
+        quantity: Decimal,
+        reason: str | None,
+        user_id: str,
+    ) -> tuple[DisposalLog, Decimal]:
+        """(폐기 이력, 차감 후 로트 잔여 수량)."""
+        await self.get_item(store_id=store_id, item_id=item_id)
+        lot = await self._get_lot(item_id=item_id, lot_id=lot_id, for_update=True)
+        if quantity > lot.remaining_quantity:
+            raise errors.DomainError(
+                status_code=422,
+                error_code="INVENTORY_DISPOSE_EXCEEDS",
+                message="폐기 수량이 로트 잔여 수량보다 많습니다.",
+            )
+        lot.remaining_quantity -= quantity
+        log = DisposalLog(
+            lot_id=lot_id,
+            item_id=item_id,
+            store_id=store_id,
+            user_id=user_id,
+            quantity=quantity,
+            reason=reason,
+        )
+        self.session.add(log)
+        await self.session.commit()
+        await self.session.refresh(log)
+        await self.session.refresh(lot)
+        return log, lot.remaining_quantity
+
+    # ------------------------------------------------------------------ FIFO 차감
+
+    async def deduction_context(self, *, store_id: str) -> DeductionContext:
+        rows = (
+            await self.session.execute(
+                select(Recipe.menu_id, RecipeIngredient.item_id, RecipeIngredient.quantity)
+                .join(RecipeIngredient, RecipeIngredient.recipe_id == Recipe.recipe_id)
+                .join(Menu, Menu.menu_id == Recipe.menu_id)
+                .where(Menu.store_id == store_id, Menu.use_inventory_deduction.is_(True))
+            )
+        ).all()
+        recipes: dict[str, list[tuple[str, Decimal]]] = defaultdict(list)
+        for menu_id, item_id, qty in rows:
+            recipes[menu_id].append((item_id, qty))
+        marks = (
+            await self.session.execute(
+                select(InventoryItem.item_id, InventoryItem.deducted_until).where(
+                    InventoryItem.store_id == store_id
+                )
+            )
+        ).all()
+        return DeductionContext(recipes=dict(recipes), deducted_until=dict(marks))
+
+    async def deduct_stock(
+        self, ctx: DeductionContext, sales: list[tuple[str, int, datetime]]
+    ) -> DeductionResult:
+        """새로 저장된 판매 (menu_id, 수량, 판매 시각)를 FIFO 차감한다.
+        커밋은 호출자가 판매 저장과 함께 한다."""
+        result = DeductionResult()
+        need: dict[str, Decimal] = defaultdict(Decimal)
+        latest: dict[str, datetime] = {}
+        for menu_id, qty, sold_at in sales:
+            if qty <= 0:
+                continue
+            hit = False
+            for item_id, per_menu in ctx.recipes.get(menu_id, ()):
+                mark = ctx.deducted_until.get(item_id)
+                if mark is None or sold_at <= mark:
+                    continue
+                need[item_id] += per_menu * qty
+                latest[item_id] = max(latest.get(item_id, sold_at), sold_at)
+                hit = True
+            if hit:
+                result.deducted_sales += 1
+
+        for item_id in sorted(need):
+            item = await self.session.get(InventoryItem, item_id, with_for_update=True)
+            if item is None:
+                continue
+            left = need[item_id]
+            lots = (
+                await self.session.scalars(
+                    select(InventoryLot)
+                    .where(InventoryLot.item_id == item_id, InventoryLot.remaining_quantity > 0)
+                    .order_by(*FIFO_ORDER)
+                    .with_for_update()
+                )
+            ).all()
+            for lot in lots:
+                if left <= 0:
+                    break
+                take = min(lot.remaining_quantity, left)
+                lot.remaining_quantity -= take
+                left -= take
+            if left > 0 and not item.needs_check:
+                item.needs_check = True
+                result.needs_check_items.append((item_id, item.name))
+            item.deducted_until = max(item.deducted_until, latest[item_id])
+        return result
+
+    # ------------------------------------------------------------------ 내부
+
+    async def _lot_aggregates(self, item_ids: list[str]) -> dict[str, tuple[Decimal, date | None]]:
+        if not item_ids:
+            return {}
+        rows = (
+            await self.session.execute(
+                select(
+                    InventoryLot.item_id,
+                    func.sum(InventoryLot.remaining_quantity),
+                    func.min(InventoryLot.expiry_date),
+                )
+                .where(InventoryLot.item_id.in_(item_ids), InventoryLot.remaining_quantity > 0)
+                .group_by(InventoryLot.item_id)
+            )
+        ).all()
+        return {item_id: (total, nearest) for item_id, total, nearest in rows}
+
+    async def _get_lot(
+        self, *, item_id: str, lot_id: str, for_update: bool = False
+    ) -> InventoryLot:
+        lot = await self.session.get(InventoryLot, lot_id, with_for_update=for_update)
+        if lot is None or lot.item_id != item_id:
+            raise errors.DomainError(
+                status_code=404,
+                error_code="INVENTORY_LOT_NOT_FOUND",
+                message="로트를 찾을 수 없습니다.",
+            )
+        return lot
 
     async def _assert_unique_name(self, *, store_id: str, name: str) -> None:
         exists = await self.session.scalar(
@@ -110,6 +451,24 @@ class InventoryService:
         )
         if exists is not None:
             raise errors.DomainError(
-                status_code=409, error_code="INVENTORY_DUPLICATE_NAME",
+                status_code=409,
+                error_code="INVENTORY_DUPLICATE_NAME",
                 message="이미 등록된 재료명입니다.",
             )
+
+
+def _alert_message(s: ItemStock, status: str, today: date) -> str:
+    name, unit, qty = (
+        s.item.name,
+        s.item.unit,
+        f"{s.total_quantity:f}".rstrip("0").rstrip(".") or "0",
+    )
+    if status == "NEEDS_CHECK":
+        return f"재고 확인 필요: {name} — 기록상 재고 없이 판매됨"
+    if status == "EMPTY":
+        return f"재고 없음: {name}"
+    if status == "EXPIRED_SOON" and s.nearest_expiry is not None:
+        days = (s.nearest_expiry - today).days
+        label = "소비기한 초과" if days < 0 else f"D-{days}"
+        return f"{label}: {s.nearest_expiry.isoformat()} 소비기한 도래 ({name} {qty}{unit})"
+    return f"재고 부족: {name} {qty}{unit}"

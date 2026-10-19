@@ -6,12 +6,23 @@ from datetime import datetime
 from pydantic import BaseModel, Field
 
 
+class NeedsCheckItem(BaseModel):
+    item_id: str
+    name: str
+
+
+class InventoryDeduction(BaseModel):
+    deducted_sales: int = 0
+    needs_check_items: list[NeedsCheckItem] = Field(default_factory=list)
+
+
 class CSVUploadResponse(BaseModel):
     imported: int
     skipped: int
     skipped_reasons: list[str] = Field(default_factory=list)
     anomaly_count: int = 0
     auto_created_menus: int = 0
+    inventory_deduction: InventoryDeduction = Field(default_factory=InventoryDeduction)
 
 
 class SalesSummaryResponse(BaseModel):

@@ -18,7 +18,7 @@ from tests.sales_test import _create_menu, _csv_bytes, _register_verified_user
 async def _create_item(client: AsyncClient, auth: dict, name: str, **extra) -> str:
     r = await client.post(
         "/api/inventory",
-        json={"name": name, "unit": "g", "current_quantity": 100, **extra},
+        json={"name": name, "unit": "g", "quantity": 100, "purchase_price": 2800, **extra},
         headers=auth,
     )
     assert r.status_code == 201, r.text

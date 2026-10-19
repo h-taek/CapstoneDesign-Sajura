@@ -307,6 +307,20 @@ function UploadResult({ result }: { result: CSVUploadResponse }) {
           hint="* Phase 12에서 실제 탐지 로직 적용 예정"
         />
       </div>
+      <p className="mt-3 text-sm text-slate-600">
+        재고 차감에 반영된 판매 {result.inventory_deduction.deducted_sales}건
+      </p>
+      {result.inventory_deduction.needs_check_items.length > 0 && (
+        <p className="mt-2 rounded-md bg-red-50 p-3 text-sm text-red-700" data-testid="needs-check">
+          재고 확인 필요:{" "}
+          {result.inventory_deduction.needs_check_items.map((i) => i.name).join(", ")} — 기록된
+          재고보다 많이 팔렸습니다.{" "}
+          <Link to="/inventory" className="font-medium underline">
+            재고 관리
+          </Link>
+          에서 입고를 등록하거나 실사 조정으로 맞추세요.
+        </p>
+      )}
       {result.skipped_reasons.length > 0 && (
         <details className="mt-4 rounded-md bg-slate-50 p-3">
           <summary className="cursor-pointer text-sm font-medium text-slate-700">

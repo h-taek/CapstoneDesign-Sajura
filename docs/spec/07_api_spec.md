@@ -800,7 +800,7 @@ Authorization: Bearer <access_token>
 // 409 INVENTORY_ITEM_IN_USE: 레시피에서 사용 중이거나 발주 내역(`order_items`·`order_approval_logs`)에 포함된 재료
 ```
 
-> 추천발주 스냅샷(`order_recommendation_items`)의 해당 품목 행은 함께 삭제한다.
+> 추천발주 스냅샷(`order_recommendation_items`)의 해당 품목 행과 로트·재고 조정 이력·폐기 이력은 함께 삭제한다.
 
 ### POST /api/inventory/{item_id}/lots
 

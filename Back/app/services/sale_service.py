@@ -15,6 +15,8 @@
   블록을 막는다(10만 행 ~12초 동안 다른 요청이 막히지 않게 함).
 - auto_create_menus 상한: 업로드당 200개 + 매장 전체 1,000개. 초과 시 그 행은
   매핑 실패로 처리되며 결과에 사유 표시.
+- 재고 차감(04_feature_spec.md §3.3): 청크마다 새로 저장되는 행만 골라 판매 저장과 같은
+  트랜잭션에서 FIFO 차감한다. 차감 기준 시각은 업로드 시작 시점 값으로 고정한다.
 - skipped_reasons: 같은 사유(메뉴 매핑 실패/청크내 중복 영수증/DB 중복)는 메뉴명·
   카운트로 그룹 단위로 반환하여 결과 화면 가독성 확보.
 """
@@ -43,6 +45,7 @@ from app.schemas.sales import (
     WeeklyRevenuePoint,
 )
 from app.services.anomaly_detector import AnomalyDetector
+from app.services.inventory_service import DeductionContext, InventoryService
 
 CHUNK_SIZE = 10_000
 AUTO_CATEGORY = "자동등록"
@@ -56,6 +59,8 @@ class UploadResult:
     skipped: int = 0
     auto_created_menus: int = 0
     anomaly_count: int = 0
+    deducted_sales: int = 0
+    needs_check_items: list[tuple[str, str]] = field(default_factory=list)  # (item_id, name)
     # 행 단위 사유(adapter 변환 실패 등): "3행: 메뉴명 없음" 형태 그대로.
     _row_reasons: list[str] = field(default_factory=list)
     # 그룹 단위 사유: 메뉴명별 카운트.
@@ -102,6 +107,7 @@ class SaleService:
 
         menu_map = await self._load_menu_map(store_id=store_id)
         current_menu_count = len(menu_map)
+        deduction = await InventoryService(self.session).deduction_context(store_id=store_id)
 
         # pandas read_csv는 sync I/O. async 핸들러에서 직접 호출하면 이벤트 루프가
         # 행 수 × 파싱시간 동안 막힌다. 워커 스레드에 위임.
@@ -158,6 +164,7 @@ class SaleService:
                 row_indices=sale_row_indices,
                 menu_map=menu_map,
                 result=result,
+                deduction=deduction,
             )
 
         return result
@@ -433,6 +440,7 @@ class SaleService:
         row_indices: list[int],
         menu_map: dict[str, str],
         result: UploadResult,
+        deduction: DeductionContext,
     ) -> None:
         rows_to_insert: list[dict] = []
         seen_external: set[str] = set()  # 같은 청크 내 중복 external_sale_id 미리 차단
@@ -485,8 +493,34 @@ class SaleService:
         # MySQL INSERT IGNORE — UNIQUE(store_id, source, external_sale_id)
         # 위반(과거 청크/과거 업로드와의 중복)은 자동 skip. 본 insert는
         # 청크 단위 트랜잭션이며, 청크 내 매핑 실패는 위에서 이미 제외.
+        # INSERT IGNORE는 건너뛴 행을 알려 주지 않는다. 차감 대상(새로 저장되는 행)을 고르려고
+        # 이미 저장된 식별자를 먼저 조회한다. 차감할 레시피가 없으면 조회도 생략.
+        existing: set[str] = set()
+        if deduction.recipes:
+            existing = set(
+                (
+                    await self.session.scalars(
+                        select(SaleRecord.external_sale_id).where(
+                            SaleRecord.store_id == store_id,
+                            SaleRecord.source == SaleSource.CSV,
+                            SaleRecord.external_sale_id.in_(
+                                [r["external_sale_id"] for r in rows_to_insert]
+                            ),
+                        )
+                    )
+                ).all()
+            )
         stmt = mysql_insert(SaleRecord).prefix_with("IGNORE").values(rows_to_insert)
         res = await self.session.execute(stmt)
+        if deduction.recipes:
+            new_sales = [
+                (r["menu_id"], r["quantity"], r["sold_at"])
+                for r in rows_to_insert
+                if r["external_sale_id"] not in existing
+            ]
+            deducted = await InventoryService(self.session).deduct_stock(deduction, new_sales)
+            result.deducted_sales += deducted.deducted_sales
+            result.needs_check_items.extend(deducted.needs_check_items)
         await self.session.commit()
 
         inserted = res.rowcount if res.rowcount is not None else len(rows_to_insert)

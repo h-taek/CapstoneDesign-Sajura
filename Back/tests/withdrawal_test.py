@@ -108,7 +108,7 @@ async def test_purge_deletes_expired_accounts_with_store_data(
         headers=auth,
     )
     assert r.status_code == 201, r.text
-    r = await client.post("/api/inventory", json={"name": "원두", "unit": "g"}, headers=auth)
+    r = await client.post("/api/inventory", json={"name": "원두", "unit": "g", "quantity": 0}, headers=auth)
     item_id = r.json()["item_id"]
     r = await client.put(
         f"/api/menus/{menu_id}/recipe",

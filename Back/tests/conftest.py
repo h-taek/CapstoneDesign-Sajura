@@ -54,6 +54,7 @@ async def _cleanup_test_users() -> AsyncIterator[None]:
         # stores 삭제가 막힐 수 있다. user에 매달린 store_id 단위로 선삭제.
         from sqlalchemy import select as _select
 
+        from app.models.inventory_item import DisposalLog, InventoryAdjustmentLog
         from app.models.menu import Menu
         from app.models.order import Order, OrderRecommendation
         from app.models.sale_record import SaleRecord
@@ -75,6 +76,11 @@ async def _cleanup_test_users() -> AsyncIterator[None]:
             await session.execute(
                 delete(SaleRecord).where(SaleRecord.store_id.in_(store_ids))
             )
+            # 조정·폐기 이력은 stores·users FK가 CASCADE가 아니다
+            await session.execute(
+                delete(InventoryAdjustmentLog).where(InventoryAdjustmentLog.store_id.in_(store_ids))
+            )
+            await session.execute(delete(DisposalLog).where(DisposalLog.store_id.in_(store_ids)))
             await session.execute(delete(Menu).where(Menu.store_id.in_(store_ids)))
         await session.execute(
             delete(User).where(User.email.like(f"{TEST_EMAIL_PREFIX}%@{TEST_EMAIL_DOMAIN}"))

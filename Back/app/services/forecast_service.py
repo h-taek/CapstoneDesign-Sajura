@@ -12,9 +12,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core import errors
 from app.integrations import ai_client
-from app.models.inventory_item import InventoryItem
 from app.models.menu import Menu, Recipe, RecipeIngredient
 from app.models.sale_record import SaleRecord
+from app.services.inventory_service import InventoryService
 
 
 def _as_date(v: object) -> date:
@@ -98,20 +98,18 @@ class ForecastService:
             for menu_id, item_id, qty, unit in recipe_rows
         ]
 
-        inventory_rows = (
-            await self.session.scalars(select(InventoryItem).where(InventoryItem.store_id == store_id))
-        ).all()
+        stocks = await InventoryService(self.session).list_stocks(store_id=store_id)
         inventory = [
             {
                 "item_id": i.item_id,
-                "current_quantity": float(i.current_quantity),
+                "current_quantity": float(total),  # 로트 잔여 수량 합계
                 "unit": i.unit,
                 "lead_time_days": i.lead_time_days if i.lead_time_days is not None else 1,
                 "safety_stock": (
                     float(i.safety_stock) if i.safety_stock is not None else float(i.low_stock_threshold)
                 ),
             }
-            for i in inventory_rows
+            for i, total in ((st.item, st.total_quantity) for st in stocks)
         ]
 
         payload = {

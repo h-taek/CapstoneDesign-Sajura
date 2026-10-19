@@ -11,7 +11,9 @@ from app.core import errors
 from app.schemas.sales import (
     CSVUploadResponse,
     DailyRevenuePoint,
+    InventoryDeduction,
     MonthlyRevenuePoint,
+    NeedsCheckItem,
     SalesSummaryResponse,
     TopMenuItem,
     WeeklyRevenuePoint,
@@ -140,4 +142,11 @@ async def upload_sales_csv(
         skipped_reasons=result.skipped_reasons,
         anomaly_count=result.anomaly_count,
         auto_created_menus=result.auto_created_menus,
+        inventory_deduction=InventoryDeduction(
+            deducted_sales=result.deducted_sales,
+            needs_check_items=[
+                NeedsCheckItem(item_id=item_id, name=name)
+                for item_id, name in result.needs_check_items
+            ],
+        ),
     )

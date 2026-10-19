@@ -173,7 +173,7 @@ CREATE TABLE inventory_items (
     low_stock_threshold DECIMAL(10,3)   NOT NULL DEFAULT 0,
     lead_time_days      INT             NULL COMMENT '추천발주 리드타임(일). NULL이면 기본값 1일 사용',
     safety_stock        DECIMAL(10,3)   NULL COMMENT '추천발주 안전재고 수량. NULL이면 기본값 0 사용',
-    deducted_until      DATETIME        NOT NULL COMMENT '차감 기준 시각. 이 시각보다 뒤에 팔린 판매만 차감. 등록 시각으로 시작',
+    deducted_until      DATETIME        NOT NULL COMMENT '차감 기준 시각(sold_at과 같은 매장 현지 시각). 이 시각보다 뒤에 팔린 판매만 차감. 등록 시각으로 시작',
     needs_check         TINYINT(1)      NOT NULL DEFAULT 0 COMMENT '재고 확인 필요 (04_feature_spec.md §3.3)',
     created_at          DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at          DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,

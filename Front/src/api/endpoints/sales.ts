@@ -7,6 +7,10 @@ export interface CSVUploadResponse {
   skipped_reasons: string[];
   anomaly_count: number;
   auto_created_menus: number;
+  inventory_deduction: {
+    deducted_sales: number; // 재고 차감에 반영된 판매 행 수
+    needs_check_items: { item_id: string; name: string }[]; // 이번 업로드로 '재고 확인 필요'가 된 재료
+  };
 }
 
 export interface CSVUploadColumns {

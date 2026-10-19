@@ -49,6 +49,10 @@ describe("SalesUploadPage", () => {
       skipped_reasons: ["3행: 메뉴명 없음", "7행: 매장 메뉴와 매핑 실패"],
       anomaly_count: 0,
       auto_created_menus: 0,
+      inventory_deduction: {
+        deducted_sales: 10,
+        needs_check_items: [{ item_id: "bean", name: "원두" }],
+      },
     });
     renderPage();
     fireEvent.change(screen.getByTestId<HTMLInputElement>("file-input"), {
@@ -61,6 +65,8 @@ describe("SalesUploadPage", () => {
     expect(result).toHaveTextContent("12");
     expect(result).toHaveTextContent("3");
     expect(screen.getByText(/제외된 행 2건 보기/)).toBeInTheDocument();
+    expect(result).toHaveTextContent("재고 차감에 반영된 판매 10건");
+    expect(screen.getByTestId("needs-check")).toHaveTextContent("원두");
   });
 
   it("파일 미선택 시 업로드 버튼은 비활성화된다", async () => {
@@ -75,6 +81,7 @@ describe("SalesUploadPage", () => {
       skipped_reasons: [],
       anomaly_count: 0,
       auto_created_menus: 3,
+      inventory_deduction: { deducted_sales: 0, needs_check_items: [] },
     });
     renderPage();
     fireEvent.change(screen.getByTestId<HTMLInputElement>("file-input"), {
