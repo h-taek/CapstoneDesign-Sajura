@@ -262,7 +262,7 @@ sequenceDiagram
 
 ## 6. 재고 자동 차감(FIFO) 시퀀스
 
-> POS 판매 데이터 저장 시 레시피 기반으로 재고를 소비기한 오름차순(FIFO)으로 자동 차감한다.
+> POS 판매 데이터 저장 시 레시피 기반으로 재고를 FIFO로 자동 차감한다. 차감 대상·로트 순서·'재고 확인 필요' 기준은 `04_feature_spec.md` §3.3.
 
 ```mermaid
 sequenceDiagram
@@ -275,10 +275,11 @@ sequenceDiagram
     Note over 사주라서버: 탐지 방법·임계값·이상 데이터 처리·알림 트리거는 별도 확정 예정
     사주라서버->>DB: 정상 판매 데이터 저장 (sale_records)
 
-    loop 판매된 메뉴별
+    loop 새로 저장된 판매의 메뉴별 (재고 차감 ON + 레시피 있음)
         사주라서버->>DB: 해당 메뉴의 레시피 조회 (recipe_ingredients)
         loop 레시피 재료별
-            사주라서버->>DB: 소비기한 오름차순 로트 목록 조회 (inventory_lots)
+            Note over 사주라서버: 재료의 차감 기준 시각보다 뒤에 팔린 판매만 차감
+            사주라서버->>DB: 로트 목록 조회 (inventory_lots — 소비기한 오름차순, 소비기한 없는 로트는 뒤에 입고일 순)
             loop 로트별 FIFO 차감
                 alt 로트 수량 충분
                     사주라서버->>DB: 해당 로트 수량 차감
@@ -287,9 +288,10 @@ sequenceDiagram
                 end
             end
             alt 전체 로트 합산 후에도 수량 부족
-                사주라서버->>DB: 재고 "재고 확인 필요" 상태로 표시
+                사주라서버->>DB: 품목을 '재고 확인 필요'로 표시 (inventory_items.needs_check)
                 사주라서버->>사주라서버: 점주 앱 내 알림 발송 (재고 부족 경고)
             end
+            사주라서버->>DB: 차감 기준 시각 갱신 (inventory_items.deducted_until)
         end
     end
 ```

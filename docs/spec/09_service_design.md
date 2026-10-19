@@ -130,10 +130,12 @@
 | `MenuService.create_menu` | menus + recipes + recipe_ingredients | 메뉴 저장 후 레시피 저장 실패 시 레시피 없는 메뉴 방지 |
 | `MenuService.upsert_recipe` | recipes + recipe_ingredients 전체 교체 | 기존 재료 삭제 후 새 재료 저장 실패 시 레시피 소실 방지 |
 | `MenuService.delete_menu` | menus | 메뉴 삭제 상태와 삭제 시각을 원자적으로 기록 |
-| `InventoryService.update_lot` | inventory_lots + inventory_adjustment_logs | 로트 수정과 조정 이력 기록은 원자적으로 처리 |
+| `InventoryService.create_item` | inventory_items + inventory_lots (첫 로트) | 품목만 남고 등록 수량이 사라지는 상태 방지 |
+| `InventoryService.add_lot` | inventory_lots + inventory_items (재고 확인 필요 해제) | 입고와 상태 해제는 원자적으로 처리 |
+| `InventoryService.update_lot` | inventory_lots + inventory_adjustment_logs + inventory_items (실사 조정 시 재고 확인 필요 해제) | 로트 수정과 조정 이력 기록은 원자적으로 처리 |
 | `InventoryService.dispose` | inventory_lots + disposal_logs | 수량 차감과 폐기 이력 기록은 원자적으로 처리 |
-| `SaleService.upload_csv` | sale_records 일괄 저장 | 중간 실패 시 부분 적재 방지 |
-| `SaleService.save_pos_sales` | sale_records + inventory_lots (FIFO 차감) | 판매 저장과 재고 차감이 함께 성공/실패해야 함 |
+| `SaleService.upload_csv` | 청크마다 sale_records + inventory_lots (FIFO 차감) + inventory_items (차감 기준 시각·재고 확인 필요) | 판매 저장과 재고 차감이 함께 성공/실패해야 함. 대량 파일은 청크 단위로 커밋하며, 실패 후 재업로드하면 저장된 행은 중복으로 건너뛰어 다시 차감되지 않는다 |
+| `SaleService.save_pos_sales` | sale_records + inventory_lots (FIFO 차감) + inventory_items (차감 기준 시각·재고 확인 필요) | 판매 저장과 재고 차감이 함께 성공/실패해야 함 |
 | `OrderService.approve_order` | orders + order_items + order_approval_logs | 발주 확정과 이력 기록은 원자적으로 처리 |
 
 ---

@@ -194,6 +194,10 @@ HANDOFF.md E단계 9개 검증 시나리오 수행 + 발견된 결함 일괄 정
 
 ## 2. 문서 수정 이력
 
+### 2026-10-19 — 재고 로트·FIFO spec 빈칸 정리
+
+구현 전에 막히던 6건을 닫았다. 판매 차감은 품목별 '차감 기준 시각' 이후 판매만(시작값 등록 시각, 중복 행 제외), 품목 등록 수량은 첫 로트로 저장, 폐기는 로트 지정, 소비기한 없는 로트는 기한 있는 로트 뒤에 입고일 순, '재고 확인 필요'는 품목 상태(`needs_check`)로 두고 입고·실사 조정 시 해제, 로트 금액은 구매 총액(`purchase_price`). 레시피 단위는 재고 단위로 보고 환산하지 않는다. `09_service_design.md` §5의 업로드 트랜잭션을 실제 구현(청크 단위 커밋)에 맞췄다. 문서: `04_feature_spec.md` §3.1~§3.5·§8 폐기 비용·§12 폼, `05_user_flow.md` §5, `06_sequence.md` §6, `07_api_spec.md` §5·§6 업로드 응답·§8 재고 수량 주석, `08_schema.md` §3.8·§3.9, `09_service_design.md` §5, `plan/01_be.md` InventoryService, `PROGRESS.md` §3 '재고 차감' 행.
+
 ### 2026-10-03 — 브랜치 전략 GitHub flow 전환
 
 main을 `dev`(`ef17204`)까지 fast-forward해 Phase 2~7·11·12 구현 코드를 처음으로 main에 올렸다. 장수 브랜치 `dev`·`be`·`fe`·`ai`를 폐기하고 짧은 작업 브랜치 → main PR로 바꿨다. 담당자는 직접 푸시 또는 PR, 그 외 팀원은 PR 필수. 저장소에 머지 후 브랜치 자동 삭제를 켰고, 중복된 PR #36(DW 이름 변경)은 닫았다. 문서: `README.md` §5 전면 교체, `PROGRESS.md` §3 2행 교체·1행 정리, `CLAUDE.md`·`AGENTS.md` 규칙 5, `AI/README.md`, `docs/README.md` §5-3.

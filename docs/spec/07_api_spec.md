@@ -672,7 +672,7 @@ Authorization: Bearer <access_token>
       "name": "원두",
       "unit": "g",
       "total_quantity": 2000.0,
-      "alert_status": "NORMAL"  // NORMAL | LOW | EXPIRED_SOON | EMPTY
+      "alert_status": "NORMAL"  // NORMAL | LOW | EXPIRED_SOON | EMPTY | NEEDS_CHECK
     }
   ],
   "total": 25,
@@ -682,13 +682,30 @@ Authorization: Bearer <access_token>
 }
 ```
 
+`total_quantity`는 품목 로트의 `remaining_quantity` 합계다.
+
+`alert_status` 값 — 여러 조건에 해당하면 표의 위쪽 값을 반환한다:
+
+| 값 | 조건 |
+|----|------|
+| `NEEDS_CHECK` | 재고 확인 필요 (`04_feature_spec.md` §3.3) |
+| `EMPTY` | `total_quantity` 0 |
+| `EXPIRED_SOON` | 잔여 수량이 남은 로트 중 소비기한 D-3 이내 또는 초과 로트 있음 |
+| `LOW` | `total_quantity` ≤ `low_stock_threshold` |
+| `NORMAL` | 위 조건 없음 |
+
 ### POST /api/inventory
+
+> `quantity`가 0보다 크면 첫 로트를 생성한다 (`received_at` = 등록일). 이때 `purchase_price`는 필수다.
 
 ```json
 // Request
 {
   "name": "원두",
   "unit": "g",
+  "quantity": 2000.0,          // 필수, 0 이상
+  "expiry_date": "2026-08-06", // 선택
+  "purchase_price": 11200,     // quantity > 0이면 필수. 등록 수량 전체의 구매 금액(원)
   "low_stock_threshold": 500.0,
   "lead_time_days": 2,
   "safety_stock": 1000.0
@@ -702,7 +719,7 @@ Authorization: Bearer <access_token>
   "low_stock_threshold": 500.0,
   "lead_time_days": 2,
   "safety_stock": 1000.0,
-  "total_quantity": 0.0,
+  "total_quantity": 2000.0,
   "created_at": "2026-05-06T00:00:00Z"
 }
 ```
@@ -710,12 +727,13 @@ Authorization: Bearer <access_token>
 ### GET /api/inventory/summary
 
 ```json
-// Response 200
+// Response 200 — 품목별 alert_status 기준 집계
 {
   "total_items": 25,
   "low_stock_count": 3,
   "expired_soon_count": 2,
-  "empty_count": 1
+  "empty_count": 1,
+  "needs_check_count": 1
 }
 ```
 
@@ -728,7 +746,7 @@ Authorization: Bearer <access_token>
     {
       "item_id": "uuid",
       "name": "원두",
-      "alert_status": "EXPIRED_SOON",  // LOW | EXPIRED_SOON | EMPTY
+      "alert_status": "EXPIRED_SOON",  // LOW | EXPIRED_SOON | EMPTY | NEEDS_CHECK
       "alert_message": "D-3: 2026-05-09 소비기한 도래 (원두 3000g)",
       "quantity": 3000.0,
       "expiry_date": "2026-05-09"
@@ -786,13 +804,15 @@ Authorization: Bearer <access_token>
 
 ### POST /api/inventory/{item_id}/lots
 
+> 품목의 '재고 확인 필요'를 해제한다 (`04_feature_spec.md` §3.3).
+
 ```json
 // Request
 {
   "quantity": 5000.0,
   "received_at": "2026-05-06",
-  "expiry_date": "2026-08-06",
-  "unit_price": 28000
+  "expiry_date": "2026-08-06",  // 선택
+  "purchase_price": 28000       // 입고 수량 전체의 구매 금액(원)
 }
 
 // Response 201
@@ -803,7 +823,7 @@ Authorization: Bearer <access_token>
   "remaining_quantity": 5000.0,
   "received_at": "2026-05-06",
   "expiry_date": "2026-08-06",
-  "unit_price": 28000
+  "purchase_price": 28000
 }
 ```
 
@@ -821,13 +841,15 @@ Authorization: Bearer <access_token>
       "remaining_quantity": 3000.0,
       "received_at": "2026-05-06",
       "expiry_date": "2026-08-06",
-      "unit_price": 28000
+      "purchase_price": 28000
     }
   ]
 }
 ```
 
 ### PATCH /api/inventory/{item_id}/lots/{lot_id}
+
+> `reason`이 `STOCKTAKE`이면 품목의 '재고 확인 필요'를 해제한다 (`04_feature_spec.md` §3.3).
 
 ```json
 // Request (변경할 필드만, reason 필수)
@@ -877,9 +899,11 @@ Authorization: Bearer <access_token>
 // Response 200
 {
   "disposed_quantity": 500.0,
-  "remaining_quantity": 2500.0,
+  "remaining_quantity": 2500.0,  // 해당 로트의 잔여 수량
   "disposed_at": "2026-05-06T10:00:00Z"
 }
+// 404 INVENTORY_LOT_NOT_FOUND: 품목에 속하지 않는 로트
+// 422 INVENTORY_DISPOSE_EXCEEDS: 폐기 수량이 로트 잔여 수량 초과
 ```
 
 ---
@@ -1012,9 +1036,17 @@ Authorization: Bearer <access_token>
     "이미 저장된 영수증번호와 중복: 3건"
   ],
   "anomaly_count": 0,
-  "auto_created_menus": 0
+  "auto_created_menus": 0,
+  "inventory_deduction": {
+    "deducted_sales": 300,     // 재고 차감에 반영된 판매 행 수
+    "needs_check_items": [     // 이번 업로드로 새로 '재고 확인 필요'가 된 재료
+      { "item_id": "uuid", "name": "원두" }
+    ]
+  }
 }
 ```
+
+> 저장된 판매는 `04_feature_spec.md` §3.3 기준으로 재고를 차감한다. 차감 기준 시각보다 앞선 판매와 중복으로 건너뛴 행은 차감하지 않는다.
 
 > **그룹화 정책**: `매장 메뉴와 매핑 실패`·`같은 파일 안에서 영수증번호 중복`·
 > `이미 저장된 영수증번호와 중복`은 행 단위가 아닌 메뉴·ID·총건수 그룹으로
@@ -1431,7 +1463,7 @@ Authorization: Bearer <access_token>
     { "menu_id": "uuid", "item_id": "uuid", "quantity_per_menu": 18.0, "unit": "g" }
   ],
   "inventory": [
-    { "item_id": "uuid", "current_quantity": 2400.0, "unit": "g",
+    { "item_id": "uuid", "current_quantity": 2400.0, "unit": "g",  // current_quantity = 로트 잔여 수량 합계
       "lead_time_days": 2, "safety_stock": 1000.0, "last_price": 28000 }
   ]
 }
