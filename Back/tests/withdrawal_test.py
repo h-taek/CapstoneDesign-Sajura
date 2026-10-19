@@ -1,4 +1,7 @@
-"""회원 탈퇴 30일 유예 + 파기 배치 — 12_security.md §3.1, 07_api_spec.md DELETE /api/auth/me."""
+"""회원 탈퇴 30일 유예 + 파기 배치.
+
+01_basic_design.md §5.2.1, 02_implementation_design.md §3 DELETE /api/auth/me.
+"""
 
 from __future__ import annotations
 

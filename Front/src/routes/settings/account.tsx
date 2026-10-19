@@ -1,5 +1,5 @@
 // 계정 정보 — 실제 GET/PATCH /api/auth/me + /api/store + PATCH /api/auth/password로 연결.
-// 회원 탈퇴는 DELETE /api/auth/me — 즉시 로그인 차단, 30일 뒤 파기 (12_security.md §3.1).
+// 회원 탈퇴는 DELETE /api/auth/me — 즉시 로그인 차단, 30일 뒤 파기 (01_basic_design.md §5.2.1).
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";

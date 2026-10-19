@@ -10,12 +10,12 @@
   UNIQUE 제약을 타게 한다(2026-08-17, 소주 8,984→98,824 11배 중복 적재 픽스).
 - menu_name → menu_id 매핑은 매장 메뉴 캐시 1회 조회 후 in-memory dict 매핑
 - auto_create_menus=True 시 미등록 메뉴를 카테고리='자동등록', use_inventory_deduction=False
-  로 즉시 생성하여 menu_map 갱신 (04_feature_spec.md §2.2 + §4.4 옵션).
+  로 즉시 생성하여 menu_map 갱신 (01_basic_design.md §3.2.2 + §3.4.4 옵션).
 - pandas의 sync I/O는 asyncio.to_thread로 워커 스레드에 위임해 이벤트 루프
   블록을 막는다(10만 행 ~12초 동안 다른 요청이 막히지 않게 함).
 - auto_create_menus 상한: 업로드당 200개 + 매장 전체 1,000개. 초과 시 그 행은
   매핑 실패로 처리되며 결과에 사유 표시.
-- 재고 차감(04_feature_spec.md §3.3): 청크마다 새로 저장되는 행만 골라 판매 저장과 같은
+- 재고 차감(01_basic_design.md §3.3.3): 청크마다 새로 저장되는 행만 골라 판매 저장과 같은
   트랜잭션에서 FIFO 차감한다. 차감 기준 시각은 업로드 시작 시점 값으로 고정한다.
 - skipped_reasons: 같은 사유(메뉴 매핑 실패/청크내 중복 영수증/DB 중복)는 메뉴명·
   카운트로 그룹 단위로 반환하여 결과 화면 가독성 확보.

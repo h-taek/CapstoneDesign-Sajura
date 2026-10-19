@@ -1,5 +1,5 @@
 // 재고관리 화면 — Figma "재고 관리"(node 9:915) 셸 적용.
-// 수량은 로트 단위로 관리한다(04_feature_spec.md §3). 품목 행을 펼치면 로트 목록·입고·수정·폐기.
+// 수량은 로트 단위로 관리한다(01_basic_design.md §3.3). 품목 행을 펼치면 로트 목록·입고·수정·폐기.
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ChevronDown, ChevronRight, Plus, Trash2 } from "lucide-react";

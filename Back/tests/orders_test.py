@@ -1,4 +1,4 @@
-"""추천발주 저장 + 발주 확정(approve) + 발주 내역 — 07_api_spec.md §7."""
+"""추천발주 저장 + 발주 확정(approve) + 발주 내역 — 02_implementation_design.md §3.7."""
 
 from __future__ import annotations
 

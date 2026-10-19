@@ -1,4 +1,4 @@
-"""ORM 패키지 — 08_schema.md §3."""
+"""ORM 패키지 — 02_implementation_design.md §4.3."""
 from app.models.base import Base
 from app.models.inventory_item import (
     AdjustmentReason,

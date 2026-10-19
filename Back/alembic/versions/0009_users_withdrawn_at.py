@@ -1,4 +1,4 @@
-"""users: withdrawn_at 추가 — 회원 탈퇴 30일 유예 (12_security.md §3.1).
+"""users: withdrawn_at 추가 — 회원 탈퇴 30일 유예 (01_basic_design.md §5.2.1).
 
 Revision ID: 0009_users_withdrawn_at
 Revises: 0008_encrypt_pos_api_key

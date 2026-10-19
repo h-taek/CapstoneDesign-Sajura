@@ -1,4 +1,7 @@
-"""재고 ORM — 08_schema.md §3.8~§3.11 (로트·조정 이력·폐기 이력 테이블은 0001_init에 존재)."""
+"""재고 ORM — 02_implementation_design.md §4.3.8~§4.3.11.
+
+로트·조정 이력·폐기 이력 테이블은 0001_init에 존재.
+"""
 
 from __future__ import annotations
 
@@ -35,7 +38,7 @@ class InventoryItem(Base):
     low_stock_threshold: Mapped[Decimal] = mapped_column(DECIMAL(10, 3), nullable=False, default=0)
     lead_time_days: Mapped[int | None] = mapped_column(Integer, nullable=True)
     safety_stock: Mapped[Decimal | None] = mapped_column(DECIMAL(10, 3), nullable=True)
-    # 판매 시각(sold_at)과 같은 매장 현지 시각(KST, naive). 04_feature_spec.md §3.3
+    # 판매 시각(sold_at)과 같은 매장 현지 시각(KST, naive). 01_basic_design.md §3.3.3
     deducted_until: Mapped[datetime] = mapped_column(DateTime, nullable=False)
     needs_check: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     created_at: Mapped[datetime] = mapped_column(

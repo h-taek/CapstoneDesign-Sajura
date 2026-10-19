@@ -50,20 +50,11 @@ plan        어떻게 만들지 분해한다
 
 | 파일 | 정의하는 사실 |
 |---|---|
-| `01_requirements.md` | 프로젝트 목표·고객·가치 제안, 기능·비기능 요구사항, 제약 |
-| `02_usecase.md` | 액터, UC별 목적·흐름·조건 |
-| `03_mvp_scope.md` | MVP 포함/제외 기능, 성공 기준, 데모 시나리오, 데이터 확보 방식 |
-| `04_feature_spec.md` | 기능 분류 + 기능별 비즈니스 규칙. §12는 화면 IA 원본 |
-| `05_user_flow.md` | 점주 사용 흐름 |
-| `06_sequence.md` | 컴포넌트 간 호출 시퀀스 |
-| `07_api_spec.md` | API 계약 — 요청/응답, 상태코드, AI Server 계약(§8) |
-| `08_schema.md` | DB 구조 — 컬럼·타입·FK·인덱스(§1~§6), 도메인·ERD·데이터 흐름(§7~§10) |
-| `09_service_design.md` | BE 기술 스택, 계층 구조, 권한·에러·캐시·미들웨어·운영 토폴로지 |
-| `10_frontend_design.md` | FE 기술 스택, 라우팅·상태·인증 통합·PWA·CI |
-| `11_ai_spec.md` | AI 설계 — 모델, 입력 데이터·피처, 전처리, 학습, 출력, 예측 근거, 파이프라인 |
-| `12_security.md` | 토큰 정책, 암호화, 접근 통제, 감사 로그 |
-| `13_performance.md` | API·배치 SLA, 성능 전략 |
-| `14_extension_design.md` | 사주라 브라우저 확장 — 권한·통신·데이터 범위·LLM 사용 경계 |
+| `01_basic_design.md` | 기본 설계 — 프로젝트 개요, 액터·유즈케이스, 기능 명세(비즈니스 규칙), 사용자 흐름, 비기능 요구사항(보안 원칙·개인정보·성능 목표), 제약·외부 정책 |
+| `02_implementation_design.md` | 구현 설계 — MVP 범위(포함·제외·2단계), 시퀀스, API 계약(AI Server 계약 §3.8 포함), DB 스키마 |
+| `03_be.md` | Backend — 기술 스택, 계층·서비스·트랜잭션, 인증·토큰, 권한·접근 통제, 감사 로그, 암호화, 에러 코드, 캐시, 미들웨어, 성능 전략, 운영 토폴로지 |
+| `04_fe.md` | Frontend — 기술 스택, 인증 통합, 라우팅, 화면 IA·화면별 구성, 상태·API 통합, 폼, 에러 모니터링, 빌드·CI, 브라우저 확장 |
+| `11_ai_spec.md` | AI 설계 — 모델, 입력 데이터·피처, 전처리, 학습, 출력, 예측 근거, 파이프라인 (DW 확인 전까지 현 위치 유지) |
 
 ### 2-1. 연동 수정 파일 맵
 
@@ -71,20 +62,11 @@ spec 하나를 고치면 함께 확인할 파일이다.
 
 | 수정 파일 | 함께 확인 |
 |---|---|
-| `01_requirements.md` | `03_mvp_scope.md`, `04_feature_spec.md` |
-| `02_usecase.md` | `04_feature_spec.md`, `05_user_flow.md` |
-| `03_mvp_scope.md` | `01_requirements.md`, `04_feature_spec.md`, `13_performance.md` |
-| `04_feature_spec.md` | `07_api_spec.md`, `12_security.md`, `05_user_flow.md`, `01_requirements.md` |
-| `05_user_flow.md` | `04_feature_spec.md`, `02_usecase.md` |
-| `06_sequence.md` | `04_feature_spec.md`, `07_api_spec.md`, `09_service_design.md` |
-| `07_api_spec.md` | `04_feature_spec.md`, `09_service_design.md`, `06_sequence.md` |
-| `08_schema.md` | `09_service_design.md`, `11_ai_spec.md` |
-| `09_service_design.md` | `07_api_spec.md`, `06_sequence.md`, `10_frontend_design.md`, `plan/01_be.md` |
-| `10_frontend_design.md` | `07_api_spec.md`, `12_security.md`, `04_feature_spec.md` |
-| `11_ai_spec.md` | `04_feature_spec.md`, `13_performance.md`, `08_schema.md`, `research/ai/01~02` |
-| `12_security.md` | `04_feature_spec.md`, `07_api_spec.md` |
-| `13_performance.md` | `03_mvp_scope.md`, `11_ai_spec.md` |
-| `14_extension_design.md` | `04_feature_spec.md`, `07_api_spec.md`, `12_security.md`, `09_service_design.md` |
+| `01_basic_design.md` | `02_implementation_design.md`(§1 범위·§3 API), `04_fe.md` §4 |
+| `02_implementation_design.md` | `01_basic_design.md` §3, `03_be.md`, `04_fe.md`, `11_ai_spec.md` |
+| `03_be.md` | `02_implementation_design.md` §3·§4, `04_fe.md`, `plan/01_be.md` |
+| `04_fe.md` | `01_basic_design.md` §3·§4, `02_implementation_design.md` §3, `03_be.md` §7, `plan/02_fe.md` |
+| `11_ai_spec.md` | `01_basic_design.md` §3.6·§3.7, `02_implementation_design.md` §3.8·§4, `03_be.md` §14, `research/ai/01~02` |
 
 ---
 

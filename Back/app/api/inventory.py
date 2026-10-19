@@ -1,4 +1,7 @@
-"""/api/inventory — 재고 품목·로트·폐기·경고 (07_api_spec.md §5) + 임계값 기반 발주추천."""
+"""/api/inventory — 재고 품목·로트·폐기·경고 + 임계값 기반 발주추천.
+
+02_implementation_design.md §3.5.
+"""
 
 from __future__ import annotations
 

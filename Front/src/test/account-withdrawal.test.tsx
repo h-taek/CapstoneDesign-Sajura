@@ -1,4 +1,4 @@
-// 회원 탈퇴(30일 유예) — 07_api_spec.md DELETE /api/auth/me, 12_security.md §3.1.
+// 회원 탈퇴(30일 유예) — 02_implementation_design.md §3 DELETE /api/auth/me, 01_basic_design.md §5.2.1.
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter, Route, Routes } from "react-router";

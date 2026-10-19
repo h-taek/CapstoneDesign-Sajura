@@ -1,4 +1,4 @@
-// BE 사업자 검증 게이트(403 BUSINESS_NOT_VERIFIED) 수신 시 사용자 상태 재동기화 — 12_security.md §5.1.
+// BE 사업자 검증 게이트(403 BUSINESS_NOT_VERIFIED) 수신 시 사용자 상태 재동기화 — 03_be.md §8.1.
 // 상태가 바뀌면 RequireStage가 /verify-business로 보낸다.
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { api as baseApi } from "../lib/api";

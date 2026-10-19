@@ -1,7 +1,7 @@
 """FastAPI application entry — Phase 2 BE bootstrap + Phase 3 auth routers.
 
 Spec refs:
-  - docs/spec/09_service_design.md §10 미들웨어 등록 순서
+  - docs/spec/03_be.md §13 미들웨어 등록 순서
   - docs/plan/01_be.md M2.B2
 """
 from __future__ import annotations

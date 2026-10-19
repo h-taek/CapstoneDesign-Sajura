@@ -1,4 +1,4 @@
-"""재고 DTOs — 07_api_spec.md §5."""
+"""재고 DTOs — 02_implementation_design.md §3.5."""
 
 from __future__ import annotations
 

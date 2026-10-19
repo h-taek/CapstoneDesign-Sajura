@@ -1,4 +1,7 @@
-"""/api/forecast — AI 서버 연동 수요예측 (07_api_spec.md §7 경로 / §8 AI 계약 프록시)."""
+"""/api/forecast — AI 서버 연동 수요예측.
+
+02_implementation_design.md §3.7 경로 / §3.8 AI 계약 프록시.
+"""
 from __future__ import annotations
 
 from fastapi import APIRouter, Depends

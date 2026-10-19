@@ -1,4 +1,4 @@
-"""/api/store/pos/* — M3.B6 stub. api_key는 AES-256-GCM 암호화 저장 (12_security.md §4.1)."""
+"""/api/store/pos/* — M3.B6 stub. api_key는 AES-256-GCM 암호화 저장 (03_be.md §10.1)."""
 from __future__ import annotations
 
 from datetime import UTC, datetime
@@ -18,7 +18,7 @@ router = APIRouter(
 )
 
 
-# api_key 150자 = 암호문 base64가 VARCHAR(255)에 들어가는 상한 (12_security.md §4.1)
+# api_key 150자 = 암호문 base64가 VARCHAR(255)에 들어가는 상한 (03_be.md §10.1)
 class PosCreateRequest(BaseModel):
     pos_type: str
     api_key: str = Field(min_length=1, max_length=150)

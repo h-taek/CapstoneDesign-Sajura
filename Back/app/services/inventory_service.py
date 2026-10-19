@@ -1,7 +1,7 @@
-"""InventoryService — 재고 품목·로트·폐기·경고·FIFO 차감 (04_feature_spec.md §3).
+"""InventoryService — 재고 품목·로트·폐기·경고·FIFO 차감 (01_basic_design.md §3.3).
 
 수량은 품목에 두지 않고 로트(`inventory_lots.remaining_quantity`) 합계로 계산한다.
-판매 차감 규칙(차감 기준 시각·로트 순서·재고 확인 필요)은 04_feature_spec.md §3.3.
+판매 차감 규칙(차감 기준 시각·로트 순서·재고 확인 필요)은 01_basic_design.md §3.3.3.
 """
 
 from __future__ import annotations
@@ -27,9 +27,9 @@ from app.models.menu import Menu, Recipe, RecipeIngredient
 from app.models.order import OrderApprovalLog, OrderItem, OrderRecommendationItem
 
 KST = ZoneInfo("Asia/Seoul")
-EXPIRY_WARN_DAYS = 3  # 04_feature_spec.md §3.6 D-3
+EXPIRY_WARN_DAYS = 3  # 01_basic_design.md §3.3.6 D-3
 
-# FIFO 순서 — 소비기한 빠른 순, 소비기한 없는 로트는 뒤에 입고일 순 (04_feature_spec.md §3.3)
+# FIFO 순서 — 소비기한 빠른 순, 소비기한 없는 로트는 뒤에 입고일 순 (01_basic_design.md §3.3.3)
 FIFO_ORDER = (
     InventoryLot.expiry_date.is_(None),
     InventoryLot.expiry_date,
@@ -50,7 +50,7 @@ class ItemStock:
     nearest_expiry: date | None  # 잔여 수량이 남은 로트 중 가장 빠른 소비기한
 
     def alert_status(self, today: date) -> str:
-        # 07_api_spec.md §5 — 여러 조건이면 위쪽 값
+        # 02_implementation_design.md §3.5 — 여러 조건이면 위쪽 값
         if self.item.needs_check:
             return "NEEDS_CHECK"
         if self.total_quantity <= 0:
@@ -138,7 +138,7 @@ class InventoryService:
         self.session.add(item)
         await self.session.flush()
         if quantity > 0:
-            # 등록 수량은 첫 로트로 저장 (04_feature_spec.md §3.1)
+            # 등록 수량은 첫 로트로 저장 (01_basic_design.md §3.3.1)
             self.session.add(
                 InventoryLot(
                     item_id=item.item_id,

@@ -1,6 +1,7 @@
-"""AccountPurgeService — 탈퇴 유예 30일이 지난 계정 파기 (12_security.md §3.1·§4.2).
+"""AccountPurgeService — 탈퇴 유예 30일이 지난 계정 파기 (01_basic_design.md §5.2.1·03_be.md §10.2).
 
-stores를 참조하는 테이블 상당수가 ON DELETE CASCADE가 아니라(08_schema.md §3) 하위 행을
+stores를 참조하는 테이블 상당수가 ON DELETE CASCADE가 아니라
+(02_implementation_design.md §4.3) 하위 행을
 참조 순서대로 먼저 지운다. ORM이 없는 테이블이 섞여 있어 SQL로 직접 지운다.
 파기 완료 증빙 이메일은 알림 채널 구현 후 붙인다.
 """

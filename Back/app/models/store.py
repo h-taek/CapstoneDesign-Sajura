@@ -1,4 +1,4 @@
-"""Store ORM — 08_schema.md §3 stores."""
+"""Store ORM — 02_implementation_design.md §4.3 stores."""
 from __future__ import annotations
 
 import enum

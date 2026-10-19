@@ -1,4 +1,4 @@
-// 발주 추천 화면 — AI 추천·임계값 추천 각각의 확정 요청 (07_api_spec.md §7 POST /api/orders/approve).
+// 발주 추천 화면 — AI 추천·임계값 추천 각각의 확정 요청 (02_implementation_design.md §3.7 POST /api/orders/approve).
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter } from "react-router";

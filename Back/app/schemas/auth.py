@@ -1,4 +1,4 @@
-"""Auth DTOs — 07_api_spec.md §2."""
+"""Auth DTOs — 02_implementation_design.md §3.2."""
 from __future__ import annotations
 
 from datetime import datetime

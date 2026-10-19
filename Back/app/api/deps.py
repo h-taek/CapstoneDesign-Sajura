@@ -50,7 +50,7 @@ async def get_admin_user(
     current: CurrentUserDep,
     session: SessionDep,
 ) -> CurrentUser:
-    """관리자 가드 — role을 JWT가 아닌 DB에서 조회·확인 (12_security.md §5.1)."""
+    """관리자 가드 — role을 JWT가 아닌 DB에서 조회·확인 (03_be.md §8.1)."""
     user = await session.get(User, current.user_id)
     if user is None or user.role != UserRole.ADMIN:
         raise errors.forbidden("관리자 권한이 필요합니다.")
@@ -61,7 +61,7 @@ AdminUserDep = Annotated[CurrentUser, Depends(get_admin_user)]
 
 
 async def require_business_access(current: CurrentUserDep, session: SessionDep) -> None:
-    """사업자 검증 게이트 — PENDING·VERIFIED이고 탈퇴 유예 중이 아니면 통과 (12_security.md §5.1).
+    """사업자 검증 게이트 — PENDING·VERIFIED이고 탈퇴 유예 중이 아니면 통과 (03_be.md §8.1).
 
     관리자 반려가 발급된 토큰에도 즉시 반영되도록 상태를 DB에서 조회한다.
     """

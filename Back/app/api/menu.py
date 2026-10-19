@@ -1,4 +1,4 @@
-"""/api/menus — 07_api_spec.md §4."""
+"""/api/menus — 02_implementation_design.md §3.4."""
 from __future__ import annotations
 
 import math

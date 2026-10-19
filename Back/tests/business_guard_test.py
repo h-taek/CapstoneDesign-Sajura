@@ -1,4 +1,4 @@
-"""사업자 검증 게이트 BE 강제 — 04_feature_spec.md §1.4, 12_security.md §5.1."""
+"""사업자 검증 게이트 BE 강제 — 01_basic_design.md §3.1.4, 03_be.md §8.1."""
 
 from __future__ import annotations
 

@@ -1,4 +1,4 @@
-"""판매 API 스키마 — 07_api_spec.md §6."""
+"""판매 API 스키마 — 02_implementation_design.md §3.6."""
 from __future__ import annotations
 
 from datetime import datetime

@@ -1,4 +1,4 @@
-"""POS 자격증명 AES-256-GCM 저장 암호화 — 12_security.md §4.1."""
+"""POS 자격증명 AES-256-GCM 저장 암호화 — 03_be.md §10.1."""
 
 from __future__ import annotations
 

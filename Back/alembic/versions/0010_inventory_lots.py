@@ -1,6 +1,6 @@
 """재고 로트 전환 — current_quantity를 로트로 옮기고 차감 기준 시각·재고 확인 필요 추가.
 
-08_schema.md §3.8·§3.9, 04_feature_spec.md §3.3.
+02_implementation_design.md §4.3.8·§4.3.9, 01_basic_design.md §3.3.3.
 - 기존 current_quantity > 0인 품목은 로트 1개로 옮긴다(구매 금액 0, 입고일 = 등록일).
 - deducted_until은 판매 시각(sold_at, 매장 현지 KST)과 같은 기준이라
   UTC인 created_at에 9시간을 더한다.

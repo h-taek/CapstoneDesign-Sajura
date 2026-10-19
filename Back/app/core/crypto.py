@@ -1,4 +1,4 @@
-"""AES-256-GCM 필드 암호화 — 12_security.md §4.1 (pos_connections.api_key).
+"""AES-256-GCM 필드 암호화 — 03_be.md §10.1 (pos_connections.api_key).
 
 저장 형식은 base64(nonce 12B ‖ 암호문 ‖ 태그 16B). aad에 소유 행의 식별자(store_id)를 넣어
 암호문을 다른 매장 행으로 옮겨 붙이면 복호화가 실패하게 한다.

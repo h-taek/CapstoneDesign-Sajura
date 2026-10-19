@@ -1,4 +1,4 @@
-"""Alembic env — sync PyMySQL driver (09_service_design.md §1)."""
+"""Alembic env — sync PyMySQL driver (03_be.md §1)."""
 from __future__ import annotations
 
 from logging.config import fileConfig

@@ -1,4 +1,4 @@
-"""OAuth (카카오·구글) — 07_api_spec.md §2."""
+"""OAuth (카카오·구글) — 02_implementation_design.md §3.2."""
 from __future__ import annotations
 
 import secrets
@@ -111,7 +111,8 @@ async def callback(
             email=profile["email"], name=profile["name"],
         )
     except errors.DomainError as exc:
-        # 브라우저 이동 중이라 JSON 대신 FE 로그인 화면으로 사유를 넘긴다 (07_api_spec.md §2)
+        # 브라우저 이동 중이라 JSON 대신 FE 로그인 화면으로 사유를 넘긴다
+        # (02_implementation_design.md §3.2)
         if exc.detail.get("error") != "AUTH_ACCOUNT_WITHDRAWN":
             raise
         resp = RedirectResponse(url=f"{_fe_landing_url()}/login?error=withdrawn", status_code=302)

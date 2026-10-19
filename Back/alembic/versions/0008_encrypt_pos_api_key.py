@@ -1,4 +1,4 @@
-"""pos_connections.api_key 평문 행을 AES-256-GCM으로 암호화 (12_security.md §4.1).
+"""pos_connections.api_key 평문 행을 AES-256-GCM으로 암호화 (03_be.md §10.1).
 
 이 리비전 전까지 api_key는 평문으로 저장됐다. 행이 있는데 AES_GCM_KEY_BASE64가 없으면 중단한다.
 

@@ -1,4 +1,4 @@
-"""/api/sales — 07_api_spec.md §6 (M4.B2)."""
+"""/api/sales — 02_implementation_design.md §3.6 (M4.B2)."""
 from __future__ import annotations
 
 from typing import Annotated
@@ -107,7 +107,10 @@ async def upload_sales_csv(
     external_sale_id_column: Annotated[str | None, Form()] = None,
     auto_create_menus: Annotated[bool, Form()] = False,
 ) -> CSVUploadResponse:
-    """CSV 업로드 — 04_feature_spec.md §4.4 + 07_api_spec.md §6 POST /api/sales/upload."""
+    """CSV 업로드 — POST /api/sales/upload.
+
+    01_basic_design.md §3.4.4, 02_implementation_design.md §3.6.
+    """
     store_id = (await StoreService(session).get_store(current.user_id)).store_id
 
     file_bytes = await file.read()

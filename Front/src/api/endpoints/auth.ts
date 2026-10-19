@@ -1,4 +1,4 @@
-// 인증 API — 07_api_spec.md §2·§3.
+// 인증 API — 02_implementation_design.md §3.2·§3.3.
 import { HTTPError } from "ky";
 import { api } from "../../lib/api";
 import type { AuthUser, BusinessStatus } from "../../stores/auth-store";
@@ -103,7 +103,7 @@ export async function verifyBusiness(
   return api.post("store/business/verify", { body: form }).json<VerifyBusinessResponse>();
 }
 
-/** 회원 탈퇴 — 30일 유예 후 파기 (12_security.md §3.1). 소셜 계정은 빈 비밀번호. */
+/** 회원 탈퇴 — 30일 유예 후 파기 (01_basic_design.md §5.2.1). 소셜 계정은 빈 비밀번호. */
 export async function deleteAccount(password: string): Promise<void> {
   await api.delete("auth/me", { json: { password } });
 }

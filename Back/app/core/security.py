@@ -1,4 +1,4 @@
-"""bcrypt + JWT + SHA-256 refresh hash — 12_security.md §2."""
+"""bcrypt + JWT + SHA-256 refresh hash — 03_be.md §7."""
 from __future__ import annotations
 
 import hashlib

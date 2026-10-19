@@ -1,4 +1,4 @@
-// 매장 API — 07_api_spec.md §3.
+// 매장 API — 02_implementation_design.md §3.3.
 import { api } from "../../lib/api";
 
 export type StoreSize = "SMALL" | "MEDIUM" | "LARGE";

@@ -1,4 +1,4 @@
-"""PosConnection ORM — 08_schema.md §3 (M3.B6 stub)."""
+"""PosConnection ORM — 02_implementation_design.md §4.3 (M3.B6 stub)."""
 from __future__ import annotations
 
 import enum

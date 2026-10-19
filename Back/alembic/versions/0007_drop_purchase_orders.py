@@ -1,6 +1,7 @@
 """purchase_orders 테이블 제거 — 발주 확정은 orders·order_items·order_approval_logs로 이전.
 
-08_schema.md §3.19~§3.21 테이블은 0001_init에 이미 있다. 기존 JSON 스냅샷 행은 옮기지 않는다.
+02_implementation_design.md §4.3.19~§4.3.21 테이블은 0001_init에 이미 있다.
+기존 JSON 스냅샷 행은 옮기지 않는다.
 
 Revision ID: 0007_drop_purchase_orders
 Revises: 0006_purchase_orders

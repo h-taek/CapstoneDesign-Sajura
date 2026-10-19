@@ -1,4 +1,4 @@
-"""User ORM — 08_schema.md §3 users."""
+"""User ORM — 02_implementation_design.md §4.3 users."""
 from __future__ import annotations
 
 import enum
@@ -23,7 +23,7 @@ class AuthProvider(str, enum.Enum):
 
 class UserRole(str, enum.Enum):
     OWNER = "OWNER"   # 점주 (기본)
-    ADMIN = "ADMIN"   # 운영자 — DB에서 수동 지정 (12_security.md §5.1)
+    ADMIN = "ADMIN"   # 운영자 — DB에서 수동 지정 (03_be.md §8.1)
 
 
 class User(Base):
@@ -40,7 +40,7 @@ class User(Base):
         Enum(AuthProvider, name="auth_provider"), nullable=False, default=AuthProvider.LOCAL
     )
     social_id: Mapped[str | None] = mapped_column(String(100), nullable=True)
-    # 회원 탈퇴 시각 — 값이 있으면 파기 유예 중 (12_security.md §3.1)
+    # 회원 탈퇴 시각 — 값이 있으면 파기 유예 중 (01_basic_design.md §5.2.1)
     withdrawn_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, server_default=func.current_timestamp())
     updated_at: Mapped[datetime] = mapped_column(

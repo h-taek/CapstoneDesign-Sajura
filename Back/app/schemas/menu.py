@@ -1,4 +1,4 @@
-"""Menu / Recipe DTOs — 07_api_spec.md §4."""
+"""Menu / Recipe DTOs — 02_implementation_design.md §3.4."""
 from __future__ import annotations
 
 from datetime import datetime

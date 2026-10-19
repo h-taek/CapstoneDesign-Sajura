@@ -26,7 +26,7 @@ export default function LoginPage() {
   const location = useLocation();
   const navState = location.state as { registeredEmail?: string; withdrawn?: boolean } | null;
   const registeredEmail = navState?.registeredEmail;
-  // OAuth 콜백이 탈퇴 유예 계정을 /login?error=withdrawn으로 돌려보낸다 (07_api_spec.md §2)
+  // OAuth 콜백이 탈퇴 유예 계정을 /login?error=withdrawn으로 돌려보낸다 (02_implementation_design.md §3.2)
   const [searchParams] = useSearchParams();
   const setAccessToken = useAuthStore((s) => s.setAccessToken);
   const setUser = useAuthStore((s) => s.setUser);

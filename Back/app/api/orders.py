@@ -1,4 +1,4 @@
-"""/api/orders — 추천발주 조회 + 발주 확정·내역 (07_api_spec.md §7)."""
+"""/api/orders — 추천발주 조회 + 발주 확정·내역 (02_implementation_design.md §3.7)."""
 
 from __future__ import annotations
 

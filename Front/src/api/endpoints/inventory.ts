@@ -1,4 +1,4 @@
-// 재고 API — 07_api_spec.md §5. 수량은 로트 잔여 수량 합계(total_quantity).
+// 재고 API — 02_implementation_design.md §3.5. 수량은 로트 잔여 수량 합계(total_quantity).
 import { api } from "../../lib/api";
 
 export type AlertStatus = "NORMAL" | "LOW" | "EXPIRED_SOON" | "EMPTY" | "NEEDS_CHECK";

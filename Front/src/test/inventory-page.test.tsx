@@ -1,4 +1,4 @@
-// 재고 화면 — 로트 목록·입고·수정·폐기 (07_api_spec.md §5).
+// 재고 화면 — 로트 목록·입고·수정·폐기 (02_implementation_design.md §3.5).
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { MemoryRouter } from "react-router";

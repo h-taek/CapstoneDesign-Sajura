@@ -1,4 +1,4 @@
-"""발주 확정·내역 DTOs — 07_api_spec.md §7."""
+"""발주 확정·내역 DTOs — 02_implementation_design.md §3.7."""
 
 from __future__ import annotations
 

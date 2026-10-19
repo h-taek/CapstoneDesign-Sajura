@@ -72,7 +72,7 @@ main 보호 설정: PR 필수(관리자 예외), force push·브랜치 삭제 �
 * `PROGRESS*.md` · `docs/` · 루트 `README.md` · `CLAUDE.md` · `AGENTS.md`만 바꾸는 작업은 코드 PR에 섞지 않고 `docs/<주제>` 브랜치로 따로 올린다.
 * `HANDOFF.md`는 커밋하지 않는다(`.gitignore`, 개인용).
 * AI 서버는 별도 컨테이너로 배포하지만 브랜치 흐름은 같다. be·fe와는 HTTP API로만 연동한다.
-* Contract-first: BE는 `docs/spec/07_api_spec.md` 계약을 먼저 안정화하고, FE는 `pnpm gen:api` 타입 코드젠 + MSW mock으로 선행 개발한다.
+* Contract-first: BE는 `docs/spec/02_implementation_design.md` §3 계약을 먼저 안정화하고, FE는 `pnpm gen:api` 타입 코드젠 + MSW mock으로 선행 개발한다.
 
 **작업 상황 공유**
 

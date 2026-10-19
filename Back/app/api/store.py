@@ -1,4 +1,4 @@
-"""/api/store — 07_api_spec.md §3 (MVP)."""
+"""/api/store — 02_implementation_design.md §3.3 (MVP)."""
 from __future__ import annotations
 
 from typing import Annotated

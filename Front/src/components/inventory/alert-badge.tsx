@@ -1,4 +1,4 @@
-// 재고 경고 배지 — alert_status 값 정의는 07_api_spec.md §5.
+// 재고 경고 배지 — alert_status 값 정의는 02_implementation_design.md §3.5.
 import type { AlertStatus } from "../../api/endpoints/inventory";
 
 const BADGE: Record<AlertStatus, { label: string; className: string }> = {

@@ -176,7 +176,7 @@ class AuthService:
         await self.session.commit()
 
     async def delete_account(self, *, user_id: str, password: str) -> None:
-        """탈퇴 유예 진입 — 30일 뒤 AccountPurgeService가 파기한다 (12_security.md §3.1)."""
+        """탈퇴 유예 진입 — 30일 뒤 AccountPurgeService가 파기한다 (01_basic_design.md §5.2.1)."""
         user = await self.get_user(user_id)
         if user.auth_provider == AuthProvider.LOCAL:
             if user.password_hash is None or not security.verify_password(password, user.password_hash):

@@ -1,4 +1,4 @@
-// 추천발주 조회 + 발주 확정·내역 API — 07_api_spec.md §7.
+// 추천발주 조회 + 발주 확정·내역 API — 02_implementation_design.md §3.7.
 import { api } from "../../lib/api";
 
 export interface OrderApproveItem {

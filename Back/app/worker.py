@@ -1,4 +1,4 @@
-"""ARQ worker — 09_service_design.md §1, docs/plan/01_be.md M2.B1 (`arq-worker` 컨테이너).
+"""ARQ worker — 03_be.md §1, docs/plan/01_be.md M2.B1 (`arq-worker` 컨테이너).
 
 BE 도메인 정기 작업을 cron_jobs로 돌린다. 시각은 KST 기준 (`timezone`).
 """
@@ -23,7 +23,7 @@ def _redis_settings() -> RedisSettings:
 
 
 async def purge_withdrawn_accounts(ctx: dict) -> int:
-    """탈퇴 유예 30일이 지난 계정 파기 — 매일 03:00 (12_security.md §3.1)."""
+    """탈퇴 유예 30일이 지난 계정 파기 — 매일 03:00 (01_basic_design.md §5.2.1)."""
     async with app_db.SessionLocal() as session:
         return await AccountPurgeService(session).purge_expired()
 

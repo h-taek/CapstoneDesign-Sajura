@@ -1,4 +1,4 @@
-"""RefreshToken ORM — 08_schema.md §3."""
+"""RefreshToken ORM — 02_implementation_design.md §4.3."""
 from __future__ import annotations
 
 from datetime import datetime

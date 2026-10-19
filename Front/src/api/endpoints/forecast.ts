@@ -1,4 +1,4 @@
-// AI 수요예측 API — 07_api_spec.md §7 GET /api/forecast (BE가 §8 AI 계약을 프록시).
+// AI 수요예측 API — 02_implementation_design.md §3.7 GET /api/forecast (BE가 §3.8 AI 계약을 프록시).
 import { api } from "../../lib/api";
 
 export interface TopFactor {

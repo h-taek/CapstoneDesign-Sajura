@@ -1,4 +1,4 @@
-"""OrderService — 추천발주 저장 + 발주 확정·내역 (07_api_spec.md §7, 09_service_design.md §5).
+"""OrderService — 추천발주 저장 + 발주 확정·내역 (02_implementation_design.md §3.7, 03_be.md §5).
 
 추천안은 AI Server 결과를 조회 시점에 산출·저장한다. n8n 사전 생성(Phase 8)이 붙으면
 당일 저장분을 그대로 돌려주는 경로가 앞에 선다.

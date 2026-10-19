@@ -1,4 +1,4 @@
-// 판매 데이터 업로드 API — 07_api_spec.md §6.
+// 판매 데이터 업로드 API — 02_implementation_design.md §3.6.
 import { api } from "../../lib/api";
 
 export interface CSVUploadResponse {

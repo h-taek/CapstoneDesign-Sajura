@@ -1,4 +1,4 @@
-"""재고 로트·FIFO — 04_feature_spec.md §3, 07_api_spec.md §5·§6 업로드 응답."""
+"""재고 로트·FIFO — 01_basic_design.md §3.3, 02_implementation_design.md §3.5·§3.6 업로드 응답."""
 
 from __future__ import annotations
 
