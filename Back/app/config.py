@@ -46,7 +46,7 @@ class Settings(BaseSettings):
     # JWT (python-jose)
     JWT_SECRET: str = "change_me_jwt_secret"
     JWT_ALGORITHM: str = "HS256"
-    JWT_ACCESS_TOKEN_TTL_SECONDS: int = 900
+    JWT_ACCESS_TOKEN_TTL_SECONDS: int = 60 * 60
     JWT_REFRESH_TOKEN_TTL_SECONDS: int = 60 * 60 * 24 * 30
 
     # AES-256-GCM (03_be.md §10.1, pos_connections.api_key)
