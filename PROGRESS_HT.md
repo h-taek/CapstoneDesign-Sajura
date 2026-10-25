@@ -8,6 +8,17 @@
 
 ## 1. 개발 이력
 
+### spec ↔ 구현 불합치 9건 정리 — `c8447dc`..`f421cc0` (2026-10-25)
+
+- 발주·재고 — 안전재고 미설정 시 0으로 추천 요청, 재료 수정 API 500 수정(커밋 후 refresh 누락), 임계값 발주 추천 폐기(AI 추천 단일화)
+- 재고 책임 경계 — BE는 원본값만(`nearest_expiry_date`·`needs_check`), 경고 배지(확인 필요 > 없음 > 지남 > D-1 긴급 > D-3 임박 > 부족)·정렬은 FE `stock-status.ts`. `/api/inventory/summary`·`/alerts` 삭제, 정렬 선택은 preferences 스토어(LocalStorage) 신설
+- 메뉴 — 재고 차감 ON은 레시피(재료 1개 이상) 필수. OFF로 등록 후 레시피 저장 뒤 켬, ON 상태에서 레시피 비우기·삭제 거부(`MENU_RECIPE_REQUIRED`). 목록·상세에 `has_recipe`. 마이그레이션 `0011`(리비전 ID 32자 제한 주의). 레시피 화면 토글, 온보딩 차감 체크박스 삭제
+- 판매 — 기간별 매출 4개 API를 `GET /api/sales/trends`로 통합(일·주·월, 전체·메뉴별, 빈 구간 0), 홈·수요예측 전환
+- 인증 — Access TTL 1시간, OAuth를 Authlib로 교체(`SessionMiddleware`·`SESSION_SECRET`, 구글 id_token·nonce 검증), 로그인·가입 5/min·refresh 30/min Rate Limit(fastapi-limiter, 키는 `client.host`, compose `FORWARDED_ALLOW_IPS`)
+- 타입 — `scripts/export_openapi.py` → `Front/openapi.json` → `pnpm gen:api`. 손 타입 55개를 생성 타입 별칭으로. 수량 Decimal 응답을 숫자로(`JsonDecimal`)
+- 기타 — 오류 코드 spec 이름으로(재고·메뉴 중복, AI 연결 실패), 매장 규모 좌석 기준 문구, POS 코드값 `TOSSPLACE`·`KIWOOM`·`OKPOS`(온보딩 선택지 교체), 미들웨어 등록 순서 spec대로
+- 검증: BE pytest 76 통과(신규 14, 업로드 경로 `/app` 3건은 호스트 실행 환경 실패), FE Vitest 51 통과(신규 10)·typecheck 통과. `0011` upgrade·downgrade 왕복, 실 Redis로 Rate Limit 429, 구글 로그인 시작 302 확인. 실계정 로그인·화면 확인은 미실시
+
 ### 재고 로트·FIFO 판매 차감 — `1bb672d` (2026-10-19)
 
 - 스키마 — 마이그레이션 `0010`: `current_quantity`를 로트(`purchase_price` 0, 입고일 = 등록일 KST)로 옮기고 컬럼 삭제, `deducted_until`(초기값 등록 시각 KST)·`needs_check` 추가, `unit_price` → `purchase_price`. downgrade는 로트 합계로 수량을 복원하고 로트·조정·폐기 이력을 비운다
@@ -202,6 +213,10 @@ HANDOFF.md E단계 9개 검증 시나리오 수행 + 발견된 결함 일괄 정
 ---
 
 ## 2. 문서 수정 이력
+
+### 2026-10-25 — spec 불합치 정리에 따른 spec 결정
+
+`01`: 메뉴 재고 차감 = 레시피 필수(§3.2), 판매 상세 하루 단위(UC-03), POS API 연동 MVP 편입·3사 한정·코드값(§3.4.3). `02`: 재고 목록 전체 반환·판정값 없음·summary/alerts 삭제, 판매 `trends`·`top-menus`·`summary`·목록(`total_revenue`, 기간 필수) 확정, `/api/sales/{sale_id}` 삭제, `/health` 공통 규약 예외, 메뉴 API `has_recipe`·422, 알림 목록 공통 페이지네이션, 대시보드 `inventory_summary` 삭제, POS [2단계] 표시 제거·MVP 범위 이동. `03_be`: BE·FE 책임 경계(§2), 오류 코드 표 보강·`MENU_RECIPE_REQUIRED`, Rate Limit IP 판정, 미들웨어 순서에 Session 추가, 재고 요약 캐시 삭제. `04_fe`: 책임 경계(§7.0), 재고 배지·정렬(§4.6), OpenAPI 생성 절차(§7.1), Vitest 3, 온보딩 메뉴·POS 단계. `PROGRESS.md` §3에 결정 행 6개(발주 추천 단일화, 매출 집계 API, 재고 차감 = 레시피 필수, BE·FE 책임 경계, MVP 데이터 갱신 포함). plan 목업 5개 동기화. `research/backend/13_pos_adapter.md` 상태 갱신.
 
 ### 2026-10-19 — spec 14개 → 5개 재편
 
