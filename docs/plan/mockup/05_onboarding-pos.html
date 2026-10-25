@@ -7,54 +7,69 @@
 <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4.0.17"></script>
 <script src="mockup.js" defer></script>
 </head>
-<!-- 원본: Front/src/routes/onboarding/layout.tsx, onboarding/step-pos.tsx -->
+<!-- 원본: Front/src/routes/onboarding/layout.tsx, onboarding/step-pos.tsx, components/ui/button.tsx·field.tsx -->
 <body data-page="ob2" data-states="CSV만 사용:default,POS 선택:pos">
-<main class="min-h-dvh bg-[#f3f4f6] p-6">
-  <div class="mx-auto w-full max-w-2xl space-y-6 py-6">
+<main class="min-h-dvh bg-canvas px-4 py-6 sm:p-6">
+  <div class="mx-auto w-full max-w-2xl space-y-6 lg:py-6">
     <header class="space-y-1">
-      <h1 class="text-3xl font-semibold text-[#101828]">매장 온보딩</h1>
-      <p class="text-base text-[#364153]">기본 정보를 4단계로 입력하면 메인 화면으로 이동합니다.</p>
+      <p class="text-sm font-semibold text-brand">2 / 4 단계</p>
+      <h1 class="text-[1.75rem] font-bold tracking-tight text-ink">매장 온보딩</h1>
+      <p class="text-base text-ink-3">기본 정보를 4단계로 입력하면 메인 화면으로 이동합니다.</p>
     </header>
+    <!-- 단계 표시 — 지난 단계는 체크, 지금 단계는 보라. 좁은 화면(sm 미만)은 지금 단계 이름만 보인다 -->
     <ol class="grid grid-cols-4 gap-2" aria-label="온보딩 단계">
-      <li class="flex flex-col items-start rounded-xl border border-[#d1d5dc] bg-white px-3 py-2"><span class="text-xs">Step 1</span><a href="04_onboarding-store.html" class="text-sm font-medium text-[#364153]">매장 정보</a></li>
-      <li aria-current="step" class="flex flex-col items-start rounded-xl border border-[#7a5eff] bg-white px-3 py-2"><span class="text-xs text-[#7a5eff]">Step 2</span><a href="05_onboarding-pos.html" class="text-sm font-medium text-[#101828]">POS 연동</a></li>
-      <li class="flex flex-col items-start rounded-xl border border-dashed border-[#d1d5dc] bg-white px-3 py-2 text-[#99a1af]"><span class="text-xs">Step 3</span><span class="text-sm font-medium">메뉴 등록</span></li>
-      <li class="flex flex-col items-start rounded-xl border border-dashed border-[#d1d5dc] bg-white px-3 py-2 text-[#99a1af]"><span class="text-xs">Step 4</span><span class="text-sm font-medium">확인</span></li>
+      <li class="flex flex-col items-center gap-2 text-center">
+        <span class="h-1.5 w-full rounded-full bg-brand"></span>
+        <span class="flex items-center gap-1.5"><span class="flex size-6 shrink-0 items-center justify-center rounded-full text-xs font-bold bg-brand-soft text-brand"><span data-icon="check" class="size-3.5"></span></span><a href="04_onboarding-store.html" class="text-sm font-semibold whitespace-nowrap text-ink-2 hidden sm:inline">매장 정보</a></span>
+      </li>
+      <li aria-current="step" class="flex flex-col items-center gap-2 text-center">
+        <span class="h-1.5 w-full rounded-full bg-brand"></span>
+        <span class="flex items-center gap-1.5"><span class="flex size-6 shrink-0 items-center justify-center rounded-full text-xs font-bold bg-brand text-white">2</span><a href="05_onboarding-pos.html" aria-current="page" class="text-sm font-semibold whitespace-nowrap text-ink">POS 연동</a></span>
+      </li>
+      <li class="flex flex-col items-center gap-2 text-center">
+        <span class="h-1.5 w-full rounded-full bg-line"></span>
+        <span class="flex items-center gap-1.5"><span class="flex size-6 shrink-0 items-center justify-center rounded-full text-xs font-bold bg-line-soft text-ink-4">3</span><a class="text-sm font-semibold whitespace-nowrap text-ink-4 hidden sm:inline">메뉴 등록</a></span>
+      </li>
+      <li class="flex flex-col items-center gap-2 text-center">
+        <span class="h-1.5 w-full rounded-full bg-line"></span>
+        <span class="flex items-center gap-1.5"><span class="flex size-6 shrink-0 items-center justify-center rounded-full text-xs font-bold bg-line-soft text-ink-4">4</span><a class="text-sm font-semibold whitespace-nowrap text-ink-4 hidden sm:inline">확인</a></span>
+      </li>
     </ol>
-    <section class="rounded-2xl bg-white p-8 shadow-sm">
+    <section class="rounded-2xl border border-line bg-white p-5 shadow-card sm:p-8">
       <form class="space-y-6" novalidate>
         <div class="space-y-1">
-          <h2 class="text-2xl font-semibold text-[#101828]">김사주님, Sajura에 오신 걸 환영합니다</h2>
-          <p class="text-base text-[#364153]">POS 데이터를 연동해주세요.</p>
+          <h2 class="text-2xl font-semibold text-ink">김사주님, Sajura에 오신 걸 환영합니다</h2>
+          <p class="text-base text-ink-2">POS 데이터를 연동해주세요.</p>
         </div>
 
         <div class="space-y-2">
-          <span class="text-sm font-medium text-[#364153]">POS 종류</span>
+          <span class="text-sm font-medium text-ink-2">POS 종류</span>
+          <!-- 선택된 칸만 보라 테두리. CSV만 사용(default)과 OKPOS 선택(pos) 두 상태로 보인다 -->
           <div class="grid grid-cols-2 gap-3" role="radiogroup" aria-label="POS 종류">
-            <label data-set-state="pos" class="flex cursor-pointer items-center gap-3 rounded-xl border px-4 py-3 text-sm font-medium transition-colors border-[#d1d5dc] bg-white text-[#364153] hover:bg-[#f3f4f6]"><input type="radio" name="pos_type" class="size-4 accent-[#7a5eff]">유니온포스</label>
-            <label data-set-state="pos" class="flex cursor-pointer items-center gap-3 rounded-xl border px-4 py-3 text-sm font-medium transition-colors border-[#d1d5dc] bg-white text-[#364153] hover:bg-[#f3f4f6]" data-when="default"><input type="radio" name="pos_type" class="size-4 accent-[#7a5eff]">OKPOS</label>
-            <label class="flex cursor-pointer items-center gap-3 rounded-xl border px-4 py-3 text-sm font-medium transition-colors border-[#7a5eff] bg-[#7a5eff]/5 text-[#101828]" data-when="pos"><input type="radio" name="pos_type_selected" checked class="size-4 accent-[#7a5eff]">OKPOS</label>
-            <label data-set-state="pos" class="flex cursor-pointer items-center gap-3 rounded-xl border px-4 py-3 text-sm font-medium transition-colors border-[#d1d5dc] bg-white text-[#364153] hover:bg-[#f3f4f6]"><input type="radio" name="pos_type" class="size-4 accent-[#7a5eff]">POSBANK</label>
-            <label data-set-state="default" class="flex cursor-pointer items-center gap-3 rounded-xl border px-4 py-3 text-sm font-medium transition-colors border-[#7a5eff] bg-[#7a5eff]/5 text-[#101828]" data-when="default"><input type="radio" name="pos_type" checked class="size-4 accent-[#7a5eff]">CSV 업로드만 사용</label>
-            <label data-set-state="default" class="flex cursor-pointer items-center gap-3 rounded-xl border px-4 py-3 text-sm font-medium transition-colors border-[#d1d5dc] bg-white text-[#364153] hover:bg-[#f3f4f6]" data-when="pos"><input type="radio" name="pos_type" class="size-4 accent-[#7a5eff]">CSV 업로드만 사용</label>
+            <label data-set-state="pos" class="flex cursor-pointer items-center gap-3 rounded-xl border border-line bg-white px-4 py-3 text-sm font-medium text-ink-2 transition-colors hover:bg-subtle"><input type="radio" name="pos_type" class="size-4 accent-brand">토스플레이스</label>
+            <label data-set-state="pos" class="flex cursor-pointer items-center gap-3 rounded-xl border border-line bg-white px-4 py-3 text-sm font-medium text-ink-2 transition-colors hover:bg-subtle"><input type="radio" name="pos_type" class="size-4 accent-brand">키움페이</label>
+            <label data-when="default" data-set-state="pos" class="flex cursor-pointer items-center gap-3 rounded-xl border border-line bg-white px-4 py-3 text-sm font-medium text-ink-2 transition-colors hover:bg-subtle"><input type="radio" name="pos_type" class="size-4 accent-brand">OKPOS</label>
+            <label data-when="pos" class="flex cursor-pointer items-center gap-3 rounded-xl border border-brand bg-brand-soft px-4 py-3 text-sm font-medium text-ink transition-colors"><input type="radio" name="pos_type_okpos" checked class="size-4 accent-brand">OKPOS</label>
+            <label data-when="default" class="flex cursor-pointer items-center gap-3 rounded-xl border border-brand bg-brand-soft px-4 py-3 text-sm font-medium text-ink transition-colors"><input type="radio" name="pos_type_csv" checked class="size-4 accent-brand">CSV 업로드만 사용</label>
+            <label data-when="pos" data-set-state="default" class="flex cursor-pointer items-center gap-3 rounded-xl border border-line bg-white px-4 py-3 text-sm font-medium text-ink-2 transition-colors hover:bg-subtle"><input type="radio" name="pos_type" class="size-4 accent-brand">CSV 업로드만 사용</label>
           </div>
         </div>
 
-        <div class="flex flex-col gap-1">
-          <label for="api_key" class="text-sm font-medium text-slate-700">POS API 키</label>
-          <input id="api_key" data-when="default" disabled class="h-11 w-full rounded-xl border border-[#d1d5dc] bg-[#f3f4f6] px-3 text-sm shadow-sm disabled:bg-slate-100">
-          <input data-when="pos" value="okpos-demo-key-0000" class="h-11 w-full rounded-xl border border-[#d1d5dc] bg-[#f3f4f6] px-3 text-sm shadow-sm">
-          <p data-when="default" class="text-xs text-slate-500">CSV 업로드 모드는 자격증명 없이 진행합니다.</p>
+        <div class="flex flex-col gap-1.5">
+          <label for="api_key" class="text-[0.95rem] font-semibold text-ink-2">POS API 키</label>
+          <input id="api_key" data-when="default" autocomplete="off" disabled class="h-11 w-full rounded-xl border border-line bg-subtle px-4 text-base text-ink placeholder:text-ink-4 focus:border-brand focus:outline-none focus:ring-4 focus:ring-brand-soft disabled:bg-subtle disabled:text-ink-3">
+          <input data-when="pos" autocomplete="off" value="okpos-demo-key-0000" class="h-11 w-full rounded-xl border border-line bg-subtle px-4 text-base text-ink placeholder:text-ink-4 focus:border-brand focus:outline-none focus:ring-4 focus:ring-brand-soft disabled:bg-subtle disabled:text-ink-3">
+          <p data-when="default" class="text-sm text-ink-3">CSV 업로드 모드는 자격증명 없이 진행합니다.</p>
         </div>
-        <div class="flex flex-col gap-1">
-          <label for="store_code" class="text-sm font-medium text-slate-700">매장 코드</label>
-          <input id="store_code" data-when="default" disabled class="h-11 w-full rounded-xl border border-[#d1d5dc] bg-[#f3f4f6] px-3 text-sm shadow-sm disabled:bg-slate-100">
-          <input data-when="pos" value="STORE-0001" class="h-11 w-full rounded-xl border border-[#d1d5dc] bg-[#f3f4f6] px-3 text-sm shadow-sm">
+        <div class="flex flex-col gap-1.5">
+          <label for="store_code" class="text-[0.95rem] font-semibold text-ink-2">매장 코드</label>
+          <input id="store_code" data-when="default" autocomplete="off" disabled class="h-11 w-full rounded-xl border border-line bg-subtle px-4 text-base text-ink placeholder:text-ink-4 focus:border-brand focus:outline-none focus:ring-4 focus:ring-brand-soft disabled:bg-subtle disabled:text-ink-3">
+          <input data-when="pos" autocomplete="off" value="STORE-0001" class="h-11 w-full rounded-xl border border-line bg-subtle px-4 text-base text-ink placeholder:text-ink-4 focus:border-brand focus:outline-none focus:ring-4 focus:ring-brand-soft disabled:bg-subtle disabled:text-ink-3">
         </div>
 
         <div class="flex justify-between pt-2">
-          <button type="button" data-go="04_onboarding-store.html" class="inline-flex h-11 items-center justify-center gap-2 rounded-full border border-[#d1d5dc] bg-white px-6 text-sm font-medium text-[#364153] transition-colors hover:bg-[#f3f4f6]">이전</button>
-          <button type="submit" data-go="06_onboarding-menus.html" class="inline-flex h-11 items-center justify-center gap-2 rounded-full bg-[#7a5eff] px-8 text-sm font-semibold text-white transition-colors hover:bg-[#6a4eef]">다음</button>
+          <button type="button" data-go="04_onboarding-store.html" class="inline-flex h-11 shrink-0 items-center justify-center gap-2 rounded-full border border-line bg-white px-6 text-[0.95rem] font-semibold whitespace-nowrap text-ink-2 transition-colors hover:bg-subtle disabled:cursor-not-allowed disabled:bg-ink-4">이전</button>
+          <button type="submit" data-go="06_onboarding-menus.html" data-testid="pos-next" class="inline-flex h-11 shrink-0 items-center justify-center gap-2 rounded-full bg-brand px-8 text-[0.95rem] font-semibold whitespace-nowrap text-white transition-colors hover:bg-brand-strong disabled:cursor-not-allowed disabled:bg-ink-4">다음</button>
         </div>
       </form>
     </section>

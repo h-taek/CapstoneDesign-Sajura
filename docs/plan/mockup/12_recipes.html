@@ -7,59 +7,62 @@
 <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4.0.17"></script>
 <script src="mockup.js" defer></script>
 </head>
-<!-- 원본: Front/src/routes/recipes.tsx -->
+<!-- 원본: Front/src/routes/recipes.tsx, components/ui/button.tsx -->
 <body data-page="recipes" data-states="레시피 편집:default,재료 없음:noinv,저장 실패:error">
 <div data-shell="recipes">
   <div class="space-y-6">
-    <h1 class="text-2xl font-semibold text-[#101828]">레시피 관리</h1>
+    <h1 class="hidden text-[1.75rem] font-bold tracking-tight text-ink lg:block">레시피 관리</h1>
 
     <div class="grid grid-cols-1 gap-6 lg:grid-cols-[280px_1fr]">
-      <section class="space-y-2 rounded-xl border border-[#d1d5dc] bg-white p-2">
-        <button type="button" class="flex w-full items-center justify-between rounded-lg bg-[#7a5eff]/10 px-3 py-2.5 text-left text-sm font-medium text-[#7a5eff]"><span>불새우 루꼴라 화덕피자</span><span class="text-xs text-[#99a1af]">피자</span></button>
-        <button type="button" class="flex w-full items-center justify-between rounded-lg px-3 py-2.5 text-left text-sm text-[#364153] hover:bg-[#f3f4f6]"><span>페페로니 듬뿍 화덕피자</span><span class="text-xs text-[#99a1af]">피자</span></button>
-        <button type="button" class="flex w-full items-center justify-between rounded-lg px-3 py-2.5 text-left text-sm text-[#364153] hover:bg-[#f3f4f6]"><span>마르게리타 화덕피자</span><span class="text-xs text-[#99a1af]">피자</span></button>
-        <button type="button" class="flex w-full items-center justify-between rounded-lg px-3 py-2.5 text-left text-sm text-[#364153] hover:bg-[#f3f4f6]"><span>고르곤졸라 꿀 피자</span><span class="text-xs text-[#99a1af]">피자</span></button>
-        <button type="button" class="flex w-full items-center justify-between rounded-lg px-3 py-2.5 text-left text-sm text-[#364153] hover:bg-[#f3f4f6]"><span>머스크멜론 하몽</span><span class="text-xs text-[#99a1af]">사이드</span></button>
-        <button type="button" class="flex w-full items-center justify-between rounded-lg px-3 py-2.5 text-left text-sm text-[#364153] hover:bg-[#f3f4f6]"><span>얼큰 바지락 술찜</span><span class="text-xs text-[#99a1af]">사이드</span></button>
-        <button type="button" class="flex w-full items-center justify-between rounded-lg px-3 py-2.5 text-left text-sm text-[#364153] hover:bg-[#f3f4f6]"><span>루꼴라 샐러드</span><span class="text-xs text-[#99a1af]">샐러드</span></button>
-        <button type="button" class="flex w-full items-center justify-between rounded-lg px-3 py-2.5 text-left text-sm text-[#364153] hover:bg-[#f3f4f6]"><span>제로콜라</span><span class="text-xs text-[#99a1af]">음료</span></button>
+      <!-- 메뉴 목록 — 선택한 메뉴만 brand-soft -->
+      <section class="space-y-2 rounded-xl border border-line bg-white p-2">
+        <button type="button" class="flex w-full items-center justify-between rounded-lg bg-brand-soft px-3 py-2.5 text-left text-sm font-medium text-brand"><span>불새우 루꼴라 화덕피자</span><span class="text-sm text-ink-3">피자</span></button>
+        <button type="button" class="flex w-full items-center justify-between rounded-lg px-3 py-2.5 text-left text-sm text-ink-2 hover:bg-subtle"><span>페페로니 듬뿍 화덕피자</span><span class="text-sm text-ink-3">피자</span></button>
+        <button type="button" class="flex w-full items-center justify-between rounded-lg px-3 py-2.5 text-left text-sm text-ink-2 hover:bg-subtle"><span>마르게리타 화덕피자</span><span class="text-sm text-ink-3">피자</span></button>
+        <button type="button" class="flex w-full items-center justify-between rounded-lg px-3 py-2.5 text-left text-sm text-ink-2 hover:bg-subtle"><span>고르곤졸라 꿀 피자</span><span class="text-sm text-ink-3">피자</span></button>
+        <button type="button" class="flex w-full items-center justify-between rounded-lg px-3 py-2.5 text-left text-sm text-ink-2 hover:bg-subtle"><span>머스크멜론 하몽</span><span class="text-sm text-ink-3">사이드</span></button>
+        <button type="button" class="flex w-full items-center justify-between rounded-lg px-3 py-2.5 text-left text-sm text-ink-2 hover:bg-subtle"><span>얼큰 바지락 술찜</span><span class="text-sm text-ink-3">사이드</span></button>
+        <button type="button" class="flex w-full items-center justify-between rounded-lg px-3 py-2.5 text-left text-sm text-ink-2 hover:bg-subtle"><span>루꼴라 샐러드</span><span class="text-sm text-ink-3">샐러드</span></button>
+        <button type="button" class="flex w-full items-center justify-between rounded-lg px-3 py-2.5 text-left text-sm text-ink-2 hover:bg-subtle"><span>제로콜라</span><span class="text-sm text-ink-3">음료</span></button>
       </section>
 
-      <section class="space-y-4 rounded-xl border border-[#d1d5dc] bg-white p-6">
+      <!-- RecipeEditor -->
+      <section class="space-y-4 rounded-xl border border-line bg-white p-6">
         <div class="flex items-start justify-between gap-4">
           <div>
-            <h2 class="text-lg font-semibold text-[#101828]">불새우 루꼴라 화덕피자</h2>
-            <p class="text-sm text-[#99a1af]">판매 시 레시피대로 재고를 차감합니다. 레시피를 비우려면 먼저 끄세요.</p>
+            <h2 class="text-lg font-semibold text-ink">불새우 루꼴라 화덕피자</h2>
+            <p class="text-sm text-ink-3">판매 시 레시피대로 재고를 차감합니다. 레시피를 비우려면 먼저 끄세요.</p>
           </div>
-          <label class="flex shrink-0 items-center gap-2 text-sm text-[#364153]"><input type="checkbox" checked class="size-4 accent-[#7a5eff]">재고 차감</label>
+          <label class="flex shrink-0 items-center gap-2 text-sm text-ink-2"><input type="checkbox" checked class="size-4 accent-brand">재고 차감</label>
         </div>
 
-        <p data-when="noinv" class="rounded-lg border border-dashed border-[#d1d5dc] p-4 text-sm text-[#99a1af]">먼저 재고관리에서 재료를 등록해야 레시피를 구성할 수 있습니다.</p>
+        <p data-when="noinv" class="rounded-lg border border-dashed border-line p-4 text-sm text-ink-3">먼저 재고관리에서 재료를 등록해야 레시피를 구성할 수 있습니다.</p>
 
         <div data-when="default error" class="space-y-2">
           <div class="flex items-center gap-2">
-            <select class="h-10 flex-1 rounded-lg border border-[#d1d5dc] px-2 text-sm"><option>피자 도우</option><option>모짜렐라 치즈</option><option>토마토 소스</option><option>루꼴라</option></select>
-            <input type="number" value="1" class="h-10 w-24 rounded-lg border border-[#d1d5dc] px-2 text-sm">
-            <span class="w-10 text-sm text-[#99a1af]">개</span>
-            <button type="button" aria-label="재료 삭제" class="text-[#99a1af] hover:text-red-600"><span data-icon="trash" class="size-4"></span></button>
+            <select class="h-10 flex-1 rounded-lg border border-line px-2 text-sm"><option>피자 도우</option><option>모짜렐라 치즈</option><option>토마토 소스</option><option>루꼴라</option></select>
+            <input type="number" step="any" min="0" value="1" class="h-10 w-24 rounded-lg border border-line px-2 text-sm">
+            <span class="w-10 text-sm text-ink-3">개</span>
+            <button type="button" aria-label="재료 삭제" class="text-ink-3 hover:text-red-600"><span data-icon="trash2" class="size-4"></span></button>
           </div>
           <div class="flex items-center gap-2">
-            <select class="h-10 flex-1 rounded-lg border border-[#d1d5dc] px-2 text-sm"><option>모짜렐라 치즈</option><option>피자 도우</option><option>토마토 소스</option><option>루꼴라</option></select>
-            <input type="number" value="120" class="h-10 w-24 rounded-lg border border-[#d1d5dc] px-2 text-sm">
-            <span class="w-10 text-sm text-[#99a1af]">g</span>
-            <button type="button" aria-label="재료 삭제" class="text-[#99a1af] hover:text-red-600"><span data-icon="trash" class="size-4"></span></button>
+            <select class="h-10 flex-1 rounded-lg border border-line px-2 text-sm"><option>모짜렐라 치즈</option><option>피자 도우</option><option>토마토 소스</option><option>루꼴라</option></select>
+            <input type="number" step="any" min="0" value="120" class="h-10 w-24 rounded-lg border border-line px-2 text-sm">
+            <span class="w-10 text-sm text-ink-3">g</span>
+            <button type="button" aria-label="재료 삭제" class="text-ink-3 hover:text-red-600"><span data-icon="trash2" class="size-4"></span></button>
           </div>
           <div class="flex items-center gap-2">
-            <select class="h-10 flex-1 rounded-lg border border-[#d1d5dc] px-2 text-sm"><option>루꼴라</option><option>피자 도우</option><option>모짜렐라 치즈</option><option>토마토 소스</option></select>
-            <input type="number" value="30" class="h-10 w-24 rounded-lg border border-[#d1d5dc] px-2 text-sm">
-            <span class="w-10 text-sm text-[#99a1af]">g</span>
-            <button type="button" aria-label="재료 삭제" class="text-[#99a1af] hover:text-red-600"><span data-icon="trash" class="size-4"></span></button>
+            <select class="h-10 flex-1 rounded-lg border border-line px-2 text-sm"><option>루꼴라</option><option>피자 도우</option><option>모짜렐라 치즈</option><option>토마토 소스</option></select>
+            <input type="number" step="any" min="0" value="30" class="h-10 w-24 rounded-lg border border-line px-2 text-sm">
+            <span class="w-10 text-sm text-ink-3">g</span>
+            <button type="button" aria-label="재료 삭제" class="text-ink-3 hover:text-red-600"><span data-icon="trash2" class="size-4"></span></button>
           </div>
-          <button type="button" class="inline-flex h-9 items-center justify-center gap-2 rounded-full border border-[#d1d5dc] bg-white px-4 text-sm font-medium text-[#364153] hover:bg-[#f3f4f6]"><span data-icon="plus" class="size-4"></span> 재료 추가</button>
+          <!-- Button(primary·md)에 className을 덮어쓴 결과 -->
+          <button type="button" class="inline-flex h-9 shrink-0 items-center justify-center gap-2 rounded-full border border-line bg-white px-4 text-sm font-semibold whitespace-nowrap text-ink-2 transition-colors hover:bg-subtle disabled:cursor-not-allowed disabled:bg-ink-4"><span data-icon="plus" class="size-4"></span> 재료 추가</button>
         </div>
 
         <div class="flex justify-end">
-          <button type="button" class="inline-flex h-10 items-center justify-center gap-2 rounded-full bg-[#7a5eff] px-6 text-sm font-semibold text-white hover:bg-[#6a4eef]">레시피 저장</button>
+          <button type="button" class="inline-flex h-10 shrink-0 items-center justify-center gap-2 rounded-full bg-brand px-6 text-[0.95rem] font-semibold whitespace-nowrap text-white transition-colors hover:bg-brand-strong disabled:cursor-not-allowed disabled:bg-ink-4">레시피 저장</button>
         </div>
         <p data-when="error" class="text-sm text-red-600" role="alert">저장에 실패했습니다. 재고 차감을 켠 메뉴는 재료가 1개 이상 필요합니다.</p>
       </section>

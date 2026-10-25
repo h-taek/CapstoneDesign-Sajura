@@ -7,18 +7,19 @@
 <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4.0.17"></script>
 <script src="mockup.js" defer></script>
 </head>
-<!-- 원본: Front/src/routes/settings/pricing.tsx -->
+<!-- 원본: Front/src/routes/settings/pricing.tsx, components/ui/button.tsx -->
 <body data-page="pricing" data-states="목록:default,단가 수정:edit">
-<div data-shell="settings">
+<div data-shell="settings" data-title="단가 관리" data-back="14_settings.html">
   <div class="space-y-6">
     <header class="space-y-1">
-      <h1 class="text-2xl font-semibold text-[#101828]">단가 관리</h1>
-      <p class="text-sm text-[#99a1af]">메뉴별 판매 단가를 조회하고 수정합니다.</p>
+      <h1 class="hidden text-[1.75rem] font-bold tracking-tight text-ink lg:block">단가 관리</h1>
+      <p class="text-sm text-ink-3">메뉴별 판매 단가를 조회하고 수정합니다.</p>
     </header>
 
-    <div class="overflow-hidden rounded-xl border border-[#d1d5dc] bg-white">
+    <!-- 단가는 Intl 통화 형식(₩19,000)으로 표시한다 -->
+    <div class="overflow-hidden rounded-xl border border-line bg-white">
       <table class="w-full text-left text-sm">
-        <thead class="bg-[#fafafa] text-[#61646b]">
+        <thead class="bg-subtle text-ink-3">
           <tr>
             <th class="px-4 py-3 font-medium">메뉴</th>
             <th class="px-4 py-3 font-medium">카테고리</th>
@@ -27,53 +28,53 @@
           </tr>
         </thead>
         <tbody>
-          <tr class="border-t border-[#eef1f4]">
-            <td class="px-4 py-3 font-medium text-[#364153]">불새우 루꼴라 화덕피자</td>
-            <td class="px-4 py-3 text-[#99a1af]">피자</td>
-            <td class="px-4 py-3"><span class="text-[#364153]">₩19,000</span></td>
-            <td class="px-4 py-3 text-right"><button type="button" data-set-state="edit" class="text-sm font-medium text-[#7a5eff] hover:underline">수정</button></td>
+          <tr class="border-t border-line-soft">
+            <td class="px-4 py-3 font-medium text-ink-2">불새우 루꼴라 화덕피자</td>
+            <td class="px-4 py-3 text-ink-3">피자</td>
+            <td class="px-4 py-3"><span class="text-ink-2">₩19,000</span></td>
+            <td class="px-4 py-3 text-right"><button type="button" data-set-state="edit" class="text-sm font-medium text-brand hover:underline">수정</button></td>
           </tr>
-          <tr class="border-t border-[#eef1f4]">
-            <td class="px-4 py-3 font-medium text-[#364153]">페페로니 듬뿍 화덕피자</td>
-            <td class="px-4 py-3 text-[#99a1af]">피자</td>
-            <td class="px-4 py-3"><span data-when="default" class="text-[#364153]">₩17,900</span><input data-when="edit" type="number" min="0" value="18500" class="h-9 w-28 rounded-lg border border-[#d1d5dc] px-2 text-sm"></td>
-            <td class="px-4 py-3 text-right"><span data-when="default"><button type="button" data-set-state="edit" class="text-sm font-medium text-[#7a5eff] hover:underline">수정</button></span><div data-when="edit" class="flex justify-end gap-2"><button type="button" data-set-state="default" class="text-sm text-[#99a1af] hover:text-[#364153]">취소</button><button type="button" data-set-state="default" class="inline-flex h-8 items-center justify-center gap-2 rounded-full bg-[#7a5eff] px-4 text-xs font-semibold text-white hover:bg-[#6a4eef]">저장</button></div></td>
+          <tr class="border-t border-line-soft">
+            <td class="px-4 py-3 font-medium text-ink-2">페페로니 듬뿍 화덕피자</td>
+            <td class="px-4 py-3 text-ink-3">피자</td>
+            <td class="px-4 py-3"><span data-when="default" class="text-ink-2">₩17,900</span><input data-when="edit" type="number" min="0" value="18500" class="h-9 w-28 rounded-lg border border-line px-2 text-sm"></td>
+            <td class="px-4 py-3 text-right"><span data-when="default"><button type="button" data-set-state="edit" class="text-sm font-medium text-brand hover:underline">수정</button></span><div data-when="edit" class="flex justify-end gap-2"><button type="button" data-set-state="default" class="text-sm text-ink-3 hover:text-ink-2">취소</button><button type="button" data-set-state="default" class="inline-flex h-8 shrink-0 items-center justify-center gap-2 rounded-full bg-brand px-4 text-sm font-semibold whitespace-nowrap text-white transition-colors hover:bg-brand-strong disabled:cursor-not-allowed disabled:bg-ink-4">저장</button></div></td>
           </tr>
-          <tr class="border-t border-[#eef1f4]">
-            <td class="px-4 py-3 font-medium text-[#364153]">마르게리타 화덕피자</td>
-            <td class="px-4 py-3 text-[#99a1af]">피자</td>
-            <td class="px-4 py-3"><span class="text-[#364153]">₩15,900</span></td>
-            <td class="px-4 py-3 text-right"><button type="button" data-set-state="edit" class="text-sm font-medium text-[#7a5eff] hover:underline">수정</button></td>
+          <tr class="border-t border-line-soft">
+            <td class="px-4 py-3 font-medium text-ink-2">마르게리타 화덕피자</td>
+            <td class="px-4 py-3 text-ink-3">피자</td>
+            <td class="px-4 py-3"><span class="text-ink-2">₩15,900</span></td>
+            <td class="px-4 py-3 text-right"><button type="button" data-set-state="edit" class="text-sm font-medium text-brand hover:underline">수정</button></td>
           </tr>
-          <tr class="border-t border-[#eef1f4]">
-            <td class="px-4 py-3 font-medium text-[#364153]">트러플 버섯 화덕피자</td>
-            <td class="px-4 py-3 text-[#99a1af]">피자</td>
-            <td class="px-4 py-3"><span class="text-[#364153]">₩21,000</span></td>
-            <td class="px-4 py-3 text-right"><button type="button" data-set-state="edit" class="text-sm font-medium text-[#7a5eff] hover:underline">수정</button></td>
+          <tr class="border-t border-line-soft">
+            <td class="px-4 py-3 font-medium text-ink-2">트러플 버섯 화덕피자</td>
+            <td class="px-4 py-3 text-ink-3">피자</td>
+            <td class="px-4 py-3"><span class="text-ink-2">₩21,000</span></td>
+            <td class="px-4 py-3 text-right"><button type="button" data-set-state="edit" class="text-sm font-medium text-brand hover:underline">수정</button></td>
           </tr>
-          <tr class="border-t border-[#eef1f4]">
-            <td class="px-4 py-3 font-medium text-[#364153]">머스크멜론하몽</td>
-            <td class="px-4 py-3 text-[#99a1af]">샐러드</td>
-            <td class="px-4 py-3"><span class="text-[#364153]">₩18,000</span></td>
-            <td class="px-4 py-3 text-right"><button type="button" data-set-state="edit" class="text-sm font-medium text-[#7a5eff] hover:underline">수정</button></td>
+          <tr class="border-t border-line-soft">
+            <td class="px-4 py-3 font-medium text-ink-2">머스크멜론하몽</td>
+            <td class="px-4 py-3 text-ink-3">샐러드</td>
+            <td class="px-4 py-3"><span class="text-ink-2">₩18,000</span></td>
+            <td class="px-4 py-3 text-right"><button type="button" data-set-state="edit" class="text-sm font-medium text-brand hover:underline">수정</button></td>
           </tr>
-          <tr class="border-t border-[#eef1f4]">
-            <td class="px-4 py-3 font-medium text-[#364153]">얼큰 바지락 술찜</td>
-            <td class="px-4 py-3 text-[#99a1af]">요리</td>
-            <td class="px-4 py-3"><span class="text-[#364153]">₩18,000</span></td>
-            <td class="px-4 py-3 text-right"><button type="button" data-set-state="edit" class="text-sm font-medium text-[#7a5eff] hover:underline">수정</button></td>
+          <tr class="border-t border-line-soft">
+            <td class="px-4 py-3 font-medium text-ink-2">얼큰 바지락 술찜</td>
+            <td class="px-4 py-3 text-ink-3">요리</td>
+            <td class="px-4 py-3"><span class="text-ink-2">₩18,000</span></td>
+            <td class="px-4 py-3 text-right"><button type="button" data-set-state="edit" class="text-sm font-medium text-brand hover:underline">수정</button></td>
           </tr>
-          <tr class="border-t border-[#eef1f4]">
-            <td class="px-4 py-3 font-medium text-[#364153]">하우스 레드 와인 (글라스)</td>
-            <td class="px-4 py-3 text-[#99a1af]">주류</td>
-            <td class="px-4 py-3"><span class="text-[#364153]">₩9,000</span></td>
-            <td class="px-4 py-3 text-right"><button type="button" data-set-state="edit" class="text-sm font-medium text-[#7a5eff] hover:underline">수정</button></td>
+          <tr class="border-t border-line-soft">
+            <td class="px-4 py-3 font-medium text-ink-2">하우스 레드 와인 (글라스)</td>
+            <td class="px-4 py-3 text-ink-3">주류</td>
+            <td class="px-4 py-3"><span class="text-ink-2">₩9,000</span></td>
+            <td class="px-4 py-3 text-right"><button type="button" data-set-state="edit" class="text-sm font-medium text-brand hover:underline">수정</button></td>
           </tr>
-          <tr class="border-t border-[#eef1f4]">
-            <td class="px-4 py-3 font-medium text-[#364153]">레몬 에이드</td>
-            <td class="px-4 py-3 text-[#99a1af]">자동등록</td>
-            <td class="px-4 py-3"><span class="text-[#364153]">₩6,500</span></td>
-            <td class="px-4 py-3 text-right"><button type="button" data-set-state="edit" class="text-sm font-medium text-[#7a5eff] hover:underline">수정</button></td>
+          <tr class="border-t border-line-soft">
+            <td class="px-4 py-3 font-medium text-ink-2">레몬 에이드</td>
+            <td class="px-4 py-3 text-ink-3">자동등록</td>
+            <td class="px-4 py-3"><span class="text-ink-2">₩6,500</span></td>
+            <td class="px-4 py-3 text-right"><button type="button" data-set-state="edit" class="text-sm font-medium text-brand hover:underline">수정</button></td>
           </tr>
         </tbody>
       </table>

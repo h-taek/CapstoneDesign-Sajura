@@ -7,48 +7,102 @@
 <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4.0.17"></script>
 <script src="mockup.js" defer></script>
 </head>
-<!-- 원본: Front/src/routes/settings/index.tsx -->
-<body data-page="settings">
+<!-- 원본: Front/src/routes/settings/index.tsx, components/pwa/install-banner.tsx(InstallMenuButton·InstallGuideSheet) -->
+<body data-page="settings" data-states="기본:default,설치 안내(안드로이드):guide-android,설치 안내(아이폰):guide-ios">
 <div data-shell="settings">
-  <div class="space-y-6">
-    <h1 class="text-2xl font-semibold text-[#101828]">설정</h1>
-    <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
-      <a href="15_settings-pos.html" class="flex items-start gap-4 rounded-xl border border-[#d1d5dc] bg-white p-5 transition-colors hover:border-[#7a5eff]">
-        <span class="flex size-11 shrink-0 items-center justify-center rounded-full bg-[#7a5eff]/10 text-[#7a5eff]"><span data-icon="store" class="size-5"></span></span>
-        <span>
-          <span class="block text-base font-semibold text-[#101828]">POS 연동 관리</span>
-          <span class="block text-sm text-[#99a1af]">POS 연동 상태 확인, CSV 템플릿 다운로드·업로드</span>
-        </span>
-      </a>
-      <a href="16_settings-pricing.html" class="flex items-start gap-4 rounded-xl border border-[#d1d5dc] bg-white p-5 transition-colors hover:border-[#7a5eff]">
-        <span class="flex size-11 shrink-0 items-center justify-center rounded-full bg-[#7a5eff]/10 text-[#7a5eff]"><span data-icon="card" class="size-5"></span></span>
-        <span>
-          <span class="block text-base font-semibold text-[#101828]">단가 관리</span>
-          <span class="block text-sm text-[#99a1af]">메뉴별 판매 단가 조회 및 수정</span>
-        </span>
-      </a>
-      <a href="17_settings-notifications.html" class="flex items-start gap-4 rounded-xl border border-[#d1d5dc] bg-white p-5 transition-colors hover:border-[#7a5eff]">
-        <span class="flex size-11 shrink-0 items-center justify-center rounded-full bg-[#7a5eff]/10 text-[#7a5eff]"><span data-icon="bell" class="size-5"></span></span>
-        <span>
-          <span class="block text-base font-semibold text-[#101828]">알림 설정</span>
-          <span class="block text-sm text-[#99a1af]">재고 부족·발주 알림 수신 설정</span>
-        </span>
-      </a>
-      <a href="18_settings-account.html" class="flex items-start gap-4 rounded-xl border border-[#d1d5dc] bg-white p-5 transition-colors hover:border-[#7a5eff]">
-        <span class="flex size-11 shrink-0 items-center justify-center rounded-full bg-[#7a5eff]/10 text-[#7a5eff]"><span data-icon="user" class="size-5"></span></span>
-        <span>
-          <span class="block text-base font-semibold text-[#101828]">계정 정보</span>
-          <span class="block text-sm text-[#99a1af]">이름, 매장 정보, 비밀번호 변경</span>
-        </span>
-      </a>
-      <a href="19_settings-app-info.html" class="flex items-start gap-4 rounded-xl border border-[#d1d5dc] bg-white p-5 transition-colors hover:border-[#7a5eff]">
-        <span class="flex size-11 shrink-0 items-center justify-center rounded-full bg-[#7a5eff]/10 text-[#7a5eff]"><span data-icon="info" class="size-5"></span></span>
-        <span>
-          <span class="block text-base font-semibold text-[#101828]">앱 정보</span>
-          <span class="block text-sm text-[#99a1af]">버전, 이용약관, 개인정보처리방침</span>
-        </span>
-      </a>
+  <div class="mx-auto max-w-3xl space-y-6">
+    <h1 class="hidden text-[1.75rem] font-bold tracking-tight text-ink lg:block">설정</h1>
+
+    <div class="flex items-center gap-4 rounded-2xl border border-line bg-white p-5 shadow-card">
+      <span class="flex size-14 shrink-0 items-center justify-center rounded-full bg-brand text-xl font-bold text-white">김</span>
+      <div class="min-w-0">
+        <p class="truncate text-lg font-bold text-ink">사주라 화덕피자 성수점</p>
+        <p class="truncate text-[0.95rem] text-ink-3">김사주님 · owner@sajura.kr</p>
+      </div>
     </div>
+
+    <!-- 자주 쓰는 메뉴 — 앱 하단 탭에 없는 업무 화면. 웹은 상단 메뉴에 있으니 앱에서만 보인다 -->
+    <section class="space-y-2 lg:hidden">
+      <h2 class="px-1 text-sm font-semibold text-ink-3">자주 쓰는 메뉴</h2>
+      <div class="overflow-hidden rounded-2xl border border-line bg-white shadow-card">
+        <ul class="divide-y divide-line-soft">
+          <li><a href="13_sales-upload.html" class="flex items-center gap-4 px-5 py-4 transition-colors hover:bg-subtle active:bg-subtle">
+            <span class="flex size-11 shrink-0 items-center justify-center rounded-full bg-brand-soft text-brand"><span data-icon="upload" class="size-5"></span></span>
+            <span class="min-w-0 flex-1"><span class="block text-[1.05rem] font-bold text-ink">매출 올리기</span><span class="block text-sm text-ink-3">POS에서 받은 매출 CSV 파일 올리기</span></span>
+            <span data-icon="chevronRight" class="size-5 shrink-0 text-ink-4"></span>
+          </a></li>
+          <li><a href="12_recipes.html" class="flex items-center gap-4 px-5 py-4 transition-colors hover:bg-subtle active:bg-subtle">
+            <span class="flex size-11 shrink-0 items-center justify-center rounded-full bg-brand-soft text-brand"><span data-icon="chefHat" class="size-5"></span></span>
+            <span class="min-w-0 flex-1"><span class="block text-[1.05rem] font-bold text-ink">레시피 관리</span><span class="block text-sm text-ink-3">메뉴 하나에 들어가는 재료와 양</span></span>
+            <span data-icon="chevronRight" class="size-5 shrink-0 text-ink-4"></span>
+          </a></li>
+        </ul>
+      </div>
+    </section>
+
+    <section class="space-y-2">
+      <h2 class="px-1 text-sm font-semibold text-ink-3">설정</h2>
+      <div class="overflow-hidden rounded-2xl border border-line bg-white shadow-card">
+        <ul class="divide-y divide-line-soft">
+          <li><a href="15_settings-pos.html" class="flex items-center gap-4 px-5 py-4 transition-colors hover:bg-subtle active:bg-subtle">
+            <span class="flex size-11 shrink-0 items-center justify-center rounded-full bg-brand-soft text-brand"><span data-icon="store" class="size-5"></span></span>
+            <span class="min-w-0 flex-1"><span class="block text-[1.05rem] font-bold text-ink">POS 연동 관리</span><span class="block text-sm text-ink-3">POS 연동 상태 확인, CSV 템플릿 다운로드·업로드</span></span>
+            <span data-icon="chevronRight" class="size-5 shrink-0 text-ink-4"></span>
+          </a></li>
+          <li><a href="16_settings-pricing.html" class="flex items-center gap-4 px-5 py-4 transition-colors hover:bg-subtle active:bg-subtle">
+            <span class="flex size-11 shrink-0 items-center justify-center rounded-full bg-brand-soft text-brand"><span data-icon="creditCard" class="size-5"></span></span>
+            <span class="min-w-0 flex-1"><span class="block text-[1.05rem] font-bold text-ink">단가 관리</span><span class="block text-sm text-ink-3">메뉴별 판매 단가 조회 및 수정</span></span>
+            <span data-icon="chevronRight" class="size-5 shrink-0 text-ink-4"></span>
+          </a></li>
+          <li><a href="17_settings-notifications.html" class="flex items-center gap-4 px-5 py-4 transition-colors hover:bg-subtle active:bg-subtle">
+            <span class="flex size-11 shrink-0 items-center justify-center rounded-full bg-brand-soft text-brand"><span data-icon="bell" class="size-5"></span></span>
+            <span class="min-w-0 flex-1"><span class="block text-[1.05rem] font-bold text-ink">알림 설정</span><span class="block text-sm text-ink-3">재고 부족·발주 알림 수신 설정</span></span>
+            <span data-icon="chevronRight" class="size-5 shrink-0 text-ink-4"></span>
+          </a></li>
+          <li><a href="18_settings-account.html" class="flex items-center gap-4 px-5 py-4 transition-colors hover:bg-subtle active:bg-subtle">
+            <span class="flex size-11 shrink-0 items-center justify-center rounded-full bg-brand-soft text-brand"><span data-icon="user" class="size-5"></span></span>
+            <span class="min-w-0 flex-1"><span class="block text-[1.05rem] font-bold text-ink">계정 정보</span><span class="block text-sm text-ink-3">이름, 매장 정보, 비밀번호 변경</span></span>
+            <span data-icon="chevronRight" class="size-5 shrink-0 text-ink-4"></span>
+          </a></li>
+          <li><a href="19_settings-app-info.html" class="flex items-center gap-4 px-5 py-4 transition-colors hover:bg-subtle active:bg-subtle">
+            <span class="flex size-11 shrink-0 items-center justify-center rounded-full bg-brand-soft text-brand"><span data-icon="info" class="size-5"></span></span>
+            <span class="min-w-0 flex-1"><span class="block text-[1.05rem] font-bold text-ink">앱 정보</span><span class="block text-sm text-ink-3">버전, 이용약관, 개인정보처리방침</span></span>
+            <span data-icon="chevronRight" class="size-5 shrink-0 text-ink-4"></span>
+          </a></li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- InstallMenuButton — 이미 설치했으면 숨김. 안드로이드·PC 크롬은 설치 창, 그 외는 안내 시트 -->
+    <button type="button" data-set-state="guide-android" class="flex h-14 w-full items-center justify-center gap-2 rounded-2xl bg-brand text-base font-semibold text-white hover:bg-brand-strong">
+      <span data-icon="smartphone" class="size-5"></span> 홈 화면에 앱으로 설치하기
+    </button>
+
+    <a href="01_login.html" class="flex h-14 w-full items-center justify-center gap-2 rounded-2xl border border-line bg-white text-base font-semibold text-ink-2 hover:bg-subtle">
+      <span data-icon="logOut" class="size-5"></span> 로그아웃
+    </a>
+  </div>
+</div>
+
+<!-- InstallGuideSheet — 하단 시트(데스크톱은 가운데 창) -->
+<div data-when="guide-android guide-ios" class="fixed inset-0 z-50 flex items-end justify-center bg-ink/40 sm:items-center">
+  <div role="dialog" aria-modal="true" aria-labelledby="install-guide-title" class="w-full max-w-md rounded-t-3xl bg-white px-6 pt-6 pb-6 shadow-pop sm:rounded-3xl">
+    <div class="mb-5 flex items-center justify-between">
+      <h2 id="install-guide-title" class="text-xl font-bold text-ink">홈 화면에 추가하는 방법</h2>
+      <button type="button" data-set-state="default" aria-label="닫기" class="flex size-10 items-center justify-center rounded-full text-ink-3 hover:bg-subtle"><span data-icon="x" class="size-6"></span></button>
+    </div>
+    <p data-when="guide-ios" class="mb-4 rounded-xl bg-warn-soft px-4 py-3 text-[0.95rem] text-warn">아이폰은 <strong>사파리(Safari)</strong>에서 열어야 추가할 수 있어요.</p>
+    <ol data-when="guide-ios" class="space-y-4">
+      <li class="flex items-center gap-4"><span class="flex size-12 shrink-0 items-center justify-center rounded-2xl bg-brand-soft text-brand"><span data-icon="share" class="size-6"></span></span><p class="text-base leading-snug text-ink"><strong class="mr-1 text-brand">1.</strong>화면 아래(아이패드는 위)의 공유 버튼을 누르세요.</p></li>
+      <li class="flex items-center gap-4"><span class="flex size-12 shrink-0 items-center justify-center rounded-2xl bg-brand-soft text-brand"><span data-icon="plusSquare" class="size-6"></span></span><p class="text-base leading-snug text-ink"><strong class="mr-1 text-brand">2.</strong>목록을 내려 '홈 화면에 추가'를 누르세요.</p></li>
+      <li class="flex items-center gap-4"><span class="flex size-12 shrink-0 items-center justify-center rounded-2xl bg-brand-soft text-brand"><span data-icon="smartphone" class="size-6"></span></span><p class="text-base leading-snug text-ink"><strong class="mr-1 text-brand">3.</strong>오른쪽 위 '추가'를 누르면 홈 화면에 사주라가 생겨요.</p></li>
+    </ol>
+    <ol data-when="guide-android" class="space-y-4">
+      <li class="flex items-center gap-4"><span class="flex size-12 shrink-0 items-center justify-center rounded-2xl bg-brand-soft text-brand"><span data-icon="moreVertical" class="size-6"></span></span><p class="text-base leading-snug text-ink"><strong class="mr-1 text-brand">1.</strong>브라우저 오른쪽 위 점 세 개(⋮) 메뉴를 누르세요.</p></li>
+      <li class="flex items-center gap-4"><span class="flex size-12 shrink-0 items-center justify-center rounded-2xl bg-brand-soft text-brand"><span data-icon="plusSquare" class="size-6"></span></span><p class="text-base leading-snug text-ink"><strong class="mr-1 text-brand">2.</strong>'홈 화면에 추가' 또는 '앱 설치'를 누르세요.</p></li>
+      <li class="flex items-center gap-4"><span class="flex size-12 shrink-0 items-center justify-center rounded-2xl bg-brand-soft text-brand"><span data-icon="smartphone" class="size-6"></span></span><p class="text-base leading-snug text-ink"><strong class="mr-1 text-brand">3.</strong>'설치'를 누르면 홈 화면에 사주라가 생겨요.</p></li>
+    </ol>
+    <button type="button" data-set-state="default" class="mt-6 inline-flex h-14 w-full shrink-0 items-center justify-center gap-2 rounded-2xl bg-brand px-6 text-lg font-semibold whitespace-nowrap text-white transition-colors hover:bg-brand-strong">확인했어요</button>
   </div>
 </div>
 </body>
