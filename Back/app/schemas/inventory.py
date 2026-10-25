@@ -136,13 +136,3 @@ class DisposeResponse(BaseModel):
     disposed_quantity: Decimal
     remaining_quantity: Decimal
     disposed_at: datetime
-
-
-class ReorderSuggestion(BaseModel):
-    item_id: str
-    name: str
-    unit: str
-    current_quantity: Decimal  # 로트 잔여 수량 합계
-    low_stock_threshold: Decimal
-    safety_stock: Decimal | None
-    suggested_order_quantity: Decimal

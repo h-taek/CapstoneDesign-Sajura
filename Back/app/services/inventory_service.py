@@ -222,17 +222,6 @@ class InventoryService:
     async def total_quantities(self, *, store_id: str) -> dict[str, Decimal]:
         return {s.item.item_id: s.total_quantity for s in await self.list_stocks(store_id=store_id)}
 
-    async def get_reorder_suggestions(self, *, store_id: str) -> list[tuple[ItemStock, Decimal]]:
-        out: list[tuple[ItemStock, Decimal]] = []
-        for s in await self.list_stocks(store_id=store_id):
-            item = s.item
-            target = (
-                item.safety_stock if item.safety_stock is not None else item.low_stock_threshold
-            )
-            if s.total_quantity <= item.low_stock_threshold:
-                out.append((s, max(Decimal(0), target - s.total_quantity)))
-        return out
-
     # ------------------------------------------------------------------ 로트
 
     async def add_lot(

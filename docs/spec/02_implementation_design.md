@@ -1678,7 +1678,7 @@ Authorization: Bearer <access_token>
 ```json
 // Request
 {
-  "recommendation_id": "uuid",     // 확정 대상 추천안. 추천안 없이 발주하면 null (임계값 추천·수동 발주)
+  "recommendation_id": "uuid",     // 확정 대상 추천안. 추천안 없이 발주하면 null
   "items": [
     {
       "item_id": "uuid",

@@ -1,14 +1,12 @@
 // 발주추천 화면 — Figma "발주추천"(node 9:989) 셸 적용.
-// 재고 임계값 기반(GET /api/inventory/reorder-suggestions) 추천과, AI 서버(GET /api/orders/recommend
-// — 수요예측 × 메뉴 비중 분해 × 레시피(BOM) × 재고/리드타임/안전재고) 기반 추천을 함께 제공.
-// 두 표 모두 체크박스 선택 + 수량 인라인 수정 후 POST /api/orders/approve로 확정한다. AI 추천은
-// recommendation_id를 실어 수정 이력이 남고, 임계값 추천은 추천안 없는 발주(null)로 기록된다.
+// AI 서버(GET /api/orders/recommend — 수요예측 × 메뉴 비중 분해 × 레시피(BOM) × 재고/리드타임/안전재고)
+// 추천을 체크박스 선택 + 수량 인라인 수정 후 POST /api/orders/approve로 확정한다. recommendation_id를
+// 실어 수정 이력이 남는다. 예측이 없으면(이력 부족·AI 서버 장애) 대체 추천 없이 사유만 안내한다.
 // 쿠팡 자동 담기·실제 입고 반영은 후속 작업 — 확정 = 기록만, 재고 수량은 자동 변경되지 않음.
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { HTTPError } from "ky";
 import { AlertTriangle, CheckCircle2, ChevronDown, Sparkles } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
-import { type ReorderSuggestion, getReorderSuggestions } from "../api/endpoints/inventory";
 import {
   type OrderApproveRequest,
   type OrderStatus,
@@ -20,9 +18,6 @@ import {
 } from "../api/endpoints/orders";
 import { DashboardShell } from "../components/dashboard/shell";
 import { Button } from "../components/ui/button";
-
-// 로딩 중 기본값이 렌더마다 새 배열이 되면 선택 상태 초기화 effect가 반복된다
-const NO_SUGGESTIONS: ReorderSuggestion[] = [];
 
 const STATUS_LABEL: Record<OrderStatus, string> = {
   APPROVED: "확정",
@@ -188,10 +183,6 @@ function OrderHistoryRow({ order }: { order: OrderSummary }) {
 }
 
 export default function OrdersPage() {
-  const { data: suggestions = NO_SUGGESTIONS, isLoading } = useQuery({
-    queryKey: ["reorder-suggestions"],
-    queryFn: getReorderSuggestions,
-  });
   const { data: orderPage } = useQuery({
     queryKey: ["orders"],
     queryFn: () => listOrders(),
@@ -208,15 +199,6 @@ export default function OrdersPage() {
     retry: false,
   });
 
-  const thresholdRows = useMemo(
-    () =>
-      suggestions.map((s) => ({
-        item_id: s.item_id,
-        defaultQuantity: s.suggested_order_quantity,
-        preselect: true,
-      })),
-    [suggestions],
-  );
   const aiRows = useMemo(
     () =>
       (aiRecommend?.recommendations ?? []).map((r) => ({
@@ -226,15 +208,9 @@ export default function OrdersPage() {
       })),
     [aiRecommend],
   );
-  const threshold = useOrderSelection(thresholdRows);
   const ai = useOrderSelection(aiRows);
-  const thresholdApprove = useApprove();
   const aiApprove = useApprove();
 
-  const handleThresholdApprove = () => {
-    if (threshold.items.length === 0) return;
-    thresholdApprove.mutate({ recommendation_id: null, items: threshold.items });
-  };
   const handleAiApprove = () => {
     if (!aiRecommend || ai.items.length === 0) return;
     aiApprove.mutate({ recommendation_id: aiRecommend.recommendation_id, items: ai.items });
@@ -245,79 +221,8 @@ export default function OrdersPage() {
       <div className="space-y-6">
         <header className="space-y-1">
           <h1 className="text-2xl font-semibold text-[#101828]">발주 추천</h1>
-          <p className="text-sm text-[#99a1af]">
-            재고관리에 등록한 임계값 기준 추천과, 아래 AI 수요예측 기반 추천을 함께 제공합니다.
-          </p>
+          <p className="text-sm text-[#99a1af]">AI 수요예측 기반 발주 추천을 제공합니다.</p>
         </header>
-
-        <section className="space-y-3">
-          <div className="flex items-center justify-between">
-            <h2 className="text-xl font-semibold text-[#364153]">재주문이 필요한 재료</h2>
-            {suggestions.length > 0 && (
-              <Button
-                onClick={handleThresholdApprove}
-                disabled={threshold.items.length === 0 || thresholdApprove.isPending}
-                className="h-10 rounded-full bg-[#7a5eff] px-5 text-sm font-semibold hover:bg-[#6a4eef]"
-              >
-                {thresholdApprove.isPending
-                  ? "확정 중…"
-                  : `임계값 추천 발주 확정 (${threshold.items.length})`}
-              </Button>
-            )}
-          </div>
-          {isLoading ? (
-            <p className="text-sm text-[#99a1af]">불러오는 중…</p>
-          ) : suggestions.length === 0 ? (
-            <div className="flex h-[120px] items-center justify-center rounded-xl border border-dashed border-[#d1d5dc] bg-white text-sm text-[#99a1af]">
-              현재 재주문이 필요한 재료가 없습니다.
-            </div>
-          ) : (
-            <div className="overflow-hidden rounded-xl border border-[#d1d5dc] bg-white">
-              <table className="w-full text-left text-sm">
-                <thead className="bg-[#fafafa] text-[#61646b]">
-                  <tr>
-                    <th className="w-10 px-4 py-3" />
-                    <th className="px-4 py-3 font-medium">재료</th>
-                    <th className="px-4 py-3 font-medium">현재 수량</th>
-                    <th className="px-4 py-3 font-medium">임계값</th>
-                    <th className="px-4 py-3 font-medium">발주 수량</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {suggestions.map((s) => (
-                    <tr key={s.item_id} className="border-t border-[#eef1f4]">
-                      <SelectCell
-                        name={s.name}
-                        checked={threshold.selected.has(s.item_id)}
-                        onToggle={() => threshold.toggle(s.item_id)}
-                      />
-                      <td className="px-4 py-3 font-medium text-[#364153]">
-                        <span className="flex items-center gap-2">
-                          <AlertTriangle className="size-4 text-red-500" />
-                          {s.name}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3 text-[#364153]">
-                        {s.current_quantity} {s.unit}
-                      </td>
-                      <td className="px-4 py-3 text-[#364153]">
-                        {s.low_stock_threshold} {s.unit}
-                      </td>
-                      <QuantityCell
-                        name={s.name}
-                        unit={s.unit}
-                        value={threshold.quantities[s.item_id] ?? ""}
-                        disabled={!threshold.selected.has(s.item_id)}
-                        onChange={(v) => threshold.setQuantity(s.item_id, v)}
-                      />
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-          {thresholdApprove.isSuccess && <ApprovedNotice />}
-        </section>
 
         <section className="space-y-3">
           <div className="flex items-center justify-between">
@@ -341,7 +246,7 @@ export default function OrdersPage() {
           </div>
           <p className="text-sm text-[#99a1af]">
             매출 예측 × 메뉴별 판매 비중 × 레시피(재료 구성) × 재고/리드타임/안전재고를 반영한
-            참고치입니다. 위 표와 별개로 재고 임계값이 아직 안 걸려도 미리 보여줄 수 있습니다.
+            참고치입니다.
           </p>
           {aiLoading ? (
             <p className="text-sm text-[#99a1af]">계산 중…</p>

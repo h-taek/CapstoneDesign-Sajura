@@ -99,17 +99,3 @@ export async function disposeLot(
 ): Promise<void> {
   await api.post(`inventory/${itemId}/dispose`, { json: input });
 }
-
-export interface ReorderSuggestion {
-  item_id: string;
-  name: string;
-  unit: string;
-  current_quantity: number; // 로트 잔여 수량 합계
-  low_stock_threshold: number;
-  safety_stock: number | null;
-  suggested_order_quantity: number;
-}
-
-export async function getReorderSuggestions(): Promise<ReorderSuggestion[]> {
-  return api.get("inventory/reorder-suggestions").json<ReorderSuggestion[]>();
-}

@@ -24,7 +24,6 @@ from app.schemas.inventory import (
     LotListResponse,
     LotResponse,
     LotUpdateRequest,
-    ReorderSuggestion,
 )
 from app.services.inventory_service import InventoryService, ItemStock, now_kst
 from app.services.store_service import StoreService
@@ -110,28 +109,6 @@ async def get_inventory_alerts(
         for s, alert_status, message in rows
     ]
     return InventoryAlertListResponse(items=items, total=len(items))
-
-
-@router.get("/reorder-suggestions", response_model=list[ReorderSuggestion])
-async def get_reorder_suggestions(
-    session: SessionDep, current: CurrentUserDep
-) -> list[ReorderSuggestion]:
-    """임계값(low_stock_threshold) 이하로 떨어진 재료 + 안전재고까지 채울 제안 수량.
-    AI 수요예측 기반 추천(리드타임 중 예상 소비 반영)은 별도 후속 작업."""
-    store_id = await _store_id(session, current.user_id)
-    rows = await InventoryService(session).get_reorder_suggestions(store_id=store_id)
-    return [
-        ReorderSuggestion(
-            item_id=s.item.item_id,
-            name=s.item.name,
-            unit=s.item.unit,
-            current_quantity=s.total_quantity,
-            low_stock_threshold=s.item.low_stock_threshold,
-            safety_stock=s.item.safety_stock,
-            suggested_order_quantity=suggested,
-        )
-        for s, suggested in rows
-    ]
 
 
 @router.get("/{item_id}", response_model=InventoryItemResponse)

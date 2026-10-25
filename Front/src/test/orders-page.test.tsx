@@ -1,9 +1,8 @@
-// 발주 추천 화면 — AI 추천·임계값 추천 각각의 확정 요청 (02_implementation_design.md §3.7 POST /api/orders/approve).
+// 발주 추천 화면 — AI 추천 확정 요청 (02_implementation_design.md §3.7 POST /api/orders/approve).
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter } from "react-router";
 import { type MockInstance, afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import * as inventoryApi from "../api/endpoints/inventory";
 import * as ordersApi from "../api/endpoints/orders";
 import OrdersPage from "../routes/orders";
 
@@ -55,17 +54,6 @@ describe("OrdersPage", () => {
 
   beforeEach(() => {
     vi.restoreAllMocks();
-    vi.spyOn(inventoryApi, "getReorderSuggestions").mockResolvedValue([
-      {
-        item_id: "milk",
-        name: "우유",
-        unit: "ml",
-        current_quantity: 100,
-        low_stock_threshold: 500,
-        safety_stock: null,
-        suggested_order_quantity: 400,
-      },
-    ]);
     vi.spyOn(ordersApi, "getAIRecommend").mockResolvedValue(aiRecommend);
     vi.spyOn(ordersApi, "listOrders").mockResolvedValue({
       items: [],
@@ -97,18 +85,6 @@ describe("OrdersPage", () => {
     expect(approve).toHaveBeenCalledWith({
       recommendation_id: "rec-1",
       items: [{ item_id: "bean", final_quantity: 300 }],
-    });
-  });
-
-  it("임계값 추천은 recommendation_id 없이 확정한다", async () => {
-    renderPage();
-    const button = await screen.findByRole("button", { name: /임계값 추천 발주 확정 \(1\)/ });
-    fireEvent.click(button);
-
-    await waitFor(() => expect(approve).toHaveBeenCalledTimes(1));
-    expect(approve).toHaveBeenCalledWith({
-      recommendation_id: null,
-      items: [{ item_id: "milk", final_quantity: 400 }],
     });
   });
 
