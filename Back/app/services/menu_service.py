@@ -166,6 +166,6 @@ class MenuService:
         )
         if exists is not None:
             raise errors.DomainError(
-                status_code=409, error_code="MENU_DUPLICATE_NAME",
+                status_code=409, error_code="MENU_NAME_DUPLICATE",
                 message="이미 등록된 메뉴명입니다.",
             )

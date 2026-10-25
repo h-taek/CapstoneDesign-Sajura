@@ -20,7 +20,7 @@ async def _post(path: str, payload: dict) -> dict:
             r = await client.post(f"{s.AI_SERVER_BASE_URL}{path}", json=payload)
     except httpx.HTTPError as exc:
         raise errors.DomainError(
-            status_code=503, error_code="SERVICE_UNAVAILABLE",
+            status_code=503, error_code="AI_SERVER_UNAVAILABLE",
             message="AI 서버에 연결할 수 없습니다.",
         ) from exc
     if r.status_code == 422:

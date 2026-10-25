@@ -442,7 +442,7 @@ class InventoryService:
         if exists is not None:
             raise errors.DomainError(
                 status_code=409,
-                error_code="INVENTORY_DUPLICATE_NAME",
+                error_code="INVENTORY_ITEM_DUPLICATE",
                 message="이미 등록된 재료명입니다.",
             )
 
