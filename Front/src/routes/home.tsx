@@ -1,5 +1,5 @@
 // 홈 화면 — 참고 대시보드 목업(실시간 최저가·주요지표·매출그래프·톱콘텐츠·재고현황·매출분석)
-// 레이아웃에 맞춰 재구성. 전부 실제 GET /api/sales/* · /api/inventory · /api/menus · /api/prices
+// 레이아웃에 맞춰 재구성. 전부 실제 GET /api/sales/{summary,trends,top-menus} · /api/inventory · /api/menus · /api/prices
 // 데이터로 렌더링하며, 시스템에 없는 값(신규 고객·조회수·추천 공급처)은 가짜로 채우지 않고
 // 실제로 있는 값으로 대체하거나 "—"로 표시한다.
 import { useQuery } from "@tanstack/react-query";
@@ -17,13 +17,7 @@ import { Link } from "react-router";
 import { listInventory } from "../api/endpoints/inventory";
 import { listMenus } from "../api/endpoints/menus";
 import { getIngredientPrices } from "../api/endpoints/prices";
-import {
-  getDailyRevenue,
-  getMonthlyRevenue,
-  getSalesSummary,
-  getTopMenus,
-  getWeeklyRevenueThisMonth,
-} from "../api/endpoints/sales";
+import { getSalesSummary, getSalesTrends, getTopMenus } from "../api/endpoints/sales";
 import { IngredientIcon } from "../components/dashboard/ingredient-icon";
 import { MenuSharePieChart } from "../components/dashboard/menu-share-chart";
 import { RevenueBarChart } from "../components/dashboard/revenue-chart";
@@ -43,16 +37,34 @@ export default function HomePage() {
     queryFn: getSalesSummary,
     staleTime: 60_000,
   });
-  const { data: weekly = [] } = useQuery({
-    queryKey: ["sales-weekly-this-month"],
-    queryFn: getWeeklyRevenueThisMonth,
+  // "이번 달"·"최근 7일"은 실제 오늘이 아니라 이 매장의 마지막 판매일 기준 — 과거 구간
+  // 시연/테스트 데이터를 올려도 항상 실데이터가 채워지게 한다. summary가 와야 기간이 정해진다.
+  const ref = summary?.last_sale_at ? new Date(summary.last_sale_at) : new Date();
+  const refDay = new Date(ref.getFullYear(), ref.getMonth(), ref.getDate());
+  const trendsEnabled = summary !== undefined;
+  const { data: weeklyTrend } = useQuery({
+    queryKey: ["sales-trends", "this-month-weekly", refDay.getTime()],
+    queryFn: () =>
+      getSalesTrends(new Date(refDay.getFullYear(), refDay.getMonth(), 1), refDay, "week"),
+    enabled: trendsEnabled,
     staleTime: 60_000,
   });
-  const { data: daily = [] } = useQuery({
-    queryKey: ["sales-daily", 7],
-    queryFn: () => getDailyRevenue(7),
+  const { data: dailyTrend } = useQuery({
+    queryKey: ["sales-trends", "last-7-days", refDay.getTime()],
+    queryFn: () =>
+      getSalesTrends(
+        new Date(refDay.getFullYear(), refDay.getMonth(), refDay.getDate() - 6),
+        refDay,
+        "day",
+      ),
+    enabled: trendsEnabled,
     staleTime: 60_000,
   });
+  const weekly = (weeklyTrend?.data ?? []).map((p, i) => ({
+    week_label: `${i + 1}주차`,
+    revenue: p.revenue,
+  }));
+  const daily = dailyTrend?.data ?? [];
   const { data: topMenus = [] } = useQuery({
     queryKey: ["top-menus"],
     queryFn: () => getTopMenus(4),
@@ -73,19 +85,22 @@ export default function HomePage() {
     queryFn: () => listMenus(1),
     staleTime: 60_000,
   });
-  const { data: revenueHistory = [] } = useQuery({
-    queryKey: ["sales-monthly", 36],
-    queryFn: () => getMonthlyRevenue(36),
+  const { data: monthlyTrend } = useQuery({
+    queryKey: ["sales-trends", "36-months", refDay.getTime()],
+    queryFn: () =>
+      getSalesTrends(new Date(refDay.getFullYear(), refDay.getMonth() - 35, 1), refDay, "month"),
+    enabled: trendsEnabled,
     staleTime: 60_000,
   });
+  const revenueHistory = monthlyTrend?.data ?? [];
 
   const [revenuePeriod, setRevenuePeriod] = useState<"month" | "year">("month");
   const monthlyChartData = revenueHistory
     .slice(-12)
-    .map((m) => ({ label: m.year_month, revenue: m.revenue }));
+    .map((m) => ({ label: m.date.slice(0, 7), revenue: m.revenue }));
   const yearlyChartData = Object.entries(
     revenueHistory.reduce<Record<string, number>>((acc, m) => {
-      const year = m.year_month.slice(0, 4);
+      const year = m.date.slice(0, 4);
       acc[year] = (acc[year] ?? 0) + m.revenue;
       return acc;
     }, {}),

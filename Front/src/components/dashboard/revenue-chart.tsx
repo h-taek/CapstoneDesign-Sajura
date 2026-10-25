@@ -1,4 +1,4 @@
-// 매출·판매건수 그래프 — 실제 GET /api/sales/{monthly,weekly-this-month,daily} 데이터로 렌더링.
+// 매출·판매건수 그래프 — 실제 GET /api/sales/trends 데이터로 렌더링.
 // variant: 막대(주차별) / 점선 라인(매출예측) / 영역(일간 추이).
 import {
   Area,

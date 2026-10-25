@@ -1,6 +1,7 @@
 """/api/sales — 02_implementation_design.md §3.6 (M4.B2)."""
 from __future__ import annotations
 
+from datetime import date
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, File, Form, UploadFile, status
@@ -10,13 +11,12 @@ from app.api.deps import CurrentUserDep, SessionDep, require_business_access
 from app.core import errors
 from app.schemas.sales import (
     CSVUploadResponse,
-    DailyRevenuePoint,
     InventoryDeduction,
-    MonthlyRevenuePoint,
     NeedsCheckItem,
     SalesSummaryResponse,
+    SalesTrendsResponse,
     TopMenuItem,
-    WeeklyRevenuePoint,
+    TrendGroupBy,
 )
 from app.services.sale_service import SaleService
 from app.services.store_service import StoreService
@@ -39,49 +39,24 @@ async def get_sales_summary(
     return await SaleService(session).get_summary(store_id=store_id)
 
 
-@router.get("/monthly", response_model=list[MonthlyRevenuePoint])
-async def get_monthly_revenue(
+@router.get("/trends", response_model=SalesTrendsResponse)
+async def get_sales_trends(
     session: SessionDep,
     current: CurrentUserDep,
-    months: int = 6,
-) -> list[MonthlyRevenuePoint]:
-    """홈/매출예측 화면 그래프용 — 데이터가 있는 월 기준 최근 N개월 매출."""
+    start_date: date,
+    end_date: date,
+    group_by: TrendGroupBy = "day",
+    menu_id: str | None = None,
+) -> SalesTrendsResponse:
+    """홈·매출예측 화면 매출 그래프 — 기간·단위별 판매 추세."""
     store_id = (await StoreService(session).get_store(current.user_id)).store_id
-    return await SaleService(session).get_monthly_revenue(store_id=store_id, months=months)
-
-
-@router.get("/daily", response_model=list[DailyRevenuePoint])
-async def get_daily_revenue(
-    session: SessionDep,
-    current: CurrentUserDep,
-    days: int = 7,
-) -> list[DailyRevenuePoint]:
-    """홈 화면 "일간매출 추이" — 최근 N일, 데이터 없는 날은 0으로 채움."""
-    store_id = (await StoreService(session).get_store(current.user_id)).store_id
-    return await SaleService(session).get_daily_revenue(store_id=store_id, days=days)
-
-
-@router.get("/daily-by-month", response_model=list[DailyRevenuePoint])
-async def get_daily_revenue_for_month(
-    session: SessionDep,
-    current: CurrentUserDep,
-    year_month: str,
-) -> list[DailyRevenuePoint]:
-    """매출예측 화면 "이번 달/지난 달 매출 그래프" — 특정 월 1일~말일 일별 매출."""
-    store_id = (await StoreService(session).get_store(current.user_id)).store_id
-    return await SaleService(session).get_daily_revenue_for_month(
-        store_id=store_id, year_month=year_month
+    return await SaleService(session).get_trends(
+        store_id=store_id,
+        start_date=start_date,
+        end_date=end_date,
+        group_by=group_by,
+        menu_id=menu_id,
     )
-
-
-@router.get("/weekly-this-month", response_model=list[WeeklyRevenuePoint])
-async def get_weekly_revenue_this_month(
-    session: SessionDep,
-    current: CurrentUserDep,
-) -> list[WeeklyRevenuePoint]:
-    """홈 화면 "이번 달 매출 그래프"(주차별) — 월초 기준 7일 단위 등분."""
-    store_id = (await StoreService(session).get_store(current.user_id)).store_id
-    return await SaleService(session).get_weekly_revenue_this_month(store_id=store_id)
 
 
 @router.get("/top-menus", response_model=list[TopMenuItem])

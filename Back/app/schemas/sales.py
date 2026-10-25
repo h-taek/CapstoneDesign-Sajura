@@ -1,7 +1,8 @@
 """판매 API 스키마 — 02_implementation_design.md §3.6."""
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import date, datetime
+from typing import Literal
 
 from pydantic import BaseModel, Field
 
@@ -37,22 +38,20 @@ class SalesSummaryResponse(BaseModel):
     last_sale_at: datetime | None
 
 
-class MonthlyRevenuePoint(BaseModel):
-    year_month: str  # "2026-05"
+TrendGroupBy = Literal["day", "week", "month"]
+
+
+class TrendPoint(BaseModel):
+    date: date  # 구간 시작일 (month는 그 달 1일)
+    quantity: int
     revenue: int
-    sales_count: int
 
 
-class DailyRevenuePoint(BaseModel):
-    date: str  # "2026-07-28"
-    revenue: int
-    sales_count: int
-
-
-class WeeklyRevenuePoint(BaseModel):
-    week_label: str  # "1주차"
-    revenue: int
-    sales_count: int
+class SalesTrendsResponse(BaseModel):
+    menu_id: str | None  # null = 매장 전체 합계
+    menu_name: str | None
+    group_by: TrendGroupBy
+    data: list[TrendPoint]
 
 
 class TopMenuItem(BaseModel):

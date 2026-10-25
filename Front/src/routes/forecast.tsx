@@ -7,11 +7,7 @@ import { useQuery } from "@tanstack/react-query";
 import { HTTPError } from "ky";
 import { Activity, AlertTriangle, DollarSign, Target, TrendingUp } from "lucide-react";
 import { getForecastPredict } from "../api/endpoints/forecast";
-import {
-  getDailyRevenueForMonth,
-  getMonthlyRevenue,
-  getSalesSummary,
-} from "../api/endpoints/sales";
+import { getSalesSummary, getSalesTrends } from "../api/endpoints/sales";
 import { RevenueBarChart } from "../components/dashboard/revenue-chart";
 import { DashboardShell } from "../components/dashboard/shell";
 
@@ -45,24 +41,34 @@ export default function ForecastPage() {
   // 데이터를 올려도 항상 실데이터가 채워지게 한다 (summary 로딩 전엔 실제 오늘로 임시 대체).
   const referenceDate = summary?.last_sale_at ? new Date(summary.last_sale_at) : new Date();
   const thisMonth = yearMonthOf(referenceDate);
+  const thisMonthStart = new Date(referenceDate.getFullYear(), referenceDate.getMonth(), 1);
+  const thisMonthEnd = new Date(referenceDate.getFullYear(), referenceDate.getMonth() + 1, 0);
   const lastMonthDate = new Date(referenceDate.getFullYear(), referenceDate.getMonth() - 1, 1);
+  const lastMonthEnd = new Date(referenceDate.getFullYear(), referenceDate.getMonth(), 0);
   const lastMonth = yearMonthOf(lastMonthDate);
+  const trendsEnabled = summary !== undefined;
 
-  const { data: monthly = [] } = useQuery({
-    queryKey: ["sales-monthly", 2],
-    queryFn: () => getMonthlyRevenue(2),
+  const { data: monthlyTrend } = useQuery({
+    queryKey: ["sales-trends", "month", lastMonth, thisMonth],
+    queryFn: () => getSalesTrends(lastMonthDate, thisMonthEnd, "month"),
+    enabled: trendsEnabled,
     staleTime: 60_000,
   });
-  const { data: thisMonthDaily = [] } = useQuery({
-    queryKey: ["sales-daily-by-month", thisMonth],
-    queryFn: () => getDailyRevenueForMonth(thisMonth),
+  const { data: thisMonthTrend } = useQuery({
+    queryKey: ["sales-trends", "day", thisMonth],
+    queryFn: () => getSalesTrends(thisMonthStart, thisMonthEnd, "day"),
+    enabled: trendsEnabled,
     staleTime: 60_000,
   });
-  const { data: lastMonthDaily = [] } = useQuery({
-    queryKey: ["sales-daily-by-month", lastMonth],
-    queryFn: () => getDailyRevenueForMonth(lastMonth),
+  const { data: lastMonthTrend } = useQuery({
+    queryKey: ["sales-trends", "day", lastMonth],
+    queryFn: () => getSalesTrends(lastMonthDate, lastMonthEnd, "day"),
+    enabled: trendsEnabled,
     staleTime: 60_000,
   });
+  const monthly = monthlyTrend?.data ?? [];
+  const thisMonthDaily = thisMonthTrend?.data ?? [];
+  const lastMonthDaily = lastMonthTrend?.data ?? [];
   const {
     data: forecast,
     isLoading: forecastLoading,
@@ -74,8 +80,8 @@ export default function ForecastPage() {
     retry: false,
   });
 
-  const prevMonthPoint = monthly.find((m) => m.year_month === lastMonth);
-  const thisMonthPoint = monthly.find((m) => m.year_month === thisMonth);
+  const prevMonthPoint = monthly.find((m) => m.date.startsWith(lastMonth));
+  const thisMonthPoint = monthly.find((m) => m.date.startsWith(thisMonth));
   const momChangePercent =
     prevMonthPoint && prevMonthPoint.revenue > 0 && thisMonthPoint
       ? ((thisMonthPoint.revenue - prevMonthPoint.revenue) / prevMonthPoint.revenue) * 100

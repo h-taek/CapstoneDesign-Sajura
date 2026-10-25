@@ -454,3 +454,110 @@ async def test_sales_upload_unauthenticated_returns_401(client: AsyncClient) -> 
         },
     )
     assert r.status_code == 401, r.text
+
+
+# ----------------------------------------------------------------------
+# GET /api/sales/trends — 02_implementation_design.md §3.6
+# ----------------------------------------------------------------------
+
+
+async def _trends_store(client: AsyncClient) -> tuple[dict, str]:
+    _, auth = await _register_verified_user(client)
+    await _create_menu(client, auth, "아메리카노")
+    latte = await _create_menu(client, auth, "라떼", price=5000)
+    csv = _csv_bytes([
+        "2026-01-01 09:00:00,아메리카노,2,9000,t1",
+        "2026-01-03 10:00:00,아메리카노,1,4500,t2",
+        "2026-01-03 11:00:00,라떼,1,5000,t3",
+        "2026-01-09 12:00:00,아메리카노,3,13500,t4",
+        "2026-02-02 13:00:00,아메리카노,1,4500,t5",
+    ])
+    r = await client.post(
+        "/api/sales/upload",
+        files={"file": ("t.csv", io.BytesIO(csv), "text/csv")},
+        data={
+            "date_column": "날짜", "menu_column": "메뉴명",
+            "quantity_column": "수량", "price_column": "금액",
+            "external_sale_id_column": "영수증번호",
+        },
+        headers=auth,
+    )
+    assert r.status_code == 201, r.text
+    return auth, latte
+
+
+def _points(body: dict) -> list[tuple[str, int, int]]:
+    return [(p["date"], p["quantity"], p["revenue"]) for p in body["data"]]
+
+
+@pytest.mark.asyncio
+async def test_trends_store_total_by_day_fills_empty_days(client: AsyncClient) -> None:
+    auth, _ = await _trends_store(client)
+    r = await client.get(
+        "/api/sales/trends",
+        params={"start_date": "2026-01-01", "end_date": "2026-01-04"},
+        headers=auth,
+    )
+    assert r.status_code == 200, r.text
+    body = r.json()
+    assert (body["menu_id"], body["menu_name"], body["group_by"]) == (None, None, "day")
+    assert _points(body) == [
+        ("2026-01-01", 2, 9000),
+        ("2026-01-02", 0, 0),
+        ("2026-01-03", 2, 9500),
+        ("2026-01-04", 0, 0),
+    ]
+
+
+@pytest.mark.asyncio
+async def test_trends_week_chunks_from_start_date(client: AsyncClient) -> None:
+    auth, _ = await _trends_store(client)
+    r = await client.get(
+        "/api/sales/trends",
+        params={"start_date": "2026-01-01", "end_date": "2026-01-10", "group_by": "week"},
+        headers=auth,
+    )
+    assert r.status_code == 200, r.text
+    assert _points(r.json()) == [("2026-01-01", 4, 18500), ("2026-01-08", 3, 13500)]
+
+
+@pytest.mark.asyncio
+async def test_trends_month_uses_calendar_months(client: AsyncClient) -> None:
+    auth, _ = await _trends_store(client)
+    r = await client.get(
+        "/api/sales/trends",
+        params={"start_date": "2025-12-01", "end_date": "2026-02-28", "group_by": "month"},
+        headers=auth,
+    )
+    assert r.status_code == 200, r.text
+    assert _points(r.json()) == [
+        ("2025-12-01", 0, 0),
+        ("2026-01-01", 7, 32000),
+        ("2026-02-01", 1, 4500),
+    ]
+
+
+@pytest.mark.asyncio
+async def test_trends_filters_by_menu(client: AsyncClient) -> None:
+    auth, latte = await _trends_store(client)
+    r = await client.get(
+        "/api/sales/trends",
+        params={"start_date": "2026-01-03", "end_date": "2026-01-03", "menu_id": latte},
+        headers=auth,
+    )
+    assert r.status_code == 200, r.text
+    body = r.json()
+    assert (body["menu_id"], body["menu_name"]) == (latte, "라떼")
+    assert _points(body) == [("2026-01-03", 1, 5000)]
+
+
+@pytest.mark.asyncio
+async def test_trends_rejects_reversed_range(client: AsyncClient) -> None:
+    auth, _ = await _trends_store(client)
+    r = await client.get(
+        "/api/sales/trends",
+        params={"start_date": "2026-01-05", "end_date": "2026-01-01"},
+        headers=auth,
+    )
+    assert r.status_code == 400, r.text
+    assert r.json()["error"] == "VALIDATION_ERROR"

@@ -61,14 +61,36 @@ export async function getSalesSummary(): Promise<SalesSummary> {
   return api.get("sales/summary").json<SalesSummary>();
 }
 
-export interface MonthlyRevenuePoint {
-  year_month: string;
+export type TrendGroupBy = "day" | "week" | "month";
+
+export interface TrendPoint {
+  date: string; // 구간 시작일 (month는 그 달 1일)
+  quantity: number;
   revenue: number;
-  sales_count: number;
 }
 
-export async function getMonthlyRevenue(months = 6): Promise<MonthlyRevenuePoint[]> {
-  return api.get("sales/monthly", { searchParams: { months } }).json<MonthlyRevenuePoint[]>();
+export interface SalesTrends {
+  menu_id: string | null; // null = 매장 전체 합계
+  menu_name: string | null;
+  group_by: TrendGroupBy;
+  data: TrendPoint[];
+}
+
+// 로컬 날짜 그대로 YYYY-MM-DD — toISOString()은 UTC로 바꿔 하루가 밀릴 수 있다
+function isoDate(d: Date): string {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+
+export async function getSalesTrends(
+  start: Date,
+  end: Date,
+  groupBy: TrendGroupBy = "day",
+): Promise<SalesTrends> {
+  return api
+    .get("sales/trends", {
+      searchParams: { start_date: isoDate(start), end_date: isoDate(end), group_by: groupBy },
+    })
+    .json<SalesTrends>();
 }
 
 export interface TopMenuItem {
@@ -79,30 +101,4 @@ export interface TopMenuItem {
 
 export async function getTopMenus(limit = 5): Promise<TopMenuItem[]> {
   return api.get("sales/top-menus", { searchParams: { limit } }).json<TopMenuItem[]>();
-}
-
-export interface DailyRevenuePoint {
-  date: string;
-  revenue: number;
-  sales_count: number;
-}
-
-export async function getDailyRevenue(days = 7): Promise<DailyRevenuePoint[]> {
-  return api.get("sales/daily", { searchParams: { days } }).json<DailyRevenuePoint[]>();
-}
-
-export async function getDailyRevenueForMonth(yearMonth: string): Promise<DailyRevenuePoint[]> {
-  return api
-    .get("sales/daily-by-month", { searchParams: { year_month: yearMonth } })
-    .json<DailyRevenuePoint[]>();
-}
-
-export interface WeeklyRevenuePoint {
-  week_label: string;
-  revenue: number;
-  sales_count: number;
-}
-
-export async function getWeeklyRevenueThisMonth(): Promise<WeeklyRevenuePoint[]> {
-  return api.get("sales/weekly-this-month").json<WeeklyRevenuePoint[]>();
 }

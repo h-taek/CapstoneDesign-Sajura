@@ -38,11 +38,11 @@ from app.core import errors
 from app.models.menu import Menu
 from app.models.sale_record import SaleRecord, SaleSource
 from app.schemas.sales import (
-    DailyRevenuePoint,
-    MonthlyRevenuePoint,
     SalesSummaryResponse,
+    SalesTrendsResponse,
     TopMenuItem,
-    WeeklyRevenuePoint,
+    TrendGroupBy,
+    TrendPoint,
 )
 from app.services.anomaly_detector import AnomalyDetector
 from app.services.inventory_service import DeductionContext, InventoryService
@@ -227,124 +227,75 @@ class SaleService:
             last_sale_at=last_sale_at,
         )
 
-    async def _reference_date(self, *, store_id: str) -> date:
-        """이 매장의 마지막 판매일(없으면 오늘) — "최근 N일"·"이번 달" 계산 기준점.
-        실제 달력 대신 데이터 기준으로 잡아서, 과거 구간 시연 데이터도 항상 값이 채워지게 한다."""
-        latest = await self.session.scalar(
-            select(func.max(SaleRecord.sold_at)).where(SaleRecord.store_id == store_id)
+    async def get_trends(
+        self,
+        *,
+        store_id: str,
+        start_date: date,
+        end_date: date,
+        group_by: TrendGroupBy,
+        menu_id: str | None,
+    ) -> SalesTrendsResponse:
+        """기간별 판매 추세 — 빈 구간은 0으로 채운 연속 값 (02_implementation_design.md §3.6)."""
+        if start_date > end_date:
+            raise errors.DomainError(
+                status_code=400,
+                error_code="VALIDATION_ERROR",
+                message="시작일이 종료일보다 늦습니다.",
+            )
+        menu_name = None
+        if menu_id is not None:
+            menu = await self.session.get(Menu, menu_id)
+            if menu is None or menu.store_id != store_id:
+                raise errors.DomainError(
+                    status_code=404, error_code="NOT_FOUND", message="메뉴를 찾을 수 없습니다."
+                )
+            menu_name = menu.name
+
+        d = func.date(SaleRecord.sold_at)
+        stmt = (
+            select(d, func.sum(SaleRecord.quantity), func.sum(SaleRecord.total_price))
+            .where(
+                SaleRecord.store_id == store_id,
+                SaleRecord.sold_at >= datetime.combine(start_date, datetime.min.time()),
+                SaleRecord.sold_at
+                < datetime.combine(end_date + timedelta(days=1), datetime.min.time()),
+            )
+            .group_by(d)
         )
-        return latest.date() if latest is not None else date.today()
+        if menu_id is not None:
+            stmt = stmt.where(SaleRecord.menu_id == menu_id)
 
-    async def get_daily_revenue(self, *, store_id: str, days: int = 7) -> list[DailyRevenuePoint]:
-        """최근 N일 매출 추이 — 데이터 없는 날짜는 0으로 채운 연속 시계열."""
-        reference = await self._reference_date(store_id=store_id)
-        start = reference - timedelta(days=days - 1)
-        d = func.date(SaleRecord.sold_at)
-        rows = (
-            await self.session.execute(
-                select(d, func.sum(SaleRecord.total_price), func.count(SaleRecord.sale_id))
-                .where(SaleRecord.store_id == store_id, SaleRecord.sold_at >= start)
-                .group_by(d)
-            )
-        ).all()
-        by_day = {
-            (row[0] if isinstance(row[0], date) else datetime.strptime(row[0], "%Y-%m-%d").date()): (
-                int(row[1]),
-                int(row[2]),
-            )
-            for row in rows
-        }
-        return [
-            DailyRevenuePoint(
-                date=(start + timedelta(days=i)).isoformat(),
-                revenue=by_day.get(start + timedelta(days=i), (0, 0))[0],
-                sales_count=by_day.get(start + timedelta(days=i), (0, 0))[1],
-            )
-            for i in range(days)
-        ]
+        # 구간 시작일 목록 — week는 start_date부터 7일씩, month는 달력 월
+        span = (end_date - start_date).days + 1
+        if group_by in ("day", "week"):
+            step = 1 if group_by == "day" else 7
+            starts = [start_date + timedelta(days=i) for i in range(0, span, step)]
+        else:
+            starts, m = [], start_date.replace(day=1)
+            while m <= end_date:
+                starts.append(m)
+                m = date(m.year + 1, 1, 1) if m.month == 12 else date(m.year, m.month + 1, 1)
 
-    async def get_daily_revenue_for_month(
-        self, *, store_id: str, year_month: str
-    ) -> list[DailyRevenuePoint]:
-        """특정 월(YYYY-MM)의 1일~말일 매출 추이 — 데이터 없는 날짜는 0으로 채움."""
-        year, month = (int(p) for p in year_month.split("-"))
-        month_start = date(year, month, 1)
-        next_month_start = date(year + 1, 1, 1) if month == 12 else date(year, month + 1, 1)
-        days_in_month = (next_month_start - month_start).days
+        def bucket(day: date) -> date:
+            if group_by == "week":
+                return start_date + timedelta(days=(day - start_date).days // 7 * 7)
+            if group_by == "month":
+                return day.replace(day=1)
+            return day
 
-        d = func.date(SaleRecord.sold_at)
-        rows = (
-            await self.session.execute(
-                select(d, func.sum(SaleRecord.total_price), func.count(SaleRecord.sale_id))
-                .where(
-                    SaleRecord.store_id == store_id,
-                    SaleRecord.sold_at >= datetime.combine(month_start, datetime.min.time()),
-                    SaleRecord.sold_at < datetime.combine(next_month_start, datetime.min.time()),
-                )
-                .group_by(d)
-            )
-        ).all()
-        by_day = {
-            (row[0] if isinstance(row[0], date) else datetime.strptime(row[0], "%Y-%m-%d").date()): (
-                int(row[1]),
-                int(row[2]),
-            )
-            for row in rows
-        }
-        return [
-            DailyRevenuePoint(
-                date=(month_start + timedelta(days=i)).isoformat(),
-                revenue=by_day.get(month_start + timedelta(days=i), (0, 0))[0],
-                sales_count=by_day.get(month_start + timedelta(days=i), (0, 0))[1],
-            )
-            for i in range(days_in_month)
-        ]
-
-    async def get_weekly_revenue_this_month(self, *, store_id: str) -> list[WeeklyRevenuePoint]:
-        """이번 달 주차별(1일 단위 7개씩 묶음) 매출 — 캘린더 주가 아닌 월초 기준 등분."""
-        today = await self._reference_date(store_id=store_id)
-        month_start = today.replace(day=1)
-        rows = (
-            await self.session.execute(
-                select(SaleRecord.sold_at, SaleRecord.total_price).where(
-                    SaleRecord.store_id == store_id,
-                    SaleRecord.sold_at >= datetime.combine(month_start, datetime.min.time()),
-                )
-            )
-        ).all()
-        buckets: dict[int, list[int]] = {}
-        for sold_at, total_price in rows:
-            day_of_month = (sold_at.date() if isinstance(sold_at, datetime) else sold_at).day
-            week_idx = (day_of_month - 1) // 7
-            buckets.setdefault(week_idx, []).append(total_price)
-        max_week = max(buckets.keys(), default=(today.day - 1) // 7)
-        return [
-            WeeklyRevenuePoint(
-                week_label=f"{i + 1}주차",
-                revenue=sum(buckets.get(i, [])),
-                sales_count=len(buckets.get(i, [])),
-            )
-            for i in range(max_week + 1)
-        ]
-
-    async def get_monthly_revenue(
-        self, *, store_id: str, months: int = 6
-    ) -> list[MonthlyRevenuePoint]:
-        """월별 매출 추이 — 데이터가 존재하는 월 기준 최근 N개월(캘린더 공백월은 건너뜀)."""
-        ym = func.date_format(SaleRecord.sold_at, "%Y-%m")
-        rows = (
-            await self.session.execute(
-                select(ym, func.sum(SaleRecord.total_price), func.count(SaleRecord.sale_id))
-                .where(SaleRecord.store_id == store_id)
-                .group_by(ym)
-                .order_by(ym.desc())
-                .limit(months)
-            )
-        ).all()
-        return [
-            MonthlyRevenuePoint(year_month=year_month, revenue=revenue, sales_count=count)
-            for year_month, revenue, count in reversed(rows)
-        ]
+        totals: dict[date, list[int]] = {s: [0, 0] for s in starts}
+        for day, quantity, revenue in (await self.session.execute(stmt)).all():
+            day = day if isinstance(day, date) else datetime.strptime(day, "%Y-%m-%d").date()
+            acc = totals[bucket(day)]
+            acc[0] += int(quantity)
+            acc[1] += int(revenue)
+        return SalesTrendsResponse(
+            menu_id=menu_id,
+            menu_name=menu_name,
+            group_by=group_by,
+            data=[TrendPoint(date=s, quantity=q, revenue=r) for s, (q, r) in totals.items()],
+        )
 
     async def get_top_menus(self, *, store_id: str, limit: int = 5) -> list[TopMenuItem]:
         """판매량 기준 인기 메뉴 — 재고·최저가 추천과 달리 실제 판매 데이터로 산출 가능."""

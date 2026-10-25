@@ -1415,8 +1415,9 @@ Authorization: Bearer <access_token>
 | Method | Path | 설명 |
 |--------|------|------|
 | `GET` | `/api/sales` | 판매 내역 목록 조회 |
-| `GET` | `/api/sales/summary` | 기간별 판매 요약 |
+| `GET` | `/api/sales/summary` | 판매 요약 (누계·이번 달·오늘) |
 | `GET` | `/api/sales/trends` | 메뉴별/기간별 판매 추세 |
+| `GET` | `/api/sales/top-menus` | 판매 수량 상위 메뉴 |
 | `POST` | `/api/sales/upload` | CSV 파일 업로드 (POS 수동 연동 모드) |
 | `GET` | `/api/sales/{sale_id}` | 판매 내역 상세 조회 |
 
@@ -1446,21 +1447,16 @@ Authorization: Bearer <access_token>
 #### GET /api/sales/summary
 
 ```json
-// Query: ?start_date=2026-01-01&end_date=2026-01-31
 // Response 200
+// 이번 달·오늘은 매장의 마지막 판매 시각(last_sale_at)이 속한 달·날짜 기준. 판매가 없으면 서버 현재 시각 기준
 {
-  "period": {
-    "start_date": "2026-01-01",
-    "end_date": "2026-01-31"
-  },
-  "total_revenue": 4500000,
-  "total_orders": 1200,
-  "avg_daily_revenue": 145161,
-  "top_menu": {
-    "menu_id": "uuid",
-    "menu_name": "아메리카노",
-    "quantity": 430
-  }
+  "total_revenue": 45000000,
+  "total_sales_count": 12000,
+  "this_month_revenue": 4500000,
+  "this_month_sales_count": 1200,
+  "today_revenue": 320000,
+  "today_sales_count": 85,
+  "last_sale_at": "2026-01-31T21:10:00"  // 판매가 없으면 null
 }
 ```
 
@@ -1468,7 +1464,12 @@ Authorization: Bearer <access_token>
 
 ```json
 // Query: ?start_date=2026-01-01&end_date=2026-01-31&group_by=day&menu_id=uuid
-// group_by: day | week | month
+// start_date·end_date: 필수, 양 끝 포함. start_date > end_date면 400 VALIDATION_ERROR
+// group_by: day | week | month (기본 day)
+//   week — start_date부터 7일씩 묶는다 (달력 주 아님)
+//   month — 달력 월
+// menu_id: 생략하면 매장 전체 합계. 이때 응답의 menu_id·menu_name은 null. 없거나 다른 매장 메뉴면 404 NOT_FOUND
+// data: 판매가 없는 구간도 quantity 0·revenue 0으로 채운 연속 값. date는 구간 시작일(month는 그 달 1일)
 // Response 200
 {
   "menu_id": "uuid",
@@ -1487,6 +1488,21 @@ Authorization: Bearer <access_token>
     }
   ]
 }
+```
+
+#### GET /api/sales/top-menus
+
+```json
+// Query: ?limit=5 (기본 5)
+// 전체 판매 기간 누계, 판매 수량 내림차순
+// Response 200
+[
+  {
+    "menu_name": "아메리카노",
+    "quantity": 430,
+    "revenue": 1935000
+  }
+]
 ```
 
 #### POST /api/sales/upload
