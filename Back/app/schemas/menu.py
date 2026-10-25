@@ -2,9 +2,10 @@
 from __future__ import annotations
 
 from datetime import datetime
-from decimal import Decimal
 
 from pydantic import BaseModel, Field
+
+from app.schemas.types import JsonDecimal
 
 
 class MenuCreateRequest(BaseModel):
@@ -67,7 +68,7 @@ class BulkMenuResponse(BaseModel):
 
 class IngredientItem(BaseModel):
     item_id: str
-    quantity: Decimal
+    quantity: JsonDecimal
     unit: str = Field(min_length=1, max_length=20)
 
 

@@ -1,17 +1,10 @@
 // 판매 데이터 업로드 API — 02_implementation_design.md §3.6.
 import { api } from "../../lib/api";
+import type { components } from "../types.gen";
 
-export interface CSVUploadResponse {
-  imported: number;
-  skipped: number;
-  skipped_reasons: string[];
-  anomaly_count: number;
-  auto_created_menus: number;
-  inventory_deduction: {
-    deducted_sales: number; // 재고 차감에 반영된 판매 행 수
-    needs_check_items: { item_id: string; name: string }[]; // 이번 업로드로 '재고 확인 필요'가 된 재료
-  };
-}
+type S = components["schemas"];
+
+export type CSVUploadResponse = S["CSVUploadResponse"];
 
 export interface CSVUploadColumns {
   date_column: string;
@@ -47,34 +40,17 @@ export async function uploadSalesCsv(
   return api.post("sales/upload", { body: form, timeout: 120_000 }).json<CSVUploadResponse>();
 }
 
-export interface SalesSummary {
-  total_revenue: number;
-  total_sales_count: number;
-  this_month_revenue: number;
-  this_month_sales_count: number;
-  today_revenue: number;
-  today_sales_count: number;
-  last_sale_at: string | null;
-}
+export type SalesSummary = S["SalesSummaryResponse"];
 
 export async function getSalesSummary(): Promise<SalesSummary> {
   return api.get("sales/summary").json<SalesSummary>();
 }
 
-export type TrendGroupBy = "day" | "week" | "month";
+export type TrendGroupBy = S["SalesTrendsResponse"]["group_by"];
 
-export interface TrendPoint {
-  date: string; // 구간 시작일 (month는 그 달 1일)
-  quantity: number;
-  revenue: number;
-}
+export type TrendPoint = S["TrendPoint"];
 
-export interface SalesTrends {
-  menu_id: string | null; // null = 매장 전체 합계
-  menu_name: string | null;
-  group_by: TrendGroupBy;
-  data: TrendPoint[];
-}
+export type SalesTrends = S["SalesTrendsResponse"];
 
 // 로컬 날짜 그대로 YYYY-MM-DD — toISOString()은 UTC로 바꿔 하루가 밀릴 수 있다
 function isoDate(d: Date): string {
@@ -93,11 +69,7 @@ export async function getSalesTrends(
     .json<SalesTrends>();
 }
 
-export interface TopMenuItem {
-  menu_name: string;
-  quantity: number;
-  revenue: number;
-}
+export type TopMenuItem = S["TopMenuItem"];
 
 export async function getTopMenus(limit = 5): Promise<TopMenuItem[]> {
   return api.get("sales/top-menus", { searchParams: { limit } }).json<TopMenuItem[]>();

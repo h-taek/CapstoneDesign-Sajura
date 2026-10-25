@@ -1,71 +1,35 @@
 // 메뉴 API — 02_implementation_design.md §3.4.
 import { HTTPError } from "ky";
 import { api } from "../../lib/api";
+import type { components } from "../types.gen";
 
-export interface MenuInput {
-  name: string;
-  category: string;
-  price: number;
-  is_active: boolean;
-  use_inventory_deduction: boolean;
-}
+type S = components["schemas"];
 
-export interface BulkMenusResponse {
-  created: number;
-  skipped: number;
-  skipped_names: string[];
-}
+export type MenuInput = S["MenuCreateRequest"];
+
+export type BulkMenusResponse = S["BulkMenuResponse"];
 
 export async function createMenusBulk(menus: MenuInput[]): Promise<BulkMenusResponse> {
   return api.post("menus/bulk", { json: { menus } }).json<BulkMenusResponse>();
 }
 
-export interface MenuListItem {
-  menu_id: string;
-  name: string;
-  category: string | null;
-  price: number;
-  is_active: boolean;
-  use_inventory_deduction: boolean;
-  is_deleted: boolean;
-}
+export type MenuListItem = S["MenuListItem"];
 
-export interface MenuListResponse {
-  items: MenuListItem[];
-  total: number;
-  page: number;
-  size: number;
-  total_pages: number;
-}
+export type MenuListResponse = S["MenuListResponse"];
 
 export async function listMenus(size = 100): Promise<MenuListResponse> {
   return api.get("menus", { searchParams: { size } }).json<MenuListResponse>();
 }
 
-export interface MenuUpdateInput {
-  name?: string;
-  category?: string;
-  price?: number;
-  is_active?: boolean;
-  use_inventory_deduction?: boolean;
-}
+export type MenuUpdateInput = S["MenuUpdateRequest"];
 
 export async function updateMenu(menuId: string, patch: MenuUpdateInput): Promise<MenuListItem> {
   return api.patch(`menus/${menuId}`, { json: patch }).json<MenuListItem>();
 }
 
-export interface RecipeIngredient {
-  item_id: string;
-  item_name: string;
-  quantity: number;
-  unit: string;
-}
+export type RecipeIngredient = S["IngredientItemWithName"];
 
-export interface RecipeResponse {
-  menu_id: string;
-  ingredients: RecipeIngredient[];
-  updated_at: string;
-}
+export type RecipeResponse = S["RecipeResponse"];
 
 export async function getRecipe(menuId: string): Promise<RecipeResponse | null> {
   try {
@@ -76,11 +40,7 @@ export async function getRecipe(menuId: string): Promise<RecipeResponse | null> 
   }
 }
 
-export interface RecipeIngredientInput {
-  item_id: string;
-  quantity: number;
-  unit: string;
-}
+export type RecipeIngredientInput = S["IngredientItem"];
 
 export async function upsertRecipe(
   menuId: string,

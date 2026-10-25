@@ -33,10 +33,11 @@ export default function ConfirmStep() {
         phone: store.phone,
       });
       if (pos.pos_type !== "CSV_ONLY") {
+        // posStepSchema가 CSV_ONLY 외에는 api_key·store_code 입력을 보장한다
         await registerPos({
           pos_type: pos.pos_type,
-          api_key: pos.api_key,
-          store_code: pos.store_code,
+          api_key: pos.api_key ?? "",
+          store_code: pos.store_code ?? "",
         });
       }
       await createMenusBulk(menus);

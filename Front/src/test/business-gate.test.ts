@@ -17,6 +17,7 @@ const user: AuthUser = {
   business_no: "123",
   business_status: "VERIFIED",
   onboarding_completed: true,
+  created_at: "2026-01-01T00:00:00",
 };
 
 function json(status: number, body: unknown): Response {

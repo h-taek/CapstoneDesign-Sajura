@@ -1,22 +1,12 @@
 // 관리자 사업자 검증 심사 API — 02_implementation_design.md §3.3 (role=ADMIN 전용).
 import { api } from "../../lib/api";
+import type { components } from "../types.gen";
 
-export interface VerificationItem {
-  store_id: string;
-  user_email: string;
-  business_no: string | null;
-  business_status: "UNVERIFIED" | "PENDING" | "VERIFIED" | "REJECTED";
-  cert_url: string | null;
-  submitted_at: string;
-}
+type S = components["schemas"];
 
-export interface VerificationList {
-  items: VerificationItem[];
-  total: number;
-  page: number;
-  size: number;
-  total_pages: number;
-}
+export type VerificationItem = S["VerificationItem"];
+
+export type VerificationList = S["VerificationListResponse"];
 
 export async function listVerifications(): Promise<VerificationList> {
   return api.get("admin/verifications", { searchParams: { size: 100 } }).json<VerificationList>();

@@ -1,30 +1,18 @@
 // 인증 API — 02_implementation_design.md §3.2·§3.3.
 import { HTTPError } from "ky";
 import { api } from "../../lib/api";
-import type { AuthUser, BusinessStatus } from "../../stores/auth-store";
+import type { AuthUser } from "../../stores/auth-store";
+import type { components } from "../types.gen";
 
-interface RefreshResponse {
-  access_token: string;
-  token_type: "bearer";
-  expires_in: number;
-}
+type S = components["schemas"];
 
-interface LoginResponse extends RefreshResponse {
-  business_status: BusinessStatus | null;
-  onboarding_completed: boolean | null;
-}
+type RefreshResponse = S["TokenResponse"];
 
-export interface RegisterPayload {
-  email: string;
-  password: string;
-  name: string;
-}
+type LoginResponse = S["TokenResponse"];
 
-interface RegisterResponse {
-  user_id: string;
-  email: string;
-  name: string;
-}
+export type RegisterPayload = S["RegisterRequest"];
+
+type RegisterResponse = S["RegisterResponse"];
 
 /** BE 에러 envelope({ error, message }) → 사용자 메시지. 파싱 불가 시 fallback. */
 export async function authErrorMessage(error: unknown, fallback: string): Promise<string> {
@@ -72,10 +60,7 @@ export async function fetchMe(): Promise<AuthUser> {
   return api.get("auth/me").json<AuthUser>();
 }
 
-export interface UpdateMePayload {
-  name?: string;
-  store_name?: string;
-}
+export type UpdateMePayload = S["UpdateMeRequest"];
 
 export async function updateMe(payload: UpdateMePayload): Promise<AuthUser> {
   return api.patch("auth/me", { json: payload }).json<AuthUser>();
@@ -87,10 +72,7 @@ export async function changePassword(currentPassword: string, newPassword: strin
   });
 }
 
-interface VerifyBusinessResponse {
-  business_status: BusinessStatus;
-  business_no: string | null;
-}
+type VerifyBusinessResponse = S["BusinessVerifyResponse"];
 
 /** 사업자 검증 (multipart) — 사업자번호 + 등록증 파일. 성공 시 PENDING(마스터면 VERIFIED). */
 export async function verifyBusiness(

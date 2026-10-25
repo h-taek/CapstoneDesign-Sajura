@@ -1,38 +1,16 @@
 // 재고 API — 02_implementation_design.md §3.5. 수량은 로트 잔여 수량 합계(total_quantity).
 import { api } from "../../lib/api";
+import type { components } from "../types.gen";
 
-export type AlertStatus = "NORMAL" | "LOW" | "EXPIRED_SOON" | "EMPTY" | "NEEDS_CHECK";
+type S = components["schemas"];
 
-export interface InventoryItem {
-  item_id: string;
-  name: string;
-  unit: string;
-  total_quantity: number;
-  alert_status: AlertStatus;
-  low_stock_threshold: number;
-  lead_time_days: number | null;
-  safety_stock: number | null;
-  created_at: string;
-  updated_at: string;
-}
+export type AlertStatus = S["InventoryItemResponse"]["alert_status"];
 
-export interface InventoryItemInput {
-  name: string;
-  unit: string;
-  quantity: number;
-  expiry_date: string | null;
-  purchase_price: number | null; // quantity > 0이면 필수 — 등록 수량 전체의 구매 금액(원)
-  low_stock_threshold: number;
-  lead_time_days: number | null;
-  safety_stock: number | null;
-}
+export type InventoryItem = S["InventoryItemResponse"];
 
-export type InventoryItemPatch = Partial<
-  Pick<
-    InventoryItemInput,
-    "name" | "unit" | "low_stock_threshold" | "lead_time_days" | "safety_stock"
-  >
->;
+export type InventoryItemInput = S["InventoryItemCreateRequest"];
+
+export type InventoryItemPatch = S["InventoryItemUpdateRequest"];
 
 export async function listInventory(): Promise<InventoryItem[]> {
   const res = await api.get("inventory").json<{ items: InventoryItem[] }>();
@@ -54,31 +32,13 @@ export async function deleteInventoryItem(itemId: string): Promise<void> {
   await api.delete(`inventory/${itemId}`);
 }
 
-export interface Lot {
-  lot_id: string;
-  item_id: string;
-  quantity: number;
-  remaining_quantity: number;
-  received_at: string;
-  expiry_date: string | null;
-  purchase_price: number;
-}
+export type Lot = S["LotResponse"];
 
-export interface LotInput {
-  quantity: number;
-  received_at: string;
-  expiry_date: string | null;
-  purchase_price: number; // 입고 수량 전체의 구매 금액(원)
-}
+export type LotInput = S["LotCreateRequest"];
 
-export type AdjustmentReason = "STOCKTAKE" | "EXPIRY_CORRECTION" | "OTHER";
+export type AdjustmentReason = S["AdjustmentReason"];
 
-export interface LotPatch {
-  remaining_quantity?: number;
-  expiry_date?: string | null;
-  reason: AdjustmentReason;
-  memo?: string | null;
-}
+export type LotPatch = S["LotUpdateRequest"];
 
 export async function listLots(itemId: string): Promise<Lot[]> {
   const res = await api.get(`inventory/${itemId}/lots`).json<{ lots: Lot[] }>();

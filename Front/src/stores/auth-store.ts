@@ -1,20 +1,10 @@
 // Auth 메모리 스토어 — 04_fe.md §2 (LocalStorage·Cookie 금지).
 import { create } from "zustand";
+import type { components } from "../api/types.gen";
 
-export type BusinessStatus = "UNVERIFIED" | "PENDING" | "VERIFIED" | "REJECTED";
-export type UserRole = "OWNER" | "ADMIN";
-
-export interface AuthUser {
-  user_id: string;
-  email: string;
-  name: string;
-  auth_provider: "LOCAL" | "KAKAO" | "GOOGLE";
-  role: UserRole;
-  store_name: string | null;
-  business_no: string | null;
-  business_status: BusinessStatus;
-  onboarding_completed: boolean;
-}
+export type AuthUser = components["schemas"]["UserMeResponse"];
+export type BusinessStatus = AuthUser["business_status"];
+export type UserRole = AuthUser["role"];
 
 interface AuthState {
   accessToken: string | null;

@@ -9,6 +9,7 @@ from typing import Literal
 from pydantic import BaseModel, Field, model_validator
 
 from app.models.inventory_item import AdjustmentReason
+from app.schemas.types import JsonDecimal
 
 AlertStatus = Literal["NORMAL", "LOW", "EXPIRED_SOON", "EMPTY", "NEEDS_CHECK"]
 
@@ -16,12 +17,12 @@ AlertStatus = Literal["NORMAL", "LOW", "EXPIRED_SOON", "EMPTY", "NEEDS_CHECK"]
 class InventoryItemCreateRequest(BaseModel):
     name: str = Field(min_length=1, max_length=100)
     unit: str = Field(min_length=1, max_length=20)
-    quantity: Decimal = Field(ge=0)
+    quantity: JsonDecimal = Field(ge=0)
     expiry_date: date | None = None
     purchase_price: int | None = Field(default=None, ge=0)
-    low_stock_threshold: Decimal = Field(default=Decimal(0), ge=0)
+    low_stock_threshold: JsonDecimal = Field(default=Decimal(0), ge=0)
     lead_time_days: int | None = Field(default=None, ge=0)
-    safety_stock: Decimal | None = Field(default=None, ge=0)
+    safety_stock: JsonDecimal | None = Field(default=None, ge=0)
 
     @model_validator(mode="after")
     def _price_with_quantity(self) -> InventoryItemCreateRequest:
@@ -33,20 +34,20 @@ class InventoryItemCreateRequest(BaseModel):
 class InventoryItemUpdateRequest(BaseModel):
     name: str | None = Field(default=None, min_length=1, max_length=100)
     unit: str | None = Field(default=None, min_length=1, max_length=20)
-    low_stock_threshold: Decimal | None = Field(default=None, ge=0)
+    low_stock_threshold: JsonDecimal | None = Field(default=None, ge=0)
     lead_time_days: int | None = Field(default=None, ge=0)
-    safety_stock: Decimal | None = Field(default=None, ge=0)
+    safety_stock: JsonDecimal | None = Field(default=None, ge=0)
 
 
 class InventoryItemResponse(BaseModel):
     item_id: str
     name: str
     unit: str
-    total_quantity: Decimal
+    total_quantity: JsonDecimal
     alert_status: AlertStatus
-    low_stock_threshold: Decimal
+    low_stock_threshold: JsonDecimal
     lead_time_days: int | None
-    safety_stock: Decimal | None
+    safety_stock: JsonDecimal | None
     # 품목↔쿠팡 상품 매핑 도메인(inventory_item_sites) 완성 전까지 항상 null
     coupang_url: str | None = None
     last_price: int | None = None
@@ -71,7 +72,7 @@ class InventoryAlert(BaseModel):
     name: str
     alert_status: AlertStatus
     alert_message: str
-    quantity: Decimal
+    quantity: JsonDecimal
     expiry_date: date | None
 
 
@@ -81,7 +82,7 @@ class InventoryAlertListResponse(BaseModel):
 
 
 class LotCreateRequest(BaseModel):
-    quantity: Decimal = Field(gt=0)
+    quantity: JsonDecimal = Field(gt=0)
     received_at: date
     expiry_date: date | None = None
     purchase_price: int = Field(ge=0)
@@ -90,8 +91,8 @@ class LotCreateRequest(BaseModel):
 class LotResponse(BaseModel):
     lot_id: str
     item_id: str
-    quantity: Decimal
-    remaining_quantity: Decimal
+    quantity: JsonDecimal
+    remaining_quantity: JsonDecimal
     received_at: date
     expiry_date: date | None
     purchase_price: int
@@ -106,7 +107,7 @@ class LotListResponse(BaseModel):
 class LotUpdateRequest(BaseModel):
     """변경할 필드만 보낸다. expiry_date를 null로 보내면 소비기한을 지운다."""
 
-    remaining_quantity: Decimal | None = Field(default=None, ge=0)
+    remaining_quantity: JsonDecimal | None = Field(default=None, ge=0)
     expiry_date: date | None = None
     reason: AdjustmentReason
     memo: str | None = Field(default=None, max_length=255)
@@ -116,9 +117,9 @@ class AdjustmentResponse(BaseModel):
     adjustment_id: str
     lot_id: str
     item_id: str
-    before_quantity: Decimal
-    after_quantity: Decimal
-    delta_quantity: Decimal
+    before_quantity: JsonDecimal
+    after_quantity: JsonDecimal
+    delta_quantity: JsonDecimal
     before_expiry_date: date | None
     after_expiry_date: date | None
     reason: AdjustmentReason
@@ -128,11 +129,11 @@ class AdjustmentResponse(BaseModel):
 
 class DisposeRequest(BaseModel):
     lot_id: str
-    quantity: Decimal = Field(gt=0)
+    quantity: JsonDecimal = Field(gt=0)
     reason: str | None = Field(default=None, max_length=255)
 
 
 class DisposeResponse(BaseModel):
-    disposed_quantity: Decimal
-    remaining_quantity: Decimal
+    disposed_quantity: JsonDecimal
+    remaining_quantity: JsonDecimal
     disposed_at: datetime

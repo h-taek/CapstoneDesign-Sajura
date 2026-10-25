@@ -1,33 +1,16 @@
 // AI 수요예측 API — 02_implementation_design.md §3.7 GET /api/forecast (BE가 §3.8 AI 계약을 프록시).
 import { api } from "../../lib/api";
+import type { components } from "../types.gen";
 
-export interface TopFactor {
-  feature: string;
-  label: string;
-  pct: number;
-}
+type S = components["schemas"];
 
-export interface Explanation {
-  baseline: string;
-  deviation_vs_baseline: number;
-  top_factors: TopFactor[];
-  sentence: string;
-}
+export type TopFactor = S["TopFactor"];
 
-export interface DailyPrediction {
-  target_date: string;
-  horizon_days: number;
-  predicted_sales: number;
-  interval_p10: number;
-  interval_p90: number;
-  is_low_confidence: boolean;
-  low_confidence_reason: string | null;
-  explanation: Explanation;
-}
+export type Explanation = S["Explanation"];
 
-export interface ForecastPredictResponse {
-  predictions: DailyPrediction[];
-}
+export type DailyPrediction = S["DailyPrediction"];
+
+export type ForecastPredictResponse = S["ForecastPredictResponse"];
 
 export async function getForecastPredict(): Promise<ForecastPredictResponse> {
   return api.get("forecast").json<ForecastPredictResponse>();

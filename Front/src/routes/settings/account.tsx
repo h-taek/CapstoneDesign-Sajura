@@ -25,9 +25,9 @@ const profileSchema = z.object({
 type ProfileValues = z.infer<typeof profileSchema>;
 
 const storeSchema = z.object({
-  business_type: z.string().max(50).optional(),
-  address: z.string().max(255).optional(),
-  phone: z.string().max(20).optional(),
+  business_type: z.string().max(50),
+  address: z.string().max(255),
+  phone: z.string().max(20),
 });
 type StoreValues = z.infer<typeof storeSchema>;
 

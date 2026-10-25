@@ -4,7 +4,7 @@ from __future__ import annotations
 from datetime import date, datetime
 from typing import Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class NeedsCheckItem(BaseModel):
@@ -13,11 +13,13 @@ class NeedsCheckItem(BaseModel):
 
 
 class InventoryDeduction(BaseModel):
+    model_config = ConfigDict(json_schema_serialization_defaults_required=True)  # 응답엔 항상 포함
     deducted_sales: int = 0
     needs_check_items: list[NeedsCheckItem] = Field(default_factory=list)
 
 
 class CSVUploadResponse(BaseModel):
+    model_config = ConfigDict(json_schema_serialization_defaults_required=True)  # 응답엔 항상 포함
     imported: int
     skipped: int
     skipped_reasons: list[str] = Field(default_factory=list)
