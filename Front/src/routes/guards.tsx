@@ -62,7 +62,7 @@ export function RequireAdmin({ children }: { children: ReactNode }) {
 function SplashScreen() {
   return (
     <output
-      className="grid min-h-dvh place-items-center bg-slate-50 text-slate-500"
+      className="grid min-h-dvh place-items-center bg-subtle text-ink-3"
       aria-live="polite"
     >
       <span className="text-sm">로딩 중…</span>

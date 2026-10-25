@@ -58,20 +58,20 @@ export default function RegisterPage() {
       <section className="flex items-center justify-center p-6 lg:p-16">
         <div className="w-full max-w-[688px] space-y-8">
           <header className="space-y-2">
-            <h1 className="text-4xl font-semibold text-[#101828] lg:text-5xl">계정 생성</h1>
-            <p className="text-xl font-medium text-[#364153] lg:text-2xl">
+            <h1 className="text-4xl font-semibold text-ink lg:text-5xl">계정 생성</h1>
+            <p className="text-xl font-medium text-ink-2 lg:text-2xl">
               사주라 사장님 계정을 만들어보아요
             </p>
           </header>
 
           <form className="space-y-6" onSubmit={handleSubmit(onSubmit)} noValidate>
-            <FormField label="ID" htmlFor="email" error={errors.email?.message}>
+            <FormField label="아이디(이메일)" htmlFor="email" error={errors.email?.message}>
               <Input
                 id="email"
                 type="email"
                 autoComplete="email"
                 placeholder="아이디를 입력해 주세요."
-                className="h-[58px] rounded-xl border-[#d1d5dc] bg-[#f3f4f6] px-4 text-base"
+                className="h-[58px] rounded-xl border-line bg-subtle px-4 text-base"
                 {...register("email")}
               />
             </FormField>
@@ -81,7 +81,7 @@ export default function RegisterPage() {
                 id="name"
                 autoComplete="name"
                 placeholder="이름을 입력해 주세요."
-                className="h-[58px] rounded-xl border-[#d1d5dc] bg-[#f3f4f6] px-4 text-base"
+                className="h-[58px] rounded-xl border-line bg-subtle px-4 text-base"
                 {...register("name")}
               />
             </FormField>
@@ -97,7 +97,7 @@ export default function RegisterPage() {
                 type="password"
                 autoComplete="new-password"
                 placeholder="비밀번호를 입력해 주세요."
-                className="h-[58px] rounded-xl border-[#d1d5dc] bg-[#f3f4f6] px-4 text-base"
+                className="h-[58px] rounded-xl border-line bg-subtle px-4 text-base"
                 {...register("password")}
               />
             </FormField>
@@ -112,7 +112,7 @@ export default function RegisterPage() {
                 type="password"
                 autoComplete="new-password"
                 placeholder="비밀번호를 다시 입력해 주세요."
-                className="h-[58px] rounded-xl border-[#d1d5dc] bg-[#f3f4f6] px-4 text-base"
+                className="h-[58px] rounded-xl border-line bg-subtle px-4 text-base"
                 {...register("password_confirm")}
               />
             </FormField>
@@ -126,15 +126,15 @@ export default function RegisterPage() {
             <Button
               type="submit"
               disabled={mutation.isPending}
-              className="h-[68px] w-full rounded-full bg-[#7a5eff] text-xl font-semibold hover:bg-[#6a4eef]"
+              className="h-[68px] w-full rounded-full bg-brand text-xl font-semibold hover:bg-brand-strong"
             >
               {mutation.isPending ? "가입 중…" : "계정 생성"}
             </Button>
           </form>
 
-          <p className="text-center text-base text-[#99a1af]">
+          <p className="text-center text-base text-ink-3">
             이미 계정이 있으신가요?{" "}
-            <Link to="/login" className="font-medium text-[#364153] hover:underline">
+            <Link to="/login" className="font-medium text-ink-2 hover:underline">
               여기서 로그인 하세요
             </Link>
           </p>

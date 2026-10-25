@@ -20,7 +20,7 @@ function pickIcon(itemName: string): typeof Leaf {
 export function IngredientIcon({ itemName }: { itemName: string }) {
   const Icon = pickIcon(itemName);
   return (
-    <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-[#f3f4f6] text-[#7a5eff]">
+    <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-subtle text-brand">
       <Icon className="size-5" />
     </span>
   );

@@ -8,6 +8,47 @@
 
 ## 1. 개발 이력
 
+### 서비스 소개 페이지(/intro) 추가 (2026-10-25)
+
+로그인 없이 볼 수 있는 랜딩 `Front/src/routes/intro.tsx`. 발주고·마켓봄·앳트래커 소개 페이지 흐름(히어로 → 고민 → 기능 → 이용 방법 → 앱 설치 → FAQ → CTA)을 따랐다.
+- 앱 설치 섹션·히어로 버튼에서 바로 PWA 설치(안드로이드·PC 크롬 설치 창 / iOS 안내 시트) — `install-banner.tsx`의 `useStartInstall`·`InstallGuideSheet` 재사용.
+- 검증 안 된 숫자(이용자 수·후기·수상·요금)는 넣지 않았다. 화면 미리보기는 "예시" 표기.
+- 로그인 화면 하단에 "서비스 소개 보기" 링크. 라우트 `/intro`는 가드 없음. `docs/spec/04_fe.md` §3 라우팅 표에 1행 추가.
+
+---
+
+### PWA(홈 화면 설치) 적용 (2026-10-25)
+
+리디자인과 같은 `feat/fe-redesign` 브랜치. 설치 조건 검사(Chrome `Page.getInstallabilityErrors`) 오류 0건, 매니페스트 오류 0건, 오프라인에서 `/orders` 새로 열기 정상.
+
+1. 아이콘 `Front/public/` 신규 — icon-192·icon-512·icon-maskable-512·apple-touch-icon(180)·favicon-64 (브랜드 보라 + "사").
+2. `vite.config.ts` manifest 보강 — id·lang ko·scope·orientation portrait·background·icons·shortcuts(발주·재고·매출 올리기). `index.html`에 iOS 메타(apple-touch-icon, apple-mobile-web-app-*).
+3. `src/sw.ts` — `NavigationRoute`(SPA 오프라인 화면 이동, `/api/*` 제외), `skipWaiting`+`clientsClaim`, `cleanupOutdatedCaches`. 의존성 `workbox-routing`·`workbox-core` 7.4.1 추가.
+4. 설치 안내 UI — `src/lib/pwa-install.ts`(beforeinstallprompt 보관·standalone/iOS 판별·배너 닫기 상태), `src/components/pwa/install-banner.tsx`(앱 홈 배너 + 더보기 "홈 화면에 앱으로 설치하기" + iOS/안드로이드 단계 안내 시트). 앱 상단바에 노치 여백(`pt-safe`).
+5. 문서: `docs/spec/04_fe.md` §6 표에 설치·오프라인·설치 조건 3행 추가.
+
+**주의**: HTTPS(또는 localhost)에서만 설치된다. 휴대폰에서 `http://192.168.x.x:5173`로 열면 설치 버튼이 안 뜬다.
+
+---
+
+### 웹·앱(모바일 PWA) 디자인 전면 리디자인 (2026-10-25)
+
+브랜치 `feat/fe-redesign`(origin/main e66f68e 기준). 기능·API 호출은 그대로 두고 화면만 다시 만들었다.
+
+**방향**
+- 웹(lg 이상): 수발주 B2B 서비스(발주고·마켓봄·앳트래커)처럼 흰 상단 가로 내비 + 회색 캔버스 + 흰 카드 + 큰 숫자 KPI. 좌측 사이드바 제거.
+- 앱(lg 미만): 50~60대 MAU 상위 앱(카카오톡·네이버·밴드) 문법 — 상단엔 화면 이름만 크게, 글자 달린 하단 탭 5개(홈·매출 예측·재고·발주·더보기), 표 대신 카드 목록, 기본 글씨 112.5%, 버튼 48px 이상, 수량은 −/+ 스테퍼.
+
+**변경**
+1. 디자인 토큰 `Front/src/index.css` `@theme` — brand/ink/line/canvas/상태색. 화면 코드의 임의 hex(`#7a5eff` 등)를 토큰 클래스로 일괄 치환. 폰트 Pretendard(`pretendard` 패키지, self-host라 CSP `font-src 'self'` 유지).
+2. 공용: `components/dashboard/shell.tsx`(웹 헤더·앱 상단바·하단 탭), `components/ui/card.tsx`(Card·PageHeader·SectionTitle·StatCard·EmptyState·Segmented 신규), `lib/format.ts`(원 표기·만원 단위 요약 신규), `button`·`field`·`alert-badge`·`revenue-chart` 재작성. `menu-share-chart.tsx` 삭제(홈 인기 메뉴를 막대 목록으로 대체).
+3. 화면: 홈(맨 위 "오늘 할 일" 배너 → 발주 화면), 매출예측(D+1~3 예측을 맨 위로, 이번 달/지난 달 그래프 전환), 발주추천(AI 추천 먼저, 줄 단위 선택·스테퍼·하단 확정 바), 재고(카드 목록 + "확인 필요" 필터), 설정 허브를 앱 "더보기"로(매출 올리기·레시피·로그아웃 포함), 온보딩 단계 표시. 나머지 화면은 토큰·글씨 크기만 맞춤. 로그인/회원가입 라벨 한글화(ID→아이디(이메일), Password→비밀번호).
+4. 검증: `tsc -b` 통과, vitest 42/42 통과, `vite build` 통과. API를 목업으로 띄워 1440px·390px 화면 캡처로 확인(실제 BE 연동 화면 확인은 아직).
+
+**남은 것**: 실제 BE 데이터로 화면 확인, 시니어 사용자 테스트(글씨 크기·탭 이름), `sales/upload.tsx` 기존 biome lint 경고 3건(이번 변경과 무관).
+
+---
+
 ### 매출 CSV 재업로드 11배 중복 적재 버그 진단·수정 (2026-08-17)
 
 세종 AX 해커톤 본선 시연 준비 중 담당자가 인기메뉴 화면에서 소주 판매량이 비정상(약 8만 개)으로 표시되는 것을 발견 — 원본 POS CSV 4종 교차 검증으로 실제 소주 총 판매량이 8,984개(13.5개월)임을 먼저 확정하고 조사 착수.
@@ -29,6 +70,18 @@
 ---
 
 ## 2. 문서 수정 이력
+
+### 2026-10-25 — 서비스 소개 페이지
+
+§1 "서비스 소개 페이지(/intro) 추가" 추가. `docs/spec/04_fe.md` §3 라우팅 표에 `/intro` 1행 추가.
+
+### 2026-10-25 — PWA 적용
+
+§1 "PWA(홈 화면 설치) 적용" 추가. `docs/spec/04_fe.md` §6 PWA 표에 3행(설치·오프라인 화면 이동·설치 조건) 추가.
+
+### 2026-10-25 — 웹·앱 디자인 리디자인
+
+§1 "웹·앱(모바일 PWA) 디자인 전면 리디자인" 추가. 코드 변경은 `Front/` 한정(spec 문서 변경 없음). 커밋은 `feat/fe-redesign` 브랜치, PR 전.
 
 ### 2026-08-17 — 매출 CSV 재업로드 11배 중복 적재 버그 진단·수정
 

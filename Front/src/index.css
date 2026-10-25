@@ -1,3 +1,81 @@
 @import "tailwindcss";
+@import "pretendard/dist/web/variable/pretendardvariable-dynamic-subset.css";
 
-/* Tailwind v4 — design tokens는 @theme로 후속 phase에서 확장 */
+/*
+ * 사주라 디자인 토큰 v2 (2026-10 리디자인)
+ * - 웹: 수발주 B2B 서비스(발주고·마켓봄·앳트래커)처럼 흰 바탕 + 회색 캔버스 + 브랜드 한 색,
+ *   큰 숫자 KPI, 상단 가로 내비게이션.
+ * - 앱(모바일 PWA): 50~60대 사용량 1위권 앱(카카오톡·네이버·밴드) 문법 — 하단 탭 + 큰 글씨,
+ *   화면당 행동 하나, 표 대신 카드 목록.
+ * 색은 반드시 아래 이름으로 쓴다(bg-brand, text-ink-3 …). 임의 hex 금지.
+ */
+@theme {
+  --font-sans: "Pretendard Variable", Pretendard, -apple-system, BlinkMacSystemFont, system-ui,
+    "Apple SD Gothic Neo", "Noto Sans KR", "Malgun Gothic", sans-serif;
+
+  --color-brand: #6b4eff;
+  --color-brand-strong: #5636e8;
+  --color-brand-soft: #f1eeff;
+  --color-brand-tint: #e2dbff;
+
+  --color-ink: #111827;
+  --color-ink-2: #374151;
+  --color-ink-3: #6b7280;
+  --color-ink-4: #9ca3af;
+
+  --color-line: #e3e6eb;
+  --color-line-soft: #eef0f3;
+  --color-canvas: #f4f5f8;
+  --color-subtle: #f6f7f9;
+
+  --color-accent: #ffe066;
+
+  --color-up: #e5484d;
+  --color-down: #2f6fed;
+  --color-ok: #138a4a;
+  --color-ok-soft: #e8f7ee;
+  --color-warn: #b45309;
+  --color-warn-soft: #fff4e0;
+  --color-danger: #d92d20;
+  --color-danger-soft: #fdecec;
+
+  --shadow-card: 0 1px 2px rgb(17 24 39 / 0.04), 0 1px 1px rgb(17 24 39 / 0.02);
+  --shadow-pop: 0 10px 30px -12px rgb(17 24 39 / 0.25);
+}
+
+@layer base {
+  /* 앱(모바일)은 기본 글씨를 12.5% 키운다 — rem 기반이라 여백·버튼까지 함께 커진다. */
+  html {
+    font-size: 112.5%;
+    -webkit-text-size-adjust: 100%;
+  }
+  @media (min-width: 1024px) {
+    html {
+      font-size: 100%;
+    }
+  }
+  body {
+    @apply bg-canvas font-sans text-ink antialiased;
+    word-break: keep-all;
+  }
+  :focus-visible {
+    outline: 3px solid var(--color-brand-tint);
+    outline-offset: 2px;
+  }
+  input[type="checkbox"] {
+    accent-color: var(--color-brand);
+  }
+}
+
+@utility tabular {
+  font-variant-numeric: tabular-nums;
+}
+
+/* 홈 화면 앱(standalone)에서 노치·홈 인디케이터 영역 확보 */
+@utility pt-safe {
+  padding-top: env(safe-area-inset-top);
+}
+
+@utility pb-safe {
+  padding-bottom: env(safe-area-inset-bottom);
+}

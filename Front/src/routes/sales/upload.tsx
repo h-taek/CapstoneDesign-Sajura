@@ -101,10 +101,10 @@ export default function SalesUploadPage() {
   }
 
   return (
-    <DashboardShell active="home">
+    <DashboardShell active="home" title="매출 올리기" backTo="/">
       <header className="mx-auto max-w-3xl pb-6">
-        <h1 className="text-xl font-semibold text-slate-900">매출 CSV 업로드</h1>
-        <p className="text-sm text-slate-500">
+        <h1 className="hidden text-[1.75rem] font-bold tracking-tight text-ink lg:block">매출 CSV 업로드</h1>
+        <p className="text-sm text-ink-3">
           POS 매출 데이터를 CSV로 변환해 업로드하면 매장 메뉴와 자동 매칭됩니다.
         </p>
       </header>
@@ -112,7 +112,7 @@ export default function SalesUploadPage() {
       <section className="mx-auto max-w-3xl space-y-4">
         {/* 1) 파일 선택 / 드래그앤드롭 */}
         <article className="rounded-xl bg-white p-6 shadow-sm">
-          <h2 className="text-base font-semibold text-slate-900">1. 파일 선택</h2>
+          <h2 className="text-base font-semibold text-ink">1. 파일 선택</h2>
           <div
             role="button"
             tabIndex={0}
@@ -128,22 +128,22 @@ export default function SalesUploadPage() {
             onDrop={onDrop}
             className={`mt-3 flex h-32 cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed text-sm transition ${
               dragging
-                ? "border-slate-500 bg-slate-50"
-                : "border-slate-300 bg-white hover:bg-slate-50"
+                ? "border-ink-3 bg-subtle"
+                : "border-line bg-white hover:bg-subtle"
             }`}
             data-testid="dropzone"
           >
             {file ? (
               <>
-                <p className="font-medium text-slate-900">{file.name}</p>
-                <p className="text-xs text-slate-500">
+                <p className="font-medium text-ink">{file.name}</p>
+                <p className="text-sm text-ink-3">
                   {(file.size / 1024).toFixed(1)} KB · 다시 누르면 변경
                 </p>
               </>
             ) : (
               <>
-                <p className="text-slate-600">파일을 끌어다 놓거나 눌러서 선택</p>
-                <p className="text-xs text-slate-400">최대 50 MB · UTF-8 CSV</p>
+                <p className="text-ink-2">파일을 끌어다 놓거나 눌러서 선택</p>
+                <p className="text-sm text-ink-4">최대 50 MB · UTF-8 CSV</p>
               </>
             )}
           </div>
@@ -164,8 +164,8 @@ export default function SalesUploadPage() {
 
         {/* 2) 컬럼명 매핑 */}
         <article className="rounded-xl bg-white p-6 shadow-sm">
-          <h2 className="text-base font-semibold text-slate-900">2. 컬럼명 매핑</h2>
-          <p className="mt-1 text-xs text-slate-500">
+          <h2 className="text-base font-semibold text-ink">2. 컬럼명 매핑</h2>
+          <p className="mt-1 text-sm text-ink-3">
             업로드할 CSV의 컬럼 헤더와 사주라가 기대하는 항목을 연결합니다. 사주라 기본 템플릿을
             그대로 쓰면 변경할 필요 없습니다.
           </p>
@@ -216,9 +216,9 @@ export default function SalesUploadPage() {
 
         {/* 3) 업로드 실행 */}
         <article className="rounded-xl bg-white p-6 shadow-sm">
-          <h2 className="text-base font-semibold text-slate-900">3. 업로드</h2>
+          <h2 className="text-base font-semibold text-ink">3. 업로드</h2>
 
-          <label className="mt-3 flex items-start gap-2 rounded-md bg-amber-50 p-3 text-sm">
+          <label className="mt-3 flex items-start gap-2 rounded-xl bg-amber-50 p-3 text-sm">
             <input
               type="checkbox"
               checked={autoCreateMenus}
@@ -227,8 +227,8 @@ export default function SalesUploadPage() {
               data-testid="auto-create-menus"
             />
             <span>
-              <span className="font-medium text-slate-900">매장 메뉴에 없는 항목 자동 등록</span>
-              <span className="block text-xs text-slate-600">
+              <span className="font-medium text-ink">매장 메뉴에 없는 항목 자동 등록</span>
+              <span className="block text-sm text-ink-2">
                 체크하면 CSV에 있는 새 메뉴를 카테고리 <strong>"자동등록"</strong>으로 즉시 매장
                 메뉴에 추가합니다. 단가는 CSV의 금액÷수량으로 자동 산정됩니다. 나중에 메뉴 화면에서
                 수정할 수 있습니다.
@@ -245,7 +245,7 @@ export default function SalesUploadPage() {
             </Button>
           </div>
           {mutation.isPending && (
-            <p className="mt-3 text-xs text-slate-500" role="status">
+            <p className="mt-3 text-sm text-ink-3" role="status">
               파일을 처리하고 있습니다. 큰 파일은 1~2분 걸릴 수 있습니다.
             </p>
           )}
@@ -281,7 +281,7 @@ function UploadResult({ result }: { result: CSVUploadResponse }) {
     >
       <div className="flex items-center justify-between">
         <h2 className="text-base font-semibold text-emerald-700">업로드 완료</h2>
-        <Link to="/" className="text-sm font-medium text-[#7a5eff] hover:underline">
+        <Link to="/" className="text-sm font-medium text-brand hover:underline">
           메인 화면으로
         </Link>
       </div>
@@ -303,15 +303,15 @@ function UploadResult({ result }: { result: CSVUploadResponse }) {
         <Metric
           label="이상치 감지"
           value={result.anomaly_count}
-          tone="text-slate-700"
+          tone="text-ink-2"
           hint="* Phase 12에서 실제 탐지 로직 적용 예정"
         />
       </div>
-      <p className="mt-3 text-sm text-slate-600">
+      <p className="mt-3 text-sm text-ink-2">
         재고 차감에 반영된 판매 {result.inventory_deduction.deducted_sales}건
       </p>
       {result.inventory_deduction.needs_check_items.length > 0 && (
-        <p className="mt-2 rounded-md bg-red-50 p-3 text-sm text-red-700" data-testid="needs-check">
+        <p className="mt-2 rounded-xl bg-red-50 p-3 text-sm text-red-700" data-testid="needs-check">
           재고 확인 필요:{" "}
           {result.inventory_deduction.needs_check_items.map((i) => i.name).join(", ")} — 기록된
           재고보다 많이 팔렸습니다.{" "}
@@ -322,16 +322,16 @@ function UploadResult({ result }: { result: CSVUploadResponse }) {
         </p>
       )}
       {result.skipped_reasons.length > 0 && (
-        <details className="mt-4 rounded-md bg-slate-50 p-3">
-          <summary className="cursor-pointer text-sm font-medium text-slate-700">
+        <details className="mt-4 rounded-xl bg-subtle p-3">
+          <summary className="cursor-pointer text-sm font-medium text-ink-2">
             제외된 행 {result.skipped_reasons.length}건 보기
           </summary>
-          <ul className="mt-2 list-disc space-y-1 pl-5 text-xs text-slate-600">
+          <ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-ink-2">
             {result.skipped_reasons.slice(0, 50).map((reason, i) => (
               <li key={i}>{reason}</li>
             ))}
             {result.skipped_reasons.length > 50 && (
-              <li className="text-slate-400">… 그 외 {result.skipped_reasons.length - 50}건</li>
+              <li className="text-ink-4">… 그 외 {result.skipped_reasons.length - 50}건</li>
             )}
           </ul>
         </details>
@@ -352,10 +352,10 @@ function Metric({
   hint?: string;
 }) {
   return (
-    <div className="rounded-md bg-slate-50 p-3">
-      <p className="text-xs text-slate-500">{label}</p>
+    <div className="rounded-xl bg-subtle p-3">
+      <p className="text-sm text-ink-3">{label}</p>
       <p className={`mt-1 text-2xl font-semibold ${tone}`}>{value}</p>
-      {hint && <p className="mt-1 text-[10px] text-slate-400">{hint}</p>}
+      {hint && <p className="mt-1 text-xs text-ink-4">{hint}</p>}
     </div>
   );
 }

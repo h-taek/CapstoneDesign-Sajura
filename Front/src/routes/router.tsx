@@ -4,6 +4,7 @@ import AdminVerificationsPage from "./admin/verifications";
 import ForecastPage from "./forecast";
 import { RequireAdmin, RequireGuest, RequireStage } from "./guards";
 import HomePage from "./home";
+import IntroPage from "./intro";
 import InventoryPage from "./inventory";
 import LoginPage from "./login";
 import OnboardingLayout from "./onboarding/layout";
@@ -24,6 +25,8 @@ import PricingSettingsPage from "./settings/pricing";
 import VerifyBusinessPage from "./verify-business";
 
 export const router = createBrowserRouter([
+  // 서비스 소개 — 로그인 없이 누구나 (PWA 설치 안내 포함)
+  { path: "/intro", element: <IntroPage /> },
   {
     path: "/login",
     element: (

@@ -5,13 +5,24 @@
 // 정직하게 "준비 중"으로 남기고, 나머지는 실제 GET /api/sales/* 데이터로 렌더링한다.
 import { useQuery } from "@tanstack/react-query";
 import { HTTPError } from "ky";
-import { Activity, AlertTriangle, DollarSign, Target, TrendingUp } from "lucide-react";
+import { Activity, AlertTriangle, CalendarDays, Sparkles, Target, TrendingUp } from "lucide-react";
+import { useState } from "react";
 import { getForecastPredict } from "../api/endpoints/forecast";
 import { getSalesSummary, getSalesTrends } from "../api/endpoints/sales";
 import { RevenueBarChart } from "../components/dashboard/revenue-chart";
 import { DashboardShell } from "../components/dashboard/shell";
+import {
+  Card,
+  EmptyState,
+  PageHeader,
+  SectionTitle,
+  Segmented,
+  StatCard,
+} from "../components/ui/card";
+import { formatWon, formatWonShort } from "../lib/format";
+import { cn } from "../lib/utils";
 
-const won = new Intl.NumberFormat("ko-KR", { style: "currency", currency: "KRW" });
+const HORIZON_LABEL: Record<number, string> = { 1: "다음 날", 2: "이틀 뒤", 3: "사흘 뒤" };
 const DOW_LABELS = ["일", "월", "화", "수", "목", "금", "토"];
 
 function formatTargetDate(iso: string): string {
@@ -87,128 +98,141 @@ export default function ForecastPage() {
       ? ((thisMonthPoint.revenue - prevMonthPoint.revenue) / prevMonthPoint.revenue) * 100
       : null;
 
-  const STAT_CARDS = [
-    {
-      label: "예측 정확도",
-      value: "준비 중",
-      icon: Target,
-      sub: "AI 서버 연동 후 제공",
-    },
-    {
-      label: "평균 오차율",
-      value: "준비 중",
-      icon: Activity,
-      sub: "AI 서버 연동 후 제공",
-    },
-    {
-      label: "이번 달 누적매출",
-      value: won.format(summary?.this_month_revenue ?? 0),
-      icon: DollarSign,
-      sub: `판매 ${summary?.this_month_sales_count ?? 0}건`,
-    },
-    {
-      label: "전월 대비",
-      value:
-        momChangePercent === null
-          ? "—"
-          : `${momChangePercent >= 0 ? "+" : ""}${momChangePercent.toFixed(1)}%`,
-      icon: TrendingUp,
-      sub: prevMonthPoint ? `전월 ${won.format(prevMonthPoint.revenue)}` : "전월 데이터 없음",
-    },
-  ];
+  const [chartMonth, setChartMonth] = useState<"this" | "last">("this");
+  const momLabel =
+    momChangePercent === null
+      ? "—"
+      : `${momChangePercent >= 0 ? "+" : ""}${momChangePercent.toFixed(1)}%`;
 
   return (
     <DashboardShell active="forecast">
-      <div className="space-y-8">
-        <header className="space-y-1">
-          <h1 className="text-2xl font-semibold text-[#101828]">
-            매출 그래프 (예측 매출/실제 매출)
-          </h1>
-          <p className="text-sm text-[#99a1af]">
-            AI 수요예측과 실제 업로드된 매출 데이터를 함께 보여줍니다.
-          </p>
-        </header>
+      <div className="space-y-6 lg:space-y-8">
+        <PageHeader
+          title="매출 예측"
+          description="AI가 앞으로 3일 매출을 미리 계산해 드려요. 실제 매출과 함께 비교해 보세요."
+        />
 
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          {STAT_CARDS.map((card) => {
-            const Icon = card.icon;
-            return (
-              <div
-                key={card.label}
-                className="space-y-2 rounded-xl border border-[#d1d5dc] bg-white p-4"
-              >
-                <span className="flex size-9 items-center justify-center rounded-lg bg-[#7a5eff]/10 text-[#7a5eff]">
-                  <Icon className="size-4.5" />
-                </span>
-                <p className="text-xs text-[#99a1af]">{card.label}</p>
-                <p className="text-lg font-semibold text-[#101828]">{card.value}</p>
-                <p className="text-xs text-[#99a1af]">{card.sub}</p>
-              </div>
-            );
-          })}
-        </div>
-
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-          <section className="space-y-3">
-            <h2 className="text-xl font-semibold text-[#364153]">이번 달 매출 그래프</h2>
-            <RevenueBarChart data={thisMonthDaily} xKey="date" variant="area" />
-          </section>
-          <section className="space-y-3">
-            <h2 className="text-xl font-semibold text-[#364153]">지난 달 매출 그래프</h2>
-            <RevenueBarChart data={lastMonthDaily} xKey="date" variant="area" />
-          </section>
-        </div>
-
-        <section className="space-y-3">
-          <h2 className="text-xl font-semibold text-[#364153]">AI 수요예측 (D+1~D+3)</h2>
+        <section className="space-y-4">
+          <SectionTitle
+            title="앞으로 3일 예상 매출"
+            badge={
+              <span className="inline-flex items-center gap-1 rounded-full bg-brand-soft px-2.5 py-0.5 text-sm font-semibold text-brand">
+                <Sparkles className="size-3.5" /> AI
+              </span>
+            }
+          />
           {forecastLoading ? (
-            <p className="text-sm text-[#99a1af]">예측 계산 중…</p>
+            <EmptyState>예측 계산 중…</EmptyState>
           ) : forecastError ? (
-            <div className="flex items-start gap-2 rounded-xl border border-dashed border-[#d1d5dc] bg-white p-6">
-              <AlertTriangle className="mt-0.5 size-4 shrink-0 text-amber-500" />
-              <p className="text-sm text-[#99a1af]">{forecastErrorMessage(forecastError)}</p>
-            </div>
+            <EmptyState>
+              <AlertTriangle className="size-6 text-warn" />
+              {forecastErrorMessage(forecastError)}
+            </EmptyState>
           ) : (
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-              {forecast?.predictions.map((p) => (
-                <div
+            <div className="grid grid-cols-1 gap-3 md:grid-cols-3 lg:gap-4">
+              {forecast?.predictions.map((p, i) => (
+                <Card
                   key={p.target_date}
-                  className="space-y-2 rounded-xl border border-[#d1d5dc] bg-white p-4"
+                  className={cn(
+                    "space-y-3 p-5 lg:p-6",
+                    i === 0 && "border-brand ring-2 ring-brand-soft",
+                  )}
                 >
-                  <div className="flex items-center justify-between">
-                    <p className="text-sm font-medium text-[#364153]">
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="flex items-center gap-1.5 text-base font-bold text-ink">
+                      <CalendarDays className="size-5 text-brand" />
                       {formatTargetDate(p.target_date)}
                     </p>
-                    {p.is_low_confidence && (
-                      <span className="rounded-full bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-600">
+                    {p.is_low_confidence ? (
+                      <span className="rounded-full bg-warn-soft px-2.5 py-0.5 text-sm font-semibold text-warn">
                         신뢰도 낮음
+                      </span>
+                    ) : (
+                      <span
+                        className={cn(
+                          "rounded-full px-2.5 py-0.5 text-sm font-semibold",
+                          i === 0 ? "bg-brand text-white" : "bg-subtle text-ink-3",
+                        )}
+                      >
+                        {HORIZON_LABEL[p.horizon_days] ?? `${p.horizon_days}일 뒤`}
                       </span>
                     )}
                   </div>
-                  <p className="text-xl font-semibold text-[#101828]">
-                    {won.format(p.predicted_sales)}
-                  </p>
-                  <p className="text-xs text-[#99a1af]">
-                    예측 범위 {won.format(p.interval_p10)} ~ {won.format(p.interval_p90)}
-                  </p>
-                  <p className="border-t border-[#eef1f4] pt-2 text-xs text-[#61646b]">
+                  <div>
+                    <p className="tabular text-[2rem] leading-tight font-bold tracking-tight text-ink">
+                      {formatWonShort(p.predicted_sales)}
+                    </p>
+                    <p className="text-sm text-ink-3">
+                      예상 범위 {formatWon(p.interval_p10)} ~ {formatWon(p.interval_p90)}
+                    </p>
+                  </div>
+                  <p className="rounded-xl bg-subtle px-4 py-3 text-[0.95rem] leading-relaxed text-ink-2">
                     {p.explanation.sentence}
                   </p>
-                </div>
+                </Card>
               ))}
             </div>
           )}
         </section>
 
-        <section className="space-y-3">
-          <h2 className="text-xl font-semibold text-[#364153]">오차율 분석 · 영향 요인</h2>
-          <div className="rounded-xl border border-dashed border-[#d1d5dc] bg-white p-6">
-            <p className="text-sm text-[#99a1af]">
-              예측 대비 오차율(정확도 평가)은 과거 예측과 실제 결과를 누적 비교해야 계산되는 지표라,
-              예측 자체는 위에서 실시간 제공되지만 이 부분은 운영 데이터가 쌓인 뒤 제공됩니다.
-            </p>
-          </div>
-        </section>
+        <div className="grid grid-cols-2 gap-3 lg:grid-cols-4 lg:gap-4">
+          <StatCard
+            label="이번 달 누적매출"
+            value={formatWonShort(summary?.this_month_revenue ?? 0)}
+            sub={`판매 ${summary?.this_month_sales_count ?? 0}건`}
+            icon={TrendingUp}
+            tone="brand"
+          />
+          <StatCard
+            label="전월 대비"
+            value={momLabel}
+            sub={
+              prevMonthPoint ? `전월 ${formatWonShort(prevMonthPoint.revenue)}` : "전월 데이터 없음"
+            }
+            icon={CalendarDays}
+          />
+          <StatCard label="예측 정확도" value="준비 중" sub="데이터가 쌓이면 제공" icon={Target} />
+          <StatCard
+            label="평균 오차율"
+            value="준비 중"
+            sub="데이터가 쌓이면 제공"
+            icon={Activity}
+          />
+        </div>
+
+        <Card as="section" className="space-y-4 p-5 lg:p-6">
+          <SectionTitle
+            title="매출 그래프"
+            description={
+              chartMonth === "this" ? `${thisMonth} 일별 매출` : `${lastMonth} 일별 매출`
+            }
+            action={
+              <Segmented
+                label="그래프 기간"
+                value={chartMonth}
+                onChange={setChartMonth}
+                options={[
+                  { value: "this", label: "이번 달" },
+                  { value: "last", label: "지난 달" },
+                ]}
+              />
+            }
+          />
+          <RevenueBarChart
+            data={chartMonth === "this" ? thisMonthDaily : lastMonthDaily}
+            xKey="date"
+            variant="area"
+            height={280}
+          />
+        </Card>
+
+        <Card as="section" className="space-y-2 p-5 lg:p-6">
+          <SectionTitle title="오차율 분석 · 영향 요인" />
+          <p className="text-[0.95rem] leading-relaxed text-ink-3">
+            예측 대비 오차율(정확도 평가)은 과거 예측과 실제 결과를 누적 비교해야 계산되는 지표라,
+            예측 자체는 위에서 실시간 제공되지만 이 부분은 운영 데이터가 쌓인 뒤 제공됩니다.
+          </p>
+        </Card>
       </div>
     </DashboardShell>
   );

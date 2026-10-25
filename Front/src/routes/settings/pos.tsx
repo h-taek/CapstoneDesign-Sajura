@@ -15,7 +15,7 @@ const STATUS_LABEL: Record<PosStatusCode, { ko: string; tone: string }> = {
   CSV_MODE: { ko: "CSV 업로드 모드", tone: "bg-blue-50 text-blue-700 ring-blue-200" },
   CONNECTED: { ko: "정상 연동", tone: "bg-green-50 text-green-700 ring-green-200" },
   ERROR: { ko: "연동 오류", tone: "bg-red-50 text-red-700 ring-red-200" },
-  DISCONNECTED: { ko: "미연동", tone: "bg-slate-50 text-slate-600 ring-slate-200" },
+  DISCONNECTED: { ko: "미연동", tone: "bg-subtle text-ink-2 ring-line" },
 };
 
 // CSV 템플릿 헤더 — 실제 POS 매출 리포트 내보내기 컬럼 형식(점주 제공).
@@ -52,25 +52,25 @@ export default function PosSettingsPage() {
   });
 
   return (
-    <DashboardShell active="settings">
+    <DashboardShell active="settings" title="POS 연동 설정" backTo="/settings">
       <header className="mx-auto max-w-3xl pb-6">
-        <h1 className="text-2xl font-semibold text-[#101828]">POS 연동 설정</h1>
-        <p className="text-base text-[#364153]">
+        <h1 className="hidden text-[1.75rem] font-bold tracking-tight text-ink lg:block">POS 연동 설정</h1>
+        <p className="text-base text-ink-2">
           현재 매장의 POS 연동 상태와 CSV 업로드 도구를 한곳에서 관리합니다.
         </p>
       </header>
 
       <section className="mx-auto max-w-3xl space-y-4">
         <article className="rounded-2xl bg-white p-6 shadow-sm">
-          <h2 className="text-sm font-medium text-[#364153]">현재 연동 상태</h2>
+          <h2 className="text-sm font-medium text-ink-2">현재 연동 상태</h2>
           {isLoading ? (
-            <p className="mt-2 text-[#99a1af]">불러오는 중…</p>
+            <p className="mt-2 text-ink-3">불러오는 중…</p>
           ) : isError ? (
             <div className="mt-2 flex items-center gap-3">
               <p className="text-red-600">상태를 불러오지 못했습니다.</p>
               <Button
                 onClick={() => refetch()}
-                className="h-9 rounded-full border border-[#d1d5dc] bg-white px-4 text-sm text-[#364153] hover:bg-[#f3f4f6]"
+                className="h-9 rounded-full border border-line bg-white px-4 text-sm text-ink-2 hover:bg-subtle"
               >
                 다시 시도
               </Button>
@@ -81,32 +81,32 @@ export default function PosSettingsPage() {
         </article>
 
         <article className="rounded-2xl bg-white p-6 shadow-sm">
-          <h2 className="text-lg font-semibold text-[#101828]">CSV 업로드</h2>
-          <p className="mt-1 text-sm text-[#364153]">
+          <h2 className="text-lg font-semibold text-ink">CSV 업로드</h2>
+          <p className="mt-1 text-sm text-ink-2">
             보유한 POS 매출 데이터를 사주라 양식의 CSV 파일로 변환해 업로드합니다.
           </p>
           <div className="mt-4 flex flex-wrap gap-3">
             <Button
               onClick={downloadTemplate}
-              className="h-11 rounded-full border border-[#d1d5dc] bg-white px-5 text-[#364153] hover:bg-[#f3f4f6]"
+              className="h-11 rounded-full border border-line bg-white px-5 text-ink-2 hover:bg-subtle"
             >
               CSV 템플릿 다운로드
             </Button>
             <Button
               onClick={() => navigate("/sales/upload")}
-              className="h-11 rounded-full bg-[#7a5eff] px-5 font-semibold hover:bg-[#6a4eef]"
+              className="h-11 rounded-full bg-brand px-5 font-semibold hover:bg-brand-strong"
             >
               업로드 화면으로 이동
             </Button>
           </div>
-          <ul className="mt-4 list-disc space-y-1 pl-5 text-xs text-[#99a1af]">
+          <ul className="mt-4 list-disc space-y-1 pl-5 text-sm text-ink-3">
             <li>UTF-8 CSV 형식만 지원합니다 (Excel은 .xlsx 미지원).</li>
             <li>최대 50 MB까지 업로드할 수 있습니다.</li>
             <li>같은 영수증번호가 이미 등록되어 있으면 자동으로 건너뜁니다.</li>
           </ul>
         </article>
 
-        <article className="rounded-2xl bg-[#f3f4f6] p-4 text-xs text-[#99a1af]">
+        <article className="rounded-2xl bg-subtle p-4 text-sm text-ink-3">
           POS API 연동(토스플레이스·키움페이·OKPOS)은 회사별 연동을 준비하고 있습니다.
         </article>
       </section>
@@ -124,11 +124,11 @@ function StatusBadge({ status }: { status: PosStatus }) {
         {ko}
       </span>
       {status.last_synced_at && (
-        <p className="text-xs text-slate-500">
+        <p className="text-sm text-ink-3">
           마지막 동기화: {new Date(status.last_synced_at).toLocaleString("ko-KR")}
         </p>
       )}
-      {status.error_message && <p className="text-xs text-red-600">{status.error_message}</p>}
+      {status.error_message && <p className="text-sm text-red-600">{status.error_message}</p>}
     </div>
   );
 }

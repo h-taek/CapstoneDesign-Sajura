@@ -1,31 +1,43 @@
-// 홈 화면 — 참고 대시보드 목업(실시간 최저가·주요지표·매출그래프·톱콘텐츠·재고현황·매출분석)
-// 레이아웃에 맞춰 재구성. 전부 실제 GET /api/sales/{summary,trends,top-menus} · /api/inventory · /api/menus · /api/prices
-// 데이터로 렌더링하며, 시스템에 없는 값(신규 고객·조회수·추천 공급처)은 가짜로 채우지 않고
-// 실제로 있는 값으로 대체하거나 "—"로 표시한다.
+// 홈 화면 — 리디자인 v2.
+// 맨 위 "오늘 할 일" 한 줄 → 큰 숫자 KPI → 그래프·인기 메뉴 → 재고·시세 순서.
+// 전부 실제 GET /api/sales/{summary,trends,top-menus} · /api/inventory · /api/orders/recommend ·
+// /api/prices 데이터로 렌더링하며,
+// 시스템에 없는 값(신규 고객·추천 공급처 등)은 가짜로 채우지 않는다.
 import { useQuery } from "@tanstack/react-query";
 import {
   AlertTriangle,
+  ArrowRight,
+  CalendarDays,
+  CheckCircle2,
   Minus,
   Receipt,
   TrendingDown,
   TrendingUp,
-  UtensilsCrossed,
   Wallet,
 } from "lucide-react";
 import { useState } from "react";
 import { Link } from "react-router";
 import { listInventory } from "../api/endpoints/inventory";
-import { listMenus } from "../api/endpoints/menus";
+import { getAIRecommend } from "../api/endpoints/orders";
 import { getIngredientPrices } from "../api/endpoints/prices";
 import { getSalesSummary, getSalesTrends, getTopMenus } from "../api/endpoints/sales";
 import { IngredientIcon } from "../components/dashboard/ingredient-icon";
-import { MenuSharePieChart } from "../components/dashboard/menu-share-chart";
 import { RevenueBarChart } from "../components/dashboard/revenue-chart";
 import { DashboardShell } from "../components/dashboard/shell";
 import { AlertBadge } from "../components/inventory/alert-badge";
 import { stockStatus } from "../components/inventory/stock-status";
-
-const won = new Intl.NumberFormat("ko-KR", { style: "currency", currency: "KRW" });
+import { InstallBanner } from "../components/pwa/install-banner";
+import {
+  Card,
+  EmptyState,
+  MoreLink,
+  PageHeader,
+  SectionTitle,
+  Segmented,
+  StatCard,
+} from "../components/ui/card";
+import { formatQty, formatWon, formatWonShort } from "../lib/format";
+import { cn } from "../lib/utils";
 
 function previousPrice(price: number, changePercent: number): number {
   if (changePercent === 0) return price;
@@ -81,10 +93,12 @@ export default function HomePage() {
     queryFn: listInventory,
     staleTime: 30_000,
   });
-  const { data: menus } = useQuery({
-    queryKey: ["menus-all"],
-    queryFn: () => listMenus(1),
+  // 오늘 할 일 — AI 발주 추천 중 수량이 0보다 큰 재료 수 (예측이 없으면 재고 경고로 대신 안내)
+  const { data: aiRecommend } = useQuery({
+    queryKey: ["ai-orders-recommend"],
+    queryFn: getAIRecommend,
     staleTime: 60_000,
+    retry: false,
   });
   const { data: monthlyTrend } = useQuery({
     queryKey: ["sales-trends", "36-months", refDay.getTime()],
@@ -115,275 +129,304 @@ export default function HomePage() {
   const inventoryPreview = [...inventory]
     .sort((a, b) => Number(alerting(b)) - Number(alerting(a)))
     .slice(0, 5);
+  const orderCount = aiRecommend?.recommendations.filter((r) => r.recommended_quantity > 0).length;
   const hasSalesData = (summary?.total_sales_count ?? 0) > 0;
-
-  const STAT_CARDS = [
-    {
-      label: "오늘 매출",
-      value: won.format(summary?.today_revenue ?? 0),
-      icon: Wallet,
-    },
-    {
-      label: "오늘 판매건수",
-      value: `${summary?.today_sales_count ?? 0}건`,
-      icon: Receipt,
-    },
-    {
-      label: "재고 경고 품목",
-      value: `${lowStockCount}개`,
-      icon: AlertTriangle,
-    },
-    {
-      label: "등록 메뉴 수",
-      value: `${menus?.total ?? 0}개`,
-      icon: UtensilsCrossed,
-    },
-  ];
+  const lastSale = summary?.last_sale_at ? new Date(summary.last_sale_at) : null;
+  const topMenuMax = Math.max(1, ...topMenus.map((m) => m.revenue));
 
   return (
     <DashboardShell active="home">
-      <div className="space-y-6">
-        <nav className="flex flex-wrap gap-3">
-          <Link
-            to="/settings/pos"
-            className="rounded-full bg-[#7a5eff] px-5 py-2.5 text-sm font-semibold text-white hover:bg-[#6a4eef]"
-          >
-            POS 연동 설정
-          </Link>
-          <Link
-            to="/sales/upload"
-            className="rounded-full border border-[#d1d5dc] bg-white px-5 py-2.5 text-sm font-medium text-[#364153] hover:bg-[#f3f4f6]"
-          >
-            매출 CSV 업로드
-          </Link>
-        </nav>
+      <div className="space-y-6 lg:space-y-8">
+        <PageHeader
+          title="오늘의 매장 현황"
+          description={
+            lastSale ? (
+              <span className="inline-flex items-center gap-1.5">
+                <CalendarDays className="size-4" />
+                마지막 판매 {lastSale.toLocaleDateString("ko-KR")} 기준
+              </span>
+            ) : (
+              "매출을 올리면 오늘의 현황이 채워집니다."
+            )
+          }
+          actions={
+            <>
+              <Link
+                to="/settings/pos"
+                className="inline-flex h-11 items-center rounded-xl border border-line bg-white px-4 text-[0.95rem] font-semibold text-ink-2 hover:bg-subtle"
+              >
+                POS 연동 설정
+              </Link>
+              <Link
+                to="/sales/upload"
+                className="inline-flex h-11 items-center rounded-xl bg-brand px-4 text-[0.95rem] font-semibold text-white hover:bg-brand-strong lg:hidden"
+              >
+                매출 CSV 업로드
+              </Link>
+            </>
+          }
+        />
 
-        <div className="grid grid-cols-1 gap-6 xl:grid-cols-[1fr_380px]">
-          <section className="space-y-3">
-            <h2 className="text-xl font-semibold text-[#364153]">실시간 최저가 추천</h2>
-            <div className="overflow-hidden rounded-xl border border-[#d1d5dc] bg-white">
-              <table className="w-full text-left text-sm">
-                <thead className="bg-[#fafafa] text-[#61646b]">
-                  <tr>
-                    <th className="px-4 py-3 font-medium">상품명</th>
-                    <th className="px-4 py-3 font-medium">현재가</th>
-                    <th className="px-4 py-3 font-medium">직전가</th>
-                    <th className="px-4 py-3 font-medium">변동률</th>
-                    <th className="px-4 py-3 font-medium">추천 공급처</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {ingredientPrices.map((item) => (
-                    <tr key={item.item_name} className="border-t border-[#eef1f4]">
-                      <td className="px-4 py-3 font-medium text-[#364153]">
-                        <span className="flex items-center gap-2">
-                          <IngredientIcon itemName={item.item_name} />
-                          {item.item_name} ({item.unit})
-                        </span>
-                      </td>
-                      <td className="px-4 py-3 text-[#364153]">{won.format(item.price)}</td>
-                      <td className="px-4 py-3 text-[#99a1af]">
-                        {won.format(previousPrice(item.price, item.change_percent))}
-                      </td>
-                      <td
-                        className={`px-4 py-3 ${
-                          item.direction === "UP"
-                            ? "text-red-600"
-                            : item.direction === "DOWN"
-                              ? "text-blue-600"
-                              : "text-[#99a1af]"
-                        }`}
-                      >
-                        <span className="flex items-center gap-0.5">
-                          {item.direction === "UP" ? (
-                            <TrendingUp className="size-3.5" />
-                          ) : item.direction === "DOWN" ? (
-                            <TrendingDown className="size-3.5" />
-                          ) : (
-                            <Minus className="size-3.5" />
-                          )}
-                          {Math.abs(item.change_percent).toFixed(1)}%
-                        </span>
-                      </td>
-                      <td className="px-4 py-3 text-[#99a1af]">—</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-            <p className="text-xs text-[#99a1af]">
-              * KAMIS(한국농수산식품유통공사) 농산물 가격정보 —{" "}
-              {ingredientPrices[0] ? "샘플 데이터(실 API 키 연동 전)" : "불러오는 중"}
-            </p>
-          </section>
+        <TodoBanner orderCount={orderCount} alertCount={lowStockCount} />
 
-          <section className="space-y-3">
-            <h2 className="text-xl font-semibold text-[#364153]">주요지표</h2>
-            <div className="grid grid-cols-2 gap-3">
-              {STAT_CARDS.map((card) => {
-                const Icon = card.icon;
-                return (
-                  <div
-                    key={card.label}
-                    className="space-y-2 rounded-xl border border-[#d1d5dc] bg-white p-4"
-                  >
-                    <span className="flex size-9 items-center justify-center rounded-lg bg-[#7a5eff]/10 text-[#7a5eff]">
-                      <Icon className="size-4.5" />
-                    </span>
-                    <p className="text-xs text-[#99a1af]">{card.label}</p>
-                    <p className="text-lg font-semibold text-[#101828]">{card.value}</p>
-                  </div>
-                );
-              })}
-            </div>
-          </section>
+        <InstallBanner />
+
+        <div className="grid grid-cols-2 gap-3 lg:grid-cols-4 lg:gap-4">
+          <StatCard
+            label="오늘 매출"
+            value={formatWonShort(summary?.today_revenue ?? 0)}
+            sub={formatWon(summary?.today_revenue ?? 0)}
+            icon={Wallet}
+            tone="brand"
+          />
+          <StatCard
+            label="오늘 판매건수"
+            value={`${summary?.today_sales_count ?? 0}건`}
+            icon={Receipt}
+          />
+          <StatCard
+            label="이번 달 누적"
+            value={formatWonShort(summary?.this_month_revenue ?? 0)}
+            sub={`판매 ${summary?.this_month_sales_count ?? 0}건`}
+            icon={CalendarDays}
+          />
+          <StatCard
+            label="재고 경고 품목"
+            value={`${lowStockCount}개`}
+            icon={AlertTriangle}
+            tone={lowStockCount > 0 ? "warn" : "default"}
+          />
         </div>
 
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-          <section className="space-y-3">
-            <h2 className="text-xl font-semibold text-[#364153]">이번 달 매출 그래프</h2>
+          <Card as="section" className="space-y-4 p-5 lg:col-span-2 lg:p-6">
+            <SectionTitle title="이번 달 매출 그래프" description="주차별 매출" />
             <RevenueBarChart data={weekly} xKey="week_label" variant="bar" />
-          </section>
-          <section className="space-y-3">
-            <h2 className="text-xl font-semibold text-[#364153]">일간매출 추이 (최근 7일)</h2>
-            <RevenueBarChart data={daily} xKey="date" variant="area" />
-          </section>
-          <section className="space-y-3">
-            <h2 className="text-xl font-semibold text-[#364153]">인기 메뉴</h2>
+          </Card>
+
+          <Card as="section" className="space-y-4 p-5 lg:p-6">
+            <SectionTitle title="인기 메뉴" description="매출 상위 4개" />
             {topMenus.length === 0 ? (
-              <div className="flex h-[220px] items-center justify-center rounded-xl border border-dashed border-[#d1d5dc] bg-white text-sm text-[#99a1af]">
-                판매 데이터가 연결되면 표시됩니다.
-              </div>
+              <EmptyState>판매 데이터가 연결되면 표시됩니다.</EmptyState>
             ) : (
-              <div className="space-y-2 rounded-xl border border-[#d1d5dc] bg-white p-3">
+              <ol className="space-y-4">
                 {topMenus.map((m, i) => (
-                  <div key={m.menu_name} className="flex items-center gap-3 px-1 py-1.5">
-                    <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-[#7a5eff]/10 text-xs font-semibold text-[#7a5eff]">
-                      {i + 1}
-                    </span>
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate text-sm font-medium text-[#364153]">{m.menu_name}</p>
-                      <p className="text-xs text-[#99a1af]">
-                        판매 {m.quantity}개 · {won.format(m.revenue)}
+                  <li key={m.menu_name} className="space-y-1.5">
+                    <div className="flex items-center gap-3">
+                      <span
+                        className={cn(
+                          "flex size-7 shrink-0 items-center justify-center rounded-full text-sm font-bold",
+                          i === 0 ? "bg-brand text-white" : "bg-brand-soft text-brand",
+                        )}
+                      >
+                        {i + 1}
+                      </span>
+                      <p className="min-w-0 flex-1 truncate text-base font-semibold text-ink">
+                        {m.menu_name}
+                      </p>
+                      <p className="tabular text-sm font-semibold text-ink-2">
+                        {formatWon(m.revenue)}
                       </p>
                     </div>
-                  </div>
+                    <div className="ml-10 flex items-center gap-2">
+                      <div className="h-2 flex-1 overflow-hidden rounded-full bg-subtle">
+                        <div
+                          className="h-full rounded-full bg-brand"
+                          style={{ width: `${(m.revenue / topMenuMax) * 100}%` }}
+                        />
+                      </div>
+                      <span className="w-14 text-right text-sm text-ink-3">{m.quantity}개</span>
+                    </div>
+                  </li>
                 ))}
-              </div>
+              </ol>
             )}
-          </section>
+          </Card>
         </div>
 
-        <div className="grid grid-cols-1 gap-6 xl:grid-cols-[1fr_380px]">
-          <section className="space-y-3">
-            <div className="flex items-center justify-between">
-              <h2 className="text-xl font-semibold text-[#364153]">재고 현황</h2>
-              <Link to="/inventory" className="text-sm font-medium text-[#7a5eff] hover:underline">
-                전체 보기
-              </Link>
-            </div>
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+          <Card as="section" className="space-y-4 p-5 lg:p-6">
+            <SectionTitle
+              title="재고 현황"
+              description="부족한 재료가 위에 보여요"
+              action={<MoreLink to="/inventory" />}
+            />
             {inventoryPreview.length === 0 ? (
-              <div className="flex h-[120px] items-center justify-center rounded-xl border border-dashed border-[#d1d5dc] bg-white text-sm text-[#99a1af]">
-                등록된 재료가 없습니다.
-              </div>
+              <EmptyState>등록된 재료가 없습니다.</EmptyState>
             ) : (
-              <div className="overflow-hidden rounded-xl border border-[#d1d5dc] bg-white">
-                <table className="w-full text-left text-sm">
-                  <thead className="bg-[#fafafa] text-[#61646b]">
-                    <tr>
-                      <th className="px-4 py-3 font-medium">재료</th>
-                      <th className="px-4 py-3 font-medium">현재 수량</th>
-                      <th className="px-4 py-3 font-medium">재주문 임계값</th>
-                      <th className="px-4 py-3 font-medium">상태</th>
-                      <th className="px-4 py-3 font-medium">최근 수정일</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {inventoryPreview.map((item) => (
-                      <tr key={item.item_id} className="border-t border-[#eef1f4]">
-                        <td className="px-4 py-3 font-medium text-[#364153]">{item.name}</td>
-                        <td className="px-4 py-3 text-[#364153]">
-                          {Number(item.total_quantity).toLocaleString("ko-KR", {
-                            maximumFractionDigits: 3,
-                          })}{" "}
-                          {item.unit}
-                        </td>
-                        <td className="px-4 py-3 text-[#364153]">
-                          {item.low_stock_threshold} {item.unit}
-                        </td>
-                        <td className="px-4 py-3">
-                          <AlertBadge status={stockStatus(item, today)} />
-                        </td>
-                        <td className="px-4 py-3 text-[#99a1af]">
-                          {new Date(item.updated_at).toLocaleDateString("ko-KR")}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </section>
-
-          <section className="space-y-3">
-            <h2 className="text-xl font-semibold text-[#364153]">매출분석</h2>
-            <div className="space-y-3 rounded-xl border border-[#d1d5dc] bg-white p-4">
-              {hasSalesData ? (
-                <>
-                  <div>
-                    <div className="flex items-center justify-between">
-                      <p className="text-xs text-[#99a1af]">누적 매출</p>
-                      <div className="flex gap-1 rounded-full bg-[#f3f4f6] p-0.5 text-xs">
-                        <button
-                          type="button"
-                          onClick={() => setRevenuePeriod("month")}
-                          className={`rounded-full px-2.5 py-1 font-medium transition-colors ${
-                            revenuePeriod === "month"
-                              ? "bg-white text-[#7a5eff] shadow-sm"
-                              : "text-[#99a1af]"
-                          }`}
-                        >
-                          월별
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setRevenuePeriod("year")}
-                          className={`rounded-full px-2.5 py-1 font-medium transition-colors ${
-                            revenuePeriod === "year"
-                              ? "bg-white text-[#7a5eff] shadow-sm"
-                              : "text-[#99a1af]"
-                          }`}
-                        >
-                          연도별
-                        </button>
-                      </div>
+              <ul className="divide-y divide-line-soft">
+                {inventoryPreview.map((item) => (
+                  <li key={item.item_id} className="flex items-center gap-3 py-3">
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-base font-semibold text-ink">{item.name}</p>
+                      <p className="text-sm text-ink-3">
+                        기준 {formatQty(item.low_stock_threshold)}
+                        {item.unit}
+                        <span className="hidden sm:inline">
+                          {" "}
+                          · {new Date(item.updated_at).toLocaleDateString("ko-KR")} 수정
+                        </span>
+                      </p>
                     </div>
-                    <p className="text-lg font-semibold text-[#101828]">
-                      {won.format(summary?.total_revenue ?? 0)}
+                    <p className="tabular text-base font-bold text-ink">
+                      {formatQty(item.total_quantity)}
+                      <span className="ml-0.5 text-sm font-medium text-ink-3">{item.unit}</span>
                     </p>
-                    <div className="mt-2">
-                      <RevenueBarChart
-                        data={revenuePeriod === "month" ? monthlyChartData : yearlyChartData}
-                        xKey="label"
-                        variant="bar"
-                      />
-                    </div>
-                  </div>
-                  <div className="border-t border-[#eef1f4] pt-3">
-                    <p className="mb-2 text-xs text-[#99a1af]">메뉴별 매출 비중</p>
-                    <MenuSharePieChart
-                      topMenus={topMenus}
-                      totalRevenue={summary?.total_revenue ?? 0}
-                    />
-                  </div>
-                </>
-              ) : (
-                <p className="text-sm text-[#99a1af]">매출 데이터가 연결되면 표시됩니다.</p>
-              )}
-            </div>
-          </section>
+                    <AlertBadge status={stockStatus(item, today)} />
+                  </li>
+                ))}
+              </ul>
+            )}
+          </Card>
+
+          <Card as="section" className="hidden space-y-4 p-5 lg:block lg:p-6">
+            <SectionTitle title="일간 매출 추이" description="최근 7일" />
+            <RevenueBarChart data={daily} xKey="date" variant="area" />
+          </Card>
+        </div>
+
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+          <Card as="section" className="space-y-4 p-5 lg:p-6">
+            <SectionTitle
+              title="식자재 시세"
+              description={
+                ingredientPrices[0]
+                  ? "KAMIS 농산물 가격정보 · 샘플 데이터(실 API 키 연동 전)"
+                  : "KAMIS 농산물 가격정보 · 불러오는 중"
+              }
+            />
+            {ingredientPrices.length === 0 ? (
+              <EmptyState>시세 정보를 불러오는 중입니다.</EmptyState>
+            ) : (
+              <ul className="divide-y divide-line-soft">
+                {ingredientPrices.map((item) => {
+                  const up = item.direction === "UP";
+                  const down = item.direction === "DOWN";
+                  return (
+                    <li key={item.item_name} className="flex items-center gap-3 py-3">
+                      <IngredientIcon itemName={item.item_name} />
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-base font-semibold text-ink">
+                          {item.item_name}
+                          <span className="ml-1 text-sm font-normal text-ink-3">({item.unit})</span>
+                        </p>
+                        <p className="text-sm text-ink-3">
+                          직전 {formatWon(previousPrice(item.price, item.change_percent))}
+                        </p>
+                      </div>
+                      <div className="text-right">
+                        <p className="tabular text-base font-bold text-ink">
+                          {formatWon(item.price)}
+                        </p>
+                        <p
+                          className={cn(
+                            "inline-flex items-center gap-0.5 text-sm font-semibold",
+                            up ? "text-up" : down ? "text-down" : "text-ink-3",
+                          )}
+                        >
+                          {up ? (
+                            <TrendingUp className="size-4" />
+                          ) : down ? (
+                            <TrendingDown className="size-4" />
+                          ) : (
+                            <Minus className="size-4" />
+                          )}
+                          {Math.abs(item.change_percent).toFixed(1)}%
+                        </p>
+                      </div>
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+          </Card>
+
+          <Card as="section" className="hidden space-y-4 p-5 lg:block lg:p-6">
+            <SectionTitle
+              title="누적 매출"
+              action={
+                hasSalesData ? (
+                  <Segmented
+                    label="누적 매출 기간"
+                    value={revenuePeriod}
+                    onChange={setRevenuePeriod}
+                    options={[
+                      { value: "month", label: "월별" },
+                      { value: "year", label: "연도별" },
+                    ]}
+                  />
+                ) : null
+              }
+            />
+            {hasSalesData ? (
+              <>
+                <p className="tabular text-[1.65rem] font-bold tracking-tight text-ink">
+                  {formatWon(summary?.total_revenue ?? 0)}
+                </p>
+                <RevenueBarChart
+                  data={revenuePeriod === "month" ? monthlyChartData : yearlyChartData}
+                  xKey="label"
+                  variant="bar"
+                  height={220}
+                />
+              </>
+            ) : (
+              <EmptyState>매출 데이터가 연결되면 표시됩니다.</EmptyState>
+            )}
+          </Card>
         </div>
       </div>
     </DashboardShell>
+  );
+}
+
+/** 오늘 할 일 — 화면 맨 위에서 다음 행동 하나만 크게 알려준다. */
+function TodoBanner({
+  orderCount,
+  alertCount,
+}: {
+  orderCount: number | undefined;
+  alertCount: number;
+}) {
+  const todo =
+    orderCount !== undefined && orderCount > 0
+      ? { to: "/orders", text: `발주가 필요한 재료가 ${orderCount}개 있어요`, cta: "발주하러 가기" }
+      : alertCount > 0
+        ? {
+            to: "/inventory",
+            text: `확인이 필요한 재료가 ${alertCount}개 있어요`,
+            cta: "재고 보러 가기",
+          }
+        : null;
+  if (todo === null) {
+    return (
+      <div className="flex items-center gap-3 rounded-2xl border border-line bg-white p-5 shadow-card">
+        <span className="flex size-11 shrink-0 items-center justify-center rounded-full bg-ok-soft text-ok">
+          <CheckCircle2 className="size-6" />
+        </span>
+        <p className="text-base font-semibold text-ink lg:text-lg">
+          오늘은 급하게 발주할 재료가 없어요.
+        </p>
+      </div>
+    );
+  }
+  return (
+    <Link
+      to={todo.to}
+      className="group flex flex-col gap-4 rounded-2xl bg-brand p-5 text-white shadow-pop sm:flex-row sm:items-center lg:p-6"
+    >
+      <div className="flex flex-1 items-center gap-4">
+        <span className="flex size-12 shrink-0 items-center justify-center rounded-full bg-white/15">
+          <AlertTriangle className="size-6" />
+        </span>
+        <div>
+          <p className="text-sm font-medium text-white/80">오늘 할 일</p>
+          <p className="text-lg font-bold lg:text-xl">{todo.text}</p>
+        </div>
+      </div>
+      <span className="inline-flex h-12 items-center justify-center gap-1.5 rounded-xl bg-white px-5 text-base font-bold text-brand-strong group-hover:bg-brand-soft">
+        {todo.cta} <ArrowRight className="size-5" />
+      </span>
+    </Link>
   );
 }

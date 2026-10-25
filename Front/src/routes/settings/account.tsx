@@ -108,22 +108,22 @@ export default function AccountSettingsPage() {
     withdrawConfirmed && (!isLocal || withdrawPassword.length > 0) && !withdrawMutation.isPending;
 
   return (
-    <DashboardShell active="settings">
+    <DashboardShell active="settings" title="계정 정보" backTo="/settings">
       <div className="max-w-2xl space-y-6">
         <header className="space-y-1">
-          <h1 className="text-2xl font-semibold text-[#101828]">계정 정보</h1>
-          <p className="text-sm text-[#99a1af]">{user?.email}</p>
+          <h1 className="hidden text-[1.75rem] font-bold tracking-tight text-ink lg:block">계정 정보</h1>
+          <p className="text-sm text-ink-3">{user?.email}</p>
         </header>
 
         <form
           onSubmit={profileForm.handleSubmit((v) => profileMutation.mutate(v))}
-          className="space-y-4 rounded-xl border border-[#d1d5dc] bg-white p-6"
+          className="space-y-4 rounded-xl border border-line bg-white p-6"
         >
-          <h2 className="text-lg font-semibold text-[#101828]">내 정보</h2>
+          <h2 className="text-lg font-semibold text-ink">내 정보</h2>
           <FormField label="이름" htmlFor="name" error={profileForm.formState.errors.name?.message}>
             <Input
               id="name"
-              className="h-11 rounded-xl border-[#d1d5dc] bg-[#f3f4f6]"
+              className="h-11 rounded-xl border-line bg-subtle"
               {...profileForm.register("name")}
             />
           </FormField>
@@ -134,7 +134,7 @@ export default function AccountSettingsPage() {
           >
             <Input
               id="store_name"
-              className="h-11 rounded-xl border-[#d1d5dc] bg-[#f3f4f6]"
+              className="h-11 rounded-xl border-line bg-subtle"
               {...profileForm.register("store_name")}
             />
           </FormField>
@@ -142,7 +142,7 @@ export default function AccountSettingsPage() {
             <Button
               type="submit"
               disabled={profileMutation.isPending}
-              className="h-10 rounded-full bg-[#7a5eff] px-6 font-semibold hover:bg-[#6a4eef]"
+              className="h-10 rounded-full bg-brand px-6 font-semibold hover:bg-brand-strong"
             >
               {profileMutation.isPending ? "저장 중…" : "저장"}
             </Button>
@@ -152,27 +152,27 @@ export default function AccountSettingsPage() {
 
         <form
           onSubmit={storeForm.handleSubmit((v) => storeMutation.mutate(v))}
-          className="space-y-4 rounded-xl border border-[#d1d5dc] bg-white p-6"
+          className="space-y-4 rounded-xl border border-line bg-white p-6"
         >
-          <h2 className="text-lg font-semibold text-[#101828]">매장 정보</h2>
+          <h2 className="text-lg font-semibold text-ink">매장 정보</h2>
           <FormField label="업종" htmlFor="business_type">
             <Input
               id="business_type"
-              className="h-11 rounded-xl border-[#d1d5dc] bg-[#f3f4f6]"
+              className="h-11 rounded-xl border-line bg-subtle"
               {...storeForm.register("business_type")}
             />
           </FormField>
           <FormField label="주소" htmlFor="address">
             <Input
               id="address"
-              className="h-11 rounded-xl border-[#d1d5dc] bg-[#f3f4f6]"
+              className="h-11 rounded-xl border-line bg-subtle"
               {...storeForm.register("address")}
             />
           </FormField>
           <FormField label="전화번호" htmlFor="phone">
             <Input
               id="phone"
-              className="h-11 rounded-xl border-[#d1d5dc] bg-[#f3f4f6]"
+              className="h-11 rounded-xl border-line bg-subtle"
               {...storeForm.register("phone")}
             />
           </FormField>
@@ -180,7 +180,7 @@ export default function AccountSettingsPage() {
             <Button
               type="submit"
               disabled={storeMutation.isPending}
-              className="h-10 rounded-full bg-[#7a5eff] px-6 font-semibold hover:bg-[#6a4eef]"
+              className="h-10 rounded-full bg-brand px-6 font-semibold hover:bg-brand-strong"
             >
               {storeMutation.isPending ? "저장 중…" : "저장"}
             </Button>
@@ -190,9 +190,9 @@ export default function AccountSettingsPage() {
 
         <form
           onSubmit={passwordForm.handleSubmit((v) => passwordMutation.mutate(v))}
-          className="space-y-4 rounded-xl border border-[#d1d5dc] bg-white p-6"
+          className="space-y-4 rounded-xl border border-line bg-white p-6"
         >
-          <h2 className="text-lg font-semibold text-[#101828]">비밀번호 변경</h2>
+          <h2 className="text-lg font-semibold text-ink">비밀번호 변경</h2>
           <FormField
             label="현재 비밀번호"
             htmlFor="current_password"
@@ -202,7 +202,7 @@ export default function AccountSettingsPage() {
               id="current_password"
               type="password"
               autoComplete="current-password"
-              className="h-11 rounded-xl border-[#d1d5dc] bg-[#f3f4f6]"
+              className="h-11 rounded-xl border-line bg-subtle"
               {...passwordForm.register("current_password")}
             />
           </FormField>
@@ -215,7 +215,7 @@ export default function AccountSettingsPage() {
               id="new_password"
               type="password"
               autoComplete="new-password"
-              className="h-11 rounded-xl border-[#d1d5dc] bg-[#f3f4f6]"
+              className="h-11 rounded-xl border-line bg-subtle"
               {...passwordForm.register("new_password")}
             />
           </FormField>
@@ -228,7 +228,7 @@ export default function AccountSettingsPage() {
               id="new_password_confirm"
               type="password"
               autoComplete="new-password"
-              className="h-11 rounded-xl border-[#d1d5dc] bg-[#f3f4f6]"
+              className="h-11 rounded-xl border-line bg-subtle"
               {...passwordForm.register("new_password_confirm")}
             />
           </FormField>
@@ -242,7 +242,7 @@ export default function AccountSettingsPage() {
             <Button
               type="submit"
               disabled={passwordMutation.isPending}
-              className="h-10 rounded-full bg-[#7a5eff] px-6 font-semibold hover:bg-[#6a4eef]"
+              className="h-10 rounded-full bg-brand px-6 font-semibold hover:bg-brand-strong"
             >
               {passwordMutation.isPending ? "변경 중…" : "비밀번호 변경"}
             </Button>
@@ -250,8 +250,8 @@ export default function AccountSettingsPage() {
         </form>
 
         <section className="space-y-4 rounded-xl border border-red-200 bg-white p-6">
-          <h2 className="text-lg font-semibold text-[#101828]">회원 탈퇴</h2>
-          <p className="text-sm text-[#61646b]">
+          <h2 className="text-lg font-semibold text-ink">회원 탈퇴</h2>
+          <p className="text-sm text-ink-3">
             탈퇴하면 즉시 로그인할 수 없고 되돌릴 수 없습니다. 30일 뒤 매장·판매·재고·발주 데이터와
             사업자등록증이 모두 삭제되며, 그 전까지 같은 계정으로 다시 가입할 수 없습니다.
           </p>
@@ -263,11 +263,11 @@ export default function AccountSettingsPage() {
                 autoComplete="current-password"
                 value={withdrawPassword}
                 onChange={(e) => setWithdrawPassword(e.target.value)}
-                className="h-11 rounded-xl border-[#d1d5dc] bg-[#f3f4f6]"
+                className="h-11 rounded-xl border-line bg-subtle"
               />
             </FormField>
           )}
-          <label className="flex items-center gap-2 text-sm text-[#364153]">
+          <label className="flex items-center gap-2 text-sm text-ink-2">
             <input
               type="checkbox"
               checked={withdrawConfirmed}

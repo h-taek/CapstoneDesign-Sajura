@@ -60,7 +60,7 @@ export default function ConfirmStep() {
     <div className="space-y-4">
       <section>
         <h2 className="font-medium">매장</h2>
-        <dl className="mt-1 grid grid-cols-2 text-sm text-slate-700">
+        <dl className="mt-1 grid grid-cols-2 text-sm text-ink-2">
           <dt>매장명</dt><dd>{store.store_name}</dd>
           <dt>업종</dt><dd>{store.business_type}</dd>
           <dt>규모</dt><dd>{STORE_SIZE_LABEL[store.store_size]}</dd>
@@ -71,11 +71,11 @@ export default function ConfirmStep() {
       </section>
       <section>
         <h2 className="font-medium">POS</h2>
-        <p className="text-sm text-slate-700">{POS_TYPE_LABEL[pos.pos_type]}</p>
+        <p className="text-sm text-ink-2">{POS_TYPE_LABEL[pos.pos_type]}</p>
       </section>
       <section>
         <h2 className="font-medium">메뉴 ({menus.length}개)</h2>
-        <ul className="text-sm text-slate-700">
+        <ul className="text-sm text-ink-2">
           {menus.map((m) => (
             <li key={`${m.name}-${m.category}`}>
               {m.name} · {m.category} · {m.price.toLocaleString()}원
