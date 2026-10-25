@@ -71,19 +71,20 @@ def create_app() -> FastAPI:
         title=settings.APP_NAME, default_response_class=ORJSONResponse, lifespan=_lifespan
     )
 
+    # Starlette는 나중에 등록한 미들웨어가 바깥 — 03_be.md §13.1 순서의 역순으로 등록한다
     # OAuth state 보관용 서명 쿠키 (app/api/oauth.py, Authlib)
     app.add_middleware(
         SessionMiddleware, secret_key=settings.SESSION_SECRET, session_cookie="oauth_session",
         max_age=600, same_site="lax", https_only=settings.APP_ENV != "development",
     )
+    if settings.SENTRY_DSN:
+        app.add_middleware(SentryAsgiMiddleware)
+    app.add_middleware(CorrelationIdMiddleware)
+    app.add_middleware(TrustedHostMiddleware, allowed_hosts=settings.trusted_hosts_list)
     app.add_middleware(
         CORSMiddleware, allow_origins=settings.cors_origins_list,
         allow_credentials=True, allow_methods=["*"], allow_headers=["*"],
     )
-    app.add_middleware(TrustedHostMiddleware, allowed_hosts=settings.trusted_hosts_list)
-    app.add_middleware(CorrelationIdMiddleware)
-    if settings.SENTRY_DSN:
-        app.add_middleware(SentryAsgiMiddleware)
 
     app.include_router(health_router)
     app.include_router(auth_router)
