@@ -31,11 +31,11 @@ async def _store_id(session, user_id: str) -> str:
     return (await StoreService(session).get_store(user_id)).store_id
 
 
-def _menu_to_dto(m) -> MenuResponse:
+def _menu_to_dto(m, *, has_recipe: bool) -> MenuResponse:
     return MenuResponse(
         menu_id=m.menu_id, name=m.name, category=m.category, price=m.price,
         is_active=bool(m.is_active), use_inventory_deduction=bool(m.use_inventory_deduction),
-        is_deleted=bool(m.is_deleted), deleted_at=m.deleted_at,
+        has_recipe=has_recipe, is_deleted=bool(m.is_deleted), deleted_at=m.deleted_at,
         created_at=m.created_at, updated_at=m.updated_at,
     )
 
@@ -48,15 +48,16 @@ async def list_menus(
     category: str | None = None,
 ) -> MenuListResponse:
     store_id = await _store_id(session, current.user_id)
-    rows, total = await MenuService(session).list_menus(
-        store_id=store_id, page=page, size=size, category=category
-    )
+    svc = MenuService(session)
+    rows, total = await svc.list_menus(store_id=store_id, page=page, size=size, category=category)
+    with_recipe = await svc.menu_ids_with_recipe([m.menu_id for m in rows])
     return MenuListResponse(
         items=[
             MenuListItem(
                 menu_id=m.menu_id, name=m.name, category=m.category, price=m.price,
                 is_active=bool(m.is_active),
                 use_inventory_deduction=bool(m.use_inventory_deduction),
+                has_recipe=m.menu_id in with_recipe,
                 is_deleted=bool(m.is_deleted),
             ) for m in rows
         ],
@@ -75,7 +76,7 @@ async def create_menu(
         price=payload.price, is_active=payload.is_active,
         use_inventory_deduction=payload.use_inventory_deduction,
     )
-    return _menu_to_dto(menu)
+    return _menu_to_dto(menu, has_recipe=False)
 
 
 @router.post("/bulk", response_model=BulkMenuResponse, status_code=status.HTTP_201_CREATED)
@@ -92,7 +93,9 @@ async def create_menus_bulk(
 @router.get("/{menu_id}", response_model=MenuResponse)
 async def get_menu(menu_id: str, session: SessionDep, current: CurrentUserDep) -> MenuResponse:
     store_id = await _store_id(session, current.user_id)
-    return _menu_to_dto(await MenuService(session).get_menu(store_id=store_id, menu_id=menu_id))
+    svc = MenuService(session)
+    menu = await svc.get_menu(store_id=store_id, menu_id=menu_id)
+    return _menu_to_dto(menu, has_recipe=bool(await svc.menu_ids_with_recipe([menu_id])))
 
 
 @router.patch("/{menu_id}", response_model=MenuResponse)
@@ -100,11 +103,12 @@ async def update_menu(
     menu_id: str, payload: MenuUpdateRequest, session: SessionDep, current: CurrentUserDep
 ) -> MenuResponse:
     store_id = await _store_id(session, current.user_id)
-    menu = await MenuService(session).update_menu(
+    svc = MenuService(session)
+    menu = await svc.update_menu(
         store_id=store_id, menu_id=menu_id,
         patch=payload.model_dump(exclude_unset=True),
     )
-    return _menu_to_dto(menu)
+    return _menu_to_dto(menu, has_recipe=bool(await svc.menu_ids_with_recipe([menu_id])))
 
 
 @router.delete("/{menu_id}", status_code=status.HTTP_204_NO_CONTENT, response_class=Response, response_model=None)

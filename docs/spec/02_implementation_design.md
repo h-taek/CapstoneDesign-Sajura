@@ -977,6 +977,7 @@ Authorization: Bearer <access_token>
       "price": 4500,
       "is_active": true,
       "use_inventory_deduction": true,
+      "has_recipe": true,             // 재료 1개 이상의 레시피 보유
       "is_deleted": false
     }
   ],
@@ -996,7 +997,7 @@ Authorization: Bearer <access_token>
   "category": "음료",
   "price": 4500,
   "is_active": true,
-  "use_inventory_deduction": true
+  "use_inventory_deduction": false   // 기본 false. 등록 시점엔 레시피가 없어 true면 422 MENU_RECIPE_REQUIRED
 }
 
 // Response 201
@@ -1006,7 +1007,8 @@ Authorization: Bearer <access_token>
   "category": "음료",
   "price": 4500,
   "is_active": true,
-  "use_inventory_deduction": true,
+  "use_inventory_deduction": false,
+  "has_recipe": false,
   "is_deleted": false,
   "deleted_at": null,
   "created_at": "2026-05-06T00:00:00Z"
@@ -1024,7 +1026,7 @@ Authorization: Bearer <access_token>
       "category": "음료",
       "price": 4500,
       "is_active": true,
-      "use_inventory_deduction": true
+      "use_inventory_deduction": false  // POST /api/menus와 같은 규칙. true인 항목이 있으면 422 MENU_RECIPE_REQUIRED
     }
   ]
 }
@@ -1050,6 +1052,7 @@ Authorization: Bearer <access_token>
   "price": 4500,
   "is_active": true,
   "use_inventory_deduction": true,
+  "has_recipe": true,
   "is_deleted": false,
   "deleted_at": null,
   "created_at": "2026-05-06T00:00:00Z",
@@ -1067,6 +1070,7 @@ Authorization: Bearer <access_token>
   "use_inventory_deduction": false
 }
 // Response 200: GET /api/menus/{menu_id} 와 동일 구조
+// 422 MENU_RECIPE_REQUIRED: 레시피 없는 메뉴의 use_inventory_deduction을 true로 변경
 ```
 
 #### DELETE /api/menus/{menu_id}
@@ -1115,12 +1119,15 @@ Authorization: Bearer <access_token>
   ]
 }
 // Response 200: GET /api/menus/{menu_id}/recipe 와 동일 구조
+// 400 VALIDATION_ERROR: 같은 매장 재고 목록에 없는 item_id 포함
+// 422 MENU_RECIPE_REQUIRED: 재고 차감 ON 메뉴에 빈 ingredients
 ```
 
 #### DELETE /api/menus/{menu_id}/recipe
 
 ```
 // Response: 204 No Content
+// 422 MENU_RECIPE_REQUIRED: 재고 차감 ON 메뉴
 ```
 
 ### 3.5 재고 API
@@ -2331,7 +2338,7 @@ CREATE TABLE menus (
     category                 VARCHAR(50)   NULL,
     price                    INT           NOT NULL,
     is_active                TINYINT(1)    NOT NULL DEFAULT 1,
-    use_inventory_deduction  TINYINT(1)    NOT NULL DEFAULT 1 COMMENT '재고 차감 사용 여부',
+    use_inventory_deduction  TINYINT(1)    NOT NULL DEFAULT 0 COMMENT '재고 차감 사용 여부. 1이면 재료 1개 이상의 레시피 필수',
     is_deleted               TINYINT(1)    NOT NULL DEFAULT 0 COMMENT '점주 삭제 표시 여부',
     deleted_at               DATETIME      NULL COMMENT '소프트 삭제 시각',
     created_at               DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP,

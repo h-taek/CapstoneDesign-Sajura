@@ -3520,7 +3520,7 @@
           "use_inventory_deduction": {
             "type": "boolean",
             "title": "Use Inventory Deduction",
-            "default": true
+            "default": false
           }
         },
         "type": "object",
@@ -4602,7 +4602,7 @@
           "use_inventory_deduction": {
             "type": "boolean",
             "title": "Use Inventory Deduction",
-            "default": true
+            "default": false
           }
         },
         "type": "object",
@@ -4668,6 +4668,10 @@
             "type": "boolean",
             "title": "Use Inventory Deduction"
           },
+          "has_recipe": {
+            "type": "boolean",
+            "title": "Has Recipe"
+          },
           "is_deleted": {
             "type": "boolean",
             "title": "Is Deleted"
@@ -4681,6 +4685,7 @@
           "price",
           "is_active",
           "use_inventory_deduction",
+          "has_recipe",
           "is_deleted"
         ],
         "title": "MenuListItem"
@@ -4754,6 +4759,10 @@
             "type": "boolean",
             "title": "Use Inventory Deduction"
           },
+          "has_recipe": {
+            "type": "boolean",
+            "title": "Has Recipe"
+          },
           "is_deleted": {
             "type": "boolean",
             "title": "Is Deleted"
@@ -4796,6 +4805,7 @@
           "price",
           "is_active",
           "use_inventory_deduction",
+          "has_recipe",
           "is_deleted",
           "deleted_at",
           "created_at"

@@ -13,7 +13,6 @@ const EMPTY_MENU = {
   category: "음료",
   price: 0,
   is_active: true,
-  use_inventory_deduction: true,
 };
 
 export default function MenusStep() {
@@ -46,6 +45,9 @@ export default function MenusStep() {
       <div className="space-y-1">
         <h2 className="text-2xl font-semibold text-[#101828]">메뉴 등록</h2>
         <p className="text-base text-[#364153]">판매하는 메뉴를 등록해주세요.</p>
+        <p className="text-sm text-[#99a1af]">
+          재고 차감은 레시피를 등록한 뒤 레시피 관리에서 켤 수 있습니다.
+        </p>
       </div>
 
       <div className="space-y-3">
@@ -119,14 +121,6 @@ export default function MenusStep() {
                     {...register(`menus.${idx}.is_active`)}
                   />{" "}
                   판매 활성
-                </label>
-                <label className="flex items-center gap-2">
-                  <input
-                    type="checkbox"
-                    className="accent-[#7a5eff]"
-                    {...register(`menus.${idx}.use_inventory_deduction`)}
-                  />
-                  재고 차감
                 </label>
               </div>
             </div>

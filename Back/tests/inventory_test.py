@@ -64,7 +64,6 @@ async def _menu(
             "category": "음료",
             "price": 4500,
             "is_active": True,
-            "use_inventory_deduction": deduct,
         },
         headers=auth,
     )
@@ -78,6 +77,11 @@ async def _menu(
         headers=auth,
     )
     assert r.status_code == 200, r.text
+    if deduct:  # 재고 차감은 레시피 저장 뒤에만 켤 수 있다
+        r = await client.patch(
+            f"/api/menus/{menu_id}", json={"use_inventory_deduction": True}, headers=auth
+        )
+        assert r.status_code == 200, r.text
     return menu_id
 
 

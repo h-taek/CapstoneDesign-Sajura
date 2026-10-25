@@ -870,7 +870,7 @@ export interface components {
             is_active?: boolean;
             /**
              * Use Inventory Deduction
-             * @default true
+             * @default false
              */
             use_inventory_deduction?: boolean;
         };
@@ -1236,7 +1236,7 @@ export interface components {
             is_active?: boolean;
             /**
              * Use Inventory Deduction
-             * @default true
+             * @default false
              */
             use_inventory_deduction?: boolean;
         };
@@ -1263,6 +1263,8 @@ export interface components {
             is_active: boolean;
             /** Use Inventory Deduction */
             use_inventory_deduction: boolean;
+            /** Has Recipe */
+            has_recipe: boolean;
             /** Is Deleted */
             is_deleted: boolean;
         };
@@ -1293,6 +1295,8 @@ export interface components {
             is_active: boolean;
             /** Use Inventory Deduction */
             use_inventory_deduction: boolean;
+            /** Has Recipe */
+            has_recipe: boolean;
             /** Is Deleted */
             is_deleted: boolean;
             /** Deleted At */

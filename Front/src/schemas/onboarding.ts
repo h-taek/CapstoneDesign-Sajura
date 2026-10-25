@@ -54,7 +54,6 @@ export const menuItemSchema = z.object({
     .int("정수로 입력하세요.")
     .min(0, "0 이상이어야 합니다."),
   is_active: z.boolean(),
-  use_inventory_deduction: z.boolean(),
 });
 
 export const menusStepSchema = z.object({

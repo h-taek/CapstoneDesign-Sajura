@@ -26,9 +26,12 @@
       </section>
 
       <section class="space-y-4 rounded-xl border border-[#d1d5dc] bg-white p-6">
-        <div>
-          <h2 class="text-lg font-semibold text-[#101828]">불새우 루꼴라 화덕피자</h2>
-          <p class="text-sm text-[#99a1af]">재고 차감 사용 — 레시피 등록 필요</p>
+        <div class="flex items-start justify-between gap-4">
+          <div>
+            <h2 class="text-lg font-semibold text-[#101828]">불새우 루꼴라 화덕피자</h2>
+            <p class="text-sm text-[#99a1af]">판매 시 레시피대로 재고를 차감합니다. 레시피를 비우려면 먼저 끄세요.</p>
+          </div>
+          <label class="flex shrink-0 items-center gap-2 text-sm text-[#364153]"><input type="checkbox" checked class="size-4 accent-[#7a5eff]">재고 차감</label>
         </div>
 
         <p data-when="noinv" class="rounded-lg border border-dashed border-[#d1d5dc] p-4 text-sm text-[#99a1af]">먼저 재고관리에서 재료를 등록해야 레시피를 구성할 수 있습니다.</p>
@@ -58,7 +61,7 @@
         <div class="flex justify-end">
           <button type="button" class="inline-flex h-10 items-center justify-center gap-2 rounded-full bg-[#7a5eff] px-6 text-sm font-semibold text-white hover:bg-[#6a4eef]">레시피 저장</button>
         </div>
-        <p data-when="error" class="text-sm text-red-600" role="alert">저장에 실패했습니다. 재고 차감 사용 메뉴는 재료가 1개 이상 필요합니다.</p>
+        <p data-when="error" class="text-sm text-red-600" role="alert">저장에 실패했습니다. 재고 차감을 켠 메뉴는 재료가 1개 이상 필요합니다.</p>
       </section>
     </div>
   </div>

@@ -21,7 +21,8 @@ class Menu(Base):
     category: Mapped[str | None] = mapped_column(String(50), nullable=True)
     price: Mapped[int] = mapped_column(Integer, nullable=False)
     is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
-    use_inventory_deduction: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
+    # True면 재료 1개 이상의 레시피 필수 (01_basic_design.md §3.2) — MenuService가 지킨다
+    use_inventory_deduction: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     is_deleted: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     deleted_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, server_default=func.current_timestamp())

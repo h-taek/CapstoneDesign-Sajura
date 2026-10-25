@@ -1,5 +1,6 @@
 // 레시피관리 화면 — Figma "레시피 관리"(node 9:1231) 셸 적용.
 // 메뉴 목록 → 선택한 메뉴의 레시피(재료 구성)를 실제 GET/PUT /api/menus/{id}/recipe로 연결.
+// 재고 차감은 레시피(재료 1개 이상)를 저장한 메뉴만 켤 수 있다 (01_basic_design.md §3.2).
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Plus, Trash2 } from "lucide-react";
 import { useEffect, useState } from "react";
@@ -9,6 +10,7 @@ import {
   type RecipeIngredientInput,
   getRecipe,
   listMenus,
+  updateMenu,
   upsertRecipe,
 } from "../api/endpoints/menus";
 import { DashboardShell } from "../components/dashboard/shell";
@@ -98,7 +100,14 @@ function RecipeEditor({ menu }: { menu: MenuListItem }) {
         menu.menu_id,
         rows.filter((r) => r.item_id),
       ),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["recipe", menu.menu_id] }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["recipe", menu.menu_id] });
+      queryClient.invalidateQueries({ queryKey: ["menus-all"] }); // has_recipe 갱신
+    },
+  });
+  const deductionMutation = useMutation({
+    mutationFn: (on: boolean) => updateMenu(menu.menu_id, { use_inventory_deduction: on }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["menus-all"] }),
   });
 
   const addRow = () => {
@@ -125,11 +134,27 @@ function RecipeEditor({ menu }: { menu: MenuListItem }) {
 
   return (
     <section className="space-y-4 rounded-xl border border-[#d1d5dc] bg-white p-6">
-      <div>
-        <h2 className="text-lg font-semibold text-[#101828]">{menu.name}</h2>
-        <p className="text-sm text-[#99a1af]">
-          {menu.use_inventory_deduction ? "재고 차감 사용 — 레시피 등록 필요" : "재고 차감 미사용"}
-        </p>
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h2 className="text-lg font-semibold text-[#101828]">{menu.name}</h2>
+          <p className="text-sm text-[#99a1af]">
+            {!menu.has_recipe
+              ? "레시피를 저장하면 재고 차감을 켤 수 있습니다."
+              : menu.use_inventory_deduction
+                ? "판매 시 레시피대로 재고를 차감합니다. 레시피를 비우려면 먼저 끄세요."
+                : "재고 차감 미사용"}
+          </p>
+        </div>
+        <label className="flex shrink-0 items-center gap-2 text-sm text-[#364153]">
+          <input
+            type="checkbox"
+            checked={menu.use_inventory_deduction}
+            disabled={!menu.has_recipe || deductionMutation.isPending}
+            onChange={(e) => deductionMutation.mutate(e.target.checked)}
+            className="size-4 accent-[#7a5eff]"
+          />
+          재고 차감
+        </label>
       </div>
 
       {inventory.length === 0 ? (
@@ -195,7 +220,7 @@ function RecipeEditor({ menu }: { menu: MenuListItem }) {
       </div>
       {saveMutation.isError && (
         <p className="text-sm text-red-600" role="alert">
-          저장에 실패했습니다. 재고 차감 사용 메뉴는 재료가 1개 이상 필요합니다.
+          저장에 실패했습니다. 재고 차감을 켠 메뉴는 재료가 1개 이상 필요합니다.
         </p>
       )}
     </section>

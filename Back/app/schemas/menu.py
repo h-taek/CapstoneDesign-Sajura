@@ -13,7 +13,7 @@ class MenuCreateRequest(BaseModel):
     category: str | None = Field(default=None, max_length=50)
     price: int = Field(ge=0)
     is_active: bool = True
-    use_inventory_deduction: bool = True
+    use_inventory_deduction: bool = False  # 등록 시점엔 레시피가 없어 True면 422
 
 
 class MenuUpdateRequest(BaseModel):
@@ -31,6 +31,7 @@ class MenuListItem(BaseModel):
     price: int
     is_active: bool
     use_inventory_deduction: bool
+    has_recipe: bool  # 재료 1개 이상의 레시피 보유
     is_deleted: bool
 
 
@@ -53,7 +54,7 @@ class BulkMenuItem(BaseModel):
     category: str | None = Field(default=None, max_length=50)
     price: int = Field(ge=0)
     is_active: bool = True
-    use_inventory_deduction: bool = True
+    use_inventory_deduction: bool = False
 
 
 class BulkMenuRequest(BaseModel):

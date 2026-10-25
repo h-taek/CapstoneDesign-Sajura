@@ -12,9 +12,26 @@ from app.models.inventory_item import InventoryItem
 from app.models.menu import Menu, Recipe, RecipeIngredient
 
 
+def _recipe_required(message: str) -> errors.DomainError:
+    return errors.DomainError(status_code=422, error_code="MENU_RECIPE_REQUIRED", message=message)
+
+
 class MenuService:
+    """재고 차감 ON 메뉴는 항상 재료 1개 이상의 레시피를 가진다 (01_basic_design.md §3.2)."""
+
     def __init__(self, session: AsyncSession) -> None:
         self.session = session
+
+    async def menu_ids_with_recipe(self, menu_ids: list[str]) -> set[str]:
+        if not menu_ids:
+            return set()
+        rows = await self.session.scalars(
+            select(Recipe.menu_id)
+            .join(RecipeIngredient, RecipeIngredient.recipe_id == Recipe.recipe_id)
+            .where(Recipe.menu_id.in_(menu_ids))
+            .distinct()
+        )
+        return set(rows.all())
 
     async def list_menus(
         self, *, store_id: str, page: int, size: int, category: str | None
@@ -42,6 +59,8 @@ class MenuService:
         self, *, store_id: str, name: str, category: str | None,
         price: int, is_active: bool, use_inventory_deduction: bool,
     ) -> Menu:
+        if use_inventory_deduction:
+            raise _recipe_required("레시피를 저장한 뒤 재고 차감을 켤 수 있습니다.")
         await self._assert_unique_name(store_id=store_id, name=name)
         menu = Menu(
             store_id=store_id, name=name, category=category, price=price,
@@ -55,6 +74,8 @@ class MenuService:
     async def create_menus_bulk(
         self, *, store_id: str, items: list[dict]
     ) -> tuple[int, list[str]]:
+        if any(it.get("use_inventory_deduction") for it in items):
+            raise _recipe_required("레시피를 저장한 뒤 재고 차감을 켤 수 있습니다.")
         existing = set(
             (
                 await self.session.scalars(
@@ -79,6 +100,8 @@ class MenuService:
         new_name = patch.get("name")
         if new_name is not None and new_name != menu.name:
             await self._assert_unique_name(store_id=store_id, name=new_name)
+        if patch.get("use_inventory_deduction") and not await self.menu_ids_with_recipe([menu_id]):
+            raise _recipe_required("레시피를 저장한 뒤 재고 차감을 켤 수 있습니다.")
         for k, v in patch.items():
             if v is not None:
                 setattr(menu, k, v)
@@ -105,10 +128,7 @@ class MenuService:
     ) -> Recipe:
         menu = await self.get_menu(store_id=store_id, menu_id=menu_id)
         if menu.use_inventory_deduction and not ingredients:
-            raise errors.DomainError(
-                status_code=422, error_code="MENU_RECIPE_REQUIRED",
-                message="재고 차감 사용 메뉴는 레시피가 필요합니다.",
-            )
+            raise _recipe_required("재고 차감을 끈 뒤 레시피를 비울 수 있습니다.")
         item_ids = [iid for iid, _, _ in ingredients]
         if item_ids:
             count = await self.session.scalar(
@@ -140,6 +160,9 @@ class MenuService:
 
     async def delete_recipe(self, *, store_id: str, menu_id: str) -> None:
         recipe = await self.get_recipe(store_id=store_id, menu_id=menu_id)
+        menu = await self.get_menu(store_id=store_id, menu_id=menu_id)
+        if menu.use_inventory_deduction:
+            raise _recipe_required("재고 차감을 끈 뒤 레시피를 삭제할 수 있습니다.")
         await self.session.delete(recipe)
         await self.session.commit()
 
