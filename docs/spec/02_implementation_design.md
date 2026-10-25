@@ -498,6 +498,8 @@ sequenceDiagram
 
 버전 관리 없음. Breaking change 시 클라이언트와 서버를 함께 배포한다.
 
+예외: 헬스체크 `GET /health`는 `/api/` 밖에 두고 인증 없이 `{"status": "ok"}`를 반환한다. Docker 컨테이너와 Caddy 헬스체크가 사용한다.
+
 #### 3.1.2 인증 헤더
 
 ```
