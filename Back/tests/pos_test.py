@@ -36,7 +36,7 @@ async def test_pos_api_key_stored_encrypted(client: AsyncClient) -> None:
     _, auth = await _register_verified_user(client)
     r = await client.post(
         "/api/store/pos",
-        json={"pos_type": "TOSS", "api_key": "plain-api-key-0001", "store_code": "S1"},
+        json={"pos_type": "TOSSPLACE", "api_key": "plain-api-key-0001", "store_code": "S1"},
         headers=auth,
     )
     assert r.status_code == 201, r.text

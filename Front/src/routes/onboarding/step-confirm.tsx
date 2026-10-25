@@ -6,7 +6,7 @@ import { Button } from "../../components/ui/button";
 import { fetchMe } from "../../api/endpoints/auth";
 import { createMenusBulk } from "../../api/endpoints/menus";
 import { completeOnboarding, patchStore, registerPos } from "../../api/endpoints/store";
-import { OPERATION_TYPE_LABEL, STORE_SIZE_LABEL } from "../../schemas/onboarding";
+import { OPERATION_TYPE_LABEL, POS_TYPE_LABEL, STORE_SIZE_LABEL } from "../../schemas/onboarding";
 import { useAuthStore } from "../../stores/auth-store";
 import { useOnboardingStore } from "../../stores/onboarding-store";
 
@@ -71,7 +71,7 @@ export default function ConfirmStep() {
       </section>
       <section>
         <h2 className="font-medium">POS</h2>
-        <p className="text-sm text-slate-700">{pos.pos_type}</p>
+        <p className="text-sm text-slate-700">{POS_TYPE_LABEL[pos.pos_type]}</p>
       </section>
       <section>
         <h2 className="font-medium">메뉴 ({menus.length}개)</h2>

@@ -36,7 +36,7 @@ describe("storeStepSchema", () => {
 
 describe("posStepSchema", () => {
   it("requires credentials when not CSV_ONLY", () => {
-    const r = posStepSchema.safeParse({ pos_type: "UNIONPOS" });
+    const r = posStepSchema.safeParse({ pos_type: "TOSSPLACE" });
     expect(r.success).toBe(false);
   });
   it("allows CSV_ONLY without credentials", () => {

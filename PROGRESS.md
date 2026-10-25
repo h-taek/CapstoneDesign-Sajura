@@ -44,7 +44,7 @@ docs/plan/       → 구현 계획 (단계별 작업, 순서, 역할 분담)
 |---|---|---|
 | 문서 구조 | spec(확정 사실) · research(spec 작성 위한 조사) · plan(구현 계획) 3폴더 분리 + research 하위 backend/frontend/ai 도메인 폴더 | `docs/README.md` |
 | spec 파일 구성 | 기본 설계(요구사항·유즈케이스·기능·흐름·비기능) · 구현 설계(MVP·시퀀스·API·DB) · BE · FE · AI 5개. 같은 사실은 한 곳에만, 미확정·2단계 상세는 두지 않는다 (2026-10-19) | `docs/README.md` §2 |
-| MVP 데이터 | **CSV-only** (POS API는 [2단계]). 2단계 항목은 상세 없이 한 줄 목록으로만 둔다 | `docs/spec/02_implementation_design.md` §1 |
+| MVP 데이터 | CSV 업로드 + POS API 연동(토스플레이스·키움페이·OKPOS 3사 한정, 코드 `TOSSPLACE`·`KIWOOM`·`OKPOS`). 2단계 항목은 상세 없이 한 줄 목록으로만 둔다 (2026-10-25 POS API를 2단계에서 MVP로 이동) | `docs/spec/02_implementation_design.md` §1, `01_basic_design.md` §3.4.3 |
 | 쿠팡 자동 담기 | 서버 Playwright 폐기 → **사주라 브라우저 확장**이 점주 브라우저에서 수행. 서버는 상품 선택(LLM)·결과 기록만 하고 쿠팡 자격증명을 보유하지 않는다 (2026-09-13) | `04_fe.md` §12 |
 | 시연 범위 | Phase 8(n8n 배치)·10(자동 담기)·13(통합 검증·배포) 모두 범위 안. 배포 대상은 자체 운영 서버(Mac mini) SSH. Phase 10은 착수 우선순위 최하 (2026-09-13) | `plan/04_gantt.md` §6 |
 | 식자재 단가 | 쿠팡 최저가를 목표로 유지. 품목↔쿠팡 상품 매핑 도메인 완성 전까지 KAMIS 오픈API 시세로 대체 (2026-09-13) | `01_basic_design.md` §3.3.1 |

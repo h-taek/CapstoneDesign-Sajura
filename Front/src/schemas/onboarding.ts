@@ -10,6 +10,13 @@ export const STORE_SIZE_LABEL = {
   LARGE: "대형 (31석~)",
 } as const;
 export const OPERATION_TYPE_LABEL = { HALL: "홀", DELIVERY: "배달", BOTH: "홀+배달" } as const;
+// 지원 POS사 3곳 (01_basic_design.md §3.4.3) + CSV 모드
+export const POS_TYPE_LABEL = {
+  TOSSPLACE: "토스플레이스",
+  KIWOOM: "키움페이",
+  OKPOS: "OKPOS",
+  CSV_ONLY: "CSV 업로드만 사용",
+} as const;
 
 export const storeStepSchema = z.object({
   store_name: z.string().min(1, "매장명을 입력하세요.").max(50),
@@ -29,7 +36,7 @@ export type StoreStepValues = z.infer<typeof storeStepSchema>;
 
 export const posStepSchema = z
   .object({
-    pos_type: z.enum(["UNIONPOS", "OKPOS", "POSBANK", "CSV_ONLY"], {
+    pos_type: z.enum(["TOSSPLACE", "KIWOOM", "OKPOS", "CSV_ONLY"], {
       message: "POS 종류를 선택하세요.",
     }),
     api_key: z.string().optional(),

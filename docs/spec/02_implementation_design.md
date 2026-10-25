@@ -22,11 +22,12 @@
 
 | 기능 | 프로토타입 | MVP 완성 |
 |------|----------|---------|
-| 소셜 로그인 + 온보딩 (사업자번호 검증, CSV 모드 포함) | O | O |
+| 소셜 로그인 + 온보딩 (사업자번호 검증, POS 연동 방식 선택) | O | O |
 | 메뉴 관리 (CRUD, 레시피, 소프트 삭제) | O | O |
 | 재고 관리 (초기 등록, FIFO 자동 차감, 수동 수정, 폐기) | O | O |
 | 소비기한 관리 (D-3/D-1 알림) | O | O |
 | CSV 업로드 (주점 POS 데이터) | O | O |
+| POS API 연동 (토스플레이스·키움페이·OKPOS — 판매 데이터 자동 수집, 연동 관리 API, 실패 시 CSV 모드) | — | O |
 | n8n 배치 파이프라인 (수동 트리거) | O | — |
 | n8n 배치 파이프라인 (02:00 자동 스케줄) | — | O |
 | 수요예측 (배치 결과 조회, 신뢰도 배지, 예측 근거 기본) | O | O |
@@ -40,9 +41,6 @@
 
 2단계
 
-- POS API 연동 — TossPlace·키움페이·OKPOS API로 판매 데이터 자동 수집 (`01_basic_design.md` §3.4.3)
-- POS 연동 관리 API — `GET`·`POST`·`PATCH`·`DELETE /api/store/pos`(조회·등록·수정·해제), `POST /api/store/pos/sync`(수동 동기화) (§3.3)
-- 온보딩 POS API 연동 분기 — POS 종류·자격증명 입력, 연동 실패 시 CSV 모드 전환 (§2.2, `01_basic_design.md` §3.1.4)
 - 주간 모델 재학습 배치 — 매주 일요일 n8n이 `pipeline_jobs`(TRAIN)를 만들고 AI Server 재학습 호출
 - 모델 재학습 API — `POST /ai/forecast/train`, `GET /ai/forecast/status`의 학습 작업 조회, `GET /ai/health`의 `last_trained_at` 채움
 - 모델 고도화 — 초기 모델의 예측 품질 개선
@@ -66,7 +64,7 @@
 
 | 단계 | 주요 기능 |
 |------|----------|
-| 2단계 | POS API 연동 (TossPlace 우선), 모델 재학습 배치, ROI 대시보드, Cold-start, 다중 업종 지원 |
+| 2단계 | 모델 재학습 배치, ROI 대시보드, Cold-start, 다중 업종 지원 |
 | 3단계 | 다중 매장 관리, Enterprise 요금제, 경량 스트리밍 파이프라인, 외생변수 고도화 모델 |
 
 ### 1.6 데모 시나리오
@@ -108,7 +106,7 @@
 
 ### 1.8 데이터 확보 방식
 
-POS 연동 API 없이 보유 중인 주점 POS 데이터를 사용한다.
+시연 데이터는 팀이 보유한 주점 POS 데이터를 CSV로 적재한다. POS API 연동은 가맹점 자격증명을 확보한 매장에서 쓴다.
 
 | 항목 | 내용 |
 |------|------|
@@ -215,12 +213,12 @@ sequenceDiagram
             사주라UI->>사주라서버: PATCH /api/store
             사주라서버->>DB: 매장 정보 저장
 
-            사용자->>사주라UI: POS 연동 모드 선택 (CSV / POS API[2단계])
+            사용자->>사주라UI: POS 연동 모드 선택 (CSV / POS API)
             alt CSV 모드
                 사용자->>사주라UI: CSV 파일 업로드
                 사주라UI->>사주라서버: POST /api/sales/upload
                 사주라서버->>DB: pos_connections.status=CSV_MODE 저장 + 판매 데이터 적재
-            else POS API 연동 [2단계]
+            else POS API 연동
                 사용자->>사주라UI: POS 종류·자격증명 입력
                 사주라UI->>사주라서버: POST /api/store/pos
                 사주라서버->>DB: POS 정보 저장
@@ -762,7 +760,7 @@ Authorization: Bearer <access_token>
 
 ### 3.3 매장/POS API
 
-> `/api/store/pos/*` 계열(등록·수정·해제·sync)은 [2단계] POS API 연동 범위(§1.4). MVP는 CSV 업로드(`POST /api/sales/upload`)와 `/api/store/pos/status` 조회만 사용한다.
+> `pos_type`은 `TOSSPLACE` / `KIWOOM` / `OKPOS` 중 하나다 (`01_basic_design.md` §3.4.3). 자격증명 필드는 회사별 조사 후 확정한다.
 
 #### Endpoints
 
@@ -776,11 +774,11 @@ Authorization: Bearer <access_token>
 | `GET` | `/api/admin/verifications/{store_id}/cert` | (ADMIN) 업로드된 사업자등록증 파일 조회 |
 | `POST` | `/api/admin/verifications/{store_id}/approve` | (ADMIN) 승인 → VERIFIED |
 | `POST` | `/api/admin/verifications/{store_id}/reject` | (ADMIN) 반려 → REJECTED (+사유) |
-| `GET` | `/api/store/pos` | POS 연동 정보 조회 [2단계] |
-| `POST` | `/api/store/pos` | POS 연동 등록 [2단계] |
-| `PATCH` | `/api/store/pos` | POS 연동 정보 수정 [2단계] |
-| `DELETE` | `/api/store/pos` | POS 연동 해제 [2단계] |
-| `POST` | `/api/store/pos/sync` | POS 데이터 수동 동기화 요청 [2단계] |
+| `GET` | `/api/store/pos` | POS 연동 정보 조회 |
+| `POST` | `/api/store/pos` | POS 연동 등록 |
+| `PATCH` | `/api/store/pos` | POS 연동 정보 수정 |
+| `DELETE` | `/api/store/pos` | POS 연동 해제 |
+| `POST` | `/api/store/pos/sync` | POS 데이터 수동 동기화 요청 |
 | `GET` | `/api/store/pos/status` | POS 연동 상태 조회 (`CSV_MODE`·`CONNECTED`·`ERROR`·`DISCONNECTED`) |
 
 > 1계정 1매장 구조라 `/api/store/{id}` 대신 `/api/store`를 쓴다.
@@ -884,31 +882,31 @@ Authorization: Bearer <access_token>
 
 > 온보딩 Step 4(초기 재고/메뉴 입력) 완료 후 Frontend가 호출한다. `stores.onboarding_completed`를 `true`로 업데이트하고, 이후 로그인 응답에 `onboarding_completed: true`가 반환된다. 이미 완료된 상태에서 재호출 시 동일 응답을 반환(멱등).
 
-#### GET /api/store/pos [2단계]
+#### GET /api/store/pos
 
 ```json
 // Response 200
 {
-  "pos_type": "UNIONPOS",
-  "api_key": "un*******34",   // 앞 2자·뒤 2자만 노출
+  "pos_type": "TOSSPLACE",
+  "api_key": "tp*******34",   // 앞 2자·뒤 2자만 노출
   "store_code": "12345",
   "connected_at": "2026-01-01T00:00:00Z"
 }
 ```
 
-#### POST /api/store/pos [2단계]
+#### POST /api/store/pos
 
 ```json
 // Request
 {
-  "pos_type": "UNIONPOS",
+  "pos_type": "TOSSPLACE",
   "api_key": "string",   // 1~150자. 암호화 저장 (03_be.md §10.1)
   "store_code": "12345"
 }
 // Response 201: GET /api/store/pos 와 동일 구조
 ```
 
-#### PATCH /api/store/pos [2단계]
+#### PATCH /api/store/pos
 
 ```json
 // Request (변경할 필드만)
@@ -918,13 +916,13 @@ Authorization: Bearer <access_token>
 // Response 200: GET /api/store/pos 와 동일 구조
 ```
 
-#### DELETE /api/store/pos [2단계]
+#### DELETE /api/store/pos
 
 ```
 // Response: 204 No Content
 ```
 
-#### POST /api/store/pos/sync [2단계]
+#### POST /api/store/pos/sync
 
 ```json
 // Request: body 없음

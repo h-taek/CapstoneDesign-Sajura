@@ -45,7 +45,7 @@ class SkipReason:
 
 
 class CSVAdapter:
-    """CSV 행 → 공통 판매 스키마. 외부 POS 어댑터(TossPlace 등)는 [2단계]."""
+    """CSV 행 → 공통 판매 스키마. 외부 POS 어댑터(TossPlace 등)도 같은 스키마로 변환한다."""
 
     def __init__(
         self,

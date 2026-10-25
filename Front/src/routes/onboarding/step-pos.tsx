@@ -6,16 +6,14 @@ import { Navigate, useNavigate } from "react-router";
 import { Button } from "../../components/ui/button";
 import { FormField, Input } from "../../components/ui/field";
 import { cn } from "../../lib/utils";
-import { type PosStepValues, posStepSchema } from "../../schemas/onboarding";
+import { POS_TYPE_LABEL, type PosStepValues, posStepSchema } from "../../schemas/onboarding";
 import { useAuthStore } from "../../stores/auth-store";
 import { useOnboardingStore } from "../../stores/onboarding-store";
 
-const POS_TYPES: Array<{ value: PosStepValues["pos_type"]; label: string }> = [
-  { value: "UNIONPOS", label: "유니온포스" },
-  { value: "OKPOS", label: "OKPOS" },
-  { value: "POSBANK", label: "POSBANK" },
-  { value: "CSV_ONLY", label: "CSV 업로드만 사용" },
-];
+const POS_TYPES = (Object.keys(POS_TYPE_LABEL) as PosStepValues["pos_type"][]).map((value) => ({
+  value,
+  label: POS_TYPE_LABEL[value],
+}));
 
 export default function PosStep() {
   const navigate = useNavigate();

@@ -5037,6 +5037,11 @@
         "properties": {
           "pos_type": {
             "type": "string",
+            "enum": [
+              "TOSSPLACE",
+              "KIWOOM",
+              "OKPOS"
+            ],
             "title": "Pos Type"
           },
           "api_key": {
@@ -5155,7 +5160,12 @@
           "pos_type": {
             "anyOf": [
               {
-                "type": "string"
+                "type": "string",
+                "enum": [
+                  "TOSSPLACE",
+                  "KIWOOM",
+                  "OKPOS"
+                ]
               },
               {
                 "type": "null"

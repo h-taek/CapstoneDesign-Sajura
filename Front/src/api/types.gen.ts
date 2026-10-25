@@ -1383,8 +1383,11 @@ export interface components {
         };
         /** PosCreateRequest */
         PosCreateRequest: {
-            /** Pos Type */
-            pos_type: string;
+            /**
+             * Pos Type
+             * @enum {string}
+             */
+            pos_type: "TOSSPLACE" | "KIWOOM" | "OKPOS";
             /** Api Key */
             api_key: string;
             /** Store Code */
@@ -1429,7 +1432,7 @@ export interface components {
         /** PosUpdateRequest */
         PosUpdateRequest: {
             /** Pos Type */
-            pos_type?: string | null;
+            pos_type?: ("TOSSPLACE" | "KIWOOM" | "OKPOS") | null;
             /** Api Key */
             api_key?: string | null;
             /** Store Code */

@@ -1,8 +1,8 @@
 # POS 어댑터 — API 연동 조사
 
-> **상태**: MVP 범위 외 — 2단계 진입 시 작업 (`02_implementation_design.md` §1.4)
-> **목적**: 2단계 POS API 연동(TossPlace·키움페이·OKPOS) 진입 시 사용할 조사 체크리스트와 spec 반영 절차 정의. 본 문서의 모든 미확정 항목은 외부 POS사 API 문서·자격증명 확보가 필요한 **probe 의존 정보**이므로 본 단계에선 결정하지 않는다.
-> **연결 spec**: `docs/spec/01_basic_design.md` §3.4.2·§3.4.3, `docs/spec/02_implementation_design.md` §1.4
+> **상태**: MVP 범위. 회사별 API 조사 전 — §2 체크리스트 미작성
+> **목적**: POS API 연동(토스플레이스·키움페이·OKPOS)에 쓸 조사 체크리스트와 spec 반영 절차. 미확정 항목은 외부 POS사 API 문서·자격증명 확보가 필요한 probe 의존 정보다.
+> **연결 spec**: `docs/spec/01_basic_design.md` §3.4.2·§3.4.3, `docs/spec/02_implementation_design.md` §1.3·§3.3
 
 ---
 
@@ -10,10 +10,10 @@
 
 | 항목 | 상태 |
 |------|------|
-| MVP (1단계) — CSV 업로드 | ✅ — `01_basic_design.md` §3.4.1·§3.4.4·`CSVAdapter` |
-| 2단계 — POS API 연동 (TossPlace·키움페이·OKPOS) | 🟡 본 문서 영역 — 외부 POS사 자격증명·API 문서 확보가 선행되어야 결정 가능 |
+| CSV 업로드 | 구현됨 — `01_basic_design.md` §3.4.1·§3.4.4·`CSVAdapter` |
+| POS API 연동 (토스플레이스·키움페이·OKPOS) | 조사 전 — 외부 POS사 자격증명·API 문서 확보가 선행되어야 결정 가능 |
 
-> 본 문서의 모든 항목은 **외부 probe 의존**이다. POS사 영업 채널·API 문서·테스트 환경·자격증명 발급 절차가 없으면 결정 불가. MVP 진입 단계에서는 본 문서를 갱신하지 않는다.
+> 본 문서의 항목은 외부 probe 의존이다. POS사 영업 채널·API 문서·테스트 환경·자격증명 발급 절차가 없으면 결정할 수 없다.
 
 ---
 
@@ -21,17 +21,17 @@
 
 `01_basic_design.md` §3.4.2 spec 확정.
 
-| POS사 | 어댑터 클래스 | MVP 진입 |
-|------|------------|--------|
-| TossPlace | `TossPlaceAdapter` | 2단계 |
-| 키움페이 | `KiwoomAdapter` | 2단계 |
-| OKPOS | `OKPOSAdapter` | 2단계 |
+| POS사 | 코드 | 어댑터 클래스 |
+|------|------|------------|
+| 토스플레이스 | `TOSSPLACE` | `TossPlaceAdapter` |
+| 키움페이 | `KIWOOM` | `KiwoomAdapter` |
+| OKPOS | `OKPOS` | `OKPOSAdapter` |
 
 > CSV 업로드용 `CSVAdapter`는 MVP에 포함 — 본 문서와 무관.
 
 ---
 
-## 2. 2단계 진입 시 조사할 항목 (probe 체크리스트)
+## 2. 조사할 항목 (probe 체크리스트)
 
 각 POS사에 대해 다음을 확인한다. 모든 항목이 채워지지 않으면 어댑터 구현 불가.
 
@@ -78,7 +78,7 @@
 
 ---
 
-## 3. 확정 절차 (2단계 진입 시)
+## 3. 확정 절차
 
 각 POS사 어댑터를 1개씩 다음 절차로 처리한다:
 
@@ -96,6 +96,5 @@
 
 | 시점 | 동작 |
 |------|------|
-| MVP 운영 중 | 본 문서 갱신하지 않음 — 외부 정보 확보 시까지 보류 |
-| 2단계 진입 결정 | 각 POS사 §2 체크리스트 응답을 §3.1~§3.3 절(신규)로 채움. 확정 사항은 즉시 spec(schema·feature_spec·service_design) 반영 후 본 문서에서 "확정 → spec 참조"로 갱신 |
+| 회사별 조사 | 각 POS사 §2 체크리스트 응답을 §3.1~§3.3 절(신규)로 채움. 확정 사항은 즉시 spec(schema·feature_spec·service_design) 반영 후 본 문서에서 "확정 → spec 참조"로 갱신 |
 | 운영 중 POS사 API 변경 | 어댑터 영향 분석 후 spec 갱신, 본 문서엔 변경 이력만 기록 |

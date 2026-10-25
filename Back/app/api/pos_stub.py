@@ -1,4 +1,7 @@
-"""/api/store/pos/* — M3.B6 stub. api_key는 AES-256-GCM 암호화 저장 (03_be.md §10.1)."""
+"""/api/store/pos/* — 연동 정보 저장은 구현, 동기화는 회사별 어댑터 전까지 stub.
+
+api_key는 AES-256-GCM 암호화 저장 (03_be.md §10.1).
+"""
 from __future__ import annotations
 
 from datetime import UTC, datetime
@@ -18,15 +21,19 @@ router = APIRouter(
 )
 
 
+# 지원 POS사 3곳 (01_basic_design.md §3.4.3). 응답은 저장된 값을 그대로 돌려준다
+PosType = Literal["TOSSPLACE", "KIWOOM", "OKPOS"]
+
+
 # api_key 150자 = 암호문 base64가 VARCHAR(255)에 들어가는 상한 (03_be.md §10.1)
 class PosCreateRequest(BaseModel):
-    pos_type: str
+    pos_type: PosType
     api_key: str = Field(min_length=1, max_length=150)
     store_code: str
 
 
 class PosUpdateRequest(BaseModel):
-    pos_type: str | None = None
+    pos_type: PosType | None = None
     api_key: str | None = Field(default=None, min_length=1, max_length=150)
     store_code: str | None = None
 

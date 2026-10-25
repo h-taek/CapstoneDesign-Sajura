@@ -4,7 +4,7 @@
 //   - 현재 연동 상태 표시 (GET /api/store/pos/status)
 //   - CSV 템플릿 다운로드 (Blob 생성, BE 트래픽 0)
 //   - CSV 업로드 화면 진입 (/sales/upload)
-// 자격증명 입력·연결 테스트는 [2단계] POS API 연동 진입 시 추가.
+// 자격증명 입력·연결 테스트는 회사별 POS 어댑터 구현 시 추가 (research/backend/13_pos_adapter.md).
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "react-router";
 import { type PosStatus, type PosStatusCode, getPosStatus } from "../../api/endpoints/pos";
@@ -107,7 +107,7 @@ export default function PosSettingsPage() {
         </article>
 
         <article className="rounded-2xl bg-[#f3f4f6] p-4 text-xs text-[#99a1af]">
-          외부 POS API 연동(TossPlace·키움페이·OKPOS)은 2단계에서 제공될 예정입니다.
+          POS API 연동(토스플레이스·키움페이·OKPOS)은 회사별 연동을 준비하고 있습니다.
         </article>
       </section>
     </DashboardShell>

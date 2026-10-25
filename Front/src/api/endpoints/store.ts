@@ -28,8 +28,7 @@ export async function completeOnboarding(): Promise<{
   return api.post("store/onboarding/complete").json();
 }
 
-// BE pos_type은 아직 아무 문자열이나 받는다 — 지원 POS 종류 정리 전까지 FE 목록 유지
-export type PosType = "UNIONPOS" | "OKPOS" | "POSBANK" | "CSV_ONLY";
+export type PosType = S["PosCreateRequest"]["pos_type"];
 
 export type PosRegister = S["PosCreateRequest"];
 
