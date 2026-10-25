@@ -7,110 +7,226 @@
 <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4.0.17"></script>
 <script src="mockup.js" defer></script>
 </head>
-<!-- 원본: Front/src/routes/orders.tsx -->
-<body data-page="orders" data-states="기본:default,확정 완료:approved,AI 오류:aierror,추천 없음:empty">
+<!-- 원본: Front/src/routes/orders.tsx(OrderItemRow·QuantityStepper·ApproveBar·ApprovedNotice·OrderHistoryRow), components/ui/card.tsx, components/ui/button.tsx, lib/format.ts -->
+<body data-page="orders" data-states="추천 있음:default,확정 중:pending,확정 완료:approved,계산 중:loading,이력 부족:short,AI 서버 오류:aierror,추천 없음:empty">
 <div data-shell="orders">
-  <div class="space-y-6">
-    <header class="space-y-1">
-      <h1 class="text-2xl font-semibold text-[#101828]">발주 추천</h1>
-      <p class="text-sm text-[#99a1af]">AI 수요예측 기반 발주 추천을 제공합니다.</p>
+  <div class="space-y-6 lg:space-y-8">
+    <!-- PageHeader — 앱은 상단바가 제목을 보여 주므로 설명만 남는다 -->
+    <header class="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
+      <div class="space-y-1">
+        <h1 class="hidden text-[1.75rem] font-bold tracking-tight text-ink lg:block">발주 추천</h1>
+        <p class="text-[0.95rem] text-ink-3">AI가 계산한 추천량을 확인하고, 필요한 것만 골라 확정하세요.</p>
+      </div>
     </header>
 
     <!-- AI 예측 발주 -->
     <section class="space-y-3">
-      <div class="flex items-center justify-between">
-        <div class="flex items-center gap-2">
-          <h2 class="text-xl font-semibold text-[#364153]">AI 예측 발주</h2>
-          <span data-when="default approved" class="rounded-full bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-600">신뢰도 낮음</span>
+      <div class="flex items-end justify-between gap-3">
+        <div class="min-w-0 space-y-0.5">
+          <h2 class="flex items-center gap-2 text-lg font-bold text-ink lg:text-xl">
+            AI 예측 발주
+            <!-- is_low_confidence일 때만 -->
+            <span data-when="default pending approved" class="rounded-full bg-warn-soft px-2.5 py-0.5 text-sm font-semibold text-warn">신뢰도 낮음</span>
+          </h2>
+          <p class="text-sm text-ink-3">앞으로 팔릴 양 × 레시피 × 현재 재고·입고 기간을 계산한 추천량이에요.</p>
         </div>
-        <button type="button" data-when="default approved" data-set-state="approved" class="inline-flex h-10 items-center justify-center gap-2 rounded-full bg-[#7a5eff] px-5 text-sm font-semibold text-white hover:bg-[#6a4eef]">AI 추천 발주 확정 (3)</button>
       </div>
-      <p class="text-sm text-[#99a1af]">매출 예측 × 메뉴별 판매 비중 × 레시피(재료 구성) × 재고/리드타임/안전재고를 반영한 참고치입니다.</p>
-      <div data-when="aierror" class="flex items-start gap-2 rounded-xl border border-dashed border-[#d1d5dc] bg-white p-6">
-        <span data-icon="alert" class="mt-0.5 size-4 shrink-0 text-amber-500"></span>
-        <p class="text-sm text-[#99a1af]">AI 추천에 필요한 판매 이력이 부족합니다 (최소 10일 이상 필요).</p>
+
+      <!-- EmptyState — 계산 중 / 422(이력 부족) / 그 밖의 오류 / 추천 0건 -->
+      <div data-when="loading" class="flex min-h-[120px] flex-col items-center justify-center gap-3 rounded-2xl border border-dashed border-line bg-white px-6 py-8 text-center text-[0.95rem] text-ink-3">계산 중…</div>
+      <div data-when="short" class="flex min-h-[120px] flex-col items-center justify-center gap-3 rounded-2xl border border-dashed border-line bg-white px-6 py-8 text-center text-[0.95rem] text-ink-3">
+        <span data-icon="alertTriangle" class="size-6 text-warn"></span>
+        AI 추천에 필요한 판매 이력이 부족합니다 (최소 10일 이상 필요).
       </div>
-      <div data-when="empty" class="flex h-[100px] items-center justify-center rounded-xl border border-dashed border-[#d1d5dc] bg-white text-sm text-[#99a1af]">AI 추천 결과가 없습니다 (레시피·재고 설정을 확인해주세요).</div>
-      <div data-when="default approved" class="overflow-hidden rounded-xl border border-[#d1d5dc] bg-white">
-        <table class="w-full text-left text-sm">
-          <thead class="bg-[#fafafa] text-[#61646b]">
-            <tr>
-              <th class="w-10 px-4 py-3"></th>
-              <th class="px-4 py-3 font-medium">재료</th>
-              <th class="px-4 py-3 font-medium">추천 수량</th>
-              <th class="px-4 py-3 font-medium">발주 수량</th>
-              <th class="px-4 py-3 font-medium">예상 소진일</th>
-              <th class="px-4 py-3 font-medium">근거</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr class="border-t border-[#eef1f4]">
-              <td class="px-4 py-3"><input type="checkbox" aria-label="모짜렐라 치즈 선택" checked class="size-4 accent-[#7a5eff]"></td>
-              <td class="px-4 py-3 font-medium text-[#364153]"><span class="flex items-center gap-2"><span data-icon="sparkles" class="size-4 text-[#7a5eff]"></span>모짜렐라 치즈</span></td>
-              <td class="px-4 py-3 font-semibold text-[#7a5eff]">3200 g</td>
-              <td class="px-4 py-3"><div class="flex items-center gap-2"><input type="number" value="3500" aria-label="모짜렐라 치즈 발주 수량" class="h-9 w-24 rounded-lg border border-[#d1d5dc] px-2 text-sm"><span class="text-[#99a1af]">g</span></div></td>
-              <td class="px-4 py-3 text-[#364153]">2026-10-22</td>
-              <td class="px-4 py-3 text-xs text-[#99a1af]">3일 예상 소요 3,840g − 현재 4,250g + 안전재고 1,000g, 리드타임 2일 반영</td>
-            </tr>
-            <tr class="border-t border-[#eef1f4]">
-              <td class="px-4 py-3"><input type="checkbox" aria-label="피자 도우 선택" checked class="size-4 accent-[#7a5eff]"></td>
-              <td class="px-4 py-3 font-medium text-[#364153]"><span class="flex items-center gap-2"><span data-icon="sparkles" class="size-4 text-[#7a5eff]"></span>피자 도우</span></td>
-              <td class="px-4 py-3 font-semibold text-[#7a5eff]">60 개</td>
-              <td class="px-4 py-3"><div class="flex items-center gap-2"><input type="number" value="60" aria-label="피자 도우 발주 수량" class="h-9 w-24 rounded-lg border border-[#d1d5dc] px-2 text-sm"><span class="text-[#99a1af]">개</span></div></td>
-              <td class="px-4 py-3 text-[#364153]">2026-10-21</td>
-              <td class="px-4 py-3 text-xs text-[#99a1af]">피자 메뉴 3일 예상 판매 136판 기준, 안전재고 20개 유지</td>
-            </tr>
-            <tr class="border-t border-[#eef1f4]">
-              <td class="px-4 py-3"><input type="checkbox" aria-label="토마토 소스 선택" checked class="size-4 accent-[#7a5eff]"></td>
-              <td class="px-4 py-3 font-medium text-[#364153]"><span class="flex items-center gap-2"><span data-icon="sparkles" class="size-4 text-[#7a5eff]"></span>토마토 소스<span title="리드타임·안전재고 미설정 — 기본값(리드타임 1일, 안전재고 0)으로 계산" class="rounded-full bg-[#f3f4f6] px-2 py-0.5 text-xs font-normal text-[#61646b]">설정 필요</span></span></td>
-              <td class="px-4 py-3 font-semibold text-[#7a5eff]">1500 g</td>
-              <td class="px-4 py-3"><div class="flex items-center gap-2"><input type="number" value="1500" aria-label="토마토 소스 발주 수량" class="h-9 w-24 rounded-lg border border-[#d1d5dc] px-2 text-sm"><span class="text-[#99a1af]">g</span></div></td>
-              <td class="px-4 py-3 text-[#364153]">2026-10-24</td>
-              <td class="px-4 py-3 text-xs text-[#99a1af]">리드타임 1일·안전재고 0 기본값으로 계산</td>
-            </tr>
-            <tr class="border-t border-[#eef1f4]">
-              <td class="px-4 py-3"><input type="checkbox" aria-label="올리브오일 선택" class="size-4 accent-[#7a5eff]"></td>
-              <td class="px-4 py-3 font-medium text-[#364153]"><span class="flex items-center gap-2"><span data-icon="sparkles" class="size-4 text-[#7a5eff]"></span>올리브오일</span></td>
-              <td class="px-4 py-3 font-semibold text-[#7a5eff]">0 ml</td>
-              <td class="px-4 py-3"><div class="flex items-center gap-2"><input type="number" value="0" disabled aria-label="올리브오일 발주 수량" class="h-9 w-24 rounded-lg border border-[#d1d5dc] bg-[#f3f4f6] px-2 text-sm text-[#99a1af]"><span class="text-[#99a1af]">ml</span></div></td>
-              <td class="px-4 py-3 text-[#364153]">—</td>
-              <td class="px-4 py-3 text-xs text-[#99a1af]">현재 재고로 3일 예상 소요를 충당</td>
-            </tr>
-          </tbody>
-        </table>
+      <div data-when="aierror" class="flex min-h-[120px] flex-col items-center justify-center gap-3 rounded-2xl border border-dashed border-line bg-white px-6 py-8 text-center text-[0.95rem] text-ink-3">
+        <span data-icon="alertTriangle" class="size-6 text-warn"></span>
+        AI 서버에 연결할 수 없습니다. 잠시 후 다시 시도해주세요.
       </div>
-      <p data-when="approved" class="flex items-center gap-1.5 text-sm text-emerald-600"><span data-icon="check" class="size-4"></span> 발주가 확정되었습니다. 실제 주문·입고 처리는 직접 진행해주세요.</p>
+      <div data-when="empty" class="flex min-h-[120px] flex-col items-center justify-center gap-3 rounded-2xl border border-dashed border-line bg-white px-6 py-8 text-center text-[0.95rem] text-ink-3">AI 추천 결과가 없습니다 (레시피·재고 설정을 확인해주세요).</div>
+
+      <!-- 추천 목록 — 웹은 한 줄(이름·근거 | 스테퍼), 앱은 세로 카드. 체크 상자 칸 전체(label)를 눌러 선택한다 -->
+      <div data-when="default pending approved" class="rounded-2xl border border-line bg-white shadow-card overflow-hidden">
+        <ul class="divide-y divide-line-soft">
+          <!-- 선택된 줄 -->
+          <li class="flex flex-col gap-3 p-4 transition-colors lg:grid lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center lg:gap-6 lg:px-5 bg-white">
+            <label class="flex min-w-0 cursor-pointer items-start gap-3">
+              <input type="checkbox" aria-label="모짜렐라 치즈 선택" checked class="peer sr-only">
+              <span aria-hidden="true" class="mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-lg border-2 transition-colors peer-focus-visible:ring-4 peer-focus-visible:ring-brand-tint border-brand bg-brand text-white"><span data-icon="check" class="size-5"></span></span>
+              <span class="min-w-0 space-y-1">
+                <span class="flex flex-wrap items-center gap-2 text-[1.05rem] font-bold text-ink">모짜렐라 치즈<span data-icon="sparkles" class="size-4 text-brand"></span></span>
+                <span class="block text-[0.95rem] text-ink-2">추천 <strong class="font-bold text-brand">3,200g</strong> · 2026-10-22 소진 예상</span>
+                <span class="block text-sm text-ink-3">3일 예상 소요 6,450g − 현재 4,250g + 안전재고 1,000g, 리드타임 2일 반영</span>
+              </span>
+            </label>
+            <!-- QuantityStepper — PR 동작 그대로: 단위와 무관하게 ±1씩 움직임(3,200g에서 + 한 번 = 3,201g) -->
+            <div class="flex items-center gap-2">
+              <button type="button" aria-label="모짜렐라 치즈 수량 줄이기" class="flex size-12 shrink-0 items-center justify-center rounded-xl border border-line bg-white text-ink-2 hover:bg-subtle disabled:opacity-40 lg:size-10"><span data-icon="minus" class="size-5"></span></button>
+              <div class="relative min-w-0 flex-1 lg:flex-none">
+                <input type="number" step="any" min="0" inputmode="decimal" aria-label="모짜렐라 치즈 발주 수량" value="3200" class="tabular h-12 w-full rounded-xl border border-line pr-10 pl-3 text-right text-lg font-bold text-ink focus:border-brand focus:ring-4 focus:ring-brand-soft focus:outline-none disabled:bg-subtle disabled:text-ink-4 lg:h-10 lg:w-32 lg:text-base">
+                <span class="pointer-events-none absolute top-1/2 right-3 -translate-y-1/2 text-sm text-ink-3">g</span>
+              </div>
+              <button type="button" aria-label="모짜렐라 치즈 수량 늘리기" class="flex size-12 shrink-0 items-center justify-center rounded-xl border border-line bg-white text-ink-2 hover:bg-subtle disabled:opacity-40 lg:size-10"><span data-icon="plus" class="size-5"></span></button>
+            </div>
+          </li>
+
+          <li class="flex flex-col gap-3 p-4 transition-colors lg:grid lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center lg:gap-6 lg:px-5 bg-white">
+            <label class="flex min-w-0 cursor-pointer items-start gap-3">
+              <input type="checkbox" aria-label="피자 도우 선택" checked class="peer sr-only">
+              <span aria-hidden="true" class="mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-lg border-2 transition-colors peer-focus-visible:ring-4 peer-focus-visible:ring-brand-tint border-brand bg-brand text-white"><span data-icon="check" class="size-5"></span></span>
+              <span class="min-w-0 space-y-1">
+                <span class="flex flex-wrap items-center gap-2 text-[1.05rem] font-bold text-ink">피자 도우<span data-icon="sparkles" class="size-4 text-brand"></span></span>
+                <span class="block text-[0.95rem] text-ink-2">추천 <strong class="font-bold text-brand">60개</strong> · 2026-10-21 소진 예상</span>
+                <span class="block text-sm text-ink-3">피자 메뉴 3일 예상 판매 136판 기준, 안전재고 20개 유지</span>
+              </span>
+            </label>
+            <div class="flex items-center gap-2">
+              <button type="button" aria-label="피자 도우 수량 줄이기" class="flex size-12 shrink-0 items-center justify-center rounded-xl border border-line bg-white text-ink-2 hover:bg-subtle disabled:opacity-40 lg:size-10"><span data-icon="minus" class="size-5"></span></button>
+              <div class="relative min-w-0 flex-1 lg:flex-none">
+                <input type="number" step="any" min="0" inputmode="decimal" aria-label="피자 도우 발주 수량" value="60" class="tabular h-12 w-full rounded-xl border border-line pr-10 pl-3 text-right text-lg font-bold text-ink focus:border-brand focus:ring-4 focus:ring-brand-soft focus:outline-none disabled:bg-subtle disabled:text-ink-4 lg:h-10 lg:w-32 lg:text-base">
+                <span class="pointer-events-none absolute top-1/2 right-3 -translate-y-1/2 text-sm text-ink-3">개</span>
+              </div>
+              <button type="button" aria-label="피자 도우 수량 늘리기" class="flex size-12 shrink-0 items-center justify-center rounded-xl border border-line bg-white text-ink-2 hover:bg-subtle disabled:opacity-40 lg:size-10"><span data-icon="plus" class="size-5"></span></button>
+            </div>
+          </li>
+
+          <!-- config_status=DEFAULT_USED → '설정 필요' 배지 -->
+          <li class="flex flex-col gap-3 p-4 transition-colors lg:grid lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center lg:gap-6 lg:px-5 bg-white">
+            <label class="flex min-w-0 cursor-pointer items-start gap-3">
+              <input type="checkbox" aria-label="토마토 소스 선택" checked class="peer sr-only">
+              <span aria-hidden="true" class="mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-lg border-2 transition-colors peer-focus-visible:ring-4 peer-focus-visible:ring-brand-tint border-brand bg-brand text-white"><span data-icon="check" class="size-5"></span></span>
+              <span class="min-w-0 space-y-1">
+                <span class="flex flex-wrap items-center gap-2 text-[1.05rem] font-bold text-ink">토마토 소스<span data-icon="sparkles" class="size-4 text-brand"></span><span title="리드타임·안전재고 미설정 — 기본값(리드타임 1일, 안전재고 0)으로 계산" class="rounded-full bg-subtle px-2 py-0.5 text-sm font-medium text-ink-3">설정 필요</span></span>
+                <span class="block text-[0.95rem] text-ink-2">추천 <strong class="font-bold text-brand">1,500g</strong> · 2026-10-24 소진 예상</span>
+                <span class="block text-sm text-ink-3">리드타임 1일·안전재고 0 기본값으로 계산</span>
+              </span>
+            </label>
+            <div class="flex items-center gap-2">
+              <button type="button" aria-label="토마토 소스 수량 줄이기" class="flex size-12 shrink-0 items-center justify-center rounded-xl border border-line bg-white text-ink-2 hover:bg-subtle disabled:opacity-40 lg:size-10"><span data-icon="minus" class="size-5"></span></button>
+              <div class="relative min-w-0 flex-1 lg:flex-none">
+                <input type="number" step="any" min="0" inputmode="decimal" aria-label="토마토 소스 발주 수량" value="1500" class="tabular h-12 w-full rounded-xl border border-line pr-10 pl-3 text-right text-lg font-bold text-ink focus:border-brand focus:ring-4 focus:ring-brand-soft focus:outline-none disabled:bg-subtle disabled:text-ink-4 lg:h-10 lg:w-32 lg:text-base">
+                <span class="pointer-events-none absolute top-1/2 right-3 -translate-y-1/2 text-sm text-ink-3">g</span>
+              </div>
+              <button type="button" aria-label="토마토 소스 수량 늘리기" class="flex size-12 shrink-0 items-center justify-center rounded-xl border border-line bg-white text-ink-2 hover:bg-subtle disabled:opacity-40 lg:size-10"><span data-icon="plus" class="size-5"></span></button>
+            </div>
+          </li>
+
+          <!-- kg 단위 소수 추천량 -->
+          <li class="flex flex-col gap-3 p-4 transition-colors lg:grid lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center lg:gap-6 lg:px-5 bg-white">
+            <label class="flex min-w-0 cursor-pointer items-start gap-3">
+              <input type="checkbox" aria-label="바질 선택" checked class="peer sr-only">
+              <span aria-hidden="true" class="mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-lg border-2 transition-colors peer-focus-visible:ring-4 peer-focus-visible:ring-brand-tint border-brand bg-brand text-white"><span data-icon="check" class="size-5"></span></span>
+              <span class="min-w-0 space-y-1">
+                <span class="flex flex-wrap items-center gap-2 text-[1.05rem] font-bold text-ink">바질<span data-icon="sparkles" class="size-4 text-brand"></span></span>
+                <span class="block text-[0.95rem] text-ink-2">추천 <strong class="font-bold text-brand">0.35kg</strong> · 2026-10-21 소진 예상</span>
+                <span class="block text-sm text-ink-3">마르게리타·바질 페스토 3일 예상 소요 0.42kg − 현재 0.17kg + 안전재고 0.10kg</span>
+              </span>
+            </label>
+            <!-- PR 동작 그대로: ±1씩 움직임. 0.35kg에서 + 한 번 = 1.35kg, − 한 번 = 0(음수 방지) -->
+            <div class="flex items-center gap-2">
+              <button type="button" aria-label="바질 수량 줄이기" class="flex size-12 shrink-0 items-center justify-center rounded-xl border border-line bg-white text-ink-2 hover:bg-subtle disabled:opacity-40 lg:size-10"><span data-icon="minus" class="size-5"></span></button>
+              <div class="relative min-w-0 flex-1 lg:flex-none">
+                <input type="number" step="any" min="0" inputmode="decimal" aria-label="바질 발주 수량" value="0.35" class="tabular h-12 w-full rounded-xl border border-line pr-10 pl-3 text-right text-lg font-bold text-ink focus:border-brand focus:ring-4 focus:ring-brand-soft focus:outline-none disabled:bg-subtle disabled:text-ink-4 lg:h-10 lg:w-32 lg:text-base">
+                <span class="pointer-events-none absolute top-1/2 right-3 -translate-y-1/2 text-sm text-ink-3">kg</span>
+              </div>
+              <button type="button" aria-label="바질 수량 늘리기" class="flex size-12 shrink-0 items-center justify-center rounded-xl border border-line bg-white text-ink-2 hover:bg-subtle disabled:opacity-40 lg:size-10"><span data-icon="plus" class="size-5"></span></button>
+            </div>
+          </li>
+
+          <!-- 추천 0 → 처음부터 선택 해제. 선택 해제된 줄은 bg-subtle/60, 스테퍼 비활성 -->
+          <li class="flex flex-col gap-3 p-4 transition-colors lg:grid lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center lg:gap-6 lg:px-5 bg-subtle/60">
+            <label class="flex min-w-0 cursor-pointer items-start gap-3">
+              <input type="checkbox" aria-label="올리브오일 선택" class="peer sr-only">
+              <span aria-hidden="true" class="mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-lg border-2 transition-colors peer-focus-visible:ring-4 peer-focus-visible:ring-brand-tint border-ink-4 bg-white text-transparent"><span data-icon="check" class="size-5"></span></span>
+              <span class="min-w-0 space-y-1">
+                <span class="flex flex-wrap items-center gap-2 text-[1.05rem] font-bold text-ink">올리브오일<span data-icon="sparkles" class="size-4 text-brand"></span></span>
+                <span class="block text-[0.95rem] text-ink-2">추천 <strong class="font-bold text-brand">0ml</strong></span>
+                <span class="block text-sm text-ink-3">현재 재고로 3일 예상 소요를 충당</span>
+              </span>
+            </label>
+            <div class="flex items-center gap-2">
+              <button type="button" disabled aria-label="올리브오일 수량 줄이기" class="flex size-12 shrink-0 items-center justify-center rounded-xl border border-line bg-white text-ink-2 hover:bg-subtle disabled:opacity-40 lg:size-10"><span data-icon="minus" class="size-5"></span></button>
+              <div class="relative min-w-0 flex-1 lg:flex-none">
+                <input type="number" step="any" min="0" inputmode="decimal" aria-label="올리브오일 발주 수량" value="0" disabled class="tabular h-12 w-full rounded-xl border border-line pr-10 pl-3 text-right text-lg font-bold text-ink focus:border-brand focus:ring-4 focus:ring-brand-soft focus:outline-none disabled:bg-subtle disabled:text-ink-4 lg:h-10 lg:w-32 lg:text-base">
+                <span class="pointer-events-none absolute top-1/2 right-3 -translate-y-1/2 text-sm text-ink-3">ml</span>
+              </div>
+              <button type="button" disabled aria-label="올리브오일 수량 늘리기" class="flex size-12 shrink-0 items-center justify-center rounded-xl border border-line bg-white text-ink-2 hover:bg-subtle disabled:opacity-40 lg:size-10"><span data-icon="plus" class="size-5"></span></button>
+            </div>
+          </li>
+        </ul>
+
+        <!-- ApproveBar — 카드 맨 아래 줄(fixed 아님). 개수는 선택했고 수량이 0보다 큰 품목 수 -->
+        <div class="flex flex-col gap-2 border-t border-line-soft bg-white p-4 lg:flex-row lg:items-center lg:justify-between lg:px-5">
+          <p class="text-[0.95rem] text-ink-3"><strong class="font-bold text-ink">4개</strong> 품목을 선택했어요</p>
+          <button type="button" data-when="default approved" data-set-state="pending" class="inline-flex shrink-0 items-center justify-center gap-2 font-semibold whitespace-nowrap transition-colors disabled:cursor-not-allowed bg-brand text-white hover:bg-brand-strong disabled:bg-ink-4 h-14 px-6 text-lg rounded-2xl w-full lg:h-12 lg:w-auto lg:text-base">AI 추천 발주 확정 (4)</button>
+          <button type="button" data-when="pending" data-set-state="approved" disabled class="inline-flex shrink-0 items-center justify-center gap-2 font-semibold whitespace-nowrap transition-colors disabled:cursor-not-allowed bg-brand text-white hover:bg-brand-strong disabled:bg-ink-4 h-14 px-6 text-lg rounded-2xl w-full lg:h-12 lg:w-auto lg:text-base">확정 중…</button>
+        </div>
+      </div>
+
+      <!-- ApprovedNotice — 확정 뒤에도 추천 목록·선택은 그대로 남고 확정 버튼도 다시 눌린다(PR 동작 그대로) -->
+      <p data-when="approved" class="flex items-center gap-2 rounded-xl bg-ok-soft px-4 py-3 text-[0.95rem] font-medium text-ok"><span data-icon="checkCircle2" class="size-5 shrink-0"></span> 발주가 확정되었습니다. 실제 주문·입고 처리는 직접 진행해주세요.</p>
     </section>
 
-    <!-- 발주 확정 이력 -->
+    <!-- 발주 확정 이력 — 이력이 1건 이상일 때만 -->
     <section class="space-y-3">
-      <h2 class="text-xl font-semibold text-[#364153]">발주 확정 이력</h2>
-      <div class="space-y-2">
-        <div data-when="approved" class="rounded-xl border border-[#d1d5dc] bg-white text-sm">
-          <button type="button" class="flex w-full items-center justify-between gap-3 p-4 text-left">
-            <span class="text-[#364153]">2026. 10. 19. 오후 6:41:12 · 품목 2개</span>
-            <span class="flex items-center gap-2 text-xs text-[#99a1af]">확정<span data-icon="chevronDown" class="size-4 transition-transform"></span></span>
-          </button>
+      <div class="flex items-end justify-between gap-3">
+        <div class="min-w-0 space-y-0.5">
+          <h2 class="flex items-center gap-2 text-lg font-bold text-ink lg:text-xl">발주 확정 이력</h2>
         </div>
-        <div class="rounded-xl border border-[#d1d5dc] bg-white text-sm">
-          <button type="button" data-toggle="#order-1" class="flex w-full items-center justify-between gap-3 p-4 text-left">
-            <span class="text-[#364153]">2026. 10. 16. 오전 10:12:05 · 품목 3개</span>
-            <span class="flex items-center gap-2 text-xs text-[#99a1af]">확정<span data-icon="chevronDown" class="size-4 rotate-180 transition-transform"></span></span>
-          </button>
-          <div id="order-1" class="border-t border-[#eef1f4] px-4 py-3 text-[#364153]">
-            <p>모짜렐라 치즈 3000g, 피자 도우 50개, 루꼴라 1000g</p>
-            <p class="mt-1 text-xs text-[#99a1af]">메모: 주말 행사 대비</p>
-          </div>
-        </div>
-        <div class="rounded-xl border border-[#d1d5dc] bg-white text-sm">
-          <button type="button" data-toggle="#order-2" class="flex w-full items-center justify-between gap-3 p-4 text-left">
-            <span class="text-[#364153]">2026. 10. 9. 오후 3:27:40 · 품목 2개</span>
-            <span class="flex items-center gap-2 text-xs text-[#99a1af]">확정<span data-icon="chevronDown" class="size-4 transition-transform"></span></span>
-          </button>
-          <div id="order-2" hidden class="border-t border-[#eef1f4] px-4 py-3 text-[#364153]">
-            <p>토마토 소스 3000g, 페퍼로니 1000g</p>
-          </div>
-        </div>
+      </div>
+      <div class="rounded-2xl border border-line bg-white shadow-card overflow-hidden">
+        <ul class="divide-y divide-line-soft">
+          <!-- 방금 확정한 발주 -->
+          <li data-when="approved">
+            <button type="button" aria-expanded="false" data-toggle="#order-new, #order-new-up, #order-new-down" class="flex w-full items-center justify-between gap-3 px-5 py-4 text-left hover:bg-subtle">
+              <span class="min-w-0">
+                <span class="block text-base font-semibold text-ink">10월 19일 (월) · 품목 4개</span>
+                <span class="block text-sm text-ink-3">오후 06:41 확정 · 예상 139,800원</span>
+              </span>
+              <span class="flex shrink-0 items-center gap-2">
+                <span class="rounded-full px-2.5 py-1 text-sm font-semibold bg-ok-soft text-ok">확정</span>
+                <span id="order-new-down"><span data-icon="chevronDown" class="size-5 text-ink-3 transition-transform"></span></span>
+                <span id="order-new-up" hidden><span data-icon="chevronDown" class="size-5 text-ink-3 transition-transform rotate-180"></span></span>
+              </span>
+            </button>
+            <div id="order-new" hidden class="border-t border-line-soft bg-subtle px-5 py-4 text-[0.95rem] text-ink-2">
+              <p>모짜렐라 치즈 3200g, 피자 도우 60개, 토마토 소스 1500g, 바질 0.35kg</p>
+            </div>
+          </li>
+          <!-- 펼친 줄 — 상세는 펼칠 때 GET /api/orders/{id}로 불러온다 -->
+          <li>
+            <button type="button" aria-expanded="true" data-toggle="#order-1, #order-1-up, #order-1-down" class="flex w-full items-center justify-between gap-3 px-5 py-4 text-left hover:bg-subtle">
+              <span class="min-w-0">
+                <span class="block text-base font-semibold text-ink">10월 16일 (금) · 품목 3개</span>
+                <span class="block text-sm text-ink-3">오전 10:12 확정 · 예상 127,000원</span>
+              </span>
+              <span class="flex shrink-0 items-center gap-2">
+                <span class="rounded-full px-2.5 py-1 text-sm font-semibold bg-ok-soft text-ok">확정</span>
+                <span id="order-1-down" hidden><span data-icon="chevronDown" class="size-5 text-ink-3 transition-transform"></span></span>
+                <span id="order-1-up"><span data-icon="chevronDown" class="size-5 text-ink-3 transition-transform rotate-180"></span></span>
+              </span>
+            </button>
+            <div id="order-1" class="border-t border-line-soft bg-subtle px-5 py-4 text-[0.95rem] text-ink-2">
+              <p>모짜렐라 치즈 3000g, 피자 도우 50개, 루꼴라 1000g</p>
+              <p class="mt-1 text-sm text-ink-3">메모: 주말 행사 대비</p>
+            </div>
+          </li>
+          <li>
+            <button type="button" aria-expanded="false" data-toggle="#order-2, #order-2-up, #order-2-down" class="flex w-full items-center justify-between gap-3 px-5 py-4 text-left hover:bg-subtle">
+              <span class="min-w-0">
+                <span class="block text-base font-semibold text-ink">10월 9일 (금) · 품목 2개</span>
+                <span class="block text-sm text-ink-3">오후 03:27 확정 · 예상 40,000원</span>
+              </span>
+              <span class="flex shrink-0 items-center gap-2">
+                <span class="rounded-full px-2.5 py-1 text-sm font-semibold bg-ok-soft text-ok">확정</span>
+                <span id="order-2-down"><span data-icon="chevronDown" class="size-5 text-ink-3 transition-transform"></span></span>
+                <span id="order-2-up" hidden><span data-icon="chevronDown" class="size-5 text-ink-3 transition-transform rotate-180"></span></span>
+              </span>
+            </button>
+            <div id="order-2" hidden class="border-t border-line-soft bg-subtle px-5 py-4 text-[0.95rem] text-ink-2">
+              <p>토마토 소스 3000g, 페퍼로니 1000g</p>
+            </div>
+          </li>
+        </ul>
       </div>
     </section>
   </div>

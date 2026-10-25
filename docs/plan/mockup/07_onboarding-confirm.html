@@ -7,40 +7,54 @@
 <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4.0.17"></script>
 <script src="mockup.js" defer></script>
 </head>
-<!-- 원본: Front/src/routes/onboarding/layout.tsx, onboarding/step-confirm.tsx -->
+<!-- 원본: Front/src/routes/onboarding/layout.tsx, onboarding/step-confirm.tsx, components/ui/button.tsx·field.tsx -->
 <body data-page="ob4" data-states="기본:default,제출 오류:error">
-<main class="min-h-dvh bg-[#f3f4f6] p-6">
-  <div class="mx-auto w-full max-w-2xl space-y-6 py-6">
+<main class="min-h-dvh bg-canvas px-4 py-6 sm:p-6">
+  <div class="mx-auto w-full max-w-2xl space-y-6 lg:py-6">
     <header class="space-y-1">
-      <h1 class="text-3xl font-semibold text-[#101828]">매장 온보딩</h1>
-      <p class="text-base text-[#364153]">기본 정보를 4단계로 입력하면 메인 화면으로 이동합니다.</p>
+      <p class="text-sm font-semibold text-brand">4 / 4 단계</p>
+      <h1 class="text-[1.75rem] font-bold tracking-tight text-ink">매장 온보딩</h1>
+      <p class="text-base text-ink-3">기본 정보를 4단계로 입력하면 메인 화면으로 이동합니다.</p>
     </header>
+    <!-- 단계 표시 — 지난 단계는 체크, 지금 단계는 보라. 좁은 화면(sm 미만)은 지금 단계 이름만 보인다 -->
     <ol class="grid grid-cols-4 gap-2" aria-label="온보딩 단계">
-      <li class="flex flex-col items-start rounded-xl border border-[#d1d5dc] bg-white px-3 py-2"><span class="text-xs">Step 1</span><a href="04_onboarding-store.html" class="text-sm font-medium text-[#364153]">매장 정보</a></li>
-      <li class="flex flex-col items-start rounded-xl border border-[#d1d5dc] bg-white px-3 py-2"><span class="text-xs">Step 2</span><a href="05_onboarding-pos.html" class="text-sm font-medium text-[#364153]">POS 연동</a></li>
-      <li class="flex flex-col items-start rounded-xl border border-[#d1d5dc] bg-white px-3 py-2"><span class="text-xs">Step 3</span><a href="06_onboarding-menus.html" class="text-sm font-medium text-[#364153]">메뉴 등록</a></li>
-      <li aria-current="step" class="flex flex-col items-start rounded-xl border border-[#7a5eff] bg-white px-3 py-2"><span class="text-xs text-[#7a5eff]">Step 4</span><a href="07_onboarding-confirm.html" class="text-sm font-medium text-[#101828]">확인</a></li>
+      <li class="flex flex-col items-center gap-2 text-center">
+        <span class="h-1.5 w-full rounded-full bg-brand"></span>
+        <span class="flex items-center gap-1.5"><span class="flex size-6 shrink-0 items-center justify-center rounded-full text-xs font-bold bg-brand-soft text-brand"><span data-icon="check" class="size-3.5"></span></span><a href="04_onboarding-store.html" class="text-sm font-semibold whitespace-nowrap text-ink-2 hidden sm:inline">매장 정보</a></span>
+      </li>
+      <li class="flex flex-col items-center gap-2 text-center">
+        <span class="h-1.5 w-full rounded-full bg-brand"></span>
+        <span class="flex items-center gap-1.5"><span class="flex size-6 shrink-0 items-center justify-center rounded-full text-xs font-bold bg-brand-soft text-brand"><span data-icon="check" class="size-3.5"></span></span><a href="05_onboarding-pos.html" class="text-sm font-semibold whitespace-nowrap text-ink-2 hidden sm:inline">POS 연동</a></span>
+      </li>
+      <li class="flex flex-col items-center gap-2 text-center">
+        <span class="h-1.5 w-full rounded-full bg-brand"></span>
+        <span class="flex items-center gap-1.5"><span class="flex size-6 shrink-0 items-center justify-center rounded-full text-xs font-bold bg-brand-soft text-brand"><span data-icon="check" class="size-3.5"></span></span><a href="06_onboarding-menus.html" class="text-sm font-semibold whitespace-nowrap text-ink-2 hidden sm:inline">메뉴 등록</a></span>
+      </li>
+      <li aria-current="step" class="flex flex-col items-center gap-2 text-center">
+        <span class="h-1.5 w-full rounded-full bg-brand"></span>
+        <span class="flex items-center gap-1.5"><span class="flex size-6 shrink-0 items-center justify-center rounded-full text-xs font-bold bg-brand text-white">4</span><a href="07_onboarding-confirm.html" aria-current="page" class="text-sm font-semibold whitespace-nowrap text-ink">확인</a></span>
+      </li>
     </ol>
-    <section class="rounded-2xl bg-white p-8 shadow-sm">
+    <section class="rounded-2xl border border-line bg-white p-5 shadow-card sm:p-8">
       <div class="space-y-4">
         <section>
           <h2 class="font-medium">매장</h2>
-          <dl class="mt-1 grid grid-cols-2 text-sm text-slate-700">
+          <dl class="mt-1 grid grid-cols-2 text-sm text-ink-2">
             <dt>매장명</dt><dd>사주라 화덕피자 성수점</dd>
             <dt>업종</dt><dd>양식</dd>
-            <dt>규모</dt><dd>MEDIUM</dd>
-            <dt>운영</dt><dd>BOTH</dd>
+            <dt>규모</dt><dd>중형 (11~30석)</dd>
+            <dt>운영</dt><dd>홀+배달</dd>
             <dt>주소</dt><dd>서울 성동구 성수이로 00</dd>
             <dt>전화</dt><dd>02-000-0000</dd>
           </dl>
         </section>
         <section>
           <h2 class="font-medium">POS</h2>
-          <p class="text-sm text-slate-700">CSV_ONLY</p>
+          <p class="text-sm text-ink-2">CSV 업로드만 사용</p>
         </section>
         <section>
           <h2 class="font-medium">메뉴 (3개)</h2>
-          <ul class="text-sm text-slate-700">
+          <ul class="text-sm text-ink-2">
             <li>마르게리타 화덕피자 · 피자 · 16,000원</li>
             <li>페페로니 듬뿍 화덕피자 · 피자 · 18,000원</li>
             <li>콜라 · 음료 · 2,500원</li>
@@ -48,8 +62,8 @@
         </section>
         <p data-when="error" role="alert" class="text-sm text-red-600">온보딩 제출 중 오류가 발생했습니다.</p>
         <div class="flex justify-between pt-2">
-          <button type="button" data-go="06_onboarding-menus.html" class="inline-flex h-10 items-center justify-center gap-2 rounded-md border border-slate-300 bg-white px-4 text-sm font-medium text-slate-900 transition-colors hover:bg-slate-50">이전</button>
-          <button type="button" data-go="08_home.html" class="inline-flex h-10 items-center justify-center gap-2 rounded-md bg-slate-900 px-4 text-sm font-medium text-white transition-colors hover:bg-slate-800">온보딩 완료</button>
+          <button type="button" data-go="06_onboarding-menus.html" class="inline-flex h-11 shrink-0 items-center justify-center gap-2 rounded-xl border border-line bg-white px-5 text-[0.95rem] font-semibold whitespace-nowrap text-ink-2 transition-colors hover:border-ink-4 hover:bg-subtle disabled:cursor-not-allowed disabled:opacity-60">이전</button>
+          <button type="button" data-go="08_home.html" data-testid="confirm-submit" class="inline-flex h-11 shrink-0 items-center justify-center gap-2 rounded-xl bg-brand px-5 text-[0.95rem] font-semibold whitespace-nowrap text-white transition-colors hover:bg-brand-strong disabled:cursor-not-allowed disabled:bg-ink-4">온보딩 완료</button>
         </div>
       </div>
     </section>
