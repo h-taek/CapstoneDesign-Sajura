@@ -67,9 +67,9 @@ main 보호 설정: PR 필수(관리자 예외), force push·브랜치 삭제 �
 
 **작업 규칙**
 * 작업 브랜치는 짧게 유지한다. 길어지면 main을 자주 받아 충돌을 줄인다.
-* 작업 시작 전 항상 최신 main을 받는다. 옛 main 위에서 고치면 다른 사람의 변경을 덮어쓴다. AI 에이전트도 같다 — `CLAUDE.md` · `AGENTS.md` 참고.
+* 작업 시작 전 항상 최신 main을 받는다. 옛 main 위에서 고치면 다른 사람의 변경을 덮어쓴다. AI 에이전트도 같다.
 * 코드 옆 문서(`Back/README.md`, `Front/README.md`, `AI/README.md`)는 코드와 같은 PR에 넣는다.
-* `PROGRESS*.md` · `docs/` · 루트 `README.md` · `CLAUDE.md` · `AGENTS.md`만 바꾸는 작업은 코드 PR에 섞지 않고 `docs/<주제>` 브랜치로 따로 올린다.
+* `PROGRESS*.md` · `docs/` · 루트 `README.md`만 바꾸는 작업은 코드 PR에 섞지 않고 `docs/<주제>` 브랜치로 따로 올린다.
 * `HANDOFF.md`는 커밋하지 않는다(`.gitignore`, 개인용).
 * AI 서버는 별도 컨테이너로 배포하지만 브랜치 흐름은 같다. be·fe와는 HTTP API로만 연동한다.
 * Contract-first: BE는 `docs/spec/02_implementation_design.md` §3 계약을 먼저 안정화하고, FE는 `pnpm gen:api` 타입 코드젠 + MSW mock으로 선행 개발한다.
