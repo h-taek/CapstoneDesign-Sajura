@@ -52,7 +52,7 @@ docs/plan/       → 구현 계획 (단계별 작업, 순서, 역할 분담)
 | 예측 저장 구조 | `forecast_results`(매장 일 매출·P10/P90·근거) + `forecast_menu_items`(메뉴 분해) 2테이블. 구 메뉴별 단일 테이블 폐기 (2026-09-13) | `02_implementation_design.md` §4.3.15·§4.3.16 |
 | 배치 시각 | ARQ 소비기한 점검 01:30 / n8n 예측 배치 02:00 / ARQ 탈퇴 계정 파기 03:00 — 같은 호스트라 분산 (2026-10-03 파기 추가) | `01_basic_design.md` §3.3.6·§3.11.1, `01_basic_design.md` §5.2.1 |
 | 웹 프레임워크 | FastAPI + Pydantic v2 + orjson | `03_be.md` §1 |
-| 앱 서버 | dev Uvicorn / prod Gunicorn + uvicorn.workers (워커 4, --max-requests 1000, --preload) | `research/backend/02_app_server.md` |
+| 앱 서버 | Gunicorn + uvicorn.workers, 로컬 개발·운영 공통 (워커 4, --max-requests 1000, --preload). 로컬 개발도 운영과 같은 compose·이미지로 띄운다 (2026-10-25 dev Uvicorn 단독 폐기) | `03_be.md` §1·§15.2 |
 | 리버스 프록시 | Caddy v2 (TLS 1.3 강제, FE dist를 caddy 이미지에 COPY) | `research/backend/03_reverse_proxy.md` |
 | 데이터 계층 | SQLAlchemy 2.x async + aiomysql + PyMySQL(Alembic) + pandas + numpy + datetime+zoneinfo | `03_be.md` §1 |
 | 인증·암호화 | Authlib + python-jose + passlib[bcrypt] + cryptography(AES-256-GCM) | `03_be.md` §7·§10 |

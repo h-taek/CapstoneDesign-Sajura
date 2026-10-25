@@ -24,8 +24,7 @@ COPY Back/tests ./tests
 
 EXPOSE 8000
 
-# Default = production Gunicorn (03_be.md §1 표).
-# Compose `be` 서비스는 dev에서 `uvicorn --reload` 로 override.
+# Gunicorn + uvicorn.workers — 로컬 개발·운영 공통 (03_be.md §1·§15.2).
 CMD ["gunicorn", "app.main:app", \
      "-k", "uvicorn.workers.UvicornWorker", \
      "-w", "4", \

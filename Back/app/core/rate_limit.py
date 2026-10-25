@@ -1,7 +1,7 @@
 """Rate Limit — 03_be.md §13.4 (fastapi-limiter + Redis).
 
-키는 접속자 IP + 경로. IP는 uvicorn이 신뢰 프록시(FORWARDED_ALLOW_IPS = Caddy가 있는
-Docker 내부 대역)의 X-Forwarded-For를 반영한 request.client.host다. 라이브러리 기본
+키는 접속자 IP + 경로. IP는 uvicorn이 신뢰 프록시(FORWARDED_ALLOW_IPS = Caddy 고정 IP)의
+X-Forwarded-For를 반영한 request.client.host다. 라이브러리 기본
 식별자는 X-Forwarded-For를 검증 없이 믿어 헤더 위조로 우회되므로 쓰지 않는다.
 """
 from __future__ import annotations
