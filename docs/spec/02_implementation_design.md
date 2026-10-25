@@ -2105,7 +2105,9 @@ Authorization: Bearer <access_token>
 #### GET /api/notifications
 
 ```
-// Query: ?is_read=false&page=1&limit=20
+// Query: ?is_read=false&page=1&size=20
+// 공통 페이지네이션(§3.1.5). size 기본 20, 최대 100
+// 순서: created_at 최신순 고정 (페이지를 나누므로 BE가 정렬). 우선순위 정렬은 FE (04_fe.md §6)
 ```
 
 ```json
@@ -2126,7 +2128,8 @@ Authorization: Bearer <access_token>
   ],
   "total": 12,
   "page": 1,
-  "limit": 20
+  "size": 20,
+  "total_pages": 1
 }
 ```
 
