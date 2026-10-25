@@ -72,6 +72,8 @@ services:
     environment:
       DB_HOST: mysql
       REDIS_HOST: redis
+      # Caddy(Docker 내부 대역)가 붙인 X-Forwarded-For만 접속자 IP로 반영 — Rate Limit 키 (03_be.md §13.4)
+      FORWARDED_ALLOW_IPS: "172.16.0.0/12,192.168.0.0/16"
     depends_on:
       mysql:
         condition: service_healthy

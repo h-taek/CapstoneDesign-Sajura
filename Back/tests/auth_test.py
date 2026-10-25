@@ -294,3 +294,30 @@ async def test_oauth_callback_rejects_mismatched_state(
     client.cookies.clear()
     assert r.status_code == 400, r.text
     assert r.json()["error"] == "AUTH_SOCIAL_LOGIN_FAILED"
+
+
+# ----------------------------------------------------------------------
+# Rate Limit — 03_be.md §13.4
+# ----------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_login_rate_limited_per_ip(client: AsyncClient) -> None:
+    from httpx import ASGITransport
+
+    from app.main import app
+
+    body = {"email": make_test_email("rl"), "password": "Wrong-pass1!"}
+    for _ in range(5):
+        r = await client.post("/api/auth/login", json=body)
+        assert r.status_code == 401, r.text
+    r = await client.post("/api/auth/login", json=body)
+    assert r.status_code == 429, r.text
+    assert r.json()["error"] == "TOO_MANY_REQUESTS"
+    assert int(r.headers["retry-after"]) > 0
+
+    # 다른 IP는 영향 없음
+    other = ASGITransport(app=app, client=("10.0.0.2", 50000))
+    async with AsyncClient(transport=other, base_url="http://localhost") as c:
+        r = await c.post("/api/auth/login", json=body)
+    assert r.status_code == 401, r.text

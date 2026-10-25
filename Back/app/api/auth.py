@@ -8,6 +8,7 @@ from fastapi import APIRouter, Cookie, Response, status
 from app.api.deps import CurrentUserDep, SessionDep
 from app.config import get_settings
 from app.core import errors
+from app.core.rate_limit import CREDENTIAL_LIMIT, REFRESH_LIMIT
 from app.schemas.auth import (
     ChangePasswordRequest,
     DeleteAccountRequest,
@@ -38,7 +39,10 @@ def _clear_refresh_cookie(response: Response) -> None:
     response.delete_cookie(key=REFRESH_COOKIE_NAME, path="/")
 
 
-@router.post("/register", response_model=RegisterResponse, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/register", response_model=RegisterResponse, status_code=status.HTTP_201_CREATED,
+    dependencies=[CREDENTIAL_LIMIT],
+)
 async def register(payload: RegisterRequest, session: SessionDep) -> RegisterResponse:
     user = await AuthService(session).register(
         email=payload.email, password=payload.password, name=payload.name,
@@ -46,7 +50,7 @@ async def register(payload: RegisterRequest, session: SessionDep) -> RegisterRes
     return RegisterResponse(user_id=user.user_id, email=user.email, name=user.name)
 
 
-@router.post("/login", response_model=TokenResponse)
+@router.post("/login", response_model=TokenResponse, dependencies=[CREDENTIAL_LIMIT])
 async def login(payload: LoginRequest, response: Response, session: SessionDep) -> TokenResponse:
     tokens, store = await AuthService(session).login_with_email(
         email=payload.email, password=payload.password
@@ -59,7 +63,7 @@ async def login(payload: LoginRequest, response: Response, session: SessionDep) 
     )
 
 
-@router.post("/refresh", response_model=TokenResponse)
+@router.post("/refresh", response_model=TokenResponse, dependencies=[REFRESH_LIMIT])
 async def refresh(
     response: Response, session: SessionDep,
     refresh_token: Annotated[str | None, Cookie()] = None,

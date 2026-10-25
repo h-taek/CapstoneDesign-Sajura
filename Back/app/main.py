@@ -6,6 +6,8 @@ Spec refs:
 """
 from __future__ import annotations
 
+from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
 from datetime import UTC, datetime
 
 import sentry_sdk
@@ -15,6 +17,8 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from fastapi.responses import ORJSONResponse
+from fastapi_limiter import FastAPILimiter
+from redis.asyncio import Redis
 from sentry_sdk.integrations.asgi import SentryAsgiMiddleware
 from starlette.exceptions import HTTPException as StarletteHTTPException
 from starlette.middleware.sessions import SessionMiddleware
@@ -32,6 +36,7 @@ from app.api.prices import router as prices_router
 from app.api.sales import router as sales_router
 from app.api.store import router as store_router
 from app.config import get_settings
+from app.core.rate_limit import init_rate_limit
 from app.logging_config import configure_logging
 
 
@@ -42,6 +47,13 @@ def _default_error_code(status_code: int) -> str:
         429: "TOO_MANY_REQUESTS", 500: "INTERNAL_SERVER_ERROR",
         503: "SERVICE_UNAVAILABLE",
     }.get(status_code, "INTERNAL_SERVER_ERROR")
+
+
+@asynccontextmanager
+async def _lifespan(app: FastAPI) -> AsyncIterator[None]:
+    await init_rate_limit(Redis.from_url(get_settings().redis_url))
+    yield
+    await FastAPILimiter.close()
 
 
 def create_app() -> FastAPI:
@@ -55,7 +67,9 @@ def create_app() -> FastAPI:
             release=settings.SENTRY_RELEASE or None, send_default_pii=False,
         )
 
-    app = FastAPI(title=settings.APP_NAME, default_response_class=ORJSONResponse)
+    app = FastAPI(
+        title=settings.APP_NAME, default_response_class=ORJSONResponse, lifespan=_lifespan
+    )
 
     # OAuth state 보관용 서명 쿠키 (app/api/oauth.py, Authlib)
     app.add_middleware(
@@ -99,6 +113,7 @@ def create_app() -> FastAPI:
                 "path": request.url.path,
                 "timestamp": datetime.now(UTC).isoformat().replace("+00:00", "Z"),
             },
+            headers=getattr(exc, "headers", None),  # 429 Retry-After 등
         )
 
     @app.exception_handler(RequestValidationError)

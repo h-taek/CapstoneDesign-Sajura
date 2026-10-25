@@ -35,6 +35,7 @@ dependencies = [
     "phonenumbers==8.13.50",
     "itsdangerous==2.2.0",
     "aiobreaker==1.2.0",
+    "fastapi-limiter==0.1.6",
     # Phase 4 POS·CSV
     "pandas==2.2.3",
 ]
@@ -48,6 +49,7 @@ dev = [
     "mypy==1.13.0",
     "ipython==8.30.0",
     "rich==13.9.4",
+    "fakeredis[lua]==2.26.2",
 ]
 
 [tool.ruff]

@@ -9,6 +9,7 @@ import uuid
 from collections.abc import AsyncIterator
 
 import pytest_asyncio
+from fakeredis import FakeAsyncRedis
 from httpx import ASGITransport, AsyncClient
 from sqlalchemy import delete
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
@@ -16,6 +17,7 @@ from sqlalchemy.pool import NullPool
 
 import app.db as app_db
 from app.config import get_settings
+from app.core.rate_limit import init_rate_limit
 from app.main import app
 from app.models.user import User
 
@@ -37,6 +39,12 @@ TEST_EMAIL_DOMAIN = "example.com"
 
 def make_test_email(tag: str = "u") -> str:
     return f"{TEST_EMAIL_PREFIX}{tag}-{uuid.uuid4().hex[:10]}@{TEST_EMAIL_DOMAIN}"
+
+
+@pytest_asyncio.fixture(autouse=True, loop_scope="function")
+async def _rate_limit_store() -> None:
+    # ASGITransport는 lifespan을 돌리지 않는다. 테스트마다 빈 저장소로 시작해 횟수를 나눈다
+    await init_rate_limit(FakeAsyncRedis())
 
 
 @pytest_asyncio.fixture(loop_scope="session")
