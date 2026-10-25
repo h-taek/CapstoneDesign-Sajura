@@ -62,11 +62,11 @@ export default function AdminVerificationsPage() {
 
   return (
     <main className="mx-auto max-w-3xl p-6">
-      <h1 className="mb-4 text-2xl font-semibold text-slate-900">사업자 검증 심사</h1>
+      <h1 className="mb-4 text-2xl font-semibold text-ink">사업자 검증 심사</h1>
       {isLoading ? (
-        <p className="text-sm text-slate-500">불러오는 중…</p>
+        <p className="text-sm text-ink-3">불러오는 중…</p>
       ) : items.length === 0 ? (
-        <p className="text-sm text-slate-500" data-testid="admin-empty">
+        <p className="text-sm text-ink-3" data-testid="admin-empty">
           심사 대기 중인 항목이 없습니다.
         </p>
       ) : (
@@ -74,13 +74,13 @@ export default function AdminVerificationsPage() {
           {items.map((it) => (
             <li
               key={it.store_id}
-              className="rounded-lg border border-slate-200 p-4"
+              className="rounded-lg border border-line p-4"
               data-testid="verification-row"
             >
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="font-medium text-slate-900">{it.user_email}</p>
-                  <p className="text-sm text-slate-500">사업자번호: {it.business_no ?? "-"}</p>
+                  <p className="font-medium text-ink">{it.user_email}</p>
+                  <p className="text-sm text-ink-3">사업자번호: {it.business_no ?? "-"}</p>
                 </div>
                 <div className="flex gap-2">
                   <Button
@@ -117,13 +117,13 @@ export default function AdminVerificationsPage() {
                   <iframe
                     src={cert.url}
                     title="사업자등록증 PDF"
-                    className="mt-3 h-96 w-full rounded border border-slate-200"
+                    className="mt-3 h-96 w-full rounded border border-line"
                   />
                 ) : (
                   <img
                     src={cert.url}
                     alt="사업자등록증"
-                    className="mt-3 max-h-64 rounded border border-slate-200"
+                    className="mt-3 max-h-64 rounded border border-line"
                   />
                 );
               })()}

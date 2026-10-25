@@ -54,6 +54,8 @@ Thumbs.db
 
 # FE UI 정적 에셋(아이콘·로고·배경 이미지 등 실제 화면에 쓰이는 리소스)은 예외
 !Front/src/assets/**
+# PWA 아이콘(manifest·apple-touch-icon)은 빌드 결과에 그대로 복사돼야 하므로 예외
+!Front/public/**
 
 # personal (개인용 작업 컨텍스트, 외부 공유 X)
 HANDOFF.md

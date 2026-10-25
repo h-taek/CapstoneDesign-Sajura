@@ -1,25 +1,25 @@
-// 버튼 프리미티브 — shadcn/ui 스타일 (04_fe.md §1).
-import { forwardRef, type ButtonHTMLAttributes } from "react";
+// 버튼 프리미티브 — 디자인 토큰 v2 (index.css @theme).
+// 앱(모바일)에서는 html 글씨가 커지므로 같은 size도 손가락 기준(≥48px)으로 커진다.
+import { type ButtonHTMLAttributes, forwardRef } from "react";
 import { cn } from "../../lib/utils";
 
-type Variant = "primary" | "secondary" | "ghost" | "destructive";
-type Size = "sm" | "md" | "lg";
+type Variant = "primary" | "secondary" | "ghost" | "destructive" | "soft";
+type Size = "sm" | "md" | "lg" | "xl";
 
 const variants: Record<Variant, string> = {
-  primary:
-    "bg-slate-900 text-white hover:bg-slate-800 disabled:bg-slate-400",
+  primary: "bg-brand text-white hover:bg-brand-strong disabled:bg-ink-4",
+  soft: "bg-brand-soft text-brand-strong hover:bg-brand-tint disabled:opacity-60",
   secondary:
-    "bg-white text-slate-900 border border-slate-300 hover:bg-slate-50 disabled:opacity-60",
-  ghost:
-    "bg-transparent text-slate-700 hover:bg-slate-100 disabled:opacity-50",
-  destructive:
-    "bg-red-600 text-white hover:bg-red-500 disabled:bg-red-300",
+    "bg-white text-ink-2 border border-line hover:bg-subtle hover:border-ink-4 disabled:opacity-60",
+  ghost: "bg-transparent text-ink-2 hover:bg-subtle disabled:opacity-50",
+  destructive: "bg-danger text-white hover:bg-red-700 disabled:bg-red-300",
 };
 
 const sizes: Record<Size, string> = {
-  sm: "h-9 px-3 text-sm",
-  md: "h-10 px-4 text-sm",
-  lg: "h-12 px-5 text-base",
+  sm: "h-9 px-3.5 text-sm rounded-lg",
+  md: "h-11 px-5 text-[0.95rem] rounded-xl",
+  lg: "h-12 px-6 text-base rounded-xl",
+  xl: "h-14 px-6 text-lg rounded-2xl",
 };
 
 export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
@@ -33,7 +33,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
       ref={ref}
       type={type}
       className={cn(
-        "inline-flex items-center justify-center gap-2 rounded-md font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400",
+        "inline-flex shrink-0 items-center justify-center gap-2 font-semibold whitespace-nowrap transition-colors disabled:cursor-not-allowed",
         variants[variant],
         sizes[size],
         className,

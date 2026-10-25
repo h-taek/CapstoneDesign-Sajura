@@ -27,16 +27,16 @@ export default function PricingSettingsPage() {
   });
 
   return (
-    <DashboardShell active="settings">
+    <DashboardShell active="settings" title="단가 관리" backTo="/settings">
       <div className="space-y-6">
         <header className="space-y-1">
-          <h1 className="text-2xl font-semibold text-[#101828]">단가 관리</h1>
-          <p className="text-sm text-[#99a1af]">메뉴별 판매 단가를 조회하고 수정합니다.</p>
+          <h1 className="hidden text-[1.75rem] font-bold tracking-tight text-ink lg:block">단가 관리</h1>
+          <p className="text-sm text-ink-3">메뉴별 판매 단가를 조회하고 수정합니다.</p>
         </header>
 
-        <div className="overflow-hidden rounded-xl border border-[#d1d5dc] bg-white">
+        <div className="overflow-hidden rounded-xl border border-line bg-white">
           <table className="w-full text-left text-sm">
-            <thead className="bg-[#fafafa] text-[#61646b]">
+            <thead className="bg-subtle text-ink-3">
               <tr>
                 <th className="px-4 py-3 font-medium">메뉴</th>
                 <th className="px-4 py-3 font-medium">카테고리</th>
@@ -47,21 +47,21 @@ export default function PricingSettingsPage() {
             <tbody>
               {isLoading ? (
                 <tr>
-                  <td colSpan={4} className="px-4 py-6 text-center text-[#99a1af]">
+                  <td colSpan={4} className="px-4 py-6 text-center text-ink-3">
                     불러오는 중…
                   </td>
                 </tr>
               ) : menus.length === 0 ? (
                 <tr>
-                  <td colSpan={4} className="px-4 py-6 text-center text-[#99a1af]">
+                  <td colSpan={4} className="px-4 py-6 text-center text-ink-3">
                     등록된 메뉴가 없습니다.
                   </td>
                 </tr>
               ) : (
                 menus.map((m) => (
-                  <tr key={m.menu_id} className="border-t border-[#eef1f4]">
-                    <td className="px-4 py-3 font-medium text-[#364153]">{m.name}</td>
-                    <td className="px-4 py-3 text-[#99a1af]">{m.category ?? "—"}</td>
+                  <tr key={m.menu_id} className="border-t border-line-soft">
+                    <td className="px-4 py-3 font-medium text-ink-2">{m.name}</td>
+                    <td className="px-4 py-3 text-ink-3">{m.category ?? "—"}</td>
                     <td className="px-4 py-3">
                       {editingId === m.menu_id ? (
                         <input
@@ -69,10 +69,10 @@ export default function PricingSettingsPage() {
                           min={0}
                           value={draftPrice}
                           onChange={(e) => setDraftPrice(e.target.value)}
-                          className="h-9 w-28 rounded-lg border border-[#d1d5dc] px-2 text-sm"
+                          className="h-9 w-28 rounded-lg border border-line px-2 text-sm"
                         />
                       ) : (
-                        <span className="text-[#364153]">{won.format(m.price)}</span>
+                        <span className="text-ink-2">{won.format(m.price)}</span>
                       )}
                     </td>
                     <td className="px-4 py-3 text-right">
@@ -81,7 +81,7 @@ export default function PricingSettingsPage() {
                           <button
                             type="button"
                             onClick={() => setEditingId(null)}
-                            className="text-sm text-[#99a1af] hover:text-[#364153]"
+                            className="text-sm text-ink-3 hover:text-ink-2"
                           >
                             취소
                           </button>
@@ -93,7 +93,7 @@ export default function PricingSettingsPage() {
                               }
                             }}
                             disabled={mutation.isPending}
-                            className="h-8 rounded-full bg-[#7a5eff] px-4 text-xs font-semibold hover:bg-[#6a4eef]"
+                            className="h-8 rounded-full bg-brand px-4 text-sm font-semibold hover:bg-brand-strong"
                           >
                             저장
                           </Button>
@@ -105,7 +105,7 @@ export default function PricingSettingsPage() {
                             setEditingId(m.menu_id);
                             setDraftPrice(String(m.price));
                           }}
-                          className="text-sm font-medium text-[#7a5eff] hover:underline"
+                          className="text-sm font-medium text-brand hover:underline"
                         >
                           수정
                         </button>

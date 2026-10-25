@@ -85,49 +85,49 @@ export default function LoginPage() {
       <section className="flex items-center justify-center p-6 lg:p-16">
         <div className="w-full max-w-[688px] space-y-8">
           <header className="space-y-2">
-            <h1 className="text-4xl font-semibold text-[#101828] lg:text-5xl">Welcome,Sajura</h1>
-            <p className="text-xl font-medium text-[#364153] lg:text-2xl">
+            <h1 className="text-4xl font-semibold text-ink lg:text-5xl">Welcome,Sajura</h1>
+            <p className="text-xl font-medium text-ink-2 lg:text-2xl">
               로그인을 하고 재고를 쉽게 관리해보아요
             </p>
           </header>
 
           {registeredEmail ? (
-            <output className="block rounded-md bg-emerald-50 p-3 text-sm text-emerald-700">
+            <output className="block rounded-xl bg-emerald-50 p-3 text-sm text-emerald-700">
               회원가입이 완료되었습니다. 로그인해주세요.
             </output>
           ) : null}
           {navState?.withdrawn ? (
-            <output className="block rounded-md bg-[#f3f4f6] p-3 text-sm text-[#364153]">
+            <output className="block rounded-xl bg-subtle p-3 text-sm text-ink-2">
               탈퇴가 접수되었습니다. 30일 뒤 매장 데이터를 포함한 모든 정보가 삭제됩니다.
             </output>
           ) : null}
 
           <form className="space-y-6" onSubmit={handleSubmit(onSubmit)} noValidate>
-            <FormField label="ID" htmlFor="email" error={errors.email?.message}>
+            <FormField label="아이디(이메일)" htmlFor="email" error={errors.email?.message}>
               <Input
                 id="email"
                 type="email"
                 autoComplete="email"
                 placeholder="아이디를 입력해 주세요."
-                className="h-[58px] rounded-xl border-[#d1d5dc] bg-[#f3f4f6] px-4 text-base"
+                className="h-[58px] rounded-xl border-line bg-subtle px-4 text-base"
                 {...register("email")}
               />
             </FormField>
 
-            <FormField label="Password" htmlFor="password" error={errors.password?.message}>
+            <FormField label="비밀번호" htmlFor="password" error={errors.password?.message}>
               <div className="relative">
                 <Input
                   id="password"
                   type={showPassword ? "text" : "password"}
                   autoComplete="current-password"
                   placeholder="비밀번호를 입력해 주세요."
-                  className="h-[58px] rounded-xl border-[#d1d5dc] bg-[#f3f4f6] px-4 pr-12 text-base"
+                  className="h-[58px] rounded-xl border-line bg-subtle px-4 pr-12 text-base"
                   {...register("password")}
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword((v) => !v)}
-                  className="absolute right-4 top-1/2 -translate-y-1/2 text-[#99a1af]"
+                  className="absolute right-4 top-1/2 -translate-y-1/2 text-ink-3"
                   aria-label={showPassword ? "비밀번호 숨기기" : "비밀번호 표시"}
                 >
                   <img src={eyeIcon} alt="" className="size-6" />
@@ -136,11 +136,11 @@ export default function LoginPage() {
             </FormField>
 
             <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-              <label className="flex items-center gap-3 text-base text-[#99a1af]">
-                <input type="checkbox" defaultChecked className="size-6 rounded accent-[#7a5eff]" />
+              <label className="flex items-center gap-3 text-base text-ink-3">
+                <input type="checkbox" defaultChecked className="size-6 rounded accent-brand" />
                 다음에도 기억하기
               </label>
-              <span className="cursor-default text-base text-[#99a1af] underline">
+              <span className="cursor-default text-base text-ink-3 underline">
                 비밀번호를 잊으셨나요?
               </span>
             </div>
@@ -154,16 +154,16 @@ export default function LoginPage() {
             <Button
               type="submit"
               disabled={mutation.isPending}
-              className="h-[68px] w-full rounded-full bg-[#7a5eff] text-xl font-semibold hover:bg-[#6a4eef]"
+              className="h-[68px] w-full rounded-full bg-brand text-xl font-semibold hover:bg-brand-strong"
             >
               {mutation.isPending ? "로그인 중…" : "로그인하기"}
             </Button>
           </form>
 
           <div className="flex items-center gap-4">
-            <span className="h-px flex-1 bg-[#d1d5dc]" />
-            <span className="text-lg text-[#364153]">or continue with</span>
-            <span className="h-px flex-1 bg-[#d1d5dc]" />
+            <span className="h-px flex-1 bg-line" />
+            <span className="text-lg text-ink-2">또는 간편 로그인</span>
+            <span className="h-px flex-1 bg-line" />
           </div>
 
           <div className="space-y-4">
@@ -171,7 +171,7 @@ export default function LoginPage() {
               type="button"
               onClick={goGoogle}
               data-provider="google"
-              className="h-[68px] w-full rounded-full border-2 border-[#d1d5dc] bg-[#f3f4f6] text-xl font-semibold text-[#364153] hover:bg-[#e5e7eb]"
+              className="h-[68px] w-full rounded-full border-2 border-line bg-subtle text-xl font-semibold text-ink-2 hover:bg-line"
             >
               <span className="relative size-8 shrink-0">
                 <img src={googleG1} alt="" className="absolute inset-0 size-full" />
@@ -185,16 +185,16 @@ export default function LoginPage() {
               type="button"
               onClick={goKakao}
               data-provider="kakao"
-              className="h-[68px] w-full rounded-full bg-[#ffdf20] text-xl font-semibold text-[#364153] hover:bg-[#f5d500]"
+              className="h-[68px] w-full rounded-full bg-[#ffdf20] text-xl font-semibold text-ink-2 hover:bg-[#f5d500]"
             >
               <img src={kakaoIcon} alt="" className="h-[30px] w-[33px] shrink-0" />
               카카오로 시작하기
             </Button>
           </div>
 
-          <p className="text-center text-base text-[#99a1af]">
+          <p className="text-center text-base text-ink-3">
             계정이 없으신가요?{" "}
-            <Link to="/register" className="font-medium text-[#364153] hover:underline">
+            <Link to="/register" className="font-medium text-ink-2 hover:underline">
               여기서 회원가입 하세요
             </Link>
           </p>

@@ -62,17 +62,17 @@ export default function VerifyBusinessPage() {
   };
 
   return (
-    <main className="grid min-h-dvh place-items-center bg-[#f3f4f6] p-6">
+    <main className="grid min-h-dvh place-items-center bg-subtle p-6">
       <section className="w-full max-w-[560px] space-y-8 rounded-2xl bg-white p-10 shadow-sm">
         <header className="space-y-2">
-          <h1 className="text-3xl font-semibold text-[#101828]">매장 인증을 완료해주세요</h1>
-          <p className="text-base text-[#364153]">
+          <h1 className="text-3xl font-semibold text-ink">매장 인증을 완료해주세요</h1>
+          <p className="text-base text-ink-2">
             사업자등록번호와 등록증을 제출하면 검증 후 다음 단계로 진행합니다.
           </p>
         </header>
 
         {user?.business_status === "REJECTED" && store?.business_reject_reason ? (
-          <output className="block rounded-md bg-red-50 p-3 text-sm text-red-700">
+          <output className="block rounded-xl bg-red-50 p-3 text-sm text-red-700">
             반려됨: {store.business_reject_reason} — 확인 후 다시 제출해주세요.
           </output>
         ) : null}
@@ -88,7 +88,7 @@ export default function VerifyBusinessPage() {
               id="business_no"
               inputMode="numeric"
               placeholder="사업자등록번호를 입력해 주세요."
-              className="h-[58px] rounded-xl border-[#d1d5dc] bg-[#f3f4f6] px-4 text-base"
+              className="h-[58px] rounded-xl border-line bg-subtle px-4 text-base"
               {...register("business_no", {
                 onChange: (e) => setValue("business_no", formatBusinessNo(e.target.value)),
               })}
@@ -97,13 +97,13 @@ export default function VerifyBusinessPage() {
 
           <FormField label="사업자등록증" htmlFor="cert" hint="이미지(jpg/png) 또는 PDF, 최대 10MB">
             <div className="flex items-center gap-3">
-              <div className="flex h-[58px] flex-1 items-center rounded-xl border border-[#d1d5dc] bg-[#f3f4f6] px-4 text-base text-[#99a1af]">
+              <div className="flex h-[58px] flex-1 items-center rounded-xl border border-line bg-subtle px-4 text-base text-ink-3">
                 {cert ? cert.name : "사업자등록증(파일을 첨부해주세요)"}
               </div>
               <Button
                 type="button"
                 onClick={() => fileRef.current?.click()}
-                className="h-[58px] shrink-0 rounded-xl bg-[#101828] px-6 text-base font-medium hover:bg-[#1f2937]"
+                className="h-[58px] shrink-0 rounded-xl bg-ink px-6 text-base font-medium hover:bg-ink"
               >
                 파일 찾기
               </Button>
@@ -127,7 +127,7 @@ export default function VerifyBusinessPage() {
           <Button
             type="submit"
             disabled={mutation.isPending}
-            className="h-[68px] w-full rounded-full bg-[#7a5eff] text-xl font-semibold hover:bg-[#6a4eef]"
+            className="h-[68px] w-full rounded-full bg-brand text-xl font-semibold hover:bg-brand-strong"
           >
             {mutation.isPending ? "검증 중…" : "제출하기"}
           </Button>

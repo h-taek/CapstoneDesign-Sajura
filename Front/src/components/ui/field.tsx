@@ -1,14 +1,14 @@
 // 입력 + 라벨 + 에러 메시지 묶음 — RHF 친화 (04_fe.md §8).
 import {
-  forwardRef,
   type InputHTMLAttributes,
   type ReactNode,
   type SelectHTMLAttributes,
+  forwardRef,
 } from "react";
 import { cn } from "../../lib/utils";
 
 const baseField =
-  "h-10 w-full rounded-md border border-slate-300 bg-white px-3 text-sm shadow-sm focus:border-slate-500 focus:outline-none focus:ring-2 focus:ring-slate-300 disabled:bg-slate-100";
+  "h-12 w-full rounded-xl border border-line bg-white px-4 text-base text-ink placeholder:text-ink-4 focus:border-brand focus:outline-none focus:ring-4 focus:ring-brand-soft disabled:bg-subtle disabled:text-ink-3";
 
 export const Input = forwardRef<HTMLInputElement, InputHTMLAttributes<HTMLInputElement>>(
   ({ className, ...rest }, ref) => (
@@ -40,17 +40,17 @@ export function FormField({
   children: ReactNode;
 }) {
   return (
-    <div className="flex flex-col gap-1">
-      <label htmlFor={htmlFor} className="text-sm font-medium text-slate-700">
+    <div className="flex flex-col gap-1.5">
+      <label htmlFor={htmlFor} className="text-[0.95rem] font-semibold text-ink-2">
         {label}
       </label>
       {children}
       {error ? (
-        <p className="text-xs text-red-600" role="alert">
+        <p className="text-sm text-danger" role="alert">
           {error}
         </p>
       ) : hint ? (
-        <p className="text-xs text-slate-500">{hint}</p>
+        <p className="text-sm text-ink-3">{hint}</p>
       ) : null}
     </div>
   );

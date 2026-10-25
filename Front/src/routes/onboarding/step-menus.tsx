@@ -43,9 +43,9 @@ export default function MenusStep() {
   return (
     <form className="space-y-6" onSubmit={handleSubmit(onSubmit)} noValidate>
       <div className="space-y-1">
-        <h2 className="text-2xl font-semibold text-[#101828]">메뉴 등록</h2>
-        <p className="text-base text-[#364153]">판매하는 메뉴를 등록해주세요.</p>
-        <p className="text-sm text-[#99a1af]">
+        <h2 className="text-2xl font-semibold text-ink">메뉴 등록</h2>
+        <p className="text-base text-ink-2">판매하는 메뉴를 등록해주세요.</p>
+        <p className="text-sm text-ink-3">
           재고 차감은 레시피를 등록한 뒤 레시피 관리에서 켤 수 있습니다.
         </p>
       </div>
@@ -56,7 +56,7 @@ export default function MenusStep() {
           return (
             <div
               key={field.id}
-              className="grid grid-cols-12 items-start gap-3 rounded-xl border border-[#d1d5dc] p-4"
+              className="grid grid-cols-12 items-start gap-3 rounded-xl border border-line p-4"
               data-testid={`menu-row-${idx}`}
             >
               <div className="col-span-4">
@@ -67,7 +67,7 @@ export default function MenusStep() {
                 >
                   <Input
                     id={`menus.${idx}.name`}
-                    className="h-11 rounded-xl border-[#d1d5dc] bg-[#f3f4f6]"
+                    className="h-11 rounded-xl border-line bg-subtle"
                     {...register(`menus.${idx}.name`)}
                   />
                 </FormField>
@@ -80,7 +80,7 @@ export default function MenusStep() {
                 >
                   <Input
                     id={`menus.${idx}.category`}
-                    className="h-11 rounded-xl border-[#d1d5dc] bg-[#f3f4f6]"
+                    className="h-11 rounded-xl border-line bg-subtle"
                     {...register(`menus.${idx}.category`)}
                   />
                 </FormField>
@@ -96,7 +96,7 @@ export default function MenusStep() {
                     inputMode="numeric"
                     type="number"
                     min={0}
-                    className="h-11 rounded-xl border-[#d1d5dc] bg-[#f3f4f6]"
+                    className="h-11 rounded-xl border-line bg-subtle"
                     {...register(`menus.${idx}.price`)}
                   />
                 </FormField>
@@ -108,16 +108,16 @@ export default function MenusStep() {
                   aria-label="메뉴 삭제"
                   disabled={fields.length === 1}
                   onClick={() => remove(idx)}
-                  className="h-11 rounded-full text-[#99a1af] hover:bg-red-50 hover:text-red-600"
+                  className="h-11 rounded-full text-ink-3 hover:bg-red-50 hover:text-red-600"
                 >
                   <Trash2 className="size-4" />
                 </Button>
               </div>
-              <div className="col-span-12 flex gap-4 text-sm text-[#364153]">
+              <div className="col-span-12 flex gap-4 text-sm text-ink-2">
                 <label className="flex items-center gap-2">
                   <input
                     type="checkbox"
-                    className="accent-[#7a5eff]"
+                    className="accent-brand"
                     {...register(`menus.${idx}.is_active`)}
                   />{" "}
                   판매 활성
@@ -128,7 +128,7 @@ export default function MenusStep() {
         })}
       </div>
       {errors.menus?.root?.message ? (
-        <p className="text-xs text-red-600" role="alert">
+        <p className="text-sm text-red-600" role="alert">
           {errors.menus.root.message}
         </p>
       ) : null}
@@ -136,7 +136,7 @@ export default function MenusStep() {
         type="button"
         onClick={() => append({ ...EMPTY_MENU })}
         data-testid="menu-add"
-        className="h-10 rounded-full border border-[#d1d5dc] bg-white px-4 text-sm text-[#364153] hover:bg-[#f3f4f6]"
+        className="h-10 rounded-full border border-line bg-white px-4 text-sm text-ink-2 hover:bg-subtle"
       >
         <Plus className="size-4" /> 메뉴 추가
       </Button>
@@ -144,7 +144,7 @@ export default function MenusStep() {
         <Button
           type="button"
           onClick={() => navigate("/onboarding/2")}
-          className="h-11 rounded-full border border-[#d1d5dc] bg-white px-6 text-[#364153] hover:bg-[#f3f4f6]"
+          className="h-11 rounded-full border border-line bg-white px-6 text-ink-2 hover:bg-subtle"
         >
           이전
         </Button>
@@ -152,7 +152,7 @@ export default function MenusStep() {
           type="submit"
           disabled={isSubmitting}
           data-testid="menus-next"
-          className="h-11 rounded-full bg-[#7a5eff] px-8 font-semibold hover:bg-[#6a4eef]"
+          className="h-11 rounded-full bg-brand px-8 font-semibold hover:bg-brand-strong"
         >
           다음
         </Button>

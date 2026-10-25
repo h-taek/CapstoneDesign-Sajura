@@ -10,13 +10,13 @@ export function AuthHeroPanel({
   subtext: ReactNode;
 }) {
   return (
-    <section className="relative hidden overflow-hidden bg-gradient-to-br from-[#926bff] to-[#8397ff] lg:block">
+    <section className="relative hidden overflow-hidden bg-gradient-to-br from-brand to-brand-strong lg:block">
       <img
         src={heroPhoto}
         alt=""
         className="absolute inset-0 h-full w-full object-cover opacity-30"
       />
-      <div className="absolute inset-0 bg-gradient-to-r from-white/0 to-[#9071ff]/80" />
+      <div className="absolute inset-0 bg-gradient-to-r from-white/0 to-brand/70" />
       <p className="relative px-16 pt-14 text-5xl font-semibold text-white">Sajura</p>
       <div className="absolute bottom-24 left-16 right-16 space-y-6">
         <h2 className="text-5xl font-semibold leading-tight text-white">{heading}</h2>

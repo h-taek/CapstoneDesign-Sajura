@@ -46,14 +46,14 @@ export default function PosStep() {
   return (
     <form className="space-y-6" onSubmit={handleSubmit(onSubmit)} noValidate>
       <div className="space-y-1">
-        <h2 className="text-2xl font-semibold text-[#101828]">
+        <h2 className="text-2xl font-semibold text-ink">
           {userName ? `${userName}님, ` : ""}Sajura에 오신 걸 환영합니다
         </h2>
-        <p className="text-base text-[#364153]">POS 데이터를 연동해주세요.</p>
+        <p className="text-base text-ink-2">POS 데이터를 연동해주세요.</p>
       </div>
 
       <div className="space-y-2">
-        <span className="text-sm font-medium text-[#364153]">POS 종류</span>
+        <span className="text-sm font-medium text-ink-2">POS 종류</span>
         <div className="grid grid-cols-2 gap-3" role="radiogroup" aria-label="POS 종류">
           {POS_TYPES.map((t) => {
             const active = posType === t.value;
@@ -63,14 +63,14 @@ export default function PosStep() {
                 className={cn(
                   "flex cursor-pointer items-center gap-3 rounded-xl border px-4 py-3 text-sm font-medium transition-colors",
                   active
-                    ? "border-[#7a5eff] bg-[#7a5eff]/5 text-[#101828]"
-                    : "border-[#d1d5dc] bg-white text-[#364153] hover:bg-[#f3f4f6]",
+                    ? "border-brand bg-brand-soft text-ink"
+                    : "border-line bg-white text-ink-2 hover:bg-subtle",
                 )}
               >
                 <input
                   type="radio"
                   value={t.value}
-                  className="size-4 accent-[#7a5eff]"
+                  className="size-4 accent-brand"
                   {...register("pos_type")}
                 />
                 {t.label}
@@ -79,7 +79,7 @@ export default function PosStep() {
           })}
         </div>
         {errors.pos_type ? (
-          <p className="text-xs text-red-600" role="alert">
+          <p className="text-sm text-red-600" role="alert">
             {errors.pos_type.message}
           </p>
         ) : null}
@@ -95,7 +95,7 @@ export default function PosStep() {
           id="api_key"
           autoComplete="off"
           disabled={csvOnly}
-          className="h-11 rounded-xl border-[#d1d5dc] bg-[#f3f4f6]"
+          className="h-11 rounded-xl border-line bg-subtle"
           {...register("api_key")}
         />
       </FormField>
@@ -104,7 +104,7 @@ export default function PosStep() {
           id="store_code"
           autoComplete="off"
           disabled={csvOnly}
-          className="h-11 rounded-xl border-[#d1d5dc] bg-[#f3f4f6]"
+          className="h-11 rounded-xl border-line bg-subtle"
           {...register("store_code")}
         />
       </FormField>
@@ -113,7 +113,7 @@ export default function PosStep() {
         <Button
           type="button"
           onClick={() => navigate("/onboarding/1")}
-          className="h-11 rounded-full border border-[#d1d5dc] bg-white px-6 text-[#364153] hover:bg-[#f3f4f6]"
+          className="h-11 rounded-full border border-line bg-white px-6 text-ink-2 hover:bg-subtle"
         >
           이전
         </Button>
@@ -121,7 +121,7 @@ export default function PosStep() {
           type="submit"
           disabled={isSubmitting}
           data-testid="pos-next"
-          className="h-11 rounded-full bg-[#7a5eff] px-8 font-semibold hover:bg-[#6a4eef]"
+          className="h-11 rounded-full bg-brand px-8 font-semibold hover:bg-brand-strong"
         >
           다음
         </Button>

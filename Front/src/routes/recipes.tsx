@@ -33,12 +33,12 @@ export default function RecipesPage() {
   return (
     <DashboardShell active="recipes">
       <div className="space-y-6">
-        <h1 className="text-2xl font-semibold text-[#101828]">레시피 관리</h1>
+        <h1 className="hidden text-[1.75rem] font-bold tracking-tight text-ink lg:block">레시피 관리</h1>
 
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-[280px_1fr]">
-          <section className="space-y-2 rounded-xl border border-[#d1d5dc] bg-white p-2">
+          <section className="space-y-2 rounded-xl border border-line bg-white p-2">
             {menus.length === 0 ? (
-              <p className="p-4 text-sm text-[#99a1af]">등록된 메뉴가 없습니다.</p>
+              <p className="p-4 text-sm text-ink-3">등록된 메뉴가 없습니다.</p>
             ) : (
               menus.map((m) => (
                 <button
@@ -47,12 +47,12 @@ export default function RecipesPage() {
                   onClick={() => setSelectedMenuId(m.menu_id)}
                   className={`flex w-full items-center justify-between rounded-lg px-3 py-2.5 text-left text-sm ${
                     m.menu_id === selectedMenuId
-                      ? "bg-[#7a5eff]/10 font-medium text-[#7a5eff]"
-                      : "text-[#364153] hover:bg-[#f3f4f6]"
+                      ? "bg-brand-soft font-medium text-brand"
+                      : "text-ink-2 hover:bg-subtle"
                   }`}
                 >
                   <span>{m.name}</span>
-                  <span className="text-xs text-[#99a1af]">{m.category ?? ""}</span>
+                  <span className="text-sm text-ink-3">{m.category ?? ""}</span>
                 </button>
               ))
             )}
@@ -61,7 +61,7 @@ export default function RecipesPage() {
           {selectedMenu ? (
             <RecipeEditor key={selectedMenu.menu_id} menu={selectedMenu} />
           ) : (
-            <div className="flex items-center justify-center rounded-xl border border-dashed border-[#d1d5dc] bg-white p-10 text-sm text-[#99a1af]">
+            <div className="flex items-center justify-center rounded-xl border border-dashed border-line bg-white p-10 text-sm text-ink-3">
               왼쪽에서 메뉴를 선택하세요.
             </div>
           )}
@@ -126,18 +126,18 @@ function RecipeEditor({ menu }: { menu: MenuListItem }) {
 
   if (isLoading) {
     return (
-      <div className="rounded-xl border border-[#d1d5dc] bg-white p-6 text-sm text-[#99a1af]">
+      <div className="rounded-xl border border-line bg-white p-6 text-sm text-ink-3">
         불러오는 중…
       </div>
     );
   }
 
   return (
-    <section className="space-y-4 rounded-xl border border-[#d1d5dc] bg-white p-6">
+    <section className="space-y-4 rounded-xl border border-line bg-white p-6">
       <div className="flex items-start justify-between gap-4">
         <div>
-          <h2 className="text-lg font-semibold text-[#101828]">{menu.name}</h2>
-          <p className="text-sm text-[#99a1af]">
+          <h2 className="text-lg font-semibold text-ink">{menu.name}</h2>
+          <p className="text-sm text-ink-3">
             {!menu.has_recipe
               ? "레시피를 저장하면 재고 차감을 켤 수 있습니다."
               : menu.use_inventory_deduction
@@ -145,20 +145,20 @@ function RecipeEditor({ menu }: { menu: MenuListItem }) {
                 : "재고 차감 미사용"}
           </p>
         </div>
-        <label className="flex shrink-0 items-center gap-2 text-sm text-[#364153]">
+        <label className="flex shrink-0 items-center gap-2 text-sm text-ink-2">
           <input
             type="checkbox"
             checked={menu.use_inventory_deduction}
             disabled={!menu.has_recipe || deductionMutation.isPending}
             onChange={(e) => deductionMutation.mutate(e.target.checked)}
-            className="size-4 accent-[#7a5eff]"
+            className="size-4 accent-brand"
           />
           재고 차감
         </label>
       </div>
 
       {inventory.length === 0 ? (
-        <p className="rounded-lg border border-dashed border-[#d1d5dc] p-4 text-sm text-[#99a1af]">
+        <p className="rounded-lg border border-dashed border-line p-4 text-sm text-ink-3">
           먼저 재고관리에서 재료를 등록해야 레시피를 구성할 수 있습니다.
         </p>
       ) : (
@@ -172,7 +172,7 @@ function RecipeEditor({ menu }: { menu: MenuListItem }) {
                   const item = inventory.find((i) => i.item_id === e.target.value);
                   updateRow(idx, { item_id: e.target.value, unit: item?.unit ?? row.unit });
                 }}
-                className="h-10 flex-1 rounded-lg border border-[#d1d5dc] px-2 text-sm"
+                className="h-10 flex-1 rounded-lg border border-line px-2 text-sm"
               >
                 {inventory.map((i) => (
                   <option key={i.item_id} value={i.item_id}>
@@ -186,14 +186,14 @@ function RecipeEditor({ menu }: { menu: MenuListItem }) {
                 min={0}
                 value={row.quantity}
                 onChange={(e) => updateRow(idx, { quantity: Number(e.target.value) })}
-                className="h-10 w-24 rounded-lg border border-[#d1d5dc] px-2 text-sm"
+                className="h-10 w-24 rounded-lg border border-line px-2 text-sm"
               />
-              <span className="w-10 text-sm text-[#99a1af]">{row.unit}</span>
+              <span className="w-10 text-sm text-ink-3">{row.unit}</span>
               <button
                 type="button"
                 onClick={() => removeRow(idx)}
                 aria-label="재료 삭제"
-                className="text-[#99a1af] hover:text-red-600"
+                className="text-ink-3 hover:text-red-600"
               >
                 <Trash2 className="size-4" />
               </button>
@@ -202,7 +202,7 @@ function RecipeEditor({ menu }: { menu: MenuListItem }) {
           <Button
             type="button"
             onClick={addRow}
-            className="h-9 rounded-full border border-[#d1d5dc] bg-white px-4 text-sm text-[#364153] hover:bg-[#f3f4f6]"
+            className="h-9 rounded-full border border-line bg-white px-4 text-sm text-ink-2 hover:bg-subtle"
           >
             <Plus className="size-4" /> 재료 추가
           </Button>
@@ -213,7 +213,7 @@ function RecipeEditor({ menu }: { menu: MenuListItem }) {
         <Button
           onClick={() => saveMutation.mutate()}
           disabled={saveMutation.isPending}
-          className="h-10 rounded-full bg-[#7a5eff] px-6 font-semibold hover:bg-[#6a4eef]"
+          className="h-10 rounded-full bg-brand px-6 font-semibold hover:bg-brand-strong"
         >
           {saveMutation.isPending ? "저장 중…" : "레시피 저장"}
         </Button>

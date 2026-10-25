@@ -4,13 +4,13 @@ import { DashboardShell } from "../../components/dashboard/shell";
 
 export default function NotificationSettingsPage() {
   return (
-    <DashboardShell active="settings">
+    <DashboardShell active="settings" title="알림 설정" backTo="/settings">
       <div className="space-y-6">
         <header className="space-y-1">
-          <h1 className="text-2xl font-semibold text-[#101828]">알림 설정</h1>
-          <p className="text-sm text-[#99a1af]">재고 부족·발주 알림 수신 여부를 설정합니다.</p>
+          <h1 className="hidden text-[1.75rem] font-bold tracking-tight text-ink lg:block">알림 설정</h1>
+          <p className="text-sm text-ink-3">재고 부족·발주 알림 수신 여부를 설정합니다.</p>
         </header>
-        <div className="rounded-xl border border-dashed border-[#d1d5dc] bg-white p-6 text-sm text-[#99a1af]">
+        <div className="rounded-xl border border-dashed border-line bg-white p-6 text-sm text-ink-3">
           인앱·이메일·웹푸시 알림 기능은 아직 준비 중입니다.
         </div>
       </div>
