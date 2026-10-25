@@ -105,9 +105,7 @@ class ForecastService:
                 "current_quantity": float(total),  # 로트 잔여 수량 합계
                 "unit": i.unit,
                 "lead_time_days": i.lead_time_days if i.lead_time_days is not None else 1,
-                "safety_stock": (
-                    float(i.safety_stock) if i.safety_stock is not None else float(i.low_stock_threshold)
-                ),
+                "safety_stock": float(i.safety_stock) if i.safety_stock is not None else 0.0,
             }
             for i, total in ((st.item, st.total_quantity) for st in stocks)
         ]

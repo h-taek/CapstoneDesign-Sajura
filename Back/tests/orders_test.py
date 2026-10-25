@@ -118,6 +118,30 @@ async def test_recommend_saves_snapshot_and_replaces_unapproved(
 
 
 @pytest.mark.asyncio
+async def test_recommend_sends_system_defaults_for_unset_config(
+    client: AsyncClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """미설정 리드타임·안전재고는 시스템 기본값(1일, 0) — low_stock_threshold로 대체하지 않는다."""
+    auth, menu_id, (bean, _, _) = await _setup_store(client)
+    condensed = await _create_item(client, auth, "연유", low_stock_threshold=500)
+
+    sent: dict = {}
+    fake = _fake_recommend(menu_id, {})
+
+    async def capture(payload: dict) -> dict:
+        sent.update(payload)
+        return await fake(payload)
+
+    monkeypatch.setattr(ai_client, "recommend", capture)
+    r = await client.get("/api/orders/recommend", headers=auth)
+    assert r.status_code == 200, r.text
+
+    inv = {x["item_id"]: x for x in sent["inventory"]}
+    assert (inv[bean]["lead_time_days"], inv[bean]["safety_stock"]) == (2, 50.0)
+    assert (inv[condensed]["lead_time_days"], inv[condensed]["safety_stock"]) == (1, 0.0)
+
+
+@pytest.mark.asyncio
 async def test_approve_with_recommendation_records_logs(
     client: AsyncClient, monkeypatch: pytest.MonkeyPatch
 ) -> None:
