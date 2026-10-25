@@ -7,7 +7,7 @@ import { dismissInstallBanner, promptInstall, useInstallState } from "../../lib/
 import { Button } from "../ui/button";
 
 /** 설치를 시작한다 — 안드로이드는 설치 창, 아이폰·그 외는 안내 창. */
-function useStartInstall() {
+export function useStartInstall() {
   const state = useInstallState();
   const [guideOpen, setGuideOpen] = useState(false);
   const start = async () => {
@@ -70,7 +70,7 @@ export function InstallMenuButton() {
   );
 }
 
-function InstallGuideSheet({ ios, onClose }: { ios: boolean; onClose: () => void }) {
+export function InstallGuideSheet({ ios, onClose }: { ios: boolean; onClose: () => void }) {
   const steps = ios
     ? [
         { icon: Share, text: "화면 아래(아이패드는 위)의 공유 버튼을 누르세요." },

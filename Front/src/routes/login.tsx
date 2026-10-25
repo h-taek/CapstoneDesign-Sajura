@@ -198,6 +198,11 @@ export default function LoginPage() {
               여기서 회원가입 하세요
             </Link>
           </p>
+          <p className="text-center text-sm text-ink-3">
+            <Link to="/intro" className="font-medium text-brand hover:underline">
+              사주라가 처음이세요? 서비스 소개 보기
+            </Link>
+          </p>
         </div>
       </section>
     </main>
