@@ -162,6 +162,7 @@ class InventoryService:
             if v is not None:
                 setattr(item, k, v)
         await self.session.commit()
+        await self.session.refresh(item)
         return await self.get_stock(store_id=store_id, item_id=item_id)
 
     async def delete_item(self, *, store_id: str, item_id: str) -> None:

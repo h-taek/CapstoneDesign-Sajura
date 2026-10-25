@@ -287,6 +287,19 @@ async def test_create_item_with_quantity_makes_first_lot(client: AsyncClient) ->
 
 
 @pytest.mark.asyncio
+async def test_update_item_lead_time_and_safety_stock(client: AsyncClient) -> None:
+    _, auth = await _register_verified_user(client)
+    item_id = await _item(client, auth)
+
+    r = await client.patch(
+        f"/api/inventory/{item_id}", json={"lead_time_days": 2, "safety_stock": 1000}, headers=auth
+    )
+    assert r.status_code == 200, r.text
+    body = await _detail(client, auth, item_id)
+    assert (body["lead_time_days"], Decimal(str(body["safety_stock"]))) == (2, 1000)
+
+
+@pytest.mark.asyncio
 async def test_summary_and_alerts(client: AsyncClient) -> None:
     _, auth = await _register_verified_user(client)
     await _item(client, auth, "설탕")  # EMPTY
