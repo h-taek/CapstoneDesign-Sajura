@@ -441,40 +441,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/inventory/summary": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Get Inventory Summary */
-        get: operations["get_inventory_summary_api_inventory_summary_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/inventory/alerts": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Get Inventory Alerts */
-        get: operations["get_inventory_alerts_api_inventory_alerts_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/api/inventory/{item_id}": {
         parameters: {
             query?: never;
@@ -1031,31 +997,6 @@ export interface components {
              */
             source?: string;
         };
-        /** InventoryAlert */
-        InventoryAlert: {
-            /** Item Id */
-            item_id: string;
-            /** Name */
-            name: string;
-            /**
-             * Alert Status
-             * @enum {string}
-             */
-            alert_status: "NORMAL" | "LOW" | "EXPIRED_SOON" | "EMPTY" | "NEEDS_CHECK";
-            /** Alert Message */
-            alert_message: string;
-            /** Quantity */
-            quantity: number;
-            /** Expiry Date */
-            expiry_date: string | null;
-        };
-        /** InventoryAlertListResponse */
-        InventoryAlertListResponse: {
-            /** Items */
-            items: components["schemas"]["InventoryAlert"][];
-            /** Total */
-            total: number;
-        };
         /** InventoryDeduction */
         InventoryDeduction: {
             /**
@@ -1098,11 +1039,10 @@ export interface components {
             unit: string;
             /** Total Quantity */
             total_quantity: number;
-            /**
-             * Alert Status
-             * @enum {string}
-             */
-            alert_status: "NORMAL" | "LOW" | "EXPIRED_SOON" | "EMPTY" | "NEEDS_CHECK";
+            /** Nearest Expiry Date */
+            nearest_expiry_date: string | null;
+            /** Needs Check */
+            needs_check: boolean;
             /** Low Stock Threshold */
             low_stock_threshold: number;
             /** Lead Time Days */
@@ -1141,19 +1081,6 @@ export interface components {
         InventoryListResponse: {
             /** Items */
             items: components["schemas"]["InventoryItemResponse"][];
-        };
-        /** InventorySummaryResponse */
-        InventorySummaryResponse: {
-            /** Total Items */
-            total_items: number;
-            /** Low Stock Count */
-            low_stock_count: number;
-            /** Expired Soon Count */
-            expired_soon_count: number;
-            /** Empty Count */
-            empty_count: number;
-            /** Needs Check Count */
-            needs_check_count: number;
         };
         /** LoginRequest */
         LoginRequest: {
@@ -2983,68 +2910,6 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["InventoryItemResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    get_inventory_summary_api_inventory_summary_get: {
-        parameters: {
-            query?: never;
-            header?: {
-                authorization?: string | null;
-            };
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["InventorySummaryResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    get_inventory_alerts_api_inventory_alerts_get: {
-        parameters: {
-            query?: never;
-            header?: {
-                authorization?: string | null;
-            };
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["InventoryAlertListResponse"];
                 };
             };
             /** @description Validation Error */

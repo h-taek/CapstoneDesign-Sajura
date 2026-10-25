@@ -1,9 +1,10 @@
 // 재고관리 화면 — Figma "재고 관리"(node 9:915) 셸 적용.
 // 수량은 로트 단위로 관리한다(01_basic_design.md §3.3). 품목 행을 펼치면 로트 목록·입고·수정·폐기.
+// 경고 배지·정렬은 BE가 준 원본값으로 FE가 판정한다(04_fe.md §4.6). 머리글을 누르면 정렬 기준·방향 전환.
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ChevronDown, ChevronRight, Plus, Trash2 } from "lucide-react";
-import { useState } from "react";
+import { ArrowDown, ArrowUp, ChevronDown, ChevronRight, Plus, Trash2 } from "lucide-react";
+import { useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import {
@@ -20,8 +21,16 @@ import {
 } from "../api/endpoints/inventory";
 import { DashboardShell } from "../components/dashboard/shell";
 import { AlertBadge } from "../components/inventory/alert-badge";
+import {
+  type InventorySortKey,
+  type StockStatus,
+  daysUntil,
+  sortInventory,
+  stockStatus,
+} from "../components/inventory/stock-status";
 import { Button } from "../components/ui/button";
 import { FormField, Input } from "../components/ui/field";
+import { usePreferencesStore } from "../stores/preferences-store";
 
 // 빈 칸("")을 먼저 검사한다 — coerce가 먼저면 ""가 0으로 바뀌어 통과한다
 const optionalNumber = z.union([z.literal(""), z.coerce.number().min(0)]).optional();
@@ -69,6 +78,15 @@ export default function InventoryPage() {
     queryKey: ["inventory"],
     queryFn: listInventory,
   });
+  const sort = usePreferencesStore((s) => s.inventorySort);
+  const setSort = usePreferencesStore((s) => s.setInventorySort);
+  const today = useMemo(() => new Date(), []);
+  const sorted = useMemo(
+    () => sortInventory(items, sort.key, sort.dir, today),
+    [items, sort, today],
+  );
+  const toggleSort = (key: InventorySortKey) =>
+    setSort({ key, dir: sort.key === key && sort.dir === "asc" ? "desc" : "asc" });
 
   const {
     register,
@@ -239,32 +257,35 @@ export default function InventoryPage() {
           <table className="w-full text-left text-sm">
             <thead className="bg-[#fafafa] text-[#61646b]">
               <tr>
-                <th className="px-4 py-3 font-medium">재료</th>
-                <th className="px-4 py-3 font-medium">총 수량</th>
+                <SortHeader label="재료" sortKey="name" sort={sort} onSort={toggleSort} />
+                <SortHeader label="총 수량" sortKey="quantity" sort={sort} onSort={toggleSort} />
+                <SortHeader label="소비기한" sortKey="expiry" sort={sort} onSort={toggleSort} />
                 <th className="px-4 py-3 font-medium">재주문 임계값</th>
                 <th className="px-4 py-3 font-medium">안전재고</th>
-                <th className="px-4 py-3 font-medium">상태</th>
+                <SortHeader label="상태" sortKey="status" sort={sort} onSort={toggleSort} />
                 <th className="px-4 py-3" />
               </tr>
             </thead>
             <tbody>
               {isLoading ? (
                 <tr>
-                  <td colSpan={6} className="px-4 py-6 text-center text-[#99a1af]">
+                  <td colSpan={7} className="px-4 py-6 text-center text-[#99a1af]">
                     불러오는 중…
                   </td>
                 </tr>
               ) : items.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="px-4 py-6 text-center text-[#99a1af]">
+                  <td colSpan={7} className="px-4 py-6 text-center text-[#99a1af]">
                     등록된 재료가 없습니다. "재료 추가"로 시작하세요.
                   </td>
                 </tr>
               ) : (
-                items.map((item) => (
+                sorted.map((item) => (
                   <InventoryRow
                     key={item.item_id}
                     item={item}
+                    status={stockStatus(item, today)}
+                    today={today}
                     open={openItemId === item.item_id}
                     onToggle={() =>
                       setOpenItemId((id) => (id === item.item_id ? null : item.item_id))
@@ -285,13 +306,53 @@ export default function InventoryPage() {
   );
 }
 
+function SortHeader({
+  label,
+  sortKey,
+  sort,
+  onSort,
+}: {
+  label: string;
+  sortKey: InventorySortKey;
+  sort: { key: InventorySortKey; dir: "asc" | "desc" };
+  onSort: (key: InventorySortKey) => void;
+}) {
+  const active = sort.key === sortKey;
+  const Arrow = sort.dir === "asc" ? ArrowUp : ArrowDown;
+  return (
+    <th
+      className="px-4 py-3 font-medium"
+      aria-sort={active ? (sort.dir === "asc" ? "ascending" : "descending") : "none"}
+    >
+      <button
+        type="button"
+        onClick={() => onSort(sortKey)}
+        className={`inline-flex items-center gap-1 ${active ? "text-[#7a5eff]" : "hover:text-[#364153]"}`}
+      >
+        {label}
+        {active && <Arrow className="size-3.5" />}
+      </button>
+    </th>
+  );
+}
+
+function expiryLabel(iso: string | null, today: Date): string {
+  if (iso === null) return "—";
+  const days = daysUntil(iso, today);
+  return `${iso} (${days < 0 ? `${-days}일 지남` : `D-${days}`})`;
+}
+
 function InventoryRow({
   item,
+  status,
+  today,
   open,
   onToggle,
   onDelete,
 }: {
   item: InventoryItem;
+  status: StockStatus;
+  today: Date;
   open: boolean;
   onToggle: () => void;
   onDelete: () => void;
@@ -313,6 +374,7 @@ function InventoryRow({
         <td className="px-4 py-3 text-[#364153]">
           {fmtQty(item.total_quantity)} {item.unit}
         </td>
+        <td className="px-4 py-3 text-[#364153]">{expiryLabel(item.nearest_expiry_date, today)}</td>
         <td className="px-4 py-3 text-[#364153]">
           {fmtQty(item.low_stock_threshold)} {item.unit}
         </td>
@@ -320,7 +382,7 @@ function InventoryRow({
           {item.safety_stock != null ? `${fmtQty(item.safety_stock)} ${item.unit}` : "—"}
         </td>
         <td className="px-4 py-3">
-          <AlertBadge status={item.alert_status} />
+          <AlertBadge status={status} />
         </td>
         <td className="px-4 py-3 text-right">
           <button
@@ -335,7 +397,7 @@ function InventoryRow({
       </tr>
       {open && (
         <tr className="bg-[#fafafa]">
-          <td colSpan={6} className="px-4 py-4">
+          <td colSpan={7} className="px-4 py-4">
             <LotPanel item={item} />
           </td>
         </tr>
@@ -357,7 +419,7 @@ function LotPanel({ item }: { item: InventoryItem }) {
 
   return (
     <div className="space-y-4">
-      {item.alert_status === "NEEDS_CHECK" && (
+      {item.needs_check && (
         <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">
           기록상 재고 없이 판매가 차감됐습니다. 입고를 등록하거나 실사 조정으로 수량을 맞추세요.
         </p>

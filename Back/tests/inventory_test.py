@@ -146,7 +146,7 @@ async def test_shortage_stops_at_zero_and_marks_needs_check(client: AsyncClient)
 
     assert (await _remaining(client, auth, bean))[lot] == 0
     detail = await _detail(client, auth, bean)
-    assert detail["alert_status"] == "NEEDS_CHECK"
+    assert detail["needs_check"] is True
     assert Decimal(str(detail["total_quantity"])) == 0
     assert body["inventory_deduction"]["needs_check_items"] == [{"item_id": bean, "name": "원두"}]
 
@@ -216,7 +216,7 @@ async def test_needs_check_cleared_by_new_lot_or_stocktake_only(client: AsyncCli
     await _menu(client, auth, "아메리카노", {bean: 10})
 
     await _upload(client, auth, ["2026-01-15 10:00:00,아메리카노,2,9000,r-1"])
-    assert (await _detail(client, auth, bean))["alert_status"] == "NEEDS_CHECK"
+    assert (await _detail(client, auth, bean))["needs_check"] is True
 
     # 소비기한 정정은 해제하지 않는다
     r = await client.patch(
@@ -225,7 +225,7 @@ async def test_needs_check_cleared_by_new_lot_or_stocktake_only(client: AsyncCli
         headers=auth,
     )
     assert r.status_code == 200, r.text
-    assert (await _detail(client, auth, bean))["alert_status"] == "NEEDS_CHECK"
+    assert (await _detail(client, auth, bean))["needs_check"] is True
 
     # 실사 조정은 해제한다
     r = await client.patch(
@@ -238,13 +238,13 @@ async def test_needs_check_cleared_by_new_lot_or_stocktake_only(client: AsyncCli
     assert Decimal(str(log["before_quantity"])) == 0
     assert Decimal(str(log["delta_quantity"])) == 5
     assert log["before_expiry_date"] == "2026-02-05"
-    assert (await _detail(client, auth, bean))["alert_status"] != "NEEDS_CHECK"
+    assert (await _detail(client, auth, bean))["needs_check"] is False
 
     # 다시 부족 → 입고 등록으로 해제
     await _upload(client, auth, ["2026-01-16 10:00:00,아메리카노,1,4500,r-2"])
-    assert (await _detail(client, auth, bean))["alert_status"] == "NEEDS_CHECK"
+    assert (await _detail(client, auth, bean))["needs_check"] is True
     await _lot(client, auth, bean, 500, None)
-    assert (await _detail(client, auth, bean))["alert_status"] != "NEEDS_CHECK"
+    assert (await _detail(client, auth, bean))["needs_check"] is False
 
 
 @pytest.mark.asyncio
@@ -272,7 +272,7 @@ async def test_create_item_with_quantity_makes_first_lot(client: AsyncClient) ->
     assert r.status_code == 201, r.text
     body = r.json()
     assert Decimal(str(body["total_quantity"])) == 2000
-    assert body["alert_status"] == "NORMAL"
+    assert (body["nearest_expiry_date"], body["needs_check"]) == ("2099-01-01", False)
 
     r = await client.get(f"/api/inventory/{body['item_id']}/lots", headers=auth)
     lots = r.json()["lots"]
@@ -284,7 +284,7 @@ async def test_create_item_with_quantity_makes_first_lot(client: AsyncClient) ->
         "/api/inventory", json={"name": "설탕", "unit": "g", "quantity": 0}, headers=auth
     )
     assert r.status_code == 201, r.text
-    assert r.json()["alert_status"] == "EMPTY"
+    assert (r.json()["total_quantity"], r.json()["nearest_expiry_date"]) == (0, None)
     assert (await client.get(f"/api/inventory/{r.json()['item_id']}/lots", headers=auth)).json()[
         "lots"
     ] == []
@@ -304,31 +304,31 @@ async def test_update_item_lead_time_and_safety_stock(client: AsyncClient) -> No
 
 
 @pytest.mark.asyncio
-async def test_summary_and_alerts(client: AsyncClient) -> None:
+async def test_list_returns_raw_values_for_fe_judgement(client: AsyncClient) -> None:
+    """경고·정렬은 FE 몫 — 목록은 판정값 없이 원본값만 준다 (03_be.md §2)."""
     _, auth = await _register_verified_user(client)
-    await _item(client, auth, "설탕")  # EMPTY
-    low = await _item(client, auth, "우유", low_stock_threshold=500)
-    await _lot(client, auth, low, 100, None)  # LOW
-    soon = await _item(client, auth, "양상추")
-    await _lot(client, auth, soon, 100, "2026-01-02")  # 이미 지난 소비기한 → EXPIRED_SOON
-    ok = await _item(client, auth, "소금")
-    await _lot(client, auth, ok, 100, None)
+    await _item(client, auth, "설탕")
+    milk = await _item(client, auth, "우유", low_stock_threshold=500)
+    await _lot(client, auth, milk, 100, None)
+    lettuce = await _item(client, auth, "양상추")
+    await _lot(client, auth, lettuce, 100, "2026-03-01")
+    used_up = await _lot(client, auth, lettuce, 10, "2026-01-02")
+    r = await client.post(
+        f"/api/inventory/{lettuce}/dispose", json={"lot_id": used_up, "quantity": 10}, headers=auth
+    )
+    assert r.status_code == 200, r.text
 
-    r = await client.get("/api/inventory/summary", headers=auth)
-    assert r.json() == {
-        "total_items": 4,
-        "low_stock_count": 1,
-        "expired_soon_count": 1,
-        "empty_count": 1,
-        "needs_check_count": 0,
-    }
-
-    r = await client.get("/api/inventory/alerts", headers=auth)
-    alerts = {x["name"]: x for x in r.json()["items"]}
-    assert set(alerts) == {"설탕", "우유", "양상추"}
-    assert alerts["양상추"]["expiry_date"] == "2026-01-02"
-    assert alerts["양상추"]["alert_message"].startswith("소비기한 초과")
-    assert alerts["우유"]["expiry_date"] is None
+    r = await client.get("/api/inventory", headers=auth)
+    assert r.status_code == 200, r.text
+    items = {x["name"]: x for x in r.json()["items"]}
+    assert "alert_status" not in items["설탕"]
+    assert (items["설탕"]["total_quantity"], items["설탕"]["nearest_expiry_date"]) == (0, None)
+    assert (items["우유"]["total_quantity"], items["우유"]["low_stock_threshold"]) == (100, 500)
+    # 잔여가 없는 로트(2026-01-02)는 제외하고 가장 이른 소비기한
+    assert items["양상추"]["nearest_expiry_date"] == "2026-03-01"
+    assert not any(x["needs_check"] for x in items.values())
+    for path in ("/api/inventory/summary", "/api/inventory/alerts"):
+        assert (await client.get(path, headers=auth)).status_code == 404
 
 
 @pytest.mark.asyncio

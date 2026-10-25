@@ -1982,104 +1982,6 @@
         }
       }
     },
-    "/api/inventory/summary": {
-      "get": {
-        "tags": [
-          "inventory"
-        ],
-        "summary": "Get Inventory Summary",
-        "operationId": "get_inventory_summary_api_inventory_summary_get",
-        "parameters": [
-          {
-            "name": "authorization",
-            "in": "header",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "Authorization"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/InventorySummaryResponse"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/inventory/alerts": {
-      "get": {
-        "tags": [
-          "inventory"
-        ],
-        "summary": "Get Inventory Alerts",
-        "operationId": "get_inventory_alerts_api_inventory_alerts_get",
-        "parameters": [
-          {
-            "name": "authorization",
-            "in": "header",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "Authorization"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/InventoryAlertListResponse"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
     "/api/inventory/{item_id}": {
       "get": {
         "tags": [
@@ -3954,80 +3856,6 @@
         ],
         "title": "IngredientPriceResponse"
       },
-      "InventoryAlert": {
-        "properties": {
-          "item_id": {
-            "type": "string",
-            "title": "Item Id"
-          },
-          "name": {
-            "type": "string",
-            "title": "Name"
-          },
-          "alert_status": {
-            "type": "string",
-            "enum": [
-              "NORMAL",
-              "LOW",
-              "EXPIRED_SOON",
-              "EMPTY",
-              "NEEDS_CHECK"
-            ],
-            "title": "Alert Status"
-          },
-          "alert_message": {
-            "type": "string",
-            "title": "Alert Message"
-          },
-          "quantity": {
-            "type": "number",
-            "title": "Quantity"
-          },
-          "expiry_date": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "date"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Expiry Date"
-          }
-        },
-        "type": "object",
-        "required": [
-          "item_id",
-          "name",
-          "alert_status",
-          "alert_message",
-          "quantity",
-          "expiry_date"
-        ],
-        "title": "InventoryAlert"
-      },
-      "InventoryAlertListResponse": {
-        "properties": {
-          "items": {
-            "items": {
-              "$ref": "#/components/schemas/InventoryAlert"
-            },
-            "type": "array",
-            "title": "Items"
-          },
-          "total": {
-            "type": "integer",
-            "title": "Total"
-          }
-        },
-        "type": "object",
-        "required": [
-          "items",
-          "total"
-        ],
-        "title": "InventoryAlertListResponse"
-      },
       "InventoryDeduction": {
         "properties": {
           "deducted_sales": {
@@ -4167,16 +3995,21 @@
             "type": "number",
             "title": "Total Quantity"
           },
-          "alert_status": {
-            "type": "string",
-            "enum": [
-              "NORMAL",
-              "LOW",
-              "EXPIRED_SOON",
-              "EMPTY",
-              "NEEDS_CHECK"
+          "nearest_expiry_date": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
             ],
-            "title": "Alert Status"
+            "title": "Nearest Expiry Date"
+          },
+          "needs_check": {
+            "type": "boolean",
+            "title": "Needs Check"
           },
           "low_stock_threshold": {
             "type": "number",
@@ -4243,7 +4076,8 @@
           "name",
           "unit",
           "total_quantity",
-          "alert_status",
+          "nearest_expiry_date",
+          "needs_check",
           "low_stock_threshold",
           "lead_time_days",
           "safety_stock",
@@ -4341,39 +4175,6 @@
           "items"
         ],
         "title": "InventoryListResponse"
-      },
-      "InventorySummaryResponse": {
-        "properties": {
-          "total_items": {
-            "type": "integer",
-            "title": "Total Items"
-          },
-          "low_stock_count": {
-            "type": "integer",
-            "title": "Low Stock Count"
-          },
-          "expired_soon_count": {
-            "type": "integer",
-            "title": "Expired Soon Count"
-          },
-          "empty_count": {
-            "type": "integer",
-            "title": "Empty Count"
-          },
-          "needs_check_count": {
-            "type": "integer",
-            "title": "Needs Check Count"
-          }
-        },
-        "type": "object",
-        "required": [
-          "total_items",
-          "low_stock_count",
-          "expired_soon_count",
-          "empty_count",
-          "needs_check_count"
-        ],
-        "title": "InventorySummaryResponse"
       },
       "LoginRequest": {
         "properties": {

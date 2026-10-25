@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from collections import defaultdict
 from dataclasses import dataclass, field
-from datetime import date, datetime, timedelta
+from datetime import date, datetime
 from decimal import Decimal
 from zoneinfo import ZoneInfo
 
@@ -27,7 +27,6 @@ from app.models.menu import Menu, Recipe, RecipeIngredient
 from app.models.order import OrderApprovalLog, OrderItem, OrderRecommendationItem
 
 KST = ZoneInfo("Asia/Seoul")
-EXPIRY_WARN_DAYS = 3  # 01_basic_design.md §3.3.6 D-3
 
 # FIFO 순서 — 소비기한 빠른 순, 소비기한 없는 로트는 뒤에 입고일 순 (01_basic_design.md §3.3.3)
 FIFO_ORDER = (
@@ -48,20 +47,6 @@ class ItemStock:
     item: InventoryItem
     total_quantity: Decimal
     nearest_expiry: date | None  # 잔여 수량이 남은 로트 중 가장 빠른 소비기한
-
-    def alert_status(self, today: date) -> str:
-        # 02_implementation_design.md §3.5 — 여러 조건이면 위쪽 값
-        if self.item.needs_check:
-            return "NEEDS_CHECK"
-        if self.total_quantity <= 0:
-            return "EMPTY"
-        if self.nearest_expiry is not None and self.nearest_expiry <= today + timedelta(
-            days=EXPIRY_WARN_DAYS
-        ):
-            return "EXPIRED_SOON"
-        if self.total_quantity <= self.item.low_stock_threshold:
-            return "LOW"
-        return "NORMAL"
 
 
 @dataclass
@@ -197,27 +182,6 @@ class InventoryService:
         await self.session.execute(delete(DisposalLog).where(DisposalLog.item_id == item_id))
         await self.session.delete(item)
         await self.session.commit()
-
-    async def get_summary(self, *, store_id: str) -> dict[str, int]:
-        today = now_kst().date()
-        statuses = [s.alert_status(today) for s in await self.list_stocks(store_id=store_id)]
-        return {
-            "total_items": len(statuses),
-            "low_stock_count": statuses.count("LOW"),
-            "expired_soon_count": statuses.count("EXPIRED_SOON"),
-            "empty_count": statuses.count("EMPTY"),
-            "needs_check_count": statuses.count("NEEDS_CHECK"),
-        }
-
-    async def get_alerts(self, *, store_id: str) -> list[tuple[ItemStock, str, str]]:
-        """경고 품목만 (stock, alert_status, alert_message)."""
-        today = now_kst().date()
-        out: list[tuple[ItemStock, str, str]] = []
-        for s in await self.list_stocks(store_id=store_id):
-            status = s.alert_status(today)
-            if status != "NORMAL":
-                out.append((s, status, _alert_message(s, status, today)))
-        return out
 
     async def total_quantities(self, *, store_id: str) -> dict[str, Decimal]:
         return {s.item.item_id: s.total_quantity for s in await self.list_stocks(store_id=store_id)}
@@ -445,20 +409,3 @@ class InventoryService:
                 error_code="INVENTORY_ITEM_DUPLICATE",
                 message="이미 등록된 재료명입니다.",
             )
-
-
-def _alert_message(s: ItemStock, status: str, today: date) -> str:
-    name, unit, qty = (
-        s.item.name,
-        s.item.unit,
-        f"{s.total_quantity:f}".rstrip("0").rstrip(".") or "0",
-    )
-    if status == "NEEDS_CHECK":
-        return f"재고 확인 필요: {name} — 기록상 재고 없이 판매됨"
-    if status == "EMPTY":
-        return f"재고 없음: {name}"
-    if status == "EXPIRED_SOON" and s.nearest_expiry is not None:
-        days = (s.nearest_expiry - today).days
-        label = "소비기한 초과" if days < 0 else f"D-{days}"
-        return f"{label}: {s.nearest_expiry.isoformat()} 소비기한 도래 ({name} {qty}{unit})"
-    return f"재고 부족: {name} {qty}{unit}"

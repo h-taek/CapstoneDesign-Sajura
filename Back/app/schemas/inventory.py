@@ -4,14 +4,11 @@ from __future__ import annotations
 
 from datetime import date, datetime
 from decimal import Decimal
-from typing import Literal
 
 from pydantic import BaseModel, Field, model_validator
 
 from app.models.inventory_item import AdjustmentReason
 from app.schemas.types import JsonDecimal
-
-AlertStatus = Literal["NORMAL", "LOW", "EXPIRED_SOON", "EMPTY", "NEEDS_CHECK"]
 
 
 class InventoryItemCreateRequest(BaseModel):
@@ -43,8 +40,9 @@ class InventoryItemResponse(BaseModel):
     item_id: str
     name: str
     unit: str
-    total_quantity: JsonDecimal
-    alert_status: AlertStatus
+    total_quantity: JsonDecimal  # 로트 잔여 수량 합계
+    nearest_expiry_date: date | None  # 잔여 수량이 남은 로트 중 가장 이른 소비기한
+    needs_check: bool
     low_stock_threshold: JsonDecimal
     lead_time_days: int | None
     safety_stock: JsonDecimal | None
@@ -57,28 +55,6 @@ class InventoryItemResponse(BaseModel):
 
 class InventoryListResponse(BaseModel):
     items: list[InventoryItemResponse]
-
-
-class InventorySummaryResponse(BaseModel):
-    total_items: int
-    low_stock_count: int
-    expired_soon_count: int
-    empty_count: int
-    needs_check_count: int
-
-
-class InventoryAlert(BaseModel):
-    item_id: str
-    name: str
-    alert_status: AlertStatus
-    alert_message: str
-    quantity: JsonDecimal
-    expiry_date: date | None
-
-
-class InventoryAlertListResponse(BaseModel):
-    items: list[InventoryAlert]
-    total: int
 
 
 class LotCreateRequest(BaseModel):

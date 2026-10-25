@@ -23,6 +23,7 @@ import { MenuSharePieChart } from "../components/dashboard/menu-share-chart";
 import { RevenueBarChart } from "../components/dashboard/revenue-chart";
 import { DashboardShell } from "../components/dashboard/shell";
 import { AlertBadge } from "../components/inventory/alert-badge";
+import { stockStatus } from "../components/inventory/stock-status";
 
 const won = new Intl.NumberFormat("ko-KR", { style: "currency", currency: "KRW" });
 
@@ -108,7 +109,8 @@ export default function HomePage() {
     .sort(([a], [b]) => a.localeCompare(b))
     .map(([year, revenue]) => ({ label: `${year}년`, revenue }));
 
-  const alerting = (i: (typeof inventory)[number]) => i.alert_status !== "NORMAL";
+  const today = new Date();
+  const alerting = (i: (typeof inventory)[number]) => stockStatus(i, today) !== "NORMAL";
   const lowStockCount = inventory.filter(alerting).length;
   const inventoryPreview = [...inventory]
     .sort((a, b) => Number(alerting(b)) - Number(alerting(a)))
@@ -310,7 +312,7 @@ export default function HomePage() {
                           {item.low_stock_threshold} {item.unit}
                         </td>
                         <td className="px-4 py-3">
-                          <AlertBadge status={item.alert_status} />
+                          <AlertBadge status={stockStatus(item, today)} />
                         </td>
                         <td className="px-4 py-3 text-[#99a1af]">
                           {new Date(item.updated_at).toLocaleDateString("ko-KR")}

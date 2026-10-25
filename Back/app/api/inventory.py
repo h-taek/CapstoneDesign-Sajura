@@ -1,4 +1,4 @@
-"""/api/inventory — 재고 품목·로트·폐기·경고 + 임계값 기반 발주추천.
+"""/api/inventory — 재고 품목·로트·폐기. 경고 판정·정렬은 FE 몫(03_be.md §2).
 
 02_implementation_design.md §3.5.
 """
@@ -13,19 +13,16 @@ from app.schemas.inventory import (
     AdjustmentResponse,
     DisposeRequest,
     DisposeResponse,
-    InventoryAlert,
-    InventoryAlertListResponse,
     InventoryItemCreateRequest,
     InventoryItemResponse,
     InventoryItemUpdateRequest,
     InventoryListResponse,
-    InventorySummaryResponse,
     LotCreateRequest,
     LotListResponse,
     LotResponse,
     LotUpdateRequest,
 )
-from app.services.inventory_service import InventoryService, ItemStock, now_kst
+from app.services.inventory_service import InventoryService, ItemStock
 from app.services.store_service import StoreService
 
 router = APIRouter(
@@ -44,7 +41,8 @@ def _to_dto(stock: ItemStock) -> InventoryItemResponse:
         name=item.name,
         unit=item.unit,
         total_quantity=stock.total_quantity,
-        alert_status=stock.alert_status(now_kst().date()),
+        nearest_expiry_date=stock.nearest_expiry,
+        needs_check=bool(item.needs_check),
         low_stock_threshold=item.low_stock_threshold,
         lead_time_days=item.lead_time_days,
         safety_stock=item.safety_stock,
@@ -79,36 +77,6 @@ async def create_inventory_item(
     store_id = await _store_id(session, current.user_id)
     stock = await InventoryService(session).create_item(store_id=store_id, **payload.model_dump())
     return _to_dto(stock)
-
-
-@router.get("/summary", response_model=InventorySummaryResponse)
-async def get_inventory_summary(
-    session: SessionDep, current: CurrentUserDep
-) -> InventorySummaryResponse:
-    store_id = await _store_id(session, current.user_id)
-    return InventorySummaryResponse(
-        **await InventoryService(session).get_summary(store_id=store_id)
-    )
-
-
-@router.get("/alerts", response_model=InventoryAlertListResponse)
-async def get_inventory_alerts(
-    session: SessionDep, current: CurrentUserDep
-) -> InventoryAlertListResponse:
-    store_id = await _store_id(session, current.user_id)
-    rows = await InventoryService(session).get_alerts(store_id=store_id)
-    items = [
-        InventoryAlert(
-            item_id=s.item.item_id,
-            name=s.item.name,
-            alert_status=alert_status,
-            alert_message=message,
-            quantity=s.total_quantity,
-            expiry_date=s.nearest_expiry if alert_status == "EXPIRED_SOON" else None,
-        )
-        for s, alert_status, message in rows
-    ]
-    return InventoryAlertListResponse(items=items, total=len(items))
 
 
 @router.get("/{item_id}", response_model=InventoryItemResponse)

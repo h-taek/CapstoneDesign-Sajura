@@ -17,29 +17,29 @@ function renderPage() {
   );
 }
 
-// BE는 DECIMAL을 문자열로 보낸다
-const bean = {
+const bean: inventoryApi.InventoryItem = {
   item_id: "bean",
   name: "원두",
   unit: "g",
-  total_quantity: "2000.000",
-  alert_status: "NEEDS_CHECK",
-  low_stock_threshold: "500.000",
+  total_quantity: 2000,
+  nearest_expiry_date: "2026-11-01",
+  needs_check: true,
+  low_stock_threshold: 500,
   lead_time_days: null,
   safety_stock: null,
   created_at: "2026-10-01T00:00:00",
   updated_at: "2026-10-01T00:00:00",
-} as unknown as inventoryApi.InventoryItem;
+};
 
-const lot = {
+const lot: inventoryApi.Lot = {
   lot_id: "lot-1",
   item_id: "bean",
-  quantity: "5000.000",
-  remaining_quantity: "2000.000",
+  quantity: 5000,
+  remaining_quantity: 2000,
   received_at: "2026-10-01",
   expiry_date: "2026-11-01",
   purchase_price: 28000,
-} as unknown as inventoryApi.Lot;
+};
 
 describe("InventoryPage", () => {
   beforeEach(() => {

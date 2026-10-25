@@ -4,8 +4,6 @@ import type { components } from "../types.gen";
 
 type S = components["schemas"];
 
-export type AlertStatus = S["InventoryItemResponse"]["alert_status"];
-
 export type InventoryItem = S["InventoryItemResponse"];
 
 export type InventoryItemInput = S["InventoryItemCreateRequest"];

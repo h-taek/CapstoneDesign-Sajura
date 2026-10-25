@@ -1138,8 +1138,6 @@ Authorization: Bearer <access_token>
 |--------|------|------|
 | `GET` | `/api/inventory` | 재고 목록 조회 |
 | `POST` | `/api/inventory` | 재고 품목 등록 |
-| `GET` | `/api/inventory/summary` | 재고 현황 요약 |
-| `GET` | `/api/inventory/alerts` | 재고 경고 목록 |
 | `GET` | `/api/inventory/{item_id}` | 재고 품목 상세 조회 |
 | `PATCH` | `/api/inventory/{item_id}` | 재고 품목 정보 수정 |
 | `DELETE` | `/api/inventory/{item_id}` | 재고 품목 삭제 |
@@ -1152,37 +1150,19 @@ Authorization: Bearer <access_token>
 #### GET /api/inventory
 
 ```json
-// Query: ?page=1&size=20&sort=name&order=asc&alert=true
-// alert=true: 경고 품목만 필터
+// 매장의 전체 품목을 반환한다. 페이지네이션 없음(§3.1.5 예외), 순서 보장 없음
+// 정렬·경고 배지 판정은 FE가 한다 (04_fe.md §4.6)
 // Response 200
 {
-  "items": [
-    {
-      "item_id": "uuid",
-      "name": "원두",
-      "unit": "g",
-      "total_quantity": 2000.0,
-      "alert_status": "NORMAL"  // NORMAL | LOW | EXPIRED_SOON | EMPTY | NEEDS_CHECK
-    }
-  ],
-  "total": 25,
-  "page": 1,
-  "size": 20,
-  "total_pages": 2
+  "items": [ /* GET /api/inventory/{item_id} 와 같은 구조 */ ]
 }
 ```
 
-`total_quantity`는 품목 로트의 `remaining_quantity` 합계다.
-
-`alert_status` 값 — 여러 조건에 해당하면 표의 위쪽 값을 반환한다:
-
-| 값 | 조건 |
-|----|------|
-| `NEEDS_CHECK` | 재고 확인 필요 (`01_basic_design.md` §3.3.3) |
-| `EMPTY` | `total_quantity` 0 |
-| `EXPIRED_SOON` | 잔여 수량이 남은 로트 중 소비기한 D-3 이내 또는 초과 로트 있음 |
-| `LOW` | `total_quantity` ≤ `low_stock_threshold` |
-| `NORMAL` | 위 조건 없음 |
+| 필드 | 값 |
+|---|---|
+| `total_quantity` | 품목 로트의 `remaining_quantity` 합계 |
+| `nearest_expiry_date` | 잔여 수량이 남은 로트 중 가장 이른 소비기한. 없으면 null |
+| `needs_check` | 재고 확인 필요 (`01_basic_design.md` §3.3.3) |
 
 #### POST /api/inventory
 
@@ -1201,49 +1181,7 @@ Authorization: Bearer <access_token>
   "safety_stock": 1000.0
 }
 
-// Response 201
-{
-  "item_id": "uuid",
-  "name": "원두",
-  "unit": "g",
-  "low_stock_threshold": 500.0,
-  "lead_time_days": 2,
-  "safety_stock": 1000.0,
-  "total_quantity": 2000.0,
-  "created_at": "2026-05-06T00:00:00Z"
-}
-```
-
-#### GET /api/inventory/summary
-
-```json
-// Response 200 — 품목별 alert_status 기준 집계
-{
-  "total_items": 25,
-  "low_stock_count": 3,
-  "expired_soon_count": 2,
-  "empty_count": 1,
-  "needs_check_count": 1
-}
-```
-
-#### GET /api/inventory/alerts
-
-```json
-// Response 200
-{
-  "items": [
-    {
-      "item_id": "uuid",
-      "name": "원두",
-      "alert_status": "EXPIRED_SOON",  // LOW | EXPIRED_SOON | EMPTY | NEEDS_CHECK
-      "alert_message": "D-3: 2026-05-09 소비기한 도래 (원두 3000g)",
-      "quantity": 3000.0,
-      "expiry_date": "2026-05-09"
-    }
-  ],
-  "total": 3
-}
+// Response 201: GET /api/inventory/{item_id} 와 동일 구조
 ```
 
 #### GET /api/inventory/{item_id}
@@ -1260,7 +1198,8 @@ Authorization: Bearer <access_token>
   "lead_time_days": 2,
   "safety_stock": 1000.0,
   "total_quantity": 2000.0,
-  "alert_status": "NORMAL",
+  "nearest_expiry_date": "2026-08-06",
+  "needs_check": false,
   "coupang_url": "https://www.coupang.com/...",
   "last_price": 28000,
   "created_at": "2026-05-06T00:00:00Z",
@@ -2024,12 +1963,7 @@ Authorization: Bearer <access_token>
 ```json
 // Response 200
 {
-  "inventory_summary": {
-    "total_items": 25,
-    "low_stock_count": 3,
-    "expired_soon_count": 2,
-    "empty_count": 1
-  },
+  // 재고 현황(부족·임박 품목 수)은 FE가 GET /api/inventory로 계산한다 (03_be.md §2)
   "sales_summary": {
     "today_revenue": 320000,
     "month_revenue": 4500000,
