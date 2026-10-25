@@ -1,12 +1,14 @@
-"""OAuth (카카오·구글) — 02_implementation_design.md §3.2."""
+"""OAuth (카카오·구글) — 02_implementation_design.md §3.2, 03_be.md §7.
+
+Authlib이 state(CSRF) 발급·검사와 인가 코드 교환을 맡는다. state는 서명된 세션 쿠키
+(main.py SessionMiddleware)에 담긴다. 구글은 OIDC라 id_token 서명·nonce까지 검증한다.
+"""
 from __future__ import annotations
 
-import secrets
-from typing import Annotated, Literal
-from urllib.parse import urlencode
+from typing import Literal
 
-import httpx
-from fastapi import APIRouter, Cookie, Query, Response
+from authlib.integrations.starlette_client import OAuth, OAuthError
+from fastapi import APIRouter, Request, Response
 from fastapi.responses import RedirectResponse
 
 from app.api.deps import SessionDep
@@ -16,24 +18,29 @@ from app.services.auth_service import AuthService
 
 router = APIRouter(prefix="/api/auth", tags=["auth"])
 
-STATE_COOKIE_NAME = "oauth_state"
 REFRESH_COOKIE_NAME = "refresh_token"
 
 Provider = Literal["kakao", "google"]
 
-_AUTHORIZE_URLS = {
-    "kakao": "https://kauth.kakao.com/oauth/authorize",
-    "google": "https://accounts.google.com/o/oauth2/v2/auth",
-}
-_TOKEN_URLS = {
-    "kakao": "https://kauth.kakao.com/oauth/token",
-    "google": "https://oauth2.googleapis.com/token",
-}
-_USERINFO_URLS = {
-    "kakao": "https://kapi.kakao.com/v2/user/me",
-    "google": "https://www.googleapis.com/oauth2/v3/userinfo",
-}
-_SCOPES = {"kakao": "profile_nickname", "google": "openid email profile"}
+_settings = get_settings()
+_oauth = OAuth()
+_oauth.register(
+    name="kakao",
+    client_id=_settings.KAKAO_CLIENT_ID,
+    client_secret=_settings.KAKAO_CLIENT_SECRET,
+    authorize_url="https://kauth.kakao.com/oauth/authorize",
+    access_token_url="https://kauth.kakao.com/oauth/token",
+    api_base_url="https://kapi.kakao.com/",
+    # 카카오는 client_secret을 요청 본문으로 받는다
+    client_kwargs={"scope": "profile_nickname", "token_endpoint_auth_method": "client_secret_post"},
+)
+_oauth.register(
+    name="google",
+    client_id=_settings.GOOGLE_CLIENT_ID,
+    client_secret=_settings.GOOGLE_CLIENT_SECRET,
+    server_metadata_url="https://accounts.google.com/.well-known/openid-configuration",
+    client_kwargs={"scope": "openid email profile"},
+)
 
 
 def _client_id(p: str) -> str:
@@ -65,46 +72,24 @@ def _ensure_oauth_configured(p: str) -> None:
 
 
 @router.get("/login/{provider}")
-async def login_redirect(provider: Provider) -> RedirectResponse:
+async def login_redirect(provider: Provider, request: Request) -> RedirectResponse:
     _ensure_oauth_configured(provider)
-    state = secrets.token_urlsafe(24)
-    params = {
-        "client_id": _client_id(provider),
-        "redirect_uri": _redirect_uri(provider),
-        "response_type": "code",
-        "scope": _SCOPES[provider],
-        "state": state,
-    }
-    url = f"{_AUTHORIZE_URLS[provider]}?{urlencode(params)}"
-    resp = RedirectResponse(url=url, status_code=302)
-    s = get_settings()
-    resp.set_cookie(
-        key=STATE_COOKIE_NAME, value=state, max_age=600, httponly=True,
-        secure=s.APP_ENV != "development", samesite="lax", path="/",
+    return await _oauth.create_client(provider).authorize_redirect(
+        request, _redirect_uri(provider)
     )
-    return resp
 
 
 @router.get("/callback/{provider}")
-async def callback(
-    provider: Provider, session: SessionDep,
-    code: Annotated[str, Query()], state: Annotated[str, Query()],
-    oauth_state: Annotated[str | None, Cookie()] = None,
-) -> Response:
+async def callback(provider: Provider, request: Request, session: SessionDep) -> Response:
     _ensure_oauth_configured(provider)
-    if not oauth_state or not secrets.compare_digest(state, oauth_state):
+    try:
+        token = await _authorize(provider, request)
+        profile = await _fetch_userinfo(provider, token)
+    except OAuthError as exc:
         raise errors.DomainError(
             status_code=400, error_code="AUTH_SOCIAL_LOGIN_FAILED",
-            message="state가 일치하지 않습니다.",
-        )
-    token_data = await _exchange_code(provider, code)
-    access = token_data.get("access_token")
-    if not isinstance(access, str):
-        raise errors.DomainError(
-            status_code=400, error_code="AUTH_SOCIAL_LOGIN_FAILED",
-            message="OAuth 토큰 교환에 실패했습니다.",
-        )
-    profile = await _fetch_userinfo(provider, access)
+            message="소셜 로그인에 실패했습니다.", detail={"reason": exc.error},
+        ) from exc
     try:
         tokens, _ = await AuthService(session).login_with_oauth(
             provider=provider, social_id=profile["social_id"],
@@ -115,9 +100,7 @@ async def callback(
         # (02_implementation_design.md §3.2)
         if exc.detail.get("error") != "AUTH_ACCOUNT_WITHDRAWN":
             raise
-        resp = RedirectResponse(url=f"{_fe_landing_url()}/login?error=withdrawn", status_code=302)
-        resp.delete_cookie(STATE_COOKIE_NAME, path="/")
-        return resp
+        return RedirectResponse(url=f"{_fe_landing_url()}/login?error=withdrawn", status_code=302)
     s = get_settings()
     resp = RedirectResponse(url=_fe_landing_url(), status_code=302)
     resp.set_cookie(
@@ -125,39 +108,20 @@ async def callback(
         max_age=s.JWT_REFRESH_TOKEN_TTL_SECONDS, httponly=True,
         secure=s.APP_ENV != "development", samesite="lax", path="/",
     )
-    resp.delete_cookie(STATE_COOKIE_NAME, path="/")
     return resp
 
 
-async def _exchange_code(provider: str, code: str) -> dict:
-    payload = {
-        "grant_type": "authorization_code",
-        "client_id": _client_id(provider),
-        "client_secret": _client_secret(provider),
-        "redirect_uri": _redirect_uri(provider),
-        "code": code,
-    }
-    async with httpx.AsyncClient(timeout=10.0) as client:
-        r = await client.post(_TOKEN_URLS[provider], data=payload)
-    if r.status_code != 200:
-        raise errors.DomainError(
-            status_code=400, error_code="AUTH_SOCIAL_LOGIN_FAILED",
-            message="OAuth 인가 코드 처리 실패", detail={"status": r.status_code},
-        )
-    return r.json()
+async def _authorize(provider: str, request: Request) -> dict:
+    """state 검사 + 인가 코드 교환. 구글은 id_token 검증 결과가 token["userinfo"]에 담긴다."""
+    return await _oauth.create_client(provider).authorize_access_token(request)
 
 
-async def _fetch_userinfo(provider: str, access_token: str) -> dict[str, str]:
-    headers = {"Authorization": f"Bearer {access_token}"}
-    async with httpx.AsyncClient(timeout=10.0) as client:
-        r = await client.get(_USERINFO_URLS[provider], headers=headers)
-    if r.status_code != 200:
-        raise errors.DomainError(
-            status_code=400, error_code="AUTH_SOCIAL_LOGIN_FAILED",
-            message="사용자 정보 조회 실패",
-        )
-    data = r.json()
+async def _fetch_userinfo(provider: str, token: dict) -> dict[str, str]:
     if provider == "kakao":
+        r = await _oauth.kakao.get("v2/user/me", token=token)
+        if r.status_code != 200:
+            raise OAuthError(error="userinfo_failed", description="사용자 정보 조회 실패")
+        data = r.json()
         acc = data.get("kakao_account", {}) or {}
         prof = acc.get("profile", {}) or {}
         return {
@@ -165,8 +129,11 @@ async def _fetch_userinfo(provider: str, access_token: str) -> dict[str, str]:
             "email": acc.get("email") or f"kakao_{data.get('id')}@social.example.com",
             "name": prof.get("nickname") or "카카오사용자",
         }
+    info = token.get("userinfo")
+    if not info:
+        raise OAuthError(error="missing_id_token", description="구글 id_token이 없습니다")
     return {
-        "social_id": str(data.get("sub", "")),
-        "email": data.get("email") or f"google_{data.get('sub')}@social.example.com",
-        "name": data.get("name") or "Google User",
+        "social_id": str(info.get("sub", "")),
+        "email": info.get("email") or f"google_{info.get('sub')}@social.example.com",
+        "name": info.get("name") or "Google User",
     }

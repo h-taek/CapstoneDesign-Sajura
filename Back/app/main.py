@@ -17,6 +17,7 @@ from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from fastapi.responses import ORJSONResponse
 from sentry_sdk.integrations.asgi import SentryAsgiMiddleware
 from starlette.exceptions import HTTPException as StarletteHTTPException
+from starlette.middleware.sessions import SessionMiddleware
 
 from app.api.admin import router as admin_router
 from app.api.auth import router as auth_router
@@ -56,6 +57,11 @@ def create_app() -> FastAPI:
 
     app = FastAPI(title=settings.APP_NAME, default_response_class=ORJSONResponse)
 
+    # OAuth state 보관용 서명 쿠키 (app/api/oauth.py, Authlib)
+    app.add_middleware(
+        SessionMiddleware, secret_key=settings.SESSION_SECRET, session_cookie="oauth_session",
+        max_age=600, same_site="lax", https_only=settings.APP_ENV != "development",
+    )
     app.add_middleware(
         CORSMiddleware, allow_origins=settings.cors_origins_list,
         allow_credentials=True, allow_methods=["*"], allow_headers=["*"],

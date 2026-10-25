@@ -193,19 +193,17 @@ async def test_oauth_callback_redirects_withdrawn_account(
         user_id = await session.scalar(select(User.user_id).where(User.email == email))
         await AuthService(session).delete_account(user_id=user_id, password="")
 
-    async def fake_exchange(provider: str, code: str) -> dict:
+    async def fake_authorize(provider: str, request: object) -> dict:
         return {"access_token": "t"}
 
-    async def fake_userinfo(provider: str, access_token: str) -> dict[str, str]:
+    async def fake_userinfo(provider: str, token: dict) -> dict[str, str]:
         return {"social_id": email, "email": email, "name": "소셜"}
 
     monkeypatch.setattr(oauth, "_ensure_oauth_configured", lambda p: None)
-    monkeypatch.setattr(oauth, "_exchange_code", fake_exchange)
+    monkeypatch.setattr(oauth, "_authorize", fake_authorize)
     monkeypatch.setattr(oauth, "_fetch_userinfo", fake_userinfo)
 
-    client.cookies.set("oauth_state", "s1")
     r = await client.get("/api/auth/callback/kakao", params={"code": "c", "state": "s1"})
-    client.cookies.clear()
     assert r.status_code == 302, r.text
     assert r.headers["location"].endswith("/login?error=withdrawn")
     assert "refresh_token" not in r.headers.get("set-cookie", "")

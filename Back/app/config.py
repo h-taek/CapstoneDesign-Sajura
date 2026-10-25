@@ -42,6 +42,7 @@ class Settings(BaseSettings):
     GOOGLE_CLIENT_ID: str = ""
     GOOGLE_CLIENT_SECRET: str = ""
     GOOGLE_REDIRECT_URI: str = ""
+    SESSION_SECRET: str = "change_me_session_secret"  # OAuth state 세션 쿠키 서명
 
     # JWT (python-jose)
     JWT_SECRET: str = "change_me_jwt_secret"

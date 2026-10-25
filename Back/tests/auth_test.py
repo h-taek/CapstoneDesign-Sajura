@@ -256,3 +256,41 @@ async def test_logout_all_revokes_every_session(client: AsyncClient) -> None:
     for tok in (refresh_a, refresh_b):
         rr = await client.post("/api/auth/refresh", cookies={"refresh_token": tok})
         assert rr.status_code == 401
+
+
+# ----------------------------------------------------------------------
+# OAuth state(CSRF) — Authlib + SessionMiddleware (03_be.md §7, §13.1)
+# ----------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_oauth_login_redirect_issues_state(
+    client: AsyncClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from urllib.parse import parse_qs, urlparse
+
+    from app.api import oauth
+
+    monkeypatch.setattr(oauth, "_ensure_oauth_configured", lambda p: None)
+    r = await client.get("/api/auth/login/kakao")
+    client.cookies.clear()
+    assert r.status_code == 302, r.text
+    location = urlparse(r.headers["location"])
+    assert location.netloc == "kauth.kakao.com"
+    assert parse_qs(location.query)["state"][0]
+    assert "oauth_session=" in r.headers.get("set-cookie", "")
+
+
+@pytest.mark.asyncio
+async def test_oauth_callback_rejects_mismatched_state(
+    client: AsyncClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from app.api import oauth
+
+    monkeypatch.setattr(oauth, "_ensure_oauth_configured", lambda p: None)
+    r = await client.get("/api/auth/login/kakao")
+    assert r.status_code == 302, r.text
+    r = await client.get("/api/auth/callback/kakao", params={"code": "c", "state": "forged"})
+    client.cookies.clear()
+    assert r.status_code == 400, r.text
+    assert r.json()["error"] == "AUTH_SOCIAL_LOGIN_FAILED"
