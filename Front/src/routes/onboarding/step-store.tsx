@@ -4,7 +4,13 @@ import { useForm } from "react-hook-form";
 import { useNavigate } from "react-router";
 import { Button } from "../../components/ui/button";
 import { FormField, Input, Select } from "../../components/ui/field";
-import { formatPhone, storeStepSchema, type StoreStepValues } from "../../schemas/onboarding";
+import {
+  OPERATION_TYPE_LABEL,
+  STORE_SIZE_LABEL,
+  formatPhone,
+  storeStepSchema,
+  type StoreStepValues,
+} from "../../schemas/onboarding";
 import { useOnboardingStore } from "../../stores/onboarding-store";
 
 const BUSINESS_TYPES = ["카페", "한식", "양식", "분식", "주점", "기타"];
@@ -59,16 +65,20 @@ export default function StoreStep() {
       <div className="grid grid-cols-2 gap-4">
         <FormField label="매장 규모" htmlFor="store_size" error={errors.store_size?.message}>
           <Select id="store_size" {...register("store_size")}>
-            <option value="SMALL">소형 (~30㎡)</option>
-            <option value="MEDIUM">중형 (~100㎡)</option>
-            <option value="LARGE">대형 (100㎡ 이상)</option>
+            {Object.entries(STORE_SIZE_LABEL).map(([value, label]) => (
+              <option key={value} value={value}>
+                {label}
+              </option>
+            ))}
           </Select>
         </FormField>
         <FormField label="운영 형태" htmlFor="operation_type" error={errors.operation_type?.message}>
           <Select id="operation_type" {...register("operation_type")}>
-            <option value="HALL">홀</option>
-            <option value="DELIVERY">배달</option>
-            <option value="BOTH">홀+배달</option>
+            {Object.entries(OPERATION_TYPE_LABEL).map(([value, label]) => (
+              <option key={value} value={value}>
+                {label}
+              </option>
+            ))}
           </Select>
         </FormField>
       </div>

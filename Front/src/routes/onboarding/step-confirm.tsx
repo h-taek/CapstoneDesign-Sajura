@@ -6,6 +6,7 @@ import { Button } from "../../components/ui/button";
 import { fetchMe } from "../../api/endpoints/auth";
 import { createMenusBulk } from "../../api/endpoints/menus";
 import { completeOnboarding, patchStore, registerPos } from "../../api/endpoints/store";
+import { OPERATION_TYPE_LABEL, STORE_SIZE_LABEL } from "../../schemas/onboarding";
 import { useAuthStore } from "../../stores/auth-store";
 import { useOnboardingStore } from "../../stores/onboarding-store";
 
@@ -62,8 +63,8 @@ export default function ConfirmStep() {
         <dl className="mt-1 grid grid-cols-2 text-sm text-slate-700">
           <dt>매장명</dt><dd>{store.store_name}</dd>
           <dt>업종</dt><dd>{store.business_type}</dd>
-          <dt>규모</dt><dd>{store.store_size}</dd>
-          <dt>운영</dt><dd>{store.operation_type}</dd>
+          <dt>규모</dt><dd>{STORE_SIZE_LABEL[store.store_size]}</dd>
+          <dt>운영</dt><dd>{OPERATION_TYPE_LABEL[store.operation_type]}</dd>
           <dt>주소</dt><dd>{store.address}</dd>
           <dt>전화</dt><dd>{store.phone}</dd>
         </dl>

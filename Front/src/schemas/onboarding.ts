@@ -3,6 +3,14 @@ import { z } from "zod";
 
 const PHONE_REGEX = /^0\d{1,2}-\d{3,4}-\d{4}$/;
 
+// 선택지 문구 — 매장 규모는 좌석 수 기준 (01_basic_design.md §3.1.4)
+export const STORE_SIZE_LABEL = {
+  SMALL: "소형 (~10석)",
+  MEDIUM: "중형 (11~30석)",
+  LARGE: "대형 (31석~)",
+} as const;
+export const OPERATION_TYPE_LABEL = { HALL: "홀", DELIVERY: "배달", BOTH: "홀+배달" } as const;
+
 export const storeStepSchema = z.object({
   store_name: z.string().min(1, "매장명을 입력하세요.").max(50),
   business_type: z.string().min(1, "업종을 선택하세요."),
