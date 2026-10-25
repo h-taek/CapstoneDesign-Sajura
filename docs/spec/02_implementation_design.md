@@ -1416,17 +1416,22 @@ Authorization: Bearer <access_token>
 
 | Method | Path | 설명 |
 |--------|------|------|
-| `GET` | `/api/sales` | 판매 내역 목록 조회 |
+| `GET` | `/api/sales` | 판매 내역 목록 조회 (기간 합계 포함) |
 | `GET` | `/api/sales/summary` | 판매 요약 (누계·이번 달·오늘) |
 | `GET` | `/api/sales/trends` | 메뉴별/기간별 판매 추세 |
 | `GET` | `/api/sales/top-menus` | 판매 수량 상위 메뉴 |
 | `POST` | `/api/sales/upload` | CSV 파일 업로드 (POS 수동 연동 모드) |
-| `GET` | `/api/sales/{sale_id}` | 판매 내역 상세 조회 |
 
 #### GET /api/sales
 
 ```json
-// Query: ?page=1&size=20&sort=sold_at&order=desc&start_date=2026-01-01&end_date=2026-01-31&menu_id=uuid
+// Query: ?start_date=2026-01-01&end_date=2026-01-31&menu_id=uuid&page=1&size=20&order=desc
+// start_date·end_date: 필수, 양 끝 포함. start_date > end_date이거나 366일을 넘으면 400 VALIDATION_ERROR
+// menu_id: 선택. 없거나 다른 매장 메뉴면 404 NOT_FOUND
+// 정렬: sold_at 고정. order asc | desc (기본 desc)
+// size: 기본 20, 최대 100
+// sold_at: 매장 현지 시각, 시간대 표기 없음
+// total: 조건에 맞는 판매 기록 수(총 판매 건수), total_revenue: 조건에 맞는 매출 합계
 // Response 200
 {
   "items": [
@@ -1436,10 +1441,11 @@ Authorization: Bearer <access_token>
       "menu_name": "아메리카노",
       "quantity": 3,
       "total_price": 13500,
-      "sold_at": "2026-01-15T14:30:00Z"
+      "sold_at": "2026-01-15T14:30:00"
     }
   ],
   "total": 540,
+  "total_revenue": 2430000,
   "page": 1,
   "size": 20,
   "total_pages": 27
@@ -1495,8 +1501,10 @@ Authorization: Bearer <access_token>
 #### GET /api/sales/top-menus
 
 ```json
-// Query: ?limit=5 (기본 5)
-// 전체 판매 기간 누계, 판매 수량 내림차순
+// Query: ?start_date=2026-01-15&end_date=2026-01-15&limit=5
+// start_date·end_date: 선택, 둘 다 주거나 둘 다 생략. 생략하면 전체 판매 기간 누계. start_date > end_date면 400 VALIDATION_ERROR
+// limit: 기본 5, 최대 100
+// 판매 수량 내림차순
 // Response 200
 [
   {
@@ -1546,23 +1554,6 @@ Authorization: Bearer <access_token>
 > 저장된 판매는 `01_basic_design.md` §3.3.3 기준으로 재고를 차감한다.
 
 > 그룹화 정책: `매장 메뉴와 매핑 실패`·`같은 파일 안에서 영수증번호 중복`·`이미 저장된 영수증번호와 중복`은 행 단위가 아닌 메뉴·ID·총건수 그룹으로 반환한다. adapter 변환 실패(메뉴명 없음/형식 오류 등)는 `{행번호}행: {사유}` 형식.
-
-#### GET /api/sales/{sale_id}
-
-```json
-// Response 200
-{
-  "sale_id": "uuid",
-  "external_sale_id": "pos-20260506-0001",
-  "menu_id": "uuid",
-  "menu_name": "아메리카노",
-  "quantity": 3,
-  "unit_price": 4500,
-  "total_price": 13500,
-  "sold_at": "2026-01-15T14:30:00Z",
-  "source": "POS"  // POS | CSV
-}
-```
 
 ### 3.7 수요예측 / 추천발주 / 발주 API
 
