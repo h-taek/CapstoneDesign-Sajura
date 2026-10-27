@@ -37,6 +37,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.adapters.pos.csv_adapter import CSVAdapter, CommonSale, SkipReason
 from app.core import errors
 from app.models.menu import Menu
+from app.models.notification import NotificationType
 from app.models.sale_record import SaleRecord, SaleSource
 from app.schemas.sales import (
     SaleListItem,
@@ -50,6 +51,7 @@ from app.schemas.sales import (
 )
 from app.services.anomaly_detector import AnomalyDetector
 from app.services.inventory_service import DeductionContext, InventoryService
+from app.services.notification_service import NotificationService
 
 CHUNK_SIZE = 10_000
 AUTO_CATEGORY = "자동등록"
@@ -172,7 +174,28 @@ class SaleService:
                 deduction=deduction,
             )
 
+        await self._notify(store_id=store_id, result=result)
         return result
+
+    async def _notify(self, *, store_id: str, result: UploadResult) -> None:
+        """업로드 결과 알림 — 이상치는 업로드당 한 건, 재고 부족은 새로 확인 필요가 된 품목마다."""
+        notifier = NotificationService(self.session)
+        if result.anomaly_count:
+            await notifier.create_and_push(
+                store_id=store_id,
+                type=NotificationType.ANOMALY_HIGH,
+                title="판매 데이터 이상치 감지",
+                body=f"방금 올린 판매 데이터에서 이상치 {result.anomaly_count}건이 감지됐습니다.",
+            )
+        for item_id, name in result.needs_check_items:
+            await notifier.create_and_push(
+                store_id=store_id,
+                type=NotificationType.STOCK_LOW,
+                title=f"{name} 재고 확인 필요",
+                body="판매 차감량이 남은 재고보다 많습니다. 실제 재고를 확인해 주세요.",
+                related_resource_type="inventory_item",
+                related_resource_id=item_id,
+            )
 
     async def get_summary(self, *, store_id: str) -> SalesSummaryResponse:
         """홈 화면 매출 요약 — 전체 누계 + 이번 달 + 오늘 집계.

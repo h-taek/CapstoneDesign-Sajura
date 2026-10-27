@@ -12,7 +12,7 @@
 | 2. 설계 (기능·API·DB·백엔드·프론트·AI) | `docs/spec/` 전체 | 완료 |
 | 3. 리서치 | `docs/research/` (backend·frontend·ai) | 완료 |
 | 4. 구현 계획 | `docs/plan/` | 완료 |
-| 5. 구현 | Phase 2·3·4·5·6·7·11·12 구현됨 / Phase 8(n8n 배치)·10(쿠팡 자동 담기)·알림 미착수 | 진행 중 |
+| 5. 구현 | Phase 2·3·4·5·6·7·11·12·알림 BE 구현됨 / Phase 8(n8n 배치)·10(쿠팡 자동 담기) 미착수 | 진행 중 |
 | 6. 테스트 & 배포 | Phase 13 — 자체 운영 서버(Mac mini) SSH 배포 | 예정 |
 
 > Phase 5·9·11은 코드가 존재하나 `docs/plan/`의 마일스톤 대조는 아직 하지 않았다.
@@ -42,10 +42,11 @@
 | 인증·암호화 | Authlib + python-jose + passlib[bcrypt] + cryptography(AES-256-GCM) | `03_be.md` §7·§10 |
 | OAuth 콜백 응답 | 302 Redirect to FE root + Set-Cookie refresh_token (Access Token 본문/URL 미노출, FE 첫 진입에서 `POST /api/auth/refresh`로 동기) | `02_implementation_design.md` §3.2, `02_implementation_design.md` §2.2 |
 | 외부 연동 | httpx + tenacity + aiobreaker + BeautifulSoup4(lxml) + Playwright(Chromium 단일) | `03_be.md` §1 |
-| 알림 | 점주 3채널(인앱·Web Push·이메일) — pywebpush + fastapi-mail + `notifications` 테이블. Slack은 운영자 모니터링 전용 | `03_be.md` §4, `02_implementation_design.md` §4.3.23~§4.3.24 |
+| 알림 | 점주 알림은 인앱 + Web Push(pywebpush, `notifications` 테이블). 이메일(fastapi-mail)은 탈퇴 파기 증빙만. Slack은 운영자 모니터링 전용 (2026-10-28 갱신) | `03_be.md` §4, `02_implementation_design.md` §4.3.23~§4.3.24 |
 | 인앱 알림 폴링 | 5분 고정 (코드 상수, 사용자 설정 미노출) + 수동 새로고침 권장 — BE rate limit 보호 | `04_fe.md`, `research/frontend/06_pwa_push.md` |
 | 캐시·관측 | Redis + redis-py(async) + structlog + asgi-correlation-id + Sentry(BE+FE 동일 release `git-<sha>`, PII scrubbing, traces 5%) | `03_be.md` §1, `03_be.md` §14.4 |
 | 비동기 작업 분리 | n8n = AI 파이프라인(외부 데이터 수집·AI Server 호출). ARQ cron_jobs = BE 도메인 정기 작업(소비기한 점검 등). BackgroundTasks = 짧은 후처리 | `research/backend/08_async_pipeline.md` §1.4 |
+| 알림 발송 규칙 | 한 건의 단위 — 소비기한은 품목·조건, 재고 부족은 품목, 이상치는 업로드 한 번, 예측 완료는 매장. 소비기한은 D-3·D-1·초과 첫날에 한 번씩(초과를 매일 반복하지 않음), 같은 날 재실행은 건너뜀. 알림 설정 4묶음(소비기한 임박·재고 부족·예측 완료·이상치), 끈 묶음은 인앱·푸시 모두 만들지 않음 (2026-10-28) | `01_basic_design.md` §3.3.6·§3.12, `02_implementation_design.md` §3.10 |
 | 알림 송출 단일 경로 | BE `NotificationService.create_and_push`만 사용. n8n은 BE API 트리거만, DB `notifications` 직접 INSERT 금지 | `02_implementation_design.md` §4.5 n8n_user 권한 |
 | 테스트·품질 | pytest + pytest-asyncio + pytest-cov + factory_boy + Faker + testcontainers + respx + ruff + mypy + bandit + pip-audit + pre-commit | `research/backend/09_testing_quality.md` |
 | 배포 | uv + Docker + Docker Compose(V2) 6서비스 + Buildx 멀티아키 + GitHub Actions + Trivy | `research/backend/10_deployment.md` |
@@ -74,7 +75,7 @@
 | 재고 차감 = 레시피 필수 | 재고 차감 ON 메뉴는 항상 재고 목록 재료로 된 레시피(재료 1개 이상)를 가진다. 메뉴는 OFF로 등록하고 레시피 저장 후 켠다. ON 상태에서 레시피 비우기·삭제 불가(`MENU_RECIPE_REQUIRED`). 미입력 경고 개념 폐기 (2026-10-25) | `01_basic_design.md` §3.2 |
 | BE·FE 책임 경계 | BE는 저장·수집한 값을 가공 없이 전달. 예외는 FE로 다 보낼 수 없는 집계(판매 추세)와 서버가 스스로 하는 판단(알림 발송·발주 계산·판매 차감). 정렬·경고 표시·D-n·개수 세기는 FE. 공통 기준값은 spec 한 곳. 재고 목록은 전체 반환·판정값 없음, `/api/inventory/summary`·`/alerts` 폐기 (2026-10-25) | `03_be.md` §2, `04_fe.md` §4.6·§7.0 |
 | 사업자 검증 게이트 BE 강제 | 매장 데이터 API는 `business_status` ∈ {PENDING, VERIFIED}이고 탈퇴 유예가 아닐 때만 통과, 상태는 요청마다 DB 조회해 관리자 반려가 즉시 반영 (2026-10-03) | `03_be.md` §8.1 |
-| 회원 탈퇴 | 탈퇴 즉시 로그인 차단·철회 없음, 유예 30일 동안 같은 계정 재가입 불가, 파기 증빙 이메일은 알림 구현 시 (2026-10-03) | `01_basic_design.md` §5.2.1 |
+| 회원 탈퇴 | 탈퇴 즉시 로그인 차단·철회 없음, 유예 30일 동안 같은 계정 재가입 불가, 파기 뒤 증빙 이메일 (2026-10-03, 이메일 2026-10-28) | `01_basic_design.md` §5.2.1 |
 | 재고 경고 표시 | 상태 배지 없음 — 정렬로 볼 수 있는 값에 UI를 덧대지 않는다. 경고는 한 단계: 소비기한 D-3 이내(지난 것 포함)면 기한 글씨, 확인 필요·기준 이하·0이면 수량 글씨를 빨갛게 (2026-10-28) | `04_fe.md` §4.6 |
 | 메뉴 관리 화면 | 레시피 관리를 메뉴 관리(`/menus`)로 바꿔 판매가·레시피를 한 화면에서 받는다. 단가 관리 화면은 폐지 — 재료 단가는 발주 추천에서 보인다 (2026-10-28) | `04_fe.md` §4.5 |
 | AI 서버 수정 범위 | AI 팀원 담당은 예측 모델·학습까지. AI 서버의 API·스키마·추천 산식 코드는 BE 담당이 직접 고친다 (2026-10-28) | — |

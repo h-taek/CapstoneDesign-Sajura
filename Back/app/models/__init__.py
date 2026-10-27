@@ -8,6 +8,12 @@ from app.models.inventory_item import (
     InventoryLot,
 )
 from app.models.menu import Menu, Recipe, RecipeIngredient
+from app.models.notification import (
+    Notification,
+    NotificationPriority,
+    NotificationType,
+    PushSubscription,
+)
 from app.models.pos_connection import PosConnection, PosStatus
 from app.models.refresh_token import RefreshToken
 from app.models.sale_record import SaleRecord, SaleSource
@@ -16,7 +22,8 @@ from app.models.user import AuthProvider, User
 
 __all__ = [
     "AdjustmentReason", "AuthProvider", "Base", "DisposalLog", "InventoryAdjustmentLog",
-    "InventoryItem", "InventoryLot", "Menu", "OperationType",
-    "PosConnection", "PosStatus", "Recipe", "RecipeIngredient",
+    "InventoryItem", "InventoryLot", "Menu", "Notification", "NotificationPriority",
+    "NotificationType", "OperationType", "PosConnection", "PosStatus", "PushSubscription",
+    "Recipe", "RecipeIngredient",
     "RefreshToken", "SaleRecord", "SaleSource", "Store", "StoreSize", "User",
 ]

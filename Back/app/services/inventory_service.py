@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from collections import defaultdict
 from dataclasses import dataclass, field
-from datetime import date, datetime
+from datetime import UTC, date, datetime, time, timedelta
 from decimal import Decimal
 from zoneinfo import ZoneInfo
 
@@ -24,9 +24,23 @@ from app.models.inventory_item import (
     InventoryLot,
 )
 from app.models.menu import Menu, Recipe, RecipeIngredient
+from app.models.notification import Notification, NotificationType
 from app.models.order import OrderApprovalLog, OrderItem, OrderRecommendationItem
+from app.services.notification_service import NotificationService
 
 KST = ZoneInfo("Asia/Seoul")
+
+# 소비기한 알림 조건 — 오늘 기준 일수, 알림 유형, 제목, 본문 (01_basic_design.md §3.3.6)
+EXPIRY_RULES = (
+    (3, NotificationType.EXPIRY_D3, "소비기한 D-3 임박", "{name} 로트 {n}개가 3일 뒤 만료됩니다."),
+    (1, NotificationType.EXPIRY_D1, "소비기한 D-1 임박", "{name} 로트 {n}개가 내일 만료됩니다."),
+    (
+        -1,
+        NotificationType.EXPIRY_OVER,
+        "소비기한 초과",
+        "{name} 로트 {n}개가 소비기한을 넘겼습니다. 폐기 처리해 주세요.",
+    ),
+)
 
 # FIFO 순서 — 소비기한 빠른 순, 소비기한 없는 로트는 뒤에 입고일 순 (01_basic_design.md §3.3.3)
 FIFO_ORDER = (
@@ -388,6 +402,70 @@ class InventoryService:
                 result.needs_check_items.append((item_id, item.name))
             item.deducted_until = max(item.deducted_until, latest[item_id])
         return result
+
+    async def check_expiry_batch(self, *, today: date) -> int:
+        """소비기한 D-3·D-1·초과 첫날 로트를 품목·조건별 알림 한 건으로 보낸다. 만든 알림 수를 반환.
+
+        같은 날(한국 시각) 같은 품목·조건 알림이 이미 있으면 건너뛴다 — 배치 재실행 대비.
+        """
+        rules = {today + timedelta(days=days): rule for days, *rule in EXPIRY_RULES}
+        rows = (
+            await self.session.execute(
+                select(
+                    InventoryItem.store_id,
+                    InventoryItem.item_id,
+                    InventoryItem.name,
+                    InventoryLot.expiry_date,
+                    func.count(InventoryLot.lot_id),
+                )
+                .join(InventoryLot, InventoryLot.item_id == InventoryItem.item_id)
+                .where(
+                    InventoryLot.remaining_quantity > 0,
+                    InventoryLot.expiry_date.in_(list(rules)),
+                )
+                .group_by(
+                    InventoryItem.store_id,
+                    InventoryItem.item_id,
+                    InventoryItem.name,
+                    InventoryLot.expiry_date,
+                )
+            )
+        ).all()
+        if not rows:
+            return 0
+
+        # notifications.created_at은 UTC — 한국 시각 오늘 0시를 UTC로 바꿔 비교한다
+        day_start = (
+            datetime.combine(today, time.min, tzinfo=KST).astimezone(UTC).replace(tzinfo=None)
+        )
+        sent = set(
+            (
+                await self.session.execute(
+                    select(Notification.type, Notification.related_resource_id).where(
+                        Notification.created_at >= day_start,
+                        Notification.type.in_([rule[0] for rule in rules.values()]),
+                        Notification.related_resource_id.in_({r.item_id for r in rows}),
+                    )
+                )
+            ).all()
+        )
+
+        notifier = NotificationService(self.session)
+        created = 0
+        for store_id, item_id, name, expiry_date, lot_count in rows:
+            type_, title, body = rules[expiry_date]
+            if (type_, item_id) in sent:
+                continue
+            n = await notifier.create_and_push(
+                store_id=store_id,
+                type=type_,
+                title=title,
+                body=body.format(name=name, n=lot_count),
+                related_resource_type="inventory_item",
+                related_resource_id=item_id,
+            )
+            created += n is not None
+        return created
 
     # ------------------------------------------------------------------ 내부
 

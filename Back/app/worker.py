@@ -5,7 +5,7 @@ BE 도메인 정기 작업을 cron_jobs로 돌린다. 시각은 KST 기준 (`tim
 
 from __future__ import annotations
 
-from datetime import timedelta, timezone
+from datetime import datetime, timedelta, timezone
 
 from arq import cron
 from arq.connections import RedisSettings
@@ -13,6 +13,7 @@ from arq.connections import RedisSettings
 import app.db as app_db
 from app.config import get_settings
 from app.services.account_purge_service import AccountPurgeService
+from app.services.inventory_service import InventoryService
 
 KST = timezone(timedelta(hours=9))
 
@@ -20,6 +21,12 @@ KST = timezone(timedelta(hours=9))
 def _redis_settings() -> RedisSettings:
     s = get_settings()
     return RedisSettings(host=s.REDIS_HOST, port=s.REDIS_PORT, database=s.REDIS_DB)
+
+
+async def check_expiry(ctx: dict) -> int:
+    """소비기한 D-3·D-1·초과 알림 — 매일 01:30 (01_basic_design.md §3.3.6)."""
+    async with app_db.SessionLocal() as session:
+        return await InventoryService(session).check_expiry_batch(today=datetime.now(KST).date())
 
 
 async def purge_withdrawn_accounts(ctx: dict) -> int:
@@ -31,5 +38,8 @@ async def purge_withdrawn_accounts(ctx: dict) -> int:
 class WorkerSettings:
     redis_settings = _redis_settings()
     timezone = KST
-    functions: list = [purge_withdrawn_accounts]
-    cron_jobs: list = [cron(purge_withdrawn_accounts, hour=3, minute=0)]
+    functions: list = [check_expiry, purge_withdrawn_accounts]
+    cron_jobs: list = [
+        cron(check_expiry, hour=1, minute=30),
+        cron(purge_withdrawn_accounts, hour=3, minute=0),
+    ]

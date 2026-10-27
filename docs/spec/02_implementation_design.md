@@ -434,18 +434,16 @@ sequenceDiagram
     ARQ->>BE: InventoryService.check_expiry_batch 호출
     BE->>DB: inventory_lots에서 expiry_date 기준 D-3·D-1·초과 매칭 로트 조회
 
-    loop 매칭된 로트별
+    loop 매칭된 품목·조건별 (같은 날 같은 품목·조건 알림이 있으면 건너뜀)
         alt D-3일 임박
-            BE->>DB: 해당 로트 경고 상태 표시
             BE->>BE: NotificationService.create_and_push (경고 — 소비기한 D-3일)
             BE->>DB: notifications INSERT
             BE->>Push: pywebpush로 점주 Web Push 발송
         else D-1일 임박
-            BE->>DB: 해당 로트 긴급 상태 표시
             BE->>BE: NotificationService.create_and_push (긴급 — 소비기한 D-1일)
             BE->>DB: notifications INSERT
             BE->>Push: pywebpush로 점주 Web Push 발송
-        else 소비기한 초과
+        else 소비기한 초과 첫날
             BE->>BE: NotificationService.create_and_push (긴급 — 폐기 요청)
             BE->>DB: notifications INSERT
             BE->>Push: pywebpush로 점주 Web Push 발송
@@ -2120,6 +2118,8 @@ Authorization: Bearer <access_token>
 | `GET` | `/api/notifications` | 인앱 알림 목록 조회 (페이지네이션·읽음 필터) |
 | `PATCH` | `/api/notifications/{notification_id}/read` | 알림 읽음 처리 |
 | `PATCH` | `/api/notifications/read-all` | 전체 읽음 처리 |
+| `GET` | `/api/notifications/settings` | 알림 설정 조회 |
+| `PATCH` | `/api/notifications/settings` | 알림 설정 변경 |
 
 #### POST /api/notifications/subscribe
 
@@ -2137,12 +2137,14 @@ Authorization: Bearer <access_token>
 {
   "subscription_id": "uuid"
 }
+// 같은 endpoint가 이미 있으면 그 행을 현재 사용자·keys·user_agent로 갱신하고 기존 subscription_id를 반환한다
 ```
 
 #### DELETE /api/notifications/subscribe/{subscription_id}
 
 ```
 // Response: 204 No Content
+// 없거나 다른 사용자의 구독이면 404 NOT_FOUND
 ```
 
 #### GET /api/notifications
@@ -2180,12 +2182,33 @@ Authorization: Bearer <access_token>
 
 ```
 // Response: 204 No Content
+// 없거나 다른 사용자의 알림이면 404 NOT_FOUND
 ```
 
 #### PATCH /api/notifications/read-all
 
 ```
 // Response: 204 No Content
+```
+
+#### GET /api/notifications/settings
+
+```json
+// Response 200 — 알림 설정 묶음(01_basic_design.md §3.12)별 켜짐 여부
+{
+  "expiry": true,
+  "stock_low": true,
+  "forecast_done": true,
+  "anomaly": true
+}
+```
+
+#### PATCH /api/notifications/settings
+
+```json
+// Request — 바꿀 항목만 보낸다
+{ "stock_low": false }
+// Response 200 — 변경 후 전체 설정 (GET과 같은 형태)
 ```
 
 ### 3.11 인터페이스 표준
@@ -2228,6 +2251,10 @@ CREATE TABLE users (
     auth_provider ENUM('LOCAL','KAKAO','GOOGLE')      NOT NULL DEFAULT 'LOCAL',
     social_id     VARCHAR(100)                        NULL COMMENT '소셜 서비스의 사용자 고유 ID',
     withdrawn_at  DATETIME                            NULL COMMENT '회원 탈퇴 시각 — 값이 있으면 파기 유예 중 (01_basic_design.md §5.2.1)',
+    notify_expiry        TINYINT(1)                   NOT NULL DEFAULT 1 COMMENT '알림 설정 — 소비기한 임박 (01_basic_design.md §3.12)',
+    notify_stock_low     TINYINT(1)                   NOT NULL DEFAULT 1 COMMENT '알림 설정 — 재고 부족',
+    notify_forecast_done TINYINT(1)                   NOT NULL DEFAULT 1 COMMENT '알림 설정 — 예측 완료',
+    notify_anomaly       TINYINT(1)                   NOT NULL DEFAULT 1 COMMENT '알림 설정 — 이상치 감지',
     created_at    DATETIME                            NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at    DATETIME                            NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     PRIMARY KEY (user_id),

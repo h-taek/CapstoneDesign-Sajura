@@ -11,12 +11,28 @@ from math import ceil
 from fastapi import Depends, HTTPException, Request, Response
 from fastapi_limiter import FastAPILimiter
 from fastapi_limiter.depends import RateLimiter
+from jose import JWTError
 from redis.asyncio import Redis
+
+from app.core import security
 
 
 async def _client_ip(request: Request) -> str:
     host = request.client.host if request.client else "unknown"
     return f"{host}:{request.scope['path']}"
+
+
+async def _user_id(request: Request) -> str:
+    """토큰의 사용자(sub) + 경로. 토큰이 없거나 깨졌으면 IP로 — 그런 요청은 인증에서 401이다."""
+    authorization = request.headers.get("authorization", "")
+    if authorization.lower().startswith("bearer "):
+        try:
+            sub = security.decode_access_token(authorization.split(" ", 1)[1].strip()).get("sub")
+        except JWTError:
+            sub = None
+        if isinstance(sub, str):
+            return f"user:{sub}:{request.scope['path']}"
+    return await _client_ip(request)
 
 
 async def _too_many_requests(request: Request, response: Response, pexpire: int) -> None:
@@ -38,3 +54,6 @@ async def init_rate_limit(redis: Redis) -> None:
 # 로그인·회원가입 IP당 5/min, refresh 30/min
 CREDENTIAL_LIMIT = Depends(RateLimiter(times=5, minutes=1))
 REFRESH_LIMIT = Depends(RateLimiter(times=30, minutes=1))
+# 알림 목록 사용자당 60/min, 푸시 구독 등록 10/min
+NOTIFICATION_LIST_LIMIT = Depends(RateLimiter(times=60, minutes=1, identifier=_user_id))
+NOTIFICATION_SUBSCRIBE_LIMIT = Depends(RateLimiter(times=10, minutes=1, identifier=_user_id))

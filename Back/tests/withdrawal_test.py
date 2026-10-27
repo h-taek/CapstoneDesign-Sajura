@@ -16,6 +16,8 @@ from sqlalchemy import func, select, update
 import app.db as app_db
 from app.config import get_settings
 from app.core import errors
+from app.integrations import mailer
+from app.models.notification import Notification, NotificationType
 from app.models.order import Order, OrderRecommendation
 from app.models.refresh_token import RefreshToken
 from app.models.sale_record import SaleRecord
@@ -23,6 +25,7 @@ from app.models.store import Store
 from app.models.user import User
 from app.services.account_purge_service import AccountPurgeService
 from app.services.auth_service import AuthService
+from app.services.notification_service import NotificationService
 from tests.conftest import make_test_email
 from tests.sales_test import _create_menu, _csv_bytes, _register_verified_user
 
@@ -207,3 +210,33 @@ async def test_oauth_callback_redirects_withdrawn_account(
     assert r.status_code == 302, r.text
     assert r.headers["location"].endswith("/login?error=withdrawn")
     assert "refresh_token" not in r.headers.get("set-cookie", "")
+
+
+@pytest.mark.asyncio
+async def test_purge_sends_evidence_email_and_drops_notifications(client: AsyncClient) -> None:
+    email, auth = await _register_verified_user(client)
+    keep_email, keep_auth = await _register_verified_user(client)
+    user_id = await _user_id(email)
+    async with app_db.SessionLocal() as session:
+        store_id = await session.scalar(select(Store.store_id).where(Store.user_id == user_id))
+        await NotificationService(session).create_and_push(
+            store_id=store_id, type=NotificationType.STOCK_LOW, title="원두 재고 확인 필요"
+        )
+    await _withdraw(client, auth)
+    await _withdraw(client, keep_auth)
+    await _age_withdrawal(email, 31)
+    await _age_withdrawal(keep_email, 29)
+
+    with mailer.fast_mail().record_messages() as outbox:
+        async with app_db.SessionLocal() as session:
+            await AccountPurgeService(session).purge_expired()
+
+    sent = [m for m in outbox if email in m["To"]]
+    assert len(sent) == 1
+    assert sent[0]["Subject"] == "[사주라] 계정 정보 파기 완료"
+    assert not [m for m in outbox if keep_email in m["To"]]
+    async with app_db.SessionLocal() as session:
+        left = await session.scalar(
+            select(func.count()).select_from(Notification).where(Notification.user_id == user_id)
+        )
+    assert left == 0

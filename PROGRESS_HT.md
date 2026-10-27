@@ -8,6 +8,15 @@
 
 ## 1. 개발 이력
 
+### 알림 BE — 인앱·Web Push·소비기한 배치·파기 증빙 이메일 (2026-10-28)
+
+- spec 결정 — 알림 단위(소비기한 품목·조건, 재고 부족 품목, 이상치 업로드당), 소비기한 초과는 첫날 한 번, 같은 날 재실행 건너뜀, 알림 설정 4묶음(`users.notify_*`, 끄면 인앱·푸시 모두 안 만듦), 설정 API 2개. `01_basic_design.md` §3.3.6·§3.12, `02_implementation_design.md` §2.7·§3.10·§4.3.1. plan `06_notifications.md`
+- `NotificationService.create_and_push` — 저장 뒤 구독마다 pywebpush(워커 스레드), 404·410 구독 삭제, VAPID 키 없으면 푸시 생략. 푸시 내용 `title`·`body`·`url`(FE `sw.ts` 형식)
+- API 7개(`/api/notifications`) — 목록 60/min·구독 10/min을 토큰 `sub` 기준으로 제한(`rate_limit.py` 식별자 추가)
+- 트리거 — `InventoryService.check_expiry_batch`(ARQ 01:30, `worker.py`), `SaleService.upload_csv` 끝의 이상치·재고 부족 알림. 이상치 탐지기는 아직 빈 껍데기라 실제로는 이상치 알림이 나지 않는다
+- 파기 증빙 이메일 — `app/integrations/mailer.py`(fastapi-mail 1.5.0), dev는 `MAIL_SUPPRESS_SEND=true`. 마이그레이션 `0013_notification_settings`. 의존성 `pywebpush==2.0.3`·`fastapi-mail==1.5.0`(기존 고정 버전을 올리지 않는 조합)
+- 검증: BE 컨테이너 안 pytest 110/110(신규 18건), `0013` upgrade·downgrade 왕복, `arq-worker` 기동 시 `cron:check_expiry` 등록, FE Vitest 61/61. 실제 기기 푸시 수신은 FE 구독 화면 전이라 미확인
+
 ### 판매 조회 BE — 판매 목록·인기 메뉴 기간 지정 (2026-10-28)
 
 - `GET /api/sales` — 기간(양 끝 포함, 366일 상한) 판매 목록과 기간 합계(`total`·`total_revenue`), 메뉴 필터, `sold_at` 정렬 `order` asc·desc, `size` 최대 100

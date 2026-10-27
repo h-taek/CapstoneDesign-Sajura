@@ -58,6 +58,16 @@ class Settings(BaseSettings):
     VAPID_PRIVATE_KEY: str = ""
     VAPID_SUBJECT: str = "mailto:ops@example.com"
 
+    # 메일 (fastapi-mail, 파기 증빙 01_basic_design.md §5.2.1). dev는 발송하지 않는다
+    MAIL_SERVER: str = ""
+    MAIL_PORT: int = 587
+    MAIL_USERNAME: str = ""
+    MAIL_PASSWORD: str = ""
+    MAIL_FROM: str = "noreply@example.com"
+    MAIL_STARTTLS: bool = True
+    MAIL_SSL_TLS: bool = False
+    MAIL_SUPPRESS_SEND: bool = True
+
     # Sentry
     SENTRY_DSN: str = ""
     SENTRY_ENVIRONMENT: str = "development"

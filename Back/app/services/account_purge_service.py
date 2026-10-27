@@ -3,7 +3,7 @@
 stores를 참조하는 테이블 상당수가 ON DELETE CASCADE가 아니라
 (02_implementation_design.md §4.3) 하위 행을
 참조 순서대로 먼저 지운다. ORM이 없는 테이블이 섞여 있어 SQL로 직접 지운다.
-파기 완료 증빙 이메일은 알림 채널 구현 후 붙인다.
+파기를 커밋한 뒤 증빙 이메일을 보낸다. 발송 실패는 파기를 되돌리지 않고 로그만 남긴다.
 """
 
 from __future__ import annotations
@@ -16,6 +16,7 @@ from sqlalchemy import select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import get_settings
+from app.integrations import mailer
 from app.models.store import Store
 from app.models.user import User
 
@@ -56,6 +57,7 @@ class AccountPurgeService:
         return len(user_ids)
 
     async def _purge(self, user_id: str) -> None:
+        email = await self.session.scalar(select(User.email).where(User.user_id == user_id))
         store = await self.session.scalar(select(Store).where(Store.user_id == user_id))
         cert_path = store.business_cert_path if store else None
         if store is not None:
@@ -71,3 +73,7 @@ class AccountPurgeService:
         if cert_path:
             Path(get_settings().UPLOAD_DIR, cert_path).unlink(missing_ok=True)
         log.info("account_purged", user_id=user_id)
+        try:
+            await mailer.send_purge_notice(email=email, purged_at=datetime.now(UTC))
+        except Exception:
+            log.exception("purge_notice_failed", user_id=user_id)

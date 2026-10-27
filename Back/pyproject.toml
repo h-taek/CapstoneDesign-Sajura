@@ -38,6 +38,9 @@ dependencies = [
     "fastapi-limiter==0.1.6",
     # Phase 4 POS·CSV
     "pandas==2.2.3",
+    # 알림 (03_be.md §1)
+    "pywebpush==2.0.3",
+    "fastapi-mail==1.5.0",
 ]
 
 [project.optional-dependencies]

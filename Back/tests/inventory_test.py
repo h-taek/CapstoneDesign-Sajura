@@ -3,16 +3,20 @@
 from __future__ import annotations
 
 import io
-from datetime import datetime
+from datetime import date, datetime
 from decimal import Decimal
 
 import pytest
 from httpx import AsyncClient
-from sqlalchemy import update
+from sqlalchemy import select, update
 
 import app.db as app_db
-from app.models.inventory_item import InventoryItem
-from tests.sales_test import _csv_bytes, _register_verified_user
+from app.models.inventory_item import InventoryItem, InventoryLot
+from app.models.notification import Notification
+from app.services.anomaly_detector import AnomalyDetector, AnomalyFlag
+from app.services.inventory_service import InventoryService
+from tests.notifications_test import _store_id
+from tests.sales_test import _create_menu, _csv_bytes, _register_verified_user
 
 BASE = datetime(2026, 1, 1)  # 테스트 품목의 차감 기준 시각
 
@@ -368,3 +372,134 @@ async def test_dispose_lot(client: AsyncClient) -> None:
     )
     r = await client.delete(f"/api/inventory/{bean}", headers=auth)
     assert r.status_code == 204, r.text
+
+
+# ----------------------------------------------------------------------
+# 소비기한 배치 — 01_basic_design.md §3.3.6
+# ----------------------------------------------------------------------
+
+TODAY = date(2026, 1, 10)
+
+
+async def _expiry_notifications(store_id: str) -> list[tuple[str, str, str]]:
+    async with app_db.SessionLocal() as s:
+        rows = (
+            await s.execute(
+                select(Notification.type, Notification.related_resource_id, Notification.body)
+                .where(Notification.store_id == store_id)
+                .order_by(Notification.type, Notification.body)
+            )
+        ).all()
+    return [(t.value, rid, body) for t, rid, body in rows]
+
+
+async def _run_expiry_batch(today: date = TODAY) -> None:
+    async with app_db.SessionLocal() as s:
+        await InventoryService(s).check_expiry_batch(today=today)
+
+
+@pytest.mark.asyncio
+async def test_expiry_batch_notifies_d3_d1_and_first_overdue_day(client: AsyncClient) -> None:
+    email, auth = await _register_verified_user(client)
+    store_id = await _store_id(email)
+    lettuce = await _item(client, auth, "양상추")
+    milk = await _item(client, auth, "우유")
+    egg = await _item(client, auth, "계란")
+    cream = await _item(client, auth, "생크림")
+    await _lot(client, auth, lettuce, 1, "2026-01-13")  # D-3
+    await _lot(client, auth, lettuce, 2, "2026-01-13")  # 같은 품목·조건 → 한 건
+    await _lot(client, auth, milk, 1, "2026-01-11")  # D-1
+    await _lot(client, auth, egg, 1, "2026-01-09")  # 초과 첫날
+    await _lot(client, auth, cream, 1, "2026-01-12")  # D-2 — 대상 아님
+    await _lot(client, auth, cream, 1, "2026-01-08")  # 초과 둘째 날 — 대상 아님
+    used_up = await _lot(client, auth, cream, 1, "2026-01-13")
+    async with app_db.SessionLocal() as s:
+        await s.execute(
+            update(InventoryLot)
+            .where(InventoryLot.lot_id == used_up)
+            .values(remaining_quantity=0)
+        )
+        await s.commit()
+
+    await _run_expiry_batch()
+
+    assert await _expiry_notifications(store_id) == [
+        ("EXPIRY_D3", lettuce, "양상추 로트 2개가 3일 뒤 만료됩니다."),
+        ("EXPIRY_D1", milk, "우유 로트 1개가 내일 만료됩니다."),
+        ("EXPIRY_OVER", egg, "계란 로트 1개가 소비기한을 넘겼습니다. 폐기 처리해 주세요."),
+    ]
+
+
+@pytest.mark.asyncio
+async def test_expiry_batch_rerun_same_day_creates_nothing_new(client: AsyncClient) -> None:
+    email, auth = await _register_verified_user(client)
+    store_id = await _store_id(email)
+    lettuce = await _item(client, auth, "양상추")
+    await _lot(client, auth, lettuce, 1, "2026-01-13")
+
+    await _run_expiry_batch()
+    await _run_expiry_batch()
+
+    assert len(await _expiry_notifications(store_id)) == 1
+
+
+# ----------------------------------------------------------------------
+# 업로드 알림 — 01_basic_design.md §3.12
+# ----------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_upload_notifies_each_new_needs_check_item(client: AsyncClient) -> None:
+    email, auth = await _register_verified_user(client)
+    store_id = await _store_id(email)
+    bean = await _item(client, auth)
+    milk = await _item(client, auth, "우유")
+    await _lot(client, auth, bean, 10, None)
+    await _menu(client, auth, "라떼", {bean: 20, milk: 100})
+
+    await _upload(client, auth, ["2026-01-15 10:00:00,라떼,1,5000,r-1"])
+    # 이미 확인 필요인 품목은 다시 보내지 않는다
+    await _upload(client, auth, ["2026-01-15 11:00:00,라떼,1,5000,r-2"])
+
+    async with app_db.SessionLocal() as s:
+        rows = (
+            await s.execute(
+                select(Notification.type, Notification.related_resource_id, Notification.title)
+                .where(Notification.store_id == store_id)
+            )
+        ).all()
+    assert sorted((t.value, rid, title) for t, rid, title in rows) == sorted([
+        ("STOCK_LOW", bean, "원두 재고 확인 필요"),
+        ("STOCK_LOW", milk, "우유 재고 확인 필요"),
+    ])
+
+
+@pytest.mark.asyncio
+async def test_upload_with_anomalies_notifies_once(
+    client: AsyncClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    email, auth = await _register_verified_user(client)
+    store_id = await _store_id(email)
+    await _create_menu(client, auth, "아메리카노")
+    monkeypatch.setattr(
+        AnomalyDetector,
+        "detect",
+        lambda self, sales: [AnomalyFlag(row_index=1, reason="급증")] * len(sales),
+    )
+
+    await _upload(client, auth, [
+        "2026-01-15 10:00:00,아메리카노,1,4500,a-1",
+        "2026-01-15 11:00:00,아메리카노,1,4500,a-2",
+    ])
+
+    async with app_db.SessionLocal() as s:
+        rows = (
+            await s.execute(
+                select(Notification.type, Notification.body).where(
+                    Notification.store_id == store_id
+                )
+            )
+        ).all()
+    assert [(t.value, body) for t, body in rows] == [
+        ("ANOMALY_HIGH", "방금 올린 판매 데이터에서 이상치 2건이 감지됐습니다."),
+    ]

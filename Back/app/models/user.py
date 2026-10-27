@@ -5,7 +5,7 @@ import enum
 from datetime import datetime
 from typing import TYPE_CHECKING
 
-from sqlalchemy import CHAR, DateTime, Enum, String, func
+from sqlalchemy import CHAR, Boolean, DateTime, Enum, String, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.models.base import Base, new_uuid
@@ -42,6 +42,11 @@ class User(Base):
     social_id: Mapped[str | None] = mapped_column(String(100), nullable=True)
     # 회원 탈퇴 시각 — 값이 있으면 파기 유예 중 (01_basic_design.md §5.2.1)
     withdrawn_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    # 알림 설정 묶음 (01_basic_design.md §3.12)
+    notify_expiry: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
+    notify_stock_low: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
+    notify_forecast_done: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
+    notify_anomaly: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, server_default=func.current_timestamp())
     updated_at: Mapped[datetime] = mapped_column(
         DateTime, nullable=False, server_default=func.current_timestamp(), onupdate=func.current_timestamp()
