@@ -93,6 +93,7 @@ plan은 큰 작업 하나마다 착수할 때 새로 만든다. 파일명은 앞
 | `05_inventory_receipt.md` | 재고·입고·메뉴 재설계 |
 | `06_notifications.md` | 알림 BE |
 | `07_forecast_batch.md` | 예측 배치 — n8n 모델 예측 + BE 추천발주 계산 |
+| `08_coupang_cart.md` | 쿠팡 자동 담기 — 공용 쿠팡 상품·단가, LLM 상품 선택, 사주라 확장, 담기 결과 화면 |
 
 > `01~04`는 트랙별로 나눠 쓴 이전 구현 기록이다.
 
