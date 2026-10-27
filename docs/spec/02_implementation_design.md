@@ -51,7 +51,7 @@
 - 다중 업종 지원 — 카페·치킨집 등 주점 외 업종 확장
 - 데이터 내보내기·삭제 — GDPR 대응. 마이페이지에서 `GET /api/data/export`(CSV 다운로드), `DELETE /api/data`(전체 데이터 삭제)
 - 테스트 커버리지 80% — BE branch coverage 목표
-- 쿠팡 가격 이상값 반복 매장 처리 — 저장값과 3% 이상 다른 정가(`01_basic_design.md` §3.3.1)를 3회 이상 보낸 매장의 수집 차단 또는 경고
+- 쿠팡 가격 이상값 반복 매장 처리 — 저장값과 20% 이상 다른 판매가(`01_basic_design.md` §3.3.1)를 3회 이상 보낸 매장의 수집 차단 또는 경고
 
 3단계
 
@@ -1201,7 +1201,7 @@ Authorization: Bearer <access_token>
   "needs_check": false,
   "coupang_product": {
     "product_name": "○○ 원두 1kg",
-    "list_price": 28000,           // 정가(원)
+    "sale_price": 28000,           // 판매가(원). 비었으면 null
     "content_quantity": 1000.0,    // 상품 1개 용량. 모르면 null
     "content_unit": "g",
     "updated_at": "2026-05-06T10:05:00Z"
@@ -1772,8 +1772,8 @@ Authorization: Bearer <access_token>
           "product_id": "7335597976",
           "vendor_item_id": "87234561234",
           "product_name": "○○농장 삼겹살 (냉장), 500g, 1개",
-          "list_price": 13370,           // 정가(할인 전 가격). 할인 표시가 없으면 표시 가격
-          "display_price": 11740,        // 표시 가격(할인 적용가). 용량 계산에만 쓰고 저장하지 않는다
+          "display_price": 11740,        // 표시 가격(원)
+          "discount_label": "쿠폰할인",  // 할인 표시 글자 원문. 없으면 null. '와우'가 들어가면 판매가로 쓰지 않는다
           "unit_price_text": "100g당 2,348원",  // 쿠팡 단위가격 표시. 없으면 null
           "rocket_fresh": false
         }
@@ -1811,8 +1811,8 @@ Authorization: Bearer <access_token>
       "product_id": "7335597976",
       "vendor_item_id": "87234561234",
       "product_name": "○○농장 삼겹살 (냉장), 500g, 1개",
-      "list_price": 13370,
       "display_price": 11740,
+      "discount_label": "쿠폰할인",
       "unit_price_text": "100g당 2,348원",
       "rocket_fresh": false,
       "pack_quantity": null,           // match 응답의 값 그대로
@@ -2451,7 +2451,7 @@ CREATE TABLE coupang_products (
     product_id          VARCHAR(20)     NOT NULL COMMENT '쿠팡 productId',
     vendor_item_id      VARCHAR(20)     NOT NULL COMMENT '쿠팡 vendorItemId',
     product_name        VARCHAR(300)    NOT NULL,
-    list_price          INT             NOT NULL COMMENT '정가(원). 할인 전 가격',
+    sale_price          INT             NULL COMMENT '판매가(원). 조건 없이 누구나 받는 표시 가격. 와우 할인 상품으로만 관찰되면 NULL',
     content_quantity    DECIMAL(10,3)   NULL COMMENT '상품 1개 용량. 쿠팡 단위가격 표시에서 계산. 모르면 NULL',
     content_unit        VARCHAR(10)     NULL COMMENT '용량 단위 (g·ml·개·구 등)',
     rocket_fresh        TINYINT(1)      NOT NULL DEFAULT 0 COMMENT '로켓프레시 상품 여부. 비로그인 담기 불가',
@@ -2681,13 +2681,13 @@ CREATE TABLE push_subscriptions (
 
 #### 4.3.24 coupang_price_candidates
 
-> 공용 쿠팡 상품과 정가가 3% 이상 다른 값을 확인 전까지 보관한다 (`01_basic_design.md` §3.3.1).
+> 공용 쿠팡 상품과 판매가가 20% 이상 다른 값을 확인 전까지 보관한다 (`01_basic_design.md` §3.3.1).
 
 ```sql
 CREATE TABLE coupang_price_candidates (
     coupang_product_id  CHAR(36)        NOT NULL,
     store_id            CHAR(36)        NOT NULL COMMENT '후보를 보낸 매장',
-    list_price          INT             NOT NULL COMMENT '보낸 정가(원)',
+    sale_price          INT             NOT NULL COMMENT '보낸 판매가(원)',
     received_at         DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (coupang_product_id, store_id),
     CONSTRAINT fk_price_candidates_product FOREIGN KEY (coupang_product_id) REFERENCES coupang_products (coupang_product_id) ON DELETE CASCADE,

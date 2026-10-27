@@ -278,6 +278,7 @@ HANDOFF.md E단계 9개 검증 시나리오 수행 + 발견된 결함 일괄 정
 - 자동 담기 — 검색어·LLM 호출 횟수·연결 상품 3일 규칙·확장 전송 필드(상품 ID·정가·표시 가격·단위가격 표시)·담기 결과의 상품 값. `03`의 쓸 데 없는 에러 코드 2개 삭제, 타임아웃을 `04_fe` §12.7로 이동. LLM 클라이언트 구조 `03` §2.4 신설
 - research — backend·frontend 24개 문서에서 채택·선발·판정을 지우고 관찰만 남겼다(`14_security_open_items` §4-A 포함). 깨진 참조 7곳 정리. `15_coupang_price_validation.md` 신설
 - 연동 참조 — spec·`PROGRESS.md`·코드 주석의 DDL 번호, `05_ai.md` 2곳
+- 쿠팡 실동작 확인(`16_coupang_page_probe.md`) 뒤 후속 — 검색은 검색창 입력(주소 직접 접근 차단), 비로그인 시 로켓프레시 제외·알림, 공유 가격은 정가 대신 누구나 받는 판매가(와우 할인 상품 갱신 안 함), 가격 검증 20% + 상품명 용량 대조
 ### 2026-10-28 — `PROGRESS.md` 작업 흐름 절 삭제
 
 §2 '작업 흐름'이 `docs/README.md`와 다른 규칙(파일명 자유, spec 없는 흐름)을 적고 있어 지웠다. §3·§4 → §2·§3. 번호 참조처 `docs/README.md`·`plan/01~03`·`research/backend/01_web_framework.md`를 함께 고쳤다. `PROGRESS_*` 이력 서술은 그대로 둔다.
