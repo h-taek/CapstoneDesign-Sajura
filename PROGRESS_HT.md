@@ -246,6 +246,10 @@ HANDOFF.md E단계 9개 검증 시나리오 수행 + 발견된 결함 일괄 정
 
 ## 2. 문서 수정 이력
 
+### 2026-10-28 — 문서 규칙의 plan 정의 정정
+
+`docs/README.md` §4 — plan은 큰 작업마다 착수 때 `NN_<작업명>.md`로 새로 만들고 끝난 plan은 고치지 않는다, `01~04`는 이전 구현 기록, 목록에 `05_inventory_receipt.md` 추가. §2-1 연동 맵에서 `plan/01_be.md`·`plan/02_fe.md` 제거. §5-1 팀원 문서 경로 `plan/ai/` → `plan/03_ai.md`.
+
 ### 2026-10-26 — 화면 목업을 FE 리디자인 기준으로 갱신
 
 `docs/plan/mockup` 01~20 재작성, `21_intro.html` 추가, `mockup.js` 셸·토큰·아이콘·앱 프레임 보기. `00_wireflow.html`은 예전 사이드바 구조 그대로 둠.

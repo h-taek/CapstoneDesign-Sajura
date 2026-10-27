@@ -64,8 +64,8 @@ spec 하나를 고치면 함께 확인할 파일이다.
 |---|---|
 | `01_basic_design.md` | `02_implementation_design.md`(§1 범위·§3 API), `04_fe.md` §4 |
 | `02_implementation_design.md` | `01_basic_design.md` §3, `03_be.md`, `04_fe.md`, `05_ai.md` |
-| `03_be.md` | `02_implementation_design.md` §3·§4, `04_fe.md`, `plan/01_be.md` |
-| `04_fe.md` | `01_basic_design.md` §3·§4, `02_implementation_design.md` §3, `03_be.md` §7, `plan/02_fe.md` |
+| `03_be.md` | `02_implementation_design.md` §3·§4, `04_fe.md` |
+| `04_fe.md` | `01_basic_design.md` §3·§4, `02_implementation_design.md` §3, `03_be.md` §7 |
 | `05_ai.md` | `01_basic_design.md` §3.6·§3.7, `02_implementation_design.md` §3.8·§4, `03_be.md` §14, `research/ai/01~02` |
 
 ---
@@ -82,12 +82,17 @@ spec 하나를 고치면 함께 확인할 파일이다.
 
 ## 4. plan 문서 목록
 
+plan은 큰 작업 하나마다 착수할 때 새로 만든다. 파일명은 앞 순번을 이어 `NN_<작업명>.md`로 쓴다. 끝난 plan은 그 작업의 구현 기록이라 spec이 바뀌어도 고치지 않는다. 작은 일에는 plan을 만들지 않는다.
+
 | 파일 | 내용 |
 |---|---|
 | `01_be.md` | Backend — Phase별 마일스톤 + 서비스별 주요 메서드 시그니처 |
 | `02_fe.md` | Frontend — Phase별 마일스톤 |
 | `03_ai.md` | AI — Phase별 마일스톤 |
 | `04_gantt.md` | 전체 작업 흐름, 파트 간 의존관계 |
+| `05_inventory_receipt.md` | 재고·입고·메뉴 재설계 |
+
+> `01~04`는 트랙별로 나눠 쓴 이전 구현 기록이다.
 
 ---
 
@@ -108,7 +113,7 @@ spec 하나를 고치면 함께 확인할 파일이다.
 
 **한 문서를 바꾸면 연동 문서를 즉시 함께 수정한다.** 연동 관계는 §2-1 참고.
 
-**팀원이 직접 쓴 문서는 확인받고 고친다.** 다른 담당자가 본문을 쓴 문서(`spec/05_ai.md`, `plan/ai/`, `research/ai/`)는 임의로 고치지 않고 무엇을 왜 고쳐야 하는지 먼저 알린다.
+**팀원이 직접 쓴 문서는 확인받고 고친다.** 다른 담당자가 본문을 쓴 문서(`spec/05_ai.md`, `plan/03_ai.md`, `research/ai/`)는 임의로 고치지 않고 무엇을 왜 고쳐야 하는지 먼저 알린다.
 
 ### 5-2. 문체·형식
 
