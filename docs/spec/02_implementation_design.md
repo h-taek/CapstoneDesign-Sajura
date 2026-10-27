@@ -245,7 +245,7 @@ sequenceDiagram
 
 ### 2.3 수요예측 시퀀스
 
-> n8n이 예측 배치를 주도하고 결과를 DB에 사전 저장한다. Backend는 캐시된 결과만 반환한다.
+> n8n이 예측 배치를 주도하고 결과를 DB에 사전 저장한다. Backend는 저장된 결과를 반환하고, 없으면 수동 실행으로 그 매장의 n8n 워크플로우를 실행시킨다.
 
 ```mermaid
 sequenceDiagram
@@ -263,21 +263,23 @@ sequenceDiagram
         n8n->>AIServer: POST /ai/forecast/predict (예측 요청)
         AIServer-->>n8n: 예측 결과 + 예측 근거(05_ai.md §8) 반환
         n8n->>DB: forecast_results·forecast_menu_items 저장 (UPSERT)
-        n8n->>AIServer: POST /ai/orders/recommend (추천발주 요청)
-        AIServer-->>n8n: 추천발주안 반환
-        n8n->>DB: order_recommendations 저장
         n8n->>DB: pipeline_jobs DONE 업데이트
     and 점주 조회 흐름
         사용자->>사주라UI: 수요예측 화면 진입
         사주라UI->>사주라서버: GET /api/forecast?menu_id=...
         사주라서버->>DB: 저장된 예측 결과 조회
         DB-->>사주라서버: 결과 반환
-        alt 캐시 존재
+        alt 저장된 예측 있음
             사주라서버-->>사주라UI: 예측 결과 전달
-        else 캐시 없음 (수동 실행 허용 시)
-            사주라서버->>AIServer: POST /ai/forecast/predict (단건)
-            AIServer-->>사주라서버: 예측 결과 반환
-            사주라서버->>DB: 결과 저장
+        else 저장된 예측 없음
+            사주라서버-->>사주라UI: 404 FORECAST_NOT_FOUND
+            사용자->>사주라UI: 예측 실행
+            사주라UI->>사주라서버: POST /api/forecast/run
+            사주라서버->>n8n: 예측 워크플로우 웹훅 (store_id) — 끝날 때까지 대기
+            n8n->>AIServer: POST /ai/forecast/predict
+            n8n->>DB: forecast_results·forecast_menu_items 저장
+            n8n-->>사주라서버: 완료
+            사주라서버->>DB: 저장된 예측 조회
             사주라서버-->>사주라UI: 예측 결과 전달
         end
         사주라UI-->>사용자: 메뉴별 예측 결과 + 신뢰도 배지 표시
@@ -300,15 +302,14 @@ sequenceDiagram
 
     사용자->>사주라UI: 추천발주 화면 진입
     사주라UI->>사주라서버: GET /api/orders/recommend
-    사주라서버->>DB: 추천발주안 조회
-    DB-->>사주라서버: 추천발주안 반환
+    사주라서버->>DB: 저장된 예측·레시피·재고·입고 예정 조회
+    사주라서버->>사주라서버: 추천발주 계산 (01_basic_design.md §3.7.2)
+    사주라서버->>DB: 추천안 저장 (order_recommendations)
     사주라서버-->>사주라UI: 추천발주안 전달
     사주라UI-->>사용자: 품목별 추천발주안 표시
 
     opt 점주 수정
-        사용자->>사주라UI: 수량 수정 또는 품목 제외
-        사주라UI->>사주라서버: PATCH /api/orders/recommend
-        사주라서버->>DB: 수정 이력 저장 (AI 추천 수량, 점주 수정 수량)
+        사용자->>사주라UI: 수량 수정 또는 품목 제외 (화면에서만, 서버에 저장하지 않음)
     end
 
     사용자->>사주라UI: 발주 확정 버튼 클릭
@@ -360,32 +361,31 @@ sequenceDiagram
     participant ExternalAPI
     participant AIServer
     participant BE as 사주라서버
-    participant Push as Web Push
+    participant Slack
 
-    Note over n8n: 야간 배치 트리거
-    n8n->>DB: pipeline_jobs INSERT (type=FORECAST, status=RUNNING, triggered_by=N8N)
-    n8n->>DB: 판매 데이터·메뉴·레시피·재고·리드타임·안전재고 조회
-    n8n->>ExternalAPI: 외부 데이터 수집 (05_ai.md §4.2 MVP 항목)
-    n8n->>n8n: 전처리·정규화
-    n8n->>AIServer: POST /ai/forecast/predict
-    AIServer-->>n8n: 예측 결과 + 예측 근거(05_ai.md §8) 반환
-    n8n->>AIServer: POST /ai/orders/recommend
-    AIServer-->>n8n: 추천발주안 반환
-    n8n->>DB: forecast_results·forecast_menu_items UPSERT (§4.3.14·§4.3.15)
-    n8n->>DB: order_recommendations INSERT (추천발주안)
-
-    alt 전체 성공
-        n8n->>DB: pipeline_jobs UPDATE (status=DONE)
-        n8n->>BE: 알림 발송 API 호출 (예측 완료 + 추천발주안 생성, store_id 목록 전달)
-        BE->>DB: NotificationService.create_and_push — notifications INSERT
-        BE->>Push: pywebpush로 push_subscriptions 대상에 Web Push 전송
-        BE-->>n8n: 발송 결과 반환
-    else 단계 실패 (재시도 후 지속)
-        n8n->>DB: pipeline_jobs UPDATE (status=FAILED)
-        n8n->>n8n: slack_sdk Webhook — 개발팀 채널에 직접 전송 (BE 경유 안 함, 도메인 무관)
+    Note over n8n: 02:00 트리거(전체 매장) 또는 BE 웹훅(매장 하나)
+    loop 매장별 (한 매장 실패는 다음 매장을 막지 않음)
+        n8n->>DB: pipeline_jobs INSERT (type=FORECAST, status=RUNNING, triggered_by=N8N|USER)
+        n8n->>DB: 일별 매출·건수, 메뉴별 일 판매 수량 조회
+        n8n->>ExternalAPI: 외부 데이터 수집 (05_ai.md §4.2 MVP 항목)
+        n8n->>n8n: 전처리·정규화
+        n8n->>AIServer: POST /ai/forecast/predict
+        AIServer-->>n8n: 매출 예측 + 예측 근거 + 대상일별 메뉴 예상 수량
+        alt 성공
+            n8n->>DB: forecast_results·forecast_menu_items UPSERT (§4.3.14·§4.3.15)
+            n8n->>DB: pipeline_jobs UPDATE (status=DONE)
+            n8n->>BE: POST /api/pipeline/forecast-done (store_id)
+            BE->>BE: NotificationService.create_and_push (FORECAST_DONE)
+        else 이력 부족 (AI Server 422)
+            n8n->>DB: pipeline_jobs UPDATE (status=FAILED, error_message)
+        else 그 밖의 실패 (3회 재시도 후 지속)
+            n8n->>DB: pipeline_jobs UPDATE (status=FAILED, error_message)
+            n8n->>Slack: Webhook — 개발팀 채널 (BE 경유 안 함)
+        end
     end
 ```
 
+> 추천발주는 배치에서 만들지 않는다. 점주가 요청할 때 BE가 저장된 예측으로 계산한다(`01_basic_design.md` §3.7.2).
 > 점주 알림은 BE `NotificationService.create_and_push`가 일관 처리(인앱 INSERT + Web Push). n8n은 BE API를 트리거할 뿐 직접 알림을 만들지 않는다. 개발팀 Slack 알림만 n8n에서 직접 발송.
 
 ### 2.6 재고 자동 차감(FIFO) 시퀀스
@@ -1523,9 +1523,8 @@ Authorization: Bearer <access_token>
 | Method | Path | 설명 |
 |--------|------|------|
 | `GET` | `/api/forecast` | 수요예측 결과 조회 (매장 일 매출 D+1~D+3) |
-| `POST` | `/api/forecast/run` | 수요예측 즉시 실행 요청 (캐시 없을 때 수동 실행 보조) |
+| `POST` | `/api/forecast/run` | 수요예측 수동 실행 (저장된 예측이 없을 때) |
 | `GET` | `/api/orders/recommend` | 추천발주 목록 조회 |
-| `PATCH` | `/api/orders/recommend` | 추천발주 수량 수정안 저장 |
 | `POST` | `/api/orders/approve` | 발주 확정 |
 | `GET` | `/api/orders` | 발주 내역 목록 조회 |
 | `GET` | `/api/orders/{order_id}` | 발주 내역 상세 조회 |
@@ -1537,10 +1536,10 @@ Authorization: Bearer <access_token>
 
 #### GET /api/forecast
 
-> §3.8 `POST /ai/forecast/predict`와 `05_ai.md` §2·§3을 BE 응답으로 재노출한다.
+> n8n이 저장한 §3.8 `POST /ai/forecast/predict` 결과(`05_ai.md` §2·§3)를 반환한다. BE는 AI Server를 호출하지 않는다.
 > 예측 대상은 메뉴별 수량이 아니라 매장 일 매출이며, 대상일은 판매 이력 마지막 영업일 기준 D+1~D+3이다(선행일별 신뢰도 차등 — `05_ai.md` §3.3).
 > n8n 야간 배치가 사전 생성해 `forecast_results`·`forecast_menu_items`에 저장한 결과를 반환한다 (`05_ai.md` §7.2).
-> 저장된 결과가 없고 수동 실행이 허용된 경우 `POST /api/forecast/run`으로 단건 생성한다.
+> 저장된 결과가 없으면 404이고, 점주는 `POST /api/forecast/run`으로 수동 실행한다.
 
 ```json
 // Query: ?target_date=2026-07-28 (선택 — 생략 시 저장된 D+1~D+3 전체)
@@ -1562,35 +1561,34 @@ Authorization: Bearer <access_token>
           { "feature": "dow_3", "label": "목요일 효과", "pct": 0.18 }
         ],
         "sentence": "07월 28일(화)은 평소보다 약 12% 높을 것으로 예상됩니다 — 주요 요인: ..."
-      }
+      },
+      "menu_forecast": [
+        { "menu_id": "uuid", "menu_name": "아메리카노", "expected_quantity": 12.5 }
+      ]
     }
   ]
 }
 // 404 FORECAST_NOT_FOUND: 저장된 예측 없음 (POST /api/forecast/run 안내)
-// 422 AI_INSUFFICIENT_HISTORY: 판매 이력 없음 또는 영업일 이력 < 10일
-// 503 AI_SERVER_UNAVAILABLE: AI Server 호출 실패
 ```
 
-> 메뉴별 예상 수량(`forecast_menu_items`)은 `GET /api/orders/recommend`의 `menu_forecast`로 반환한다. 수요예측 화면의 메뉴별 카드(`04_fe.md` §4.8)는 그 값을 쓴다.
+> 대상일별 메뉴 예상 수량(`forecast_menu_items`)은 각 `predictions[]`의 `menu_forecast`(`menu_id`·`menu_name`·`expected_quantity`, 내림차순)로 함께 반환한다. 수요예측 화면의 일자 탭·메뉴별 카드(`04_fe.md` §4.8)는 그 값을 쓴다.
 
 #### POST /api/forecast/run
 
-> 저장된 예측이 없거나 점주·관리자가 갱신을 요청할 때 AI Server를 단건 호출하고 결과를 저장한다 (`05_ai.md` §7.2).
+> BE가 n8n 예측 워크플로우(`01_basic_design.md` §3.11.1)를 이 매장 하나로 실행시키고 끝날 때까지 기다린 뒤, 저장된 결과를 반환한다. 요청 본문 없음.
 
 ```json
-// Request
-{
-  "target_date": "2026-07-28"   // 생략 시 D+1~D+3 전체
-}
 // Response 200: GET /api/forecast 와 동일 구조
+// 429 PIPELINE_ALREADY_RUNNING: 이 매장 예측이 실행 중 (pipeline_jobs RUNNING)
+// 422 AI_INSUFFICIENT_HISTORY: 판매 이력 없음 또는 영업일 이력 < 10일
+// 503 PIPELINE_AI_SERVER_UNAVAILABLE: n8n 또는 AI Server 실패
 ```
 
 #### GET /api/orders/recommend
 
-> §3.8 `POST /ai/orders/recommend`를 BE 응답으로 재노출한다.
-> 산출 방식은 `01_basic_design.md` §3.7.2. 결과는 참고치이며 예측 신뢰도 배지를 동반한다 — 배지 없이 단독 노출 금지 (`05_ai.md` §8).
-> `menu_name`·`item_name`·`unit`은 BE가 `menus`·`inventory_items`를 조인해 채운다(AI Server는 ID만 반환). `adjusted_quantity`는 `PATCH /api/orders/recommend` 저장값이다.
-> 사전 생성된 당일 추천안이 없으면 AI Server를 호출해 산출하고 `order_recommendations`·`order_recommendation_items`에 저장한다. 이때 같은 매장·같은 날짜의 추천안 중 발주에 연결되지 않은 것은 대체한다. `recommendation_id`는 `POST /api/orders/approve`가 추천안을 지목하는 키다.
+> BE가 저장된 예측(§4.3.14·§4.3.15)과 그 시점의 레시피·재고·입고 예정으로 `01_basic_design.md` §3.7.2 산식을 계산한다. AI Server를 호출하지 않는다.
+> 대상일은 판매 이력 마지막 영업일 기준 D+1~D+3이고, 그 날짜의 저장된 예측을 쓴다. 신뢰도는 대상일 중 하나라도 낮으면 낮음이고 사유는 가장 이른 날짜의 것이다. 결과는 참고치이며 예측 신뢰도 배지를 동반한다 — 배지 없이 단독 노출 금지 (`05_ai.md` §8).
+> 요청마다 `order_recommendations`·`order_recommendation_items`에 저장한다. 이때 같은 매장·같은 날짜의 추천안 중 발주에 연결되지 않은 것은 대체한다. `recommendation_id`는 `POST /api/orders/approve`가 추천안을 지목하는 키다.
 
 ```json
 // Response 200
@@ -1617,7 +1615,7 @@ Authorization: Bearer <access_token>
     }
   ]
 }
-// 422: 영업일 이력 < 10일 · 메뉴 판매 이력 < 10영업일 · 두 이력의 날짜 미교차
+// 404 FORECAST_NOT_FOUND: 대상일의 저장된 예측 없음 (POST /api/forecast/run 안내)
 // 레시피 미연결 재료는 recommended_quantity 0 + "예상 소모 없음" 사유로 응답
 ```
 
@@ -1628,21 +1626,7 @@ Authorization: Bearer <access_token>
 | `USER_CONFIGURED` | 리드타임과 안전재고를 모두 점주가 설정한 값으로 계산 |
 | `DEFAULT_USED` | 미설정 값이 있어 시스템 기본값(리드타임 1일, 안전재고 0 — `01_basic_design.md` §3.7.1)을 사용해 계산 |
 
-기본값 대체 여부는 BE가 판단한다(AI Server는 전달받은 값으로만 계산한다).
-
-#### PATCH /api/orders/recommend
-
-> 점주 수정안을 `order_recommendation_items.adjusted_quantity`에 저장한다 (§4.3.17).
-
-```json
-// Request
-{
-  "adjustments": [
-    { "item_id": "uuid", "adjusted_quantity": 3000.0 }
-  ]
-}
-// Response 200: GET /api/orders/recommend 와 동일 구조 (adjusted_quantity 반영)
-```
+기본값 대체 여부는 BE가 판단한다.
 
 #### POST /api/orders/approve
 
@@ -1682,7 +1666,7 @@ Authorization: Bearer <access_token>
 
 `recommendation_id`가 있으면 수정 이력을 품목별로 남긴다.
 
-| 대상 품목 | `recommended_quantity` · `adjusted_quantity` | `final_quantity` |
+| 대상 품목 | `recommended_quantity` | `final_quantity` |
 |---|---|---|
 | 추천안에 있고 발주에 포함 | 추천안 값 | 확정 수량 |
 | 추천안에 있고 발주에서 제외 | 추천안 값 | 0 |
@@ -1856,10 +1840,9 @@ Authorization: Bearer <access_token>
       "item_id": "uuid",
       "item_name": "원두",
       "recommended_quantity": 5000.0,
-      "adjusted_quantity": 3000.0,
       "final_quantity": 3000.0,
       "unit": "g",
-      "was_modified": true
+      "was_modified": true             // final_quantity ≠ recommended_quantity
     }
   ]
 }
@@ -1867,7 +1850,7 @@ Authorization: Bearer <access_token>
 
 ### 3.8 AI Server 연동 API
 
-> Backend 수동 실행 또는 n8n 배치 워크플로우에서 호출하는 서버 간 API. 외부 클라이언트 직접 호출 불가.
+> n8n 예측 워크플로우가 호출하는 서버 간 API. Backend와 외부 클라이언트는 호출하지 않는다.
 > AI Server는 별도 포트로 분리 운영 (예: `http://ai-server:8001`).
 > prefix: `/ai/`
 
@@ -1876,13 +1859,12 @@ Authorization: Bearer <access_token>
 | Method | Path | 설명 |
 |--------|------|------|
 | `POST` | `/ai/forecast/predict` | 수요예측 실행 요청 |
-| `POST` | `/ai/orders/recommend` | 추천발주 생성 요청 |
 | `GET` | `/ai/forecast/status` | 예측 작업 상태 조회 |
 | `GET` | `/ai/health` | AI Server 헬스체크 |
 
 #### POST /ai/forecast/predict
 
-> 타깃은 매장 일 매출이다(`05_ai.md` §2·§3). 메뉴별 입력·출력은 없다. 대상일은 D+1~D+3(선행일별 신뢰도 차등)이고, P10/P90 예측 구간·예측 근거·신뢰도 배지(`01_basic_design.md` §3.6.3)를 포함한다.
+> 타깃은 매장 일 매출이다(`05_ai.md` §2·§3). 메뉴별 예상 수량은 예측 매출을 메뉴 비중으로 나눈 참고치(`05_ai.md` §2 ②)로 대상일마다 함께 반환한다. 대상일은 D+1~D+3(선행일별 신뢰도 차등)이고, P10/P90 예측 구간·예측 근거·신뢰도 배지(`01_basic_design.md` §3.6.3)를 포함한다.
 > 공휴일·학사일정은 AI Server 내장 지식이라 payload로 받지 않는다. 기상은 과거 관측 + 대상일 예보를 함께 전달한다(단기예보의 TMN/TMX — 평균기온은 (min+max)/2 근사). 구현: `AI/app/api/forecast.py`.
 
 ```json
@@ -1896,7 +1878,10 @@ Authorization: Bearer <access_token>
   "weather": [                                                  // sales_history 기간 + target_dates 커버
     { "date": "2026-07-28", "temp_min": 22.1, "temp_max": 29.4, "rainfall_mm": 0.0 }
   ],
-  "store_config": { "reopen_date": "2026-02-26" }               // 리뉴얼 재개장일(없으면 null) — regime 피처
+  "store_config": { "reopen_date": "2026-02-26" },              // 리뉴얼 재개장일(없으면 null) — regime 피처
+  "menu_sales_history": [                                       // 메뉴×일 판매 수량 (판매일만) — 비중 분해용
+    { "date": "2026-07-27", "menu_id": "uuid", "quantity": 12 }
+  ]
 }
 
 // Response 200
@@ -1918,70 +1903,15 @@ Authorization: Bearer <access_token>
           { "feature": "dow_3", "label": "목요일 효과", "pct": 0.18 }
         ],
         "sentence": "07월 28일(화)은 평소보다 약 12% 높을 것으로 예상됩니다 — 주요 요인: ..."
-      }
+      },
+      "menu_forecast": [               // 대상일 메뉴별 예상 수량(참고치), 내림차순. 메뉴 판매 이력 < 10영업일이거나 두 이력의 날짜가 겹치지 않으면 빈 배열
+        { "menu_id": "uuid", "expected_quantity": 12.5 }
+      ]
     }
   ]
 }
 // 422: 영업일 이력 < 10일, 또는 target_dates가 이력 마지막 영업일 이전
 // 예측은 "영업일 전제" — 영업 여부는 예측하지 않고 입력 조건으로 취급
-```
-
-#### POST /ai/orders/recommend
-
-> 단일 호출로 서버가 내부에서 ① 매출 예측 × ② 매장별 메뉴 비중 분해(최근 28영업일 합산 비중) → 점주 레시피(BOM) 전개 → 재고·리드타임·안전재고 반영 발주 참고치까지 수행한다(`05_ai.md` §3).
-> 레시피(`recipes`)는 점주 관리 데이터를 BE가 전달한다.
-> 메뉴별 예상 수량은 서버 산출물(`menu_forecast`)로 응답에 포함되며, ①의 신뢰도 배지가 응답에 동반 전파된다(참고치 원칙 — 배지 없이 단독 노출 금지, `05_ai.md` §8).
-> 구현: `AI/app/api/orders.py` + `AI/app/model/decompose.py`.
-
-```json
-// Request
-{
-  "store_id": "uuid",
-  "target_dates": ["2026-07-28", "2026-07-29", "2026-07-30"],  // 1~3개 — predict와 동일
-  "sales_history": [                                            // ① 학습용 일계 이력 (predict와 동일 형식)
-    { "date": "2026-07-27", "total_amount": 512000, "order_count": 9 }
-  ],
-  "menu_sales_history": [                                       // ② 분해용 메뉴×일 이력 (판매일만)
-    { "date": "2026-07-27", "menu_id": "uuid", "quantity": 12 }
-  ],
-  "weather": [
-    { "date": "2026-07-28", "temp_min": 22.1, "temp_max": 29.4, "rainfall_mm": 0.0 }
-  ],
-  "store_config": { "reopen_date": "2026-02-26" },
-  "recipes": [                                                  // 점주 관리 레시피 — 메뉴 1개당 재료 소모량
-    { "menu_id": "uuid", "item_id": "uuid", "quantity_per_menu": 18.0, "unit": "g" }
-  ],
-  "inventory": [
-    { "item_id": "uuid", "current_quantity": 2400.0, "unit": "g",  // current_quantity = 로트 잔여 수량 합계
-      "incoming_quantity": 0.0,  // 입고 예정량(01_basic_design.md §3.7.2). 생략 시 0
-      "lead_time_days": 2, "safety_stock": 1000.0 }
-  ]
-}
-
-// Response 200
-{
-  "store_id": "uuid",
-  "target_dates": ["2026-07-28", "2026-07-29", "2026-07-30"],
-  "is_low_confidence": true,               // ① 예측 신뢰도 전파 — UI는 배지와 함께 노출
-  "low_confidence_reason": "LONG_HORIZON", // 01_basic_design.md §3.6.3 코드
-  "menu_forecast": [                       // ② 산출물 — 대상 기간 합계 메뉴별 예상 수량(참고치), 내림차순
-    { "menu_id": "uuid", "expected_quantity": 37.5 }
-  ],
-  "recommendations": [
-    {
-      "item_id": "uuid",
-      "recommended_quantity": 5000.0,      // 산식: 01_basic_design.md §3.7.2
-      "expected_stockout_date": "2026-07-30",
-      "lead_time_days": 2,
-      "safety_stock": 1000.0,
-      "config_status": "OK",
-      "defaults_used": null,
-      "recommendation_reason": "향후 3일+리드타임 2일 예상 소모 6.4kg + 안전재고 1 − 현재고 2.4"
-    }
-  ]
-}
-// 422: 영업일 이력 < 10일 · target_dates가 이력 마지막 영업일 이전 · 메뉴 판매 이력 < 10영업일
-// 레시피 미연결 재료는 recommended_quantity 0 + "예상 소모 없음" 사유로 응답
 ```
 
 #### GET /ai/forecast/status
@@ -2028,7 +1958,7 @@ Authorization: Bearer <access_token>
 | `GET` | `/api/dashboard` | 대시보드 전체 요약 데이터 조회 |
 | `GET` | `/api/dashboard/waste` | 폐기 현황 조회 |
 | `GET` | `/api/pipeline/status` | 파이프라인 최근 실행 상태 조회 |
-| `POST` | `/api/pipeline/run` | 사용자 수동 실행 요청 |
+| `POST` | `/api/pipeline/forecast-done` | 예측 완료 알림 요청 (n8n 전용) |
 | `GET` | `/api/pipeline/history` | 파이프라인 실행 이력 목록 |
 
 #### GET /api/dashboard
@@ -2094,25 +2024,19 @@ Authorization: Bearer <access_token>
 }
 ```
 
-#### POST /api/pipeline/run
+#### POST /api/pipeline/forecast-done
+
+> n8n 예측 워크플로우가 매장 예측을 저장한 뒤 호출한다. BE가 `NotificationService.create_and_push`로 예측 완료 알림(`01_basic_design.md` §3.12)을 보낸다.
+> 점주 토큰이 아니라 헤더 `X-Internal-Token`(n8n·BE 공유 비밀값)으로 인증한다. 값이 없거나 다르면 401.
 
 ```json
 // Request
-{
-  "type": "FORECAST"  // FORECAST | TRAIN
-}
-
-// Response 200
-{
-  "job_id": "uuid",
-  "type": "FORECAST",
-  "status": "QUEUED",
-  "triggered_by": "USER",
-  "queued_at": "2026-05-06T10:00:00Z"
-}
+{ "store_id": "uuid" }
+// Response: 204 No Content
+// 없는 매장이면 404 NOT_FOUND
 ```
 
-> `/api/pipeline/run`은 Frontend에서 점주/관리자가 수동으로 실행할 때만 사용한다. 야간 자동 배치는 Backend의 별도 배치용 API가 아니라 n8n의 DB 직접 접근과 AI Server 호출로 수행한다.
+> 수동 실행은 `POST /api/forecast/run`(§3.7)이다.
 
 #### GET /api/pipeline/history
 
@@ -2601,7 +2525,7 @@ CREATE TABLE forecast_menu_items (
 CREATE TABLE order_recommendations (
     recommendation_id   CHAR(36)    NOT NULL,
     store_id            CHAR(36)    NOT NULL,
-    target_date         DATE        NOT NULL COMMENT '추천발주 대상 발주일 (n8n 배치 기준일)',
+    target_date         DATE        NOT NULL COMMENT '추천 생성일 (한국 시각)',
     generated_at        DATETIME    NOT NULL DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (recommendation_id),
     KEY idx_order_recommendations_store_id (store_id),
@@ -2617,7 +2541,6 @@ CREATE TABLE order_recommendation_items (
     recommendation_id       CHAR(36)        NOT NULL,
     item_id                 CHAR(36)        NOT NULL,
     recommended_quantity    DECIMAL(10,3)   NOT NULL,
-    adjusted_quantity       DECIMAL(10,3)   NOT NULL,
     lead_time_days          INT             NOT NULL COMMENT '추천 계산 시 사용한 리드타임 스냅샷',
     safety_stock            DECIMAL(10,3)   NOT NULL COMMENT '추천 계산 시 사용한 안전재고 스냅샷',
     config_status           ENUM('USER_CONFIGURED','DEFAULT_USED') NOT NULL COMMENT '추천 계산 시 설정값 사용 상태',
@@ -2678,7 +2601,6 @@ CREATE TABLE order_approval_logs (
     order_id                CHAR(36)        NOT NULL,
     item_id                 CHAR(36)        NOT NULL,
     recommended_quantity    DECIMAL(10,3)   NOT NULL,
-    adjusted_quantity       DECIMAL(10,3)   NOT NULL,
     final_quantity          DECIMAL(10,3)   NOT NULL,
     was_modified            TINYINT(1)      NOT NULL DEFAULT 0,
     PRIMARY KEY (id),
@@ -2800,14 +2722,14 @@ DB 직접 접근은 용도별 전용 계정으로 분리한다. 개발자·운�
 
 | 권한 | 테이블 |
 |------|--------|
-| SELECT | `stores`, `menus`, `recipes`, `recipe_ingredients`, `inventory_items`, `inventory_lots`, `sale_records`, `forecast_results`, `forecast_menu_items`, `order_recommendations`, `order_recommendation_items`, `order_approval_logs` |
-| INSERT | `pipeline_jobs`, `forecast_results`, `forecast_menu_items`, `order_recommendations`, `order_recommendation_items` |
-| UPDATE | `pipeline_jobs` |
-| DELETE | 없음 |
+| SELECT | `stores`, `menus`, `sale_records`, `forecast_results`, `forecast_menu_items`, `pipeline_jobs` |
+| INSERT | `pipeline_jobs`, `forecast_results`, `forecast_menu_items` |
+| UPDATE | `pipeline_jobs`, `forecast_results` |
+| DELETE | `forecast_menu_items` (같은 예측의 메뉴 수량 교체) |
 
 > 점주 대상 알림(`notifications`·`push_subscriptions`)은 BE `NotificationService.create_and_push`가 처리한다(§2.5). n8n은 `notifications`에 직접 INSERT하지 않으며 n8n_user에 해당 권한이 없다.
 
-n8n은 운영 데이터 원본을 삭제하지 않는다. n8n의 쓰기 대상은 배치 산출물과 실행 이력 테이블로 제한한다.
+n8n은 운영 데이터 원본을 삭제하지 않는다. n8n의 쓰기 대상은 예측 산출물과 실행 이력 테이블로 제한한다.
 
 ### 4.6 암호화 대상 컬럼
 
@@ -2938,18 +2860,17 @@ order_approval_logs (N) ── (1) inventory_items
 POS 연동 / CSV 업로드
 → sale_records 적재
 
-n8n 야간 배치
-→ pipeline_jobs 생성 (FORECAST, N8N)
-→ DB에서 판매/메뉴/레시피/재고/설정 데이터 조회
+n8n 야간 배치 (또는 수동 실행으로 매장 하나)
+→ pipeline_jobs 생성 (FORECAST, N8N·USER)
+→ DB에서 일별 매출·메뉴별 판매 조회
 → 외부 API 데이터 수집
-→ AI Server 수요예측 호출
-→ AI Server 추천발주 호출
+→ AI Server 수요예측 호출 (매출 + 메뉴별 예상 수량)
 → forecast_results + forecast_menu_items 저장
-→ order_recommendations + order_recommendation_items 저장
-→ pipeline_jobs 상태 갱신
+→ pipeline_jobs 상태 갱신 → BE 예측 완료 알림
 
-점주 확인/수정
-→ order_recommendation_items.adjusted_quantity 업데이트
+점주 추천발주 조회
+→ 저장된 예측 + 레시피 + 재고 + 입고 예정으로 계산
+→ order_recommendations + order_recommendation_items 저장
 
 점주 발주 확정
 → orders + order_items 생성
