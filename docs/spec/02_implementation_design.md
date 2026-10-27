@@ -1720,7 +1720,8 @@ Authorization: Bearer <access_token>
       "coupang_product": {               // 재료에 연결된 공용 쿠팡 상품. 없으면 null
         "product_id": "7335597976",
         "vendor_item_id": "87234561234",
-        "product_name": "○○ 원두 1kg"
+        "product_name": "○○ 원두 1kg",
+        "rocket_fresh": false            // 비로그인이면 확장이 이 품목도 검색한다
       }
     }
   ]
@@ -1759,8 +1760,9 @@ Authorization: Bearer <access_token>
 > 전체 흐름·데이터 화이트리스트: `04_fe.md` §12.3·§12.4. 선택 규칙: `01_basic_design.md` §3.8.1.
 
 ```json
-// Request — 검색이 필요한 품목(coupang_search_required = true)의 검색 결과. 전체 품목 1회 전송
+// Request — 검색이 필요한 품목의 검색 결과. 전체 품목 1회 전송
 {
+  "coupang_logged_in": false,          // false면 로켓프레시 상품을 고르지 않는다 (01_basic_design.md §3.8.1)
   "candidates": [
     {
       "item_id": "uuid",
@@ -1772,7 +1774,8 @@ Authorization: Bearer <access_token>
           "product_name": "○○농장 삼겹살 (냉장), 500g, 1개",
           "list_price": 13370,           // 정가(할인 전 가격). 할인 표시가 없으면 표시 가격
           "display_price": 11740,        // 표시 가격(할인 적용가). 용량 계산에만 쓰고 저장하지 않는다
-          "unit_price_text": "100g당 2,348원"  // 쿠팡 단위가격 표시. 없으면 null
+          "unit_price_text": "100g당 2,348원",  // 쿠팡 단위가격 표시. 없으면 null
+          "rocket_fresh": false
         }
       ]
     }
@@ -1811,6 +1814,7 @@ Authorization: Bearer <access_token>
       "list_price": 13370,
       "display_price": 11740,
       "unit_price_text": "100g당 2,348원",
+      "rocket_fresh": false,
       "pack_quantity": null,           // match 응답의 값 그대로
       "searched": true                 // 이번에 검색으로 고른 상품이면 true, 연결 상품을 담았으면 false
     }
@@ -2450,6 +2454,7 @@ CREATE TABLE coupang_products (
     list_price          INT             NOT NULL COMMENT '정가(원). 할인 전 가격',
     content_quantity    DECIMAL(10,3)   NULL COMMENT '상품 1개 용량. 쿠팡 단위가격 표시에서 계산. 모르면 NULL',
     content_unit        VARCHAR(10)     NULL COMMENT '용량 단위 (g·ml·개·구 등)',
+    rocket_fresh        TINYINT(1)      NOT NULL DEFAULT 0 COMMENT '로켓프레시 상품 여부. 비로그인 담기 불가',
     updated_at          DATETIME        NOT NULL COMMENT '확장이 마지막으로 값을 보낸 시각',
     PRIMARY KEY (coupang_product_id),
     UNIQUE KEY uq_coupang_products_item (product_id, vendor_item_id)
