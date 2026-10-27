@@ -13,7 +13,7 @@ import MenusStep from "./onboarding/step-menus";
 import PosStep from "./onboarding/step-pos";
 import StoreStep from "./onboarding/step-store";
 import OrdersPage from "./orders";
-import RecipesPage from "./recipes";
+import MenusPage from "./menus";
 import RegisterPage from "./register";
 import SalesUploadPage from "./sales/upload";
 import AccountSettingsPage from "./settings/account";
@@ -21,7 +21,6 @@ import AppInfoSettingsPage from "./settings/app-info";
 import SettingsHubPage from "./settings/index";
 import NotificationSettingsPage from "./settings/notifications";
 import PosSettingsPage from "./settings/pos";
-import PricingSettingsPage from "./settings/pricing";
 import VerifyBusinessPage from "./verify-business";
 
 export const router = createBrowserRouter([
@@ -91,14 +90,6 @@ export const router = createBrowserRouter([
     ),
   },
   {
-    path: "/settings/pricing",
-    element: (
-      <RequireStage stage="app">
-        <PricingSettingsPage />
-      </RequireStage>
-    ),
-  },
-  {
     path: "/settings/notifications",
     element: (
       <RequireStage stage="app">
@@ -155,10 +146,10 @@ export const router = createBrowserRouter([
     ),
   },
   {
-    path: "/recipes",
+    path: "/menus",
     element: (
       <RequireStage stage="app">
-        <RecipesPage />
+        <MenusPage />
       </RequireStage>
     ),
   },

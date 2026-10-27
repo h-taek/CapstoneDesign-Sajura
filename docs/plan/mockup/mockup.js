@@ -15,11 +15,10 @@ const PAGES = {
   forecast: { file: "09_forecast.html", route: "/forecast", name: "매출예측" },
   inventory: { file: "10_inventory.html", route: "/inventory", name: "재고관리" },
   orders: { file: "11_orders.html", route: "/orders", name: "발주추천" },
-  recipes: { file: "12_recipes.html", route: "/recipes", name: "레시피 관리" },
+  menus: { file: "12_menus.html", route: "/menus", name: "메뉴 관리" },
   upload: { file: "13_sales-upload.html", route: "/sales/upload", name: "매출 CSV 업로드" },
   settings: { file: "14_settings.html", route: "/settings", name: "설정(앱: 더보기)" },
   pos: { file: "15_settings-pos.html", route: "/settings/pos", name: "POS 연동 설정" },
-  pricing: { file: "16_settings-pricing.html", route: "/settings/pricing", name: "단가 관리" },
   notifications: {
     file: "17_settings-notifications.html",
     route: "/settings/notifications",
@@ -155,7 +154,7 @@ const WEB_NAV = [
   { key: "forecast", label: "매출예측" },
   { key: "inventory", label: "재고관리" },
   { key: "orders", label: "발주추천" },
-  { key: "recipes", label: "레시피 관리" },
+  { key: "menus", label: "메뉴 관리" },
 ];
 
 const APP_TABS = [
@@ -171,16 +170,16 @@ const APP_TITLE = {
   forecast: "매출 예측",
   inventory: "재고",
   orders: "발주",
-  recipes: "레시피 관리",
+  menus: "메뉴 관리",
   settings: "더보기",
 };
 
 function renderShell(el) {
   const active = el.dataset.shell;
-  const appTabKey = active === "recipes" ? "settings" : active;
+  const appTabKey = active === "menus" ? "settings" : active;
   const title = el.dataset.title ?? (active === "home" ? MOCK_USER.store : APP_TITLE[active]);
   const subtitle = active === "home" && !el.dataset.title ? `${MOCK_USER.name}님, 안녕하세요` : "";
-  const back = el.dataset.back ?? (active === "recipes" ? PAGES.settings.file : "");
+  const back = el.dataset.back ?? (active === "menus" ? PAGES.settings.file : "");
   const content = el.innerHTML;
 
   const webNav = WEB_NAV.map((n) => {

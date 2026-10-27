@@ -1,9 +1,10 @@
-// 재고 화면 — 로트 목록·입고·수정·폐기 (02_implementation_design.md §3.5).
+// 재고 화면 — 경고 글씨·입고 대기 카드·로트 목록·입고·수정·폐기 (02_implementation_design.md §3.5).
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { MemoryRouter } from "react-router";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import * as inventoryApi from "../api/endpoints/inventory";
+import * as ordersApi from "../api/endpoints/orders";
 import InventoryPage from "../routes/inventory";
 
 function renderPage() {
@@ -41,20 +42,34 @@ const lot: inventoryApi.Lot = {
   purchase_price: 28000,
 };
 
+function lotList(
+  pending: inventoryApi.PendingOrderItem[] = [],
+): inventoryApi.LotList {
+  return { item_id: "bean", item_name: "원두", lots: [lot], pending_orders: pending };
+}
+
+const pendingOrder: inventoryApi.PendingOrderItem = {
+  order_item_id: "oi-1",
+  order_id: "o-1",
+  approved_at: "2026-10-16T01:12:00",
+  final_quantity: 3000,
+  subtotal: null,
+};
+
 describe("InventoryPage", () => {
   beforeEach(() => {
     vi.spyOn(inventoryApi, "listInventory").mockResolvedValue([bean]);
-    vi.spyOn(inventoryApi, "listLots").mockResolvedValue([lot]);
+    vi.spyOn(inventoryApi, "listLots").mockResolvedValue(lotList());
   });
   afterEach(() => {
     vi.restoreAllMocks();
   });
 
-  it("총 수량과 상태 배지를 보여 주고, 펼치면 로트와 재고 확인 필요 안내가 나온다", async () => {
+  it("확인 필요 재료는 배지 없이 수량 글씨가 빨갛고, 펼치면 로트와 안내가 나온다", async () => {
     renderPage();
     const toggle = await screen.findByRole("button", { name: /원두/ });
-    expect(screen.getByText("2,000 g")).toBeInTheDocument();
-    expect(screen.getByText("재고 확인 필요")).toBeInTheDocument();
+    expect(screen.getByText("2,000 g")).toHaveClass("text-danger");
+    expect(screen.queryByText("재고 확인 필요")).not.toBeInTheDocument();
 
     fireEvent.click(toggle);
     expect(await screen.findByText("28,000원")).toBeInTheDocument();
@@ -146,5 +161,33 @@ describe("InventoryPage", () => {
         lead_time_days: null,
       }),
     );
+  });
+
+  it("입고 대기 카드는 확정 수량·오늘이 채워져 있고, 입고 처리·입고 안 함을 보낸다", async () => {
+    vi.spyOn(inventoryApi, "listLots").mockResolvedValue(lotList([pendingOrder]));
+    const receive = vi.spyOn(ordersApi, "receiveOrderItem").mockResolvedValue(lot);
+    const skip = vi.spyOn(ordersApi, "skipOrderItem").mockResolvedValue();
+    renderPage();
+    fireEvent.click(await screen.findByRole("button", { name: /원두/ }));
+
+    const card = (await screen.findByText(/10월 16일 확정 발주/)).closest("form") as HTMLElement;
+    const today = new Date().toLocaleDateString("sv-SE");
+    expect(within(card).getByLabelText(/입고 수량/)).toHaveValue(3000);
+    expect(within(card).getByLabelText(/입고일/)).toHaveValue(today);
+    expect(within(card).getByLabelText(/소비기한/)).toHaveValue("");
+    expect(within(card).getByLabelText(/구매 금액/)).toHaveValue(null); // 단가 미설정 → 빈칸
+
+    fireEvent.change(within(card).getByLabelText(/구매 금액/), { target: { value: "48000" } });
+    fireEvent.click(within(card).getByRole("button", { name: "입고 처리" }));
+    await waitFor(() => expect(receive).toHaveBeenCalledTimes(1));
+    expect(receive).toHaveBeenCalledWith("oi-1", {
+      quantity: 3000,
+      received_at: today,
+      expiry_date: null,
+      purchase_price: 48000,
+    });
+
+    fireEvent.click(within(card).getByRole("button", { name: "입고 안 함" }));
+    await waitFor(() => expect(skip).toHaveBeenCalledWith("oi-1"));
   });
 });

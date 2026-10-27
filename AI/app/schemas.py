@@ -102,6 +102,7 @@ class RecipeIn(BaseModel):
 class InventoryIn(BaseModel):
     item_id: str
     current_quantity: float
+    incoming_quantity: float = 0.0  # 입고 예정량 — 확정했지만 아직 도착 전인 발주 수량 합계
     unit: str
     lead_time_days: int
     safety_stock: float

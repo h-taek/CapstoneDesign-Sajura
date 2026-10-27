@@ -55,6 +55,7 @@
               <span class="min-w-0 space-y-1">
                 <span class="flex flex-wrap items-center gap-2 text-[1.05rem] font-bold text-ink">모짜렐라 치즈<span data-icon="sparkles" class="size-4 text-brand"></span></span>
                 <span class="block text-[0.95rem] text-ink-2">추천 <strong class="font-bold text-brand">3,200g</strong> · 2026-10-22 소진 예상</span>
+                <span class="block text-sm text-ink-3">단가 16원/g · 예상 51,200원</span>
                 <span class="block text-sm text-ink-3">3일 예상 소요 6,450g − 현재 4,250g + 안전재고 1,000g, 리드타임 2일 반영</span>
               </span>
             </label>
@@ -76,6 +77,7 @@
               <span class="min-w-0 space-y-1">
                 <span class="flex flex-wrap items-center gap-2 text-[1.05rem] font-bold text-ink">피자 도우<span data-icon="sparkles" class="size-4 text-brand"></span></span>
                 <span class="block text-[0.95rem] text-ink-2">추천 <strong class="font-bold text-brand">60개</strong> · 2026-10-21 소진 예상</span>
+                <span class="block text-sm text-ink-3">단가 500원/개 · 예상 30,000원</span>
                 <span class="block text-sm text-ink-3">피자 메뉴 3일 예상 판매 136판 기준, 안전재고 20개 유지</span>
               </span>
             </label>
@@ -97,6 +99,7 @@
               <span class="min-w-0 space-y-1">
                 <span class="flex flex-wrap items-center gap-2 text-[1.05rem] font-bold text-ink">토마토 소스<span data-icon="sparkles" class="size-4 text-brand"></span><span title="리드타임·안전재고 미설정 — 기본값(리드타임 1일, 안전재고 0)으로 계산" class="rounded-full bg-subtle px-2 py-0.5 text-sm font-medium text-ink-3">설정 필요</span></span>
                 <span class="block text-[0.95rem] text-ink-2">추천 <strong class="font-bold text-brand">1,500g</strong> · 2026-10-24 소진 예상</span>
+                <span class="block text-sm text-ink-3">단가 4원/g · 예상 6,000원</span>
                 <span class="block text-sm text-ink-3">리드타임 1일·안전재고 0 기본값으로 계산</span>
               </span>
             </label>
@@ -118,6 +121,7 @@
               <span class="min-w-0 space-y-1">
                 <span class="flex flex-wrap items-center gap-2 text-[1.05rem] font-bold text-ink">바질<span data-icon="sparkles" class="size-4 text-brand"></span></span>
                 <span class="block text-[0.95rem] text-ink-2">추천 <strong class="font-bold text-brand">0.35kg</strong> · 2026-10-21 소진 예상</span>
+                <span class="block text-sm text-ink-3">단가 미설정</span>
                 <span class="block text-sm text-ink-3">마르게리타·바질 페스토 3일 예상 소요 0.42kg − 현재 0.17kg + 안전재고 0.10kg</span>
               </span>
             </label>
@@ -156,7 +160,7 @@
 
         <!-- ApproveBar — 카드 맨 아래 줄(fixed 아님). 개수는 선택했고 수량이 0보다 큰 품목 수 -->
         <div class="flex flex-col gap-2 border-t border-line-soft bg-white p-4 lg:flex-row lg:items-center lg:justify-between lg:px-5">
-          <p class="text-[0.95rem] text-ink-3"><strong class="font-bold text-ink">4개</strong> 품목을 선택했어요</p>
+          <p class="text-[0.95rem] text-ink-3"><strong class="font-bold text-ink">4개</strong> 품목 · 예상 <strong class="font-bold text-ink">87,200원</strong> <span class="text-sm">(단가 미설정 1개 제외)</span></p>
           <button type="button" data-when="default approved" data-set-state="pending" class="inline-flex shrink-0 items-center justify-center gap-2 font-semibold whitespace-nowrap transition-colors disabled:cursor-not-allowed bg-brand text-white hover:bg-brand-strong disabled:bg-ink-4 h-14 px-6 text-lg rounded-2xl w-full lg:h-12 lg:w-auto lg:text-base">AI 추천 발주 확정 (4)</button>
           <button type="button" data-when="pending" data-set-state="approved" disabled class="inline-flex shrink-0 items-center justify-center gap-2 font-semibold whitespace-nowrap transition-colors disabled:cursor-not-allowed bg-brand text-white hover:bg-brand-strong disabled:bg-ink-4 h-14 px-6 text-lg rounded-2xl w-full lg:h-12 lg:w-auto lg:text-base">확정 중…</button>
         </div>
@@ -180,7 +184,7 @@
             <button type="button" aria-expanded="false" data-toggle="#order-new, #order-new-up, #order-new-down" class="flex w-full items-center justify-between gap-3 px-5 py-4 text-left hover:bg-subtle">
               <span class="min-w-0">
                 <span class="block text-base font-semibold text-ink">10월 19일 (월) · 품목 4개</span>
-                <span class="block text-sm text-ink-3">오후 06:41 확정 · 예상 139,800원</span>
+                <span class="block text-sm text-ink-3">오후 06:41 확정 · 예상 87,200원</span>
               </span>
               <span class="flex shrink-0 items-center gap-2">
                 <span class="rounded-full px-2.5 py-1 text-sm font-semibold bg-ok-soft text-ok">확정</span>
@@ -189,7 +193,7 @@
               </span>
             </button>
             <div id="order-new" hidden class="border-t border-line-soft bg-subtle px-5 py-4 text-[0.95rem] text-ink-2">
-              <p>모짜렐라 치즈 3200g, 피자 도우 60개, 토마토 소스 1500g, 바질 0.35kg</p>
+              <p>모짜렐라 치즈 3,200g 51,200원 · 피자 도우 60개 30,000원 · 토마토 소스 1,500g 6,000원 · 바질 0.35kg —</p>
             </div>
           </li>
           <!-- 펼친 줄 — 상세는 펼칠 때 GET /api/orders/{id}로 불러온다 -->
@@ -197,7 +201,7 @@
             <button type="button" aria-expanded="true" data-toggle="#order-1, #order-1-up, #order-1-down" class="flex w-full items-center justify-between gap-3 px-5 py-4 text-left hover:bg-subtle">
               <span class="min-w-0">
                 <span class="block text-base font-semibold text-ink">10월 16일 (금) · 품목 3개</span>
-                <span class="block text-sm text-ink-3">오전 10:12 확정 · 예상 127,000원</span>
+                <span class="block text-sm text-ink-3">오전 10:12 확정 · 예상 103,000원</span>
               </span>
               <span class="flex shrink-0 items-center gap-2">
                 <span class="rounded-full px-2.5 py-1 text-sm font-semibold bg-ok-soft text-ok">확정</span>
@@ -206,7 +210,8 @@
               </span>
             </button>
             <div id="order-1" class="border-t border-line-soft bg-subtle px-5 py-4 text-[0.95rem] text-ink-2">
-              <p>모짜렐라 치즈 3000g, 피자 도우 50개, 루꼴라 1000g</p>
+              <p>모짜렐라 치즈 3,000g 48,000원 · 피자 도우 50개 25,000원 · 루꼴라 1,000g 30,000원</p>
+              <p class="mt-1 text-sm text-ink-3">입고 대기 3개</p>
               <p class="mt-1 text-sm text-ink-3">메모: 주말 행사 대비</p>
             </div>
           </li>
@@ -214,7 +219,7 @@
             <button type="button" aria-expanded="false" data-toggle="#order-2, #order-2-up, #order-2-down" class="flex w-full items-center justify-between gap-3 px-5 py-4 text-left hover:bg-subtle">
               <span class="min-w-0">
                 <span class="block text-base font-semibold text-ink">10월 9일 (금) · 품목 2개</span>
-                <span class="block text-sm text-ink-3">오후 03:27 확정 · 예상 40,000원</span>
+                <span class="block text-sm text-ink-3">오후 03:27 확정 · 예상 37,000원</span>
               </span>
               <span class="flex shrink-0 items-center gap-2">
                 <span class="rounded-full px-2.5 py-1 text-sm font-semibold bg-ok-soft text-ok">확정</span>
@@ -223,7 +228,8 @@
               </span>
             </button>
             <div id="order-2" hidden class="border-t border-line-soft bg-subtle px-5 py-4 text-[0.95rem] text-ink-2">
-              <p>토마토 소스 3000g, 페퍼로니 1000g</p>
+              <p>토마토 소스 3,000g 12,000원 · 페퍼로니 1,000g 25,000원</p>
+              <p class="mt-1 text-sm text-ink-3">입고 완료</p>
             </div>
           </li>
         </ul>

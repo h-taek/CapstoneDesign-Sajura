@@ -2662,6 +2662,125 @@
         }
       }
     },
+    "/api/orders/items/{order_item_id}/receive": {
+      "post": {
+        "tags": [
+          "orders"
+        ],
+        "summary": "Receive Order Item",
+        "operationId": "receive_order_item_api_orders_items__order_item_id__receive_post",
+        "parameters": [
+          {
+            "name": "order_item_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Order Item Id"
+            }
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LotCreateRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LotResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/orders/items/{order_item_id}/skip": {
+      "post": {
+        "tags": [
+          "orders"
+        ],
+        "summary": "Skip Order Item",
+        "operationId": "skip_order_item_api_orders_items__order_item_id__skip_post",
+        "parameters": [
+          {
+            "name": "order_item_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Order Item Id"
+            }
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/orders/{order_id}/approval-log": {
       "get": {
         "tags": [
@@ -4256,13 +4375,21 @@
             },
             "type": "array",
             "title": "Lots"
+          },
+          "pending_orders": {
+            "items": {
+              "$ref": "#/components/schemas/PendingOrderItem"
+            },
+            "type": "array",
+            "title": "Pending Orders"
           }
         },
         "type": "object",
         "required": [
           "item_id",
           "item_name",
-          "lots"
+          "lots",
+          "pending_orders"
         ],
         "title": "LotListResponse"
       },
@@ -4731,12 +4858,6 @@
               }
             ],
             "title": "Final Quantity"
-          },
-          "unit_price": {
-            "type": "integer",
-            "minimum": 0.0,
-            "title": "Unit Price",
-            "default": 0
           }
         },
         "type": "object",
@@ -4817,6 +4938,10 @@
       },
       "OrderDetailItem": {
         "properties": {
+          "order_item_id": {
+            "type": "string",
+            "title": "Order Item Id"
+          },
           "item_id": {
             "type": "string",
             "title": "Item Id"
@@ -4834,22 +4959,42 @@
             "title": "Unit"
           },
           "unit_price": {
-            "type": "integer",
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
             "title": "Unit Price"
           },
           "subtotal": {
-            "type": "integer",
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
             "title": "Subtotal"
+          },
+          "receipt_status": {
+            "type": "string",
+            "title": "Receipt Status"
           }
         },
         "type": "object",
         "required": [
+          "order_item_id",
           "item_id",
           "item_name",
           "final_quantity",
           "unit",
           "unit_price",
-          "subtotal"
+          "subtotal",
+          "receipt_status"
         ],
         "title": "OrderDetailItem"
       },
@@ -4983,6 +5128,17 @@
           "recommendation_reason": {
             "type": "string",
             "title": "Recommendation Reason"
+          },
+          "unit_price": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Unit Price"
           }
         },
         "type": "object",
@@ -4995,7 +5151,8 @@
           "lead_time_days",
           "safety_stock",
           "config_status",
-          "recommendation_reason"
+          "recommendation_reason",
+          "unit_price"
         ],
         "title": "OrderRecommendation"
       },
@@ -5032,6 +5189,47 @@
           "item_count"
         ],
         "title": "OrderSummary"
+      },
+      "PendingOrderItem": {
+        "properties": {
+          "order_item_id": {
+            "type": "string",
+            "title": "Order Item Id"
+          },
+          "order_id": {
+            "type": "string",
+            "title": "Order Id"
+          },
+          "approved_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Approved At"
+          },
+          "final_quantity": {
+            "type": "number",
+            "title": "Final Quantity"
+          },
+          "subtotal": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Subtotal"
+          }
+        },
+        "type": "object",
+        "required": [
+          "order_item_id",
+          "order_id",
+          "approved_at",
+          "final_quantity",
+          "subtotal"
+        ],
+        "title": "PendingOrderItem"
       },
       "PosCreateRequest": {
         "properties": {

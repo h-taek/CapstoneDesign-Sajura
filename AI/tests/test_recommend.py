@@ -112,6 +112,19 @@ def test_recommend_deterministic():
     assert a["recommendations"] == b["recommendations"]
 
 
+
+def test_recommend_subtracts_incoming_from_quantity_only():
+    base = make_body(END, 120, TARGETS[:1])
+    incoming = {**base, "inventory": [{**INVENTORY[0], "incoming_quantity": 0.3}, *INVENTORY[1:]]}
+    a = {x["item_id"]: x for x in client.post("/ai/orders/recommend", json=base).json()["recommendations"]}
+    b = {x["item_id"]: x for x in client.post("/ai/orders/recommend", json=incoming).json()["recommendations"]}
+
+    nakji_a, nakji_b = a["item-nakji"], b["item-nakji"]
+    assert abs((nakji_a["recommended_quantity"] - nakji_b["recommended_quantity"]) - 0.3) < 0.011
+    assert nakji_b["expected_stockout_date"] == nakji_a["expected_stockout_date"]  # 손에 있는 재고 기준
+    assert "입고 예정 0.3" in nakji_b["recommendation_reason"]
+    assert "입고 예정" not in nakji_a["recommendation_reason"]  # 칸 생략 시 기존 동작
+
 def test_recommend_menu_history_too_short():
     r = client.post("/ai/orders/recommend", json=make_body(END, 120, TARGETS[:1], menu_days=5))
     assert r.status_code == 422

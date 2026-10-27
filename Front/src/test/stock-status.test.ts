@@ -1,7 +1,12 @@
 // 재고 경고 판정·정렬 — 04_fe.md §4.6.
 import { describe, expect, it } from "vitest";
 import type { InventoryItem } from "../api/endpoints/inventory";
-import { sortInventory, stockStatus } from "../components/inventory/stock-status";
+import {
+  isExpiryWarning,
+  isStockWarning,
+  sortInventory,
+  stockStatus,
+} from "../components/inventory/stock-status";
 
 const TODAY = new Date(2026, 9, 25); // 2026-10-25
 
@@ -21,6 +26,27 @@ function item(name: string, patch: Partial<InventoryItem> = {}): InventoryItem {
     ...patch,
   };
 }
+
+describe("재고 화면 경고", () => {
+  it.each([
+    ["2026-10-20", true], // 지남
+    ["2026-10-28", true], // D-3
+    ["2026-10-29", false], // D-4
+  ])("소비기한 %s → 기한 글씨 경고 %s", (expiry, warn) => {
+    expect(isExpiryWarning(item("a", { nearest_expiry_date: expiry }), TODAY)).toBe(warn);
+  });
+
+  it("소비기한이 없으면 기한 경고가 없다", () => {
+    expect(isExpiryWarning(item("a"), TODAY)).toBe(false);
+  });
+
+  it("재고 없음·기준 이하·확인 필요면 수량 경고", () => {
+    expect(isStockWarning(item("a", { total_quantity: 0 }))).toBe(true);
+    expect(isStockWarning(item("a", { total_quantity: 100 }))).toBe(true);
+    expect(isStockWarning(item("a", { needs_check: true }))).toBe(true);
+    expect(isStockWarning(item("a", { total_quantity: 101 }))).toBe(false);
+  });
+});
 
 describe("stockStatus", () => {
   it.each([

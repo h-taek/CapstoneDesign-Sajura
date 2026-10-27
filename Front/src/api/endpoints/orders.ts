@@ -32,6 +32,20 @@ export async function getOrder(orderId: string): Promise<OrderDetail> {
   return api.get(`orders/${orderId}`).json<OrderDetail>();
 }
 
+export type ReceiptStatus = OrderDetailItem["receipt_status"];
+
+/** 발주 품목 입고 처리 — 로트를 만들고 입고 완료로 바꾼다 (01_basic_design.md §3.7.5). */
+export async function receiveOrderItem(
+  orderItemId: string,
+  input: S["LotCreateRequest"],
+): Promise<S["LotResponse"]> {
+  return api.post(`orders/items/${orderItemId}/receive`, { json: input }).json<S["LotResponse"]>();
+}
+
+export async function skipOrderItem(orderItemId: string): Promise<void> {
+  await api.post(`orders/items/${orderItemId}/skip`);
+}
+
 export type MenuForecastItem = S["MenuForecastItem"];
 
 export type OrderRecommendation = S["OrderRecommendation"];

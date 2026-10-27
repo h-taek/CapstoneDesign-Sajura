@@ -1,16 +1,19 @@
-// 경고 배지·정렬은 BE가 준 원본값으로 FE가 판정한다(04_fe.md §4.6). 웹은 머리글, 앱은 정렬 선택으로 전환.
+// 경고·정렬은 BE가 준 원본값으로 FE가 판정한다. 경고는 배지 없이 해당 글씨(소비기한·수량)를 빨갛게 한다.
+// 웹은 머리글, 앱은 정렬 선택으로 정렬을 바꾼다.
 // 재고관리 화면 — Figma "재고 관리"(node 9:915) 셸 적용.
-// 수량은 로트 단위로 관리한다(01_basic_design.md §3.3). 품목 행을 펼치면 로트 목록·입고·수정·폐기.
+// 수량은 로트 단위로 관리한다(01_basic_design.md §3.3). 품목 행을 펼치면 입고 대기 발주·입고·로트 수정·폐기.
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ArrowDown, ArrowUp, ChevronDown, ChevronRight, Plus, Trash2 } from "lucide-react";
-import { useMemo, useState } from "react";
+import { type ReactNode, useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import {
   type AdjustmentReason,
   type InventoryItem,
   type Lot,
+  type LotInput,
+  type PendingOrderItem,
   addLot,
   createInventoryItem,
   deleteInventoryItem,
@@ -19,18 +22,20 @@ import {
   listLots,
   updateLot,
 } from "../api/endpoints/inventory";
+import { receiveOrderItem, skipOrderItem } from "../api/endpoints/orders";
 import { DashboardShell } from "../components/dashboard/shell";
-import { AlertBadge } from "../components/inventory/alert-badge";
 import {
   type InventorySortKey,
-  type StockStatus,
   daysUntil,
+  isExpiryWarning,
+  isStockWarning,
   sortInventory,
   stockStatus,
 } from "../components/inventory/stock-status";
 import { Button } from "../components/ui/button";
 import { Card, PageHeader, Segmented } from "../components/ui/card";
 import { FormField, Input } from "../components/ui/field";
+import { formatWon } from "../lib/format";
 import { cn } from "../lib/utils";
 import { usePreferencesStore } from "../stores/preferences-store";
 
@@ -273,13 +278,12 @@ export default function InventoryPage() {
         </div>
 
         <Card className="overflow-hidden">
-          <div className="hidden lg:grid-cols-[minmax(0,1.5fr)_1fr_1.3fr_1fr_1fr_8.5rem_3rem] gap-4 bg-subtle px-5 py-3 text-sm font-semibold text-ink-3 lg:grid">
+          <div className="hidden lg:grid-cols-[minmax(0,1.5fr)_1fr_1.3fr_1fr_1fr_3rem] gap-4 bg-subtle px-5 py-3 text-sm font-semibold text-ink-3 lg:grid">
             <SortHeader label="재료" sortKey="name" sort={sort} onSort={toggleSort} />
             <SortHeader label="총 수량" sortKey="quantity" sort={sort} onSort={toggleSort} />
             <SortHeader label="소비기한" sortKey="expiry" sort={sort} onSort={toggleSort} />
             <span>재주문 임계값</span>
             <span>안전재고</span>
-            <SortHeader label="상태" sortKey="status" sort={sort} onSort={toggleSort} />
             <span />
           </div>
           {isLoading ? (
@@ -296,7 +300,6 @@ export default function InventoryPage() {
                 <InventoryRow
                   key={item.item_id}
                   item={item}
-                  status={stockStatus(item, today)}
                   today={today}
                   open={openItemId === item.item_id}
                   onToggle={() =>
@@ -354,23 +357,22 @@ function expiryLabel(iso: string | null, today: Date): string {
 
 function InventoryRow({
   item,
-  status,
   today,
   open,
   onToggle,
   onDelete,
 }: {
   item: InventoryItem;
-  status: StockStatus;
   today: Date;
   open: boolean;
   onToggle: () => void;
   onDelete: () => void;
 }) {
-  const warn = status !== "NORMAL";
+  const expiryWarn = isExpiryWarning(item, today);
+  const stockWarn = isStockWarning(item);
   return (
     <li>
-      <div className="flex items-start gap-3 px-4 py-4 lg:grid lg:grid-cols-[minmax(0,1.5fr)_1fr_1.3fr_1fr_1fr_8.5rem_3rem] lg:items-center lg:gap-4 lg:px-5">
+      <div className="flex items-start gap-3 px-4 py-4 lg:grid lg:grid-cols-[minmax(0,1.5fr)_1fr_1.3fr_1fr_1fr_3rem] lg:items-center lg:gap-4 lg:px-5">
         <button
           type="button"
           onClick={onToggle}
@@ -387,9 +389,14 @@ function InventoryRow({
             <span className="mt-0.5 block text-sm text-ink-3 lg:hidden">
               기준 {fmtQty(item.low_stock_threshold)}
               {item.unit}
-              {item.nearest_expiry_date
-                ? ` · 기한 ${expiryLabel(item.nearest_expiry_date, today)}`
-                : ""}
+              {item.nearest_expiry_date ? (
+                <>
+                  {" · 기한 "}
+                  <span className={cn(expiryWarn && "text-danger")}>
+                    {expiryLabel(item.nearest_expiry_date, today)}
+                  </span>
+                </>
+              ) : null}
             </span>
           </span>
         </button>
@@ -397,12 +404,12 @@ function InventoryRow({
           <span
             className={cn(
               "tabular text-lg font-bold lg:text-base lg:font-semibold",
-              warn ? "text-danger lg:text-ink" : "text-ink",
+              stockWarn ? "text-danger" : "text-ink",
             )}
           >
             {fmtQty(item.total_quantity)} {item.unit}
           </span>
-          <span className="hidden text-ink-2 lg:block">
+          <span className={cn("hidden lg:block", expiryWarn ? "text-danger" : "text-ink-2")}>
             {expiryLabel(item.nearest_expiry_date, today)}
           </span>
           <span className="hidden text-ink-2 lg:block">
@@ -410,9 +417,6 @@ function InventoryRow({
           </span>
           <span className="hidden text-ink-2 lg:block">
             {item.safety_stock != null ? `${fmtQty(item.safety_stock)} ${item.unit}` : "—"}
-          </span>
-          <span>
-            <AlertBadge status={status} />
           </span>
         </div>
         <button
@@ -438,20 +442,33 @@ type LotAction = { lotId: string; kind: "edit" | "dispose" } | null;
 function LotPanel({ item }: { item: InventoryItem }) {
   const queryClient = useQueryClient();
   const [action, setAction] = useState<LotAction>(null);
-  const { data: lots = [], isLoading } = useQuery({
+  const { data, isLoading } = useQuery({
     queryKey: ["inventory", item.item_id, "lots"],
     queryFn: () => listLots(item.item_id),
   });
-  const refresh = () => queryClient.invalidateQueries({ queryKey: ["inventory"] });
+  const lots = data?.lots ?? [];
+  const refresh = () => {
+    queryClient.invalidateQueries({ queryKey: ["inventory"] });
+    queryClient.invalidateQueries({ queryKey: ["orders"] });
+  };
 
   return (
     <div className="space-y-4">
+      {data?.pending_orders.map((p) => (
+        <ReceiptCard key={p.order_item_id} pending={p} unit={item.unit} onDone={refresh} />
+      ))}
       {item.needs_check && (
         <p className="rounded-xl bg-danger-soft px-4 py-3 text-[0.95rem] font-medium text-danger">
           기록상 재고 없이 판매가 차감됐습니다. 입고를 등록하거나 실사 조정으로 수량을 맞추세요.
         </p>
       )}
-      <AddLotForm itemId={item.item_id} unit={item.unit} onDone={refresh} />
+      <LotForm
+        unit={item.unit}
+        submit={(input) => addLot(item.item_id, input)}
+        submitLabel="입고 등록"
+        errorMessage="입고 등록에 실패했습니다."
+        onDone={refresh}
+      />
       <div className="overflow-x-auto rounded-xl border border-line bg-white">
         <table className="w-full min-w-[560px] text-left text-[0.95rem]">
           <thead className="bg-subtle text-sm text-ink-3">
@@ -505,30 +522,94 @@ function LotPanel({ item }: { item: InventoryItem }) {
   );
 }
 
-function AddLotForm({
-  itemId,
+/** 입고 대기 카드 — 확정안 수량·금액, 오늘, 빈 소비기한이 기본값 (01_basic_design.md §3.7.5). */
+function ReceiptCard({
+  pending,
   unit,
   onDone,
-}: { itemId: string; unit: string; onDone: () => void }) {
-  const [quantity, setQuantity] = useState("");
+}: { pending: PendingOrderItem; unit: string; onDone: () => void }) {
+  const skip = useMutation({
+    mutationFn: () => skipOrderItem(pending.order_item_id),
+    onSuccess: onDone,
+    onError: () => window.alert("처리에 실패했습니다."),
+  });
+  const approved = new Date(pending.approved_at);
+  return (
+    <LotForm
+      unit={unit}
+      initialQuantity={String(Number(pending.final_quantity))}
+      initialPrice={pending.subtotal == null ? "" : String(pending.subtotal)}
+      submit={(input) => receiveOrderItem(pending.order_item_id, input)}
+      submitLabel="입고 처리"
+      errorMessage="입고 처리에 실패했습니다."
+      onDone={onDone}
+      highlight
+      header={
+        <p className="text-[0.95rem] font-semibold text-ink">
+          {approved.getMonth() + 1}월 {approved.getDate()}일 확정 발주{" "}
+          <span className="font-normal text-ink-3">
+            · {fmtQty(pending.final_quantity)} {unit}
+            {pending.subtotal == null ? "" : ` · ${formatWon(pending.subtotal)}`}
+          </span>
+        </p>
+      }
+      extra={
+        <Button
+          type="button"
+          variant="secondary"
+          size="lg"
+          disabled={skip.isPending}
+          onClick={() => skip.mutate()}
+        >
+          입고 안 함
+        </Button>
+      }
+    />
+  );
+}
+
+function LotForm({
+  unit,
+  initialQuantity = "",
+  initialPrice = "",
+  submit,
+  submitLabel,
+  errorMessage,
+  onDone,
+  highlight = false,
+  header,
+  extra,
+}: {
+  unit: string;
+  initialQuantity?: string;
+  initialPrice?: string;
+  submit: (input: LotInput) => Promise<unknown>;
+  submitLabel: string;
+  errorMessage: string;
+  onDone: () => void;
+  highlight?: boolean;
+  header?: ReactNode;
+  extra?: ReactNode;
+}) {
+  const [quantity, setQuantity] = useState(initialQuantity);
   const [receivedAt, setReceivedAt] = useState(today());
   const [expiry, setExpiry] = useState("");
-  const [price, setPrice] = useState("");
+  const [price, setPrice] = useState(initialPrice);
   const mutation = useMutation({
     mutationFn: () =>
-      addLot(itemId, {
+      submit({
         quantity: Number(quantity),
         received_at: receivedAt,
         expiry_date: expiry || null,
         purchase_price: Number(price),
       }),
     onSuccess: () => {
-      setQuantity("");
+      setQuantity(initialQuantity);
       setExpiry("");
-      setPrice("");
+      setPrice(initialPrice);
       onDone();
     },
-    onError: () => window.alert("입고 등록에 실패했습니다."),
+    onError: () => window.alert(errorMessage),
   });
   const valid = Number(quantity) > 0 && price !== "" && Number(price) >= 0 && receivedAt !== "";
 
@@ -538,48 +619,55 @@ function AddLotForm({
         e.preventDefault();
         if (valid) mutation.mutate();
       }}
-      className="flex flex-wrap items-end gap-3 rounded-xl border border-line bg-white p-4"
+      className={cn(
+        "space-y-3 rounded-xl border bg-white p-4",
+        highlight ? "border-brand" : "border-line",
+      )}
     >
-      <label className="space-y-1 text-sm font-semibold text-ink-2">
-        입고 수량 ({unit})
-        <input
-          type="number"
-          step="any"
-          value={quantity}
-          onChange={(e) => setQuantity(e.target.value)}
-          className={`${inputClass} block w-28`}
-        />
-      </label>
-      <label className="space-y-1 text-sm font-semibold text-ink-2">
-        입고일
-        <input
-          type="date"
-          value={receivedAt}
-          onChange={(e) => setReceivedAt(e.target.value)}
-          className={`${inputClass} block`}
-        />
-      </label>
-      <label className="space-y-1 text-sm font-semibold text-ink-2">
-        소비기한 (선택)
-        <input
-          type="date"
-          value={expiry}
-          onChange={(e) => setExpiry(e.target.value)}
-          className={`${inputClass} block`}
-        />
-      </label>
-      <label className="space-y-1 text-sm font-semibold text-ink-2">
-        구매 금액 (원)
-        <input
-          type="number"
-          value={price}
-          onChange={(e) => setPrice(e.target.value)}
-          className={`${inputClass} block w-32`}
-        />
-      </label>
-      <Button type="submit" disabled={!valid || mutation.isPending} size="lg">
-        입고 등록
-      </Button>
+      {header}
+      <div className="flex flex-wrap items-end gap-3">
+        <label className="space-y-1 text-sm font-semibold text-ink-2">
+          입고 수량 ({unit})
+          <input
+            type="number"
+            step="any"
+            value={quantity}
+            onChange={(e) => setQuantity(e.target.value)}
+            className={`${inputClass} block w-28`}
+          />
+        </label>
+        <label className="space-y-1 text-sm font-semibold text-ink-2">
+          입고일
+          <input
+            type="date"
+            value={receivedAt}
+            onChange={(e) => setReceivedAt(e.target.value)}
+            className={`${inputClass} block`}
+          />
+        </label>
+        <label className="space-y-1 text-sm font-semibold text-ink-2">
+          소비기한 (선택)
+          <input
+            type="date"
+            value={expiry}
+            onChange={(e) => setExpiry(e.target.value)}
+            className={`${inputClass} block`}
+          />
+        </label>
+        <label className="space-y-1 text-sm font-semibold text-ink-2">
+          구매 금액 (원)
+          <input
+            type="number"
+            value={price}
+            onChange={(e) => setPrice(e.target.value)}
+            className={`${inputClass} block w-32`}
+          />
+        </label>
+        <Button type="submit" disabled={!valid || mutation.isPending} size="lg">
+          {submitLabel}
+        </Button>
+        {extra}
+      </div>
     </form>
   );
 }

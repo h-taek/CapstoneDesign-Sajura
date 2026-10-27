@@ -20,17 +20,17 @@ import { logout } from "../../api/endpoints/auth";
 import { cn } from "../../lib/utils";
 import { useAuthStore } from "../../stores/auth-store";
 
-export type NavKey = "home" | "forecast" | "inventory" | "orders" | "recipes" | "settings";
+export type NavKey = "home" | "forecast" | "inventory" | "orders" | "menus" | "settings";
 
 const WEB_NAV: Array<{ key: NavKey; to: string; label: string; icon: typeof Home }> = [
   { key: "home", to: "/", label: "홈", icon: Home },
   { key: "forecast", to: "/forecast", label: "매출예측", icon: TrendingUp },
   { key: "inventory", to: "/inventory", label: "재고관리", icon: Boxes },
   { key: "orders", to: "/orders", label: "발주추천", icon: ClipboardList },
-  { key: "recipes", to: "/recipes", label: "레시피 관리", icon: ChefHat },
+  { key: "menus", to: "/menus", label: "메뉴 관리", icon: ChefHat },
 ];
 
-// 앱 하단 탭 — 5개, 아이콘 + 글자. 레시피·설정·매출 올리기는 "더보기"에 모은다.
+// 앱 하단 탭 — 5개, 아이콘 + 글자. 메뉴 관리·설정·매출 올리기는 "더보기"에 모은다.
 const APP_TABS: Array<{ key: NavKey; to: string; label: string; icon: typeof Home }> = [
   { key: "home", to: "/", label: "홈", icon: Home },
   { key: "forecast", to: "/forecast", label: "매출 예측", icon: TrendingUp },
@@ -44,7 +44,7 @@ const APP_TITLE: Record<NavKey, string> = {
   forecast: "매출 예측",
   inventory: "재고",
   orders: "발주",
-  recipes: "레시피 관리",
+  menus: "메뉴 관리",
   settings: "더보기",
 };
 
@@ -73,8 +73,8 @@ export function DashboardShell({
   const user = useAuthStore((s) => s.user);
   const clear = useAuthStore((s) => s.clear);
   const storeName = user?.store_name ?? "내 매장";
-  // recipes는 앱에서 "더보기" 아래 화면이다.
-  const appTabKey: NavKey = active === "recipes" ? "settings" : active;
+  // 메뉴 관리는 앱에서 "더보기" 아래 화면이다.
+  const appTabKey: NavKey = active === "menus" ? "settings" : active;
 
   return (
     <div className="min-h-dvh bg-canvas">
@@ -87,7 +87,7 @@ export function DashboardShell({
       <AppTopBar
         title={title ?? (active === "home" ? storeName : APP_TITLE[active])}
         subtitle={active === "home" && !title ? `${user?.name ?? "사장"}님, 안녕하세요` : undefined}
-        backTo={backTo ?? (active === "recipes" ? "/settings" : undefined)}
+        backTo={backTo ?? (active === "menus" ? "/settings" : undefined)}
       />
 
       <main className="mx-auto w-full max-w-[1280px] px-4 pt-4 pb-32 sm:px-6 lg:px-8 lg:pt-8 lg:pb-16">

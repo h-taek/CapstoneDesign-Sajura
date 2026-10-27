@@ -21,8 +21,10 @@ from app.schemas.inventory import (
     LotListResponse,
     LotResponse,
     LotUpdateRequest,
+    PendingOrderItem,
 )
 from app.services.inventory_service import InventoryService, ItemStock
+from app.services.order_service import OrderService
 from app.services.store_service import StoreService
 
 router = APIRouter(
@@ -51,7 +53,7 @@ def _to_dto(stock: ItemStock) -> InventoryItemResponse:
     )
 
 
-def _lot_dto(lot: InventoryLot) -> LotResponse:
+def lot_dto(lot: InventoryLot) -> LotResponse:
     return LotResponse(
         lot_id=lot.lot_id,
         item_id=lot.item_id,
@@ -117,15 +119,28 @@ async def add_lot(
     lot = await InventoryService(session).add_lot(
         store_id=store_id, item_id=item_id, **payload.model_dump()
     )
-    return _lot_dto(lot)
+    return lot_dto(lot)
 
 
 @router.get("/{item_id}/lots", response_model=LotListResponse)
 async def list_lots(item_id: str, session: SessionDep, current: CurrentUserDep) -> LotListResponse:
     store_id = await _store_id(session, current.user_id)
     item, lots = await InventoryService(session).get_lots(store_id=store_id, item_id=item_id)
+    pending = await OrderService(session).pending_items(item_id=item.item_id)
     return LotListResponse(
-        item_id=item.item_id, item_name=item.name, lots=[_lot_dto(lot) for lot in lots]
+        item_id=item.item_id,
+        item_name=item.name,
+        lots=[lot_dto(lot) for lot in lots],
+        pending_orders=[
+            PendingOrderItem(
+                order_item_id=oi.id,
+                order_id=order.order_id,
+                approved_at=order.approved_at,
+                final_quantity=oi.final_quantity,
+                subtotal=oi.subtotal,
+            )
+            for oi, order in pending
+        ],
     )
 
 

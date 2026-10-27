@@ -11,7 +11,6 @@ from pydantic import BaseModel, Field, field_validator
 class OrderApproveItem(BaseModel):
     item_id: str
     final_quantity: Decimal = Field(gt=0, max_digits=10, decimal_places=3)
-    unit_price: int = Field(default=0, ge=0)
 
 
 class OrderApproveRequest(BaseModel):
@@ -47,12 +46,14 @@ class OrderListResponse(BaseModel):
 
 
 class OrderDetailItem(BaseModel):
+    order_item_id: str
     item_id: str
     item_name: str
     final_quantity: float
     unit: str
-    unit_price: int
-    subtotal: int
+    unit_price: float | None  # 확정 시 단가 미설정이면 null
+    subtotal: int | None
+    receipt_status: str
 
 
 class OrderDetailResponse(BaseModel):

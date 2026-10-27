@@ -38,9 +38,13 @@ export type AdjustmentReason = S["AdjustmentReason"];
 
 export type LotPatch = S["LotUpdateRequest"];
 
-export async function listLots(itemId: string): Promise<Lot[]> {
-  const res = await api.get(`inventory/${itemId}/lots`).json<{ lots: Lot[] }>();
-  return res.lots;
+export type PendingOrderItem = S["PendingOrderItem"];
+
+export type LotList = S["LotListResponse"];
+
+/** 로트와 함께 이 재료의 입고 대기 발주 품목(확정일 오름차순)을 준다. */
+export async function listLots(itemId: string): Promise<LotList> {
+  return api.get(`inventory/${itemId}/lots`).json<LotList>();
 }
 
 export async function addLot(itemId: string, input: LotInput): Promise<Lot> {

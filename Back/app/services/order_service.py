@@ -6,15 +6,16 @@
 
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import date, datetime
 from decimal import ROUND_HALF_UP, Decimal
 from zoneinfo import ZoneInfo
 
 from sqlalchemy import delete, func, select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core import errors
-from app.models.inventory_item import InventoryItem
+from app.models.inventory_item import InventoryItem, InventoryLot
 from app.models.menu import Menu
 from app.models.order import (
     ConfigStatus,
@@ -24,9 +25,11 @@ from app.models.order import (
     OrderRecommendation,
     OrderRecommendationItem,
     OrderStatus,
+    ReceiptStatus,
 )
 from app.schemas.orders import OrderApproveItem
 from app.services.forecast_service import ForecastService
+from app.services.inventory_service import InventoryService
 
 KST = ZoneInfo("Asia/Seoul")
 ZERO = Decimal(0)
@@ -40,9 +43,21 @@ def _not_found(message: str) -> errors.DomainError:
     return errors.DomainError(status_code=404, error_code="NOT_FOUND", message=message)
 
 
+def _already_approved() -> errors.DomainError:
+    return errors.state_conflict("이미 발주를 확정한 추천안입니다.")
+
+
 class OrderService:
     def __init__(self, session: AsyncSession) -> None:
         self.session = session
+
+    async def _unit_prices(self, *, item_ids: list[str]) -> dict[str, Decimal]:
+        """재료 단위당 단가 — 출처는 매장 공용 쿠팡 상품 테이블 하나다(01_basic_design.md §3.3.1).
+
+        그 테이블과 확장의 가격 전송은 쿠팡 자동 담기 단계에서 만든다.
+        그 전까지 단가는 모두 미설정이다.
+        """
+        return {}
 
     async def recommend(self, *, store_id: str) -> dict:
         result = await ForecastService(self.session).recommend(store_id=store_id)
@@ -77,6 +92,7 @@ class OrderService:
         self.session.add(rec)
         await self.session.flush()
 
+        prices = await self._unit_prices(item_ids=[r["item_id"] for r in result["recommendations"]])
         recommendations = []
         for r in result["recommendations"]:
             inv = inventory.get(r["item_id"])
@@ -110,6 +126,7 @@ class OrderService:
                     "safety_stock": r["safety_stock"],
                     "config_status": config_status.value,
                     "recommendation_reason": r["recommendation_reason"],
+                    "unit_price": float(p) if (p := prices.get(inv.item_id)) is not None else None,
                 }
             )
         await self.session.commit()
@@ -167,6 +184,10 @@ class OrderService:
             )
             if rec is None:
                 raise _not_found("추천안을 찾을 수 없습니다.")
+            if await self.session.scalar(
+                select(Order.order_id).where(Order.recommendation_id == recommendation_id)
+            ):
+                raise _already_approved()
             rec_items = {
                 ri.item_id: ri
                 for ri in (
@@ -178,11 +199,14 @@ class OrderService:
                 ).all()
             }
 
+        # 확정 시점 단가 — 미설정이면 단가·소계를 비운다 (01_basic_design.md §3.7.4)
+        prices = await self._unit_prices(item_ids=item_ids)
         subtotals = {
             i.item_id: int(
-                (i.final_quantity * i.unit_price).quantize(Decimal(1), rounding=ROUND_HALF_UP)
+                (i.final_quantity * prices[i.item_id]).quantize(Decimal(1), rounding=ROUND_HALF_UP)
             )
             for i in items
+            if i.item_id in prices
         }
         order = Order(
             store_id=store_id,
@@ -192,7 +216,13 @@ class OrderService:
             note=note,
         )
         self.session.add(order)
-        await self.session.flush()
+        try:
+            await self.session.flush()
+        except IntegrityError as exc:  # 같은 추천안 확정이 동시에 들어온 경우
+            await self.session.rollback()
+            if "uq_orders_recommendation_id" in str(exc.orig).lower():
+                raise _already_approved() from exc
+            raise
 
         for i in items:
             self.session.add(
@@ -200,8 +230,8 @@ class OrderService:
                     order_id=order.order_id,
                     item_id=i.item_id,
                     final_quantity=i.final_quantity,
-                    unit_price=i.unit_price,
-                    subtotal=subtotals[i.item_id],
+                    unit_price=prices.get(i.item_id),
+                    subtotal=subtotals.get(i.item_id),
                 )
             )
 
@@ -274,3 +304,72 @@ class OrderService:
             )
         ).all()
         return [(log, name, unit) for log, name, unit in rows]
+
+    async def pending_items(self, *, item_id: str) -> list[tuple[OrderItem, Order]]:
+        """재료 하나의 입고 대기 발주 품목 — 확정일 오름차순.
+
+        매장 확인은 호출 쪽(재료 조회)이 한다.
+        """
+        rows = (
+            await self.session.execute(
+                select(OrderItem, Order)
+                .join(Order, Order.order_id == OrderItem.order_id)
+                .where(
+                    OrderItem.item_id == item_id,
+                    OrderItem.receipt_status == ReceiptStatus.PENDING,
+                )
+                .order_by(Order.approved_at, OrderItem.id)
+            )
+        ).all()
+        return [(oi, order) for oi, order in rows]
+
+    async def _pending_item_for_update(self, *, store_id: str, order_item_id: str) -> OrderItem:
+        order_item = await self.session.scalar(
+            select(OrderItem)
+            .join(Order, Order.order_id == OrderItem.order_id)
+            .where(OrderItem.id == order_item_id, Order.store_id == store_id)
+            .with_for_update()
+        )
+        if order_item is None:
+            raise _not_found("발주 품목을 찾을 수 없습니다.")
+        if order_item.receipt_status != ReceiptStatus.PENDING:
+            raise errors.state_conflict("이미 입고 처리한 발주 품목입니다.")
+        return order_item
+
+    async def receive_item(
+        self,
+        *,
+        store_id: str,
+        order_item_id: str,
+        quantity: Decimal,
+        received_at: date,
+        expiry_date: date | None,
+        purchase_price: int,
+    ) -> InventoryLot:
+        """입고 처리 — 로트를 만들고 입고 완료로 바꾼다. 한 트랜잭션 (01_basic_design.md §3.7.5)."""
+        order_item = await self._pending_item_for_update(
+            store_id=store_id, order_item_id=order_item_id
+        )
+        lot = await InventoryService(self.session).stage_lot(
+            store_id=store_id,
+            item_id=order_item.item_id,
+            quantity=quantity,
+            received_at=received_at,
+            expiry_date=expiry_date,
+            purchase_price=purchase_price,
+        )
+        order_item.receipt_status = ReceiptStatus.RECEIVED
+        order_item.lot_id = lot.lot_id
+        order_item.processed_at = func.now()
+        await self.session.commit()
+        await self.session.refresh(lot)
+        return lot
+
+    async def skip_item(self, *, store_id: str, order_item_id: str) -> None:
+        """입고 안 함 — 끝내 오지 않은 품목을 로트 없이 닫는다."""
+        order_item = await self._pending_item_for_update(
+            store_id=store_id, order_item_id=order_item_id
+        )
+        order_item.receipt_status = ReceiptStatus.SKIPPED
+        order_item.processed_at = func.now()
+        await self.session.commit()

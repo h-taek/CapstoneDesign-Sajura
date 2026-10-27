@@ -50,6 +50,7 @@ class OrderRecommendation(BaseModel):
     safety_stock: float
     config_status: str
     recommendation_reason: str
+    unit_price: float | None  # 재료 단위당 원 (01_basic_design.md §3.3.1). 미설정이면 null
 
 
 class AIRecommendResponse(BaseModel):

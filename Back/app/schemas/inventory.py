@@ -74,10 +74,19 @@ class LotResponse(BaseModel):
     purchase_price: int
 
 
+class PendingOrderItem(BaseModel):
+    order_item_id: str
+    order_id: str
+    approved_at: datetime
+    final_quantity: JsonDecimal
+    subtotal: int | None  # 확정 시 단가 미설정이면 null
+
+
 class LotListResponse(BaseModel):
     item_id: str
     item_name: str
     lots: list[LotResponse]
+    pending_orders: list[PendingOrderItem]  # 이 재료의 입고 대기 발주 품목, 확정일 오름차순
 
 
 class LotUpdateRequest(BaseModel):

@@ -34,6 +34,7 @@ const aiRecommend: ordersApi.AIRecommendResponse = {
       safety_stock: 50,
       config_status: "USER_CONFIGURED",
       recommendation_reason: "근거",
+      unit_price: 28,
     },
     {
       item_id: "syrup",
@@ -45,6 +46,7 @@ const aiRecommend: ordersApi.AIRecommendResponse = {
       safety_stock: 0,
       config_status: "DEFAULT_USED",
       recommendation_reason: "예상 소모 없음",
+      unit_price: null,
     },
   ],
 };
@@ -101,5 +103,16 @@ describe("OrdersPage", () => {
       recommendation_id: "rec-1",
       items: [{ item_id: "syrup", final_quantity: 20 }],
     });
+  });
+
+  it("단가가 있으면 예상 금액을, 없으면 단가 미설정을 보여 준다", async () => {
+    renderPage();
+    await screen.findByRole("button", { name: /AI 추천 발주 확정 \(1\)/ });
+    expect(screen.getByText("단가 28원/g · 예상 14,000원")).toBeInTheDocument();
+    expect(screen.getByText("단가 미설정")).toBeInTheDocument();
+    expect(screen.getByText("14,000원")).toBeInTheDocument(); // 확정 줄 합계
+
+    fireEvent.change(screen.getByLabelText("원두 발주 수량"), { target: { value: "300" } });
+    expect(screen.getByText("단가 28원/g · 예상 8,400원")).toBeInTheDocument();
   });
 });

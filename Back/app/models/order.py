@@ -34,6 +34,12 @@ class OrderStatus(str, enum.Enum):
     MANUAL_REQUIRED = "MANUAL_REQUIRED"
 
 
+class ReceiptStatus(str, enum.Enum):
+    PENDING = "PENDING"
+    RECEIVED = "RECEIVED"
+    SKIPPED = "SKIPPED"
+
+
 class OrderRecommendation(Base):
     __tablename__ = "order_recommendations"
 
@@ -75,8 +81,9 @@ class Order(Base):
 
     order_id: Mapped[str] = mapped_column(CHAR(36), primary_key=True, default=new_uuid)
     store_id: Mapped[str] = mapped_column(CHAR(36), ForeignKey("stores.store_id"), nullable=False)
+    # 추천안 하나에 발주 하나 — 수동 발주(NULL)는 여러 건 허용
     recommendation_id: Mapped[str | None] = mapped_column(
-        CHAR(36), ForeignKey("order_recommendations.recommendation_id"), nullable=True
+        CHAR(36), ForeignKey("order_recommendations.recommendation_id"), unique=True, nullable=True
     )
     status: Mapped[OrderStatus] = mapped_column(
         Enum(OrderStatus, name="order_status"), nullable=False, default=OrderStatus.APPROVED
@@ -100,8 +107,16 @@ class OrderItem(Base):
         CHAR(36), ForeignKey("inventory_items.item_id"), nullable=False
     )
     final_quantity: Mapped[Decimal] = mapped_column(DECIMAL(10, 3), nullable=False)
-    unit_price: Mapped[int] = mapped_column(Integer, nullable=False)
-    subtotal: Mapped[int] = mapped_column(Integer, nullable=False)
+    # 확정 시점 단가 — 미설정이면 단가·소계 모두 NULL (01_basic_design.md §3.7.4)
+    unit_price: Mapped[Decimal | None] = mapped_column(DECIMAL(12, 3), nullable=True)
+    subtotal: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    receipt_status: Mapped[ReceiptStatus] = mapped_column(
+        Enum(ReceiptStatus, name="receipt_status"), nullable=False, default=ReceiptStatus.PENDING
+    )
+    lot_id: Mapped[str | None] = mapped_column(
+        CHAR(36), ForeignKey("inventory_lots.lot_id"), nullable=True
+    )
+    processed_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
 
 
 class OrderApprovalLog(Base):

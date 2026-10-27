@@ -13,6 +13,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core import errors
 from app.integrations import ai_client
 from app.models.menu import Menu, Recipe, RecipeIngredient
+from app.models.order import Order, OrderItem, ReceiptStatus
 from app.models.sale_record import SaleRecord
 from app.services.inventory_service import InventoryService
 
@@ -77,6 +78,21 @@ class ForecastService:
         }
         return await ai_client.predict(payload)
 
+    async def _incoming_quantities(self, *, store_id: str) -> dict[str, float]:
+        """입고 예정량 — 입고 대기 상태인 발주 품목의 확정 수량 합계 (01_basic_design.md §3.7.2)."""
+        rows = (
+            await self.session.execute(
+                select(OrderItem.item_id, func.sum(OrderItem.final_quantity))
+                .join(Order, Order.order_id == OrderItem.order_id)
+                .where(
+                    Order.store_id == store_id,
+                    OrderItem.receipt_status == ReceiptStatus.PENDING,
+                )
+                .group_by(OrderItem.item_id)
+            )
+        ).all()
+        return {item_id: float(total) for item_id, total in rows}
+
     async def recommend(self, *, store_id: str) -> dict:
         history = await self._daily_sales_history(store_id=store_id)
         menu_history = await self._menu_sales_history(store_id=store_id)
@@ -99,10 +115,12 @@ class ForecastService:
         ]
 
         stocks = await InventoryService(self.session).list_stocks(store_id=store_id)
+        incoming = await self._incoming_quantities(store_id=store_id)
         inventory = [
             {
                 "item_id": i.item_id,
                 "current_quantity": float(total),  # 로트 잔여 수량 합계
+                "incoming_quantity": incoming.get(i.item_id, 0.0),
                 "unit": i.unit,
                 "lead_time_days": i.lead_time_days if i.lead_time_days is not None else 1,
                 "safety_stock": float(i.safety_stock) if i.safety_stock is not None else 0.0,

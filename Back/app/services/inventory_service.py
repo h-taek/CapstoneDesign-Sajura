@@ -198,6 +198,29 @@ class InventoryService:
         expiry_date: date | None,
         purchase_price: int,
     ) -> InventoryLot:
+        lot = await self.stage_lot(
+            store_id=store_id,
+            item_id=item_id,
+            quantity=quantity,
+            received_at=received_at,
+            expiry_date=expiry_date,
+            purchase_price=purchase_price,
+        )
+        await self.session.commit()
+        await self.session.refresh(lot)
+        return lot
+
+    async def stage_lot(
+        self,
+        *,
+        store_id: str,
+        item_id: str,
+        quantity: Decimal,
+        received_at: date,
+        expiry_date: date | None,
+        purchase_price: int,
+    ) -> InventoryLot:
+        """로트를 만들되 커밋하지 않는다 — 발주 입고 처리가 같은 트랜잭션에서 쓴다."""
         item = await self.get_item(store_id=store_id, item_id=item_id)
         lot = InventoryLot(
             item_id=item_id,
@@ -209,8 +232,7 @@ class InventoryService:
         )
         self.session.add(lot)
         item.needs_check = False
-        await self.session.commit()
-        await self.session.refresh(lot)
+        await self.session.flush()
         return lot
 
     async def get_lots(

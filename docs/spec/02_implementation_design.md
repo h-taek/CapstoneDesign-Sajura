@@ -1270,6 +1270,15 @@ Authorization: Bearer <access_token>
       "expiry_date": "2026-08-06",
       "purchase_price": 28000
     }
+  ],
+  "pending_orders": [                // 이 재료의 '입고 대기' 발주 품목, approved_at 오름차순 (01_basic_design.md §3.7.5)
+    {
+      "order_item_id": "uuid",
+      "order_id": "uuid",
+      "approved_at": "2026-05-06T10:00:00Z",
+      "final_quantity": 3000.0,
+      "subtotal": 84000              // 확정 시 단가 미설정이면 null
+    }
   ]
 }
 ```
@@ -1512,6 +1521,8 @@ Authorization: Bearer <access_token>
 | `POST` | `/api/orders/approve` | 발주 확정 |
 | `GET` | `/api/orders` | 발주 내역 목록 조회 |
 | `GET` | `/api/orders/{order_id}` | 발주 내역 상세 조회 |
+| `POST` | `/api/orders/items/{order_item_id}/receive` | 발주 품목 입고 처리 (로트 생성) |
+| `POST` | `/api/orders/items/{order_item_id}/skip` | 발주 품목 입고 안 함 |
 | `POST` | `/api/orders/{order_id}/automate/match` | 확장이 수집한 검색 결과로 담을 상품 선택 |
 | `POST` | `/api/orders/{order_id}/automate/result` | 확장의 담기 결과 기록 |
 | `GET` | `/api/orders/{order_id}/approval-log` | 발주 수정 이력 조회 |
@@ -1593,7 +1604,8 @@ Authorization: Bearer <access_token>
       "lead_time_days": 2,
       "safety_stock": 1000.0,
       "config_status": "DEFAULT_USED",
-      "recommendation_reason": "향후 3일+리드타임 2일 예상 소모 6.4kg + 안전재고 1 − 현재고 2.4"
+      "recommendation_reason": "향후 3일+리드타임 2일 예상 소모 6.4kg + 안전재고 1 − 현재고 2.4",
+      "unit_price": 28.0                     // 재료 단위당 원 (01_basic_design.md §3.3.1). 미설정이면 null
     }
   ]
 }
@@ -1635,8 +1647,7 @@ Authorization: Bearer <access_token>
   "items": [
     {
       "item_id": "uuid",
-      "final_quantity": 3000.0,    // > 0
-      "unit_price": 28             // 재료 단위(unit)당 단가(원). 생략 시 0
+      "final_quantity": 3000.0     // > 0
     }
   ],
   "note": "이번 주 행사로 원두 줄임" // 선택, 500자 이하
@@ -1651,12 +1662,15 @@ Authorization: Bearer <access_token>
 }
 // 404 NOT_FOUND: 매장에 없는 재료 또는 추천안
 // 400 VALIDATION_ERROR: items 비어 있음, 같은 item_id 중복, final_quantity ≤ 0
+// 409 STATE_CONFLICT: 이미 발주를 확정한 추천안 — 추천안 하나에 발주는 하나다
 ```
 
 | 산출 값 | 규칙 |
 |---|---|
-| `subtotal` | `round(final_quantity × unit_price)` |
-| `total_estimated_cost` | `subtotal` 합계 |
+| `unit_price` | 확정 시점의 재료 단가 (`01_basic_design.md` §3.3.1). 미설정이면 null |
+| `subtotal` | `round(final_quantity × unit_price)`. `unit_price`가 null이면 null |
+| `total_estimated_cost` | null이 아닌 `subtotal` 합계 |
+| 입고 상태 | 모든 품목 `PENDING`(입고 대기) |
 
 `recommendation_id`가 있으면 수정 이력을 품목별로 남긴다.
 
@@ -1702,15 +1716,43 @@ Authorization: Bearer <access_token>
   "note": "이번 주 행사로 원두 줄임",
   "items": [
     {
+      "order_item_id": "uuid",
       "item_id": "uuid",
       "item_name": "원두",
       "final_quantity": 3000.0,
       "unit": "g",
-      "unit_price": 28,
-      "subtotal": 84000
+      "unit_price": 28.0,          // 미설정이었으면 null
+      "subtotal": 84000,           // 미설정이었으면 null
+      "receipt_status": "PENDING"  // PENDING(입고 대기) | RECEIVED(입고 완료) | SKIPPED(입고 안 함)
     }
   ]
 }
+```
+
+#### POST /api/orders/items/{order_item_id}/receive
+
+> 로트를 만들고 품목을 `RECEIVED`로 바꾼다. 로트 생성 규칙은 `POST /api/inventory/{item_id}/lots`와 같다 (`01_basic_design.md` §3.7.5).
+
+```json
+// Request
+{
+  "quantity": 3000.0,              // > 0
+  "received_at": "2026-05-08",
+  "expiry_date": null,             // 선택
+  "purchase_price": 84000          // >= 0, 로트 구매 총액(원)
+}
+// Response 201: LotResponse (POST /api/inventory/{item_id}/lots와 같음)
+// 404 NOT_FOUND: 매장에 없는 발주 품목
+// 409 STATE_CONFLICT: PENDING이 아닌 품목
+```
+
+#### POST /api/orders/items/{order_item_id}/skip
+
+```json
+// Request 없음
+// Response 204
+// 404 NOT_FOUND: 매장에 없는 발주 품목
+// 409 STATE_CONFLICT: PENDING이 아닌 품목
 ```
 
 #### POST /api/orders/{order_id}/automate/match
@@ -1879,6 +1921,7 @@ Authorization: Bearer <access_token>
   ],
   "inventory": [
     { "item_id": "uuid", "current_quantity": 2400.0, "unit": "g",  // current_quantity = 로트 잔여 수량 합계
+      "incoming_quantity": 0.0,  // 입고 예정량(01_basic_design.md §3.7.2). 생략 시 0
       "lead_time_days": 2, "safety_stock": 1000.0, "last_price": 28000 }
   ]
 }
@@ -2547,6 +2590,7 @@ CREATE TABLE orders (
     approved_at             DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP,
     automated_at            DATETIME        NULL,
     PRIMARY KEY (order_id),
+    UNIQUE KEY uq_orders_recommendation_id (recommendation_id),
     KEY idx_orders_store_approved_at (store_id, approved_at),
     CONSTRAINT fk_orders_store FOREIGN KEY (store_id) REFERENCES stores (store_id),
     CONSTRAINT fk_orders_recommendation FOREIGN KEY (recommendation_id) REFERENCES order_recommendations (recommendation_id)
@@ -2561,12 +2605,17 @@ CREATE TABLE order_items (
     order_id        CHAR(36)        NOT NULL,
     item_id         CHAR(36)        NOT NULL,
     final_quantity  DECIMAL(10,3)   NOT NULL,
-    unit_price      INT             NOT NULL,
-    subtotal        INT             NOT NULL,
+    unit_price      DECIMAL(12,3)   NULL COMMENT '확정 시점 재료 단위당 단가(원). 미설정이면 NULL',
+    subtotal        INT             NULL COMMENT 'round(final_quantity × unit_price). unit_price가 NULL이면 NULL',
+    receipt_status  ENUM('PENDING','RECEIVED','SKIPPED') NOT NULL DEFAULT 'PENDING',
+    lot_id          CHAR(36)        NULL COMMENT '입고 처리로 만든 로트',
+    processed_at    DATETIME        NULL COMMENT '입고 처리·입고 안 함 시각',
     PRIMARY KEY (id),
     KEY idx_order_items_order_id (order_id),
+    KEY idx_order_items_item_status (item_id, receipt_status),
     CONSTRAINT fk_order_items_order FOREIGN KEY (order_id) REFERENCES orders (order_id) ON DELETE CASCADE,
-    CONSTRAINT fk_order_items_item FOREIGN KEY (item_id) REFERENCES inventory_items (item_id)
+    CONSTRAINT fk_order_items_item FOREIGN KEY (item_id) REFERENCES inventory_items (item_id),
+    CONSTRAINT fk_order_items_lot FOREIGN KEY (lot_id) REFERENCES inventory_lots (lot_id)
 );
 ```
 

@@ -79,12 +79,15 @@ async def recommend(body: RecommendRequest) -> RecommendResponse:
     for inv in body.inventory:
         daily = need.get(inv.item_id, 0.0) / horizon
         window_need = daily * (horizon + inv.lead_time_days)  # 대상 기간 + 리드타임 커버
-        recommended = max(0.0, window_need + inv.safety_stock - inv.current_quantity)
+        # 입고 예정량은 발주량에서만 뺀다 — 소진 시점은 지금 손에 있는 재고로 본다
+        recommended = max(0.0, window_need + inv.safety_stock - inv.current_quantity
+                          - inv.incoming_quantity)
         stockout = (last_open + dt.timedelta(days=math.ceil(inv.current_quantity / daily))
                     if daily > 0 else None)
         reason = (f"향후 {horizon}일+리드타임 {inv.lead_time_days}일 예상 소모 "
                   f"{window_need:.1f}{inv.unit} + 안전재고 {inv.safety_stock:g} "
                   f"− 현재고 {inv.current_quantity:g}"
+                  + (f" − 입고 예정 {inv.incoming_quantity:g}" if inv.incoming_quantity > 0 else "")
                   if daily > 0 else "대상 기간 예상 소모 없음 — 레시피 연결 메뉴의 판매 예상 0")
         recs.append(Recommendation(
             item_id=inv.item_id, recommended_quantity=round(recommended, 2),

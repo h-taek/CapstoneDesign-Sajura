@@ -1,16 +1,6 @@
 // 설정 허브(앱에서는 "더보기") — 디자인 핸드오프 §6.11 SET1~5 + 하단 탭에 없는 메뉴.
 // 카카오톡 "더보기"처럼 큰 글자 목록 한 줄 = 화면 하나.
-import {
-  Bell,
-  ChefHat,
-  ChevronRight,
-  CreditCard,
-  Info,
-  LogOut,
-  Store,
-  Upload,
-  User,
-} from "lucide-react";
+import { Bell, ChefHat, ChevronRight, Info, LogOut, Store, Upload, User } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { Link } from "react-router";
 import { DashboardShell, signOut } from "../../components/dashboard/shell";
@@ -29,9 +19,9 @@ const WORK_ITEMS: Item[] = [
     icon: Upload,
   },
   {
-    to: "/recipes",
-    label: "레시피 관리",
-    description: "메뉴 하나에 들어가는 재료와 양",
+    to: "/menus",
+    label: "메뉴 관리",
+    description: "메뉴 판매가와 레시피",
     icon: ChefHat,
   },
 ];
@@ -42,12 +32,6 @@ const SETTING_ITEMS: Item[] = [
     label: "POS 연동 관리",
     description: "POS 연동 상태 확인, CSV 템플릿 다운로드·업로드",
     icon: Store,
-  },
-  {
-    to: "/settings/pricing",
-    label: "단가 관리",
-    description: "메뉴별 판매 단가 조회 및 수정",
-    icon: CreditCard,
   },
   {
     to: "/settings/notifications",

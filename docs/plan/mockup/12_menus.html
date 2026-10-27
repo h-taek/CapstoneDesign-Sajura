@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>메뉴 관리 — 사주라 목업</title>
+<script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4.0.17"></script>
+<script src="mockup.js" defer></script>
+</head>
+<!-- 설계안: 메뉴 판매가와 레시피를 한 화면에서 편집한다. 원본 recipes.tsx(레시피만)를 바탕으로 메뉴 칸·추가·삭제를 더했다 -->
+<body data-page="menus" data-states="메뉴 편집:default,메뉴 추가:new,재료 없음:noinv,저장 실패:error">
+<div data-shell="menus">
+  <div class="space-y-6">
+    <div class="flex items-center justify-between gap-3">
+      <h1 class="hidden text-[1.75rem] font-bold tracking-tight text-ink lg:block">메뉴 관리</h1>
+      <button type="button" data-set-state="new" class="inline-flex shrink-0 items-center justify-center gap-2 font-semibold whitespace-nowrap transition-colors bg-brand text-white hover:bg-brand-strong h-12 px-6 text-base rounded-xl w-full lg:w-auto"><span data-icon="plus" class="size-5"></span>메뉴 추가</button>
+    </div>
+
+    <div class="grid grid-cols-1 gap-6 lg:grid-cols-[280px_1fr]">
+      <!-- 메뉴 목록 — 이름과 판매가. 선택한 메뉴만 brand-soft -->
+      <section class="space-y-2 rounded-xl border border-line bg-white p-2">
+        <button type="button" data-when="new" class="flex w-full items-center justify-between rounded-lg bg-brand-soft px-3 py-2.5 text-left text-sm font-medium text-brand"><span>새 메뉴</span><span class="text-sm">—</span></button>
+        <button type="button" data-when="default noinv error" class="flex w-full items-center justify-between gap-3 rounded-lg bg-brand-soft px-3 py-2.5 text-left text-sm font-medium text-brand"><span>불새우 루꼴라 화덕피자</span><span class="tabular shrink-0">19,000원</span></button>
+        <button type="button" data-when="new" data-set-state="default" class="flex w-full items-center justify-between gap-3 rounded-lg px-3 py-2.5 text-left text-sm text-ink-2 hover:bg-subtle"><span>불새우 루꼴라 화덕피자</span><span class="tabular shrink-0 text-ink-3">19,000원</span></button>
+        <button type="button" class="flex w-full items-center justify-between gap-3 rounded-lg px-3 py-2.5 text-left text-sm text-ink-2 hover:bg-subtle"><span>페페로니 듬뿍 화덕피자</span><span class="tabular shrink-0 text-ink-3">17,900원</span></button>
+        <button type="button" class="flex w-full items-center justify-between gap-3 rounded-lg px-3 py-2.5 text-left text-sm text-ink-2 hover:bg-subtle"><span>마르게리타 화덕피자</span><span class="tabular shrink-0 text-ink-3">15,900원</span></button>
+        <button type="button" class="flex w-full items-center justify-between gap-3 rounded-lg px-3 py-2.5 text-left text-sm text-ink-2 hover:bg-subtle"><span>고르곤졸라 꿀 피자</span><span class="tabular shrink-0 text-ink-3">18,500원</span></button>
+        <button type="button" class="flex w-full items-center justify-between gap-3 rounded-lg px-3 py-2.5 text-left text-sm text-ink-2 hover:bg-subtle"><span>머스크멜론 하몽</span><span class="tabular shrink-0 text-ink-3">18,000원</span></button>
+        <button type="button" class="flex w-full items-center justify-between gap-3 rounded-lg px-3 py-2.5 text-left text-sm text-ink-2 hover:bg-subtle"><span>얼큰 바지락 술찜</span><span class="tabular shrink-0 text-ink-3">18,000원</span></button>
+        <button type="button" class="flex w-full items-center justify-between gap-3 rounded-lg px-3 py-2.5 text-left text-sm text-ink-2 hover:bg-subtle"><span>루꼴라 샐러드</span><span class="tabular shrink-0 text-ink-3">12,000원</span></button>
+        <button type="button" class="flex w-full items-center justify-between gap-3 rounded-lg px-3 py-2.5 text-left text-sm text-ink-2 hover:bg-subtle"><span>제로콜라</span><span class="tabular shrink-0 text-ink-3">3,000원</span></button>
+      </section>
+
+      <!-- MenuEditor — 메뉴 칸 + 레시피를 한 번에 저장 -->
+      <section class="space-y-5 rounded-xl border border-line bg-white p-6">
+        <div class="grid grid-cols-1 gap-3 sm:grid-cols-[minmax(0,2fr)_minmax(0,1fr)_minmax(0,1fr)]">
+          <label class="space-y-1 text-sm font-semibold text-ink-2">메뉴명
+            <input data-when="default noinv error" value="불새우 루꼴라 화덕피자" class="block h-11 w-full rounded-xl border border-line bg-white px-3 text-base text-ink focus:border-brand focus:ring-4 focus:ring-brand-soft focus:outline-none">
+            <input data-when="new" value="" placeholder="예: 마르게리타" class="block h-11 w-full rounded-xl border border-line bg-white px-3 text-base text-ink focus:border-brand focus:ring-4 focus:ring-brand-soft focus:outline-none">
+          </label>
+          <label class="space-y-1 text-sm font-semibold text-ink-2">판매가 (원)
+            <input data-when="default noinv error" type="number" min="0" value="19000" class="block h-11 w-full rounded-xl border border-line bg-white px-3 text-base text-ink focus:border-brand focus:ring-4 focus:ring-brand-soft focus:outline-none">
+            <input data-when="new" type="number" min="0" value="" class="block h-11 w-full rounded-xl border border-line bg-white px-3 text-base text-ink focus:border-brand focus:ring-4 focus:ring-brand-soft focus:outline-none">
+          </label>
+          <label class="space-y-1 text-sm font-semibold text-ink-2">카테고리 (선택)
+            <input data-when="default noinv error" value="피자" class="block h-11 w-full rounded-xl border border-line bg-white px-3 text-base text-ink focus:border-brand focus:ring-4 focus:ring-brand-soft focus:outline-none">
+            <input data-when="new" value="" class="block h-11 w-full rounded-xl border border-line bg-white px-3 text-base text-ink focus:border-brand focus:ring-4 focus:ring-brand-soft focus:outline-none">
+          </label>
+        </div>
+
+        <div class="space-y-3 border-t border-line-soft pt-5">
+          <div class="flex items-center justify-between gap-4">
+            <h2 class="text-base font-semibold text-ink">레시피</h2>
+            <!-- 레시피(재료 1개 이상)를 저장한 메뉴만 켤 수 있다 -->
+            <label class="flex shrink-0 items-center gap-2 text-sm text-ink-2"><input data-when="default noinv error" type="checkbox" checked class="size-4 accent-brand"><input data-when="new" type="checkbox" disabled class="size-4 accent-brand">재고 차감</label>
+          </div>
+
+          <p data-when="noinv" class="rounded-lg border border-dashed border-line p-4 text-sm text-ink-3">먼저 재고관리에서 재료를 등록해야 레시피를 구성할 수 있습니다.</p>
+
+          <div data-when="default error" class="space-y-2">
+            <div class="flex items-center gap-2">
+              <select class="h-10 flex-1 rounded-lg border border-line px-2 text-sm"><option>피자 도우</option><option>모짜렐라 치즈</option><option>토마토 소스</option><option>루꼴라</option></select>
+              <input type="number" step="any" min="0" value="1" class="h-10 w-24 rounded-lg border border-line px-2 text-sm">
+              <span class="w-10 text-sm text-ink-3">개</span>
+              <button type="button" aria-label="재료 삭제" class="text-ink-3 hover:text-danger"><span data-icon="trash2" class="size-4"></span></button>
+            </div>
+            <div class="flex items-center gap-2">
+              <select class="h-10 flex-1 rounded-lg border border-line px-2 text-sm"><option>모짜렐라 치즈</option><option>피자 도우</option><option>토마토 소스</option><option>루꼴라</option></select>
+              <input type="number" step="any" min="0" value="120" class="h-10 w-24 rounded-lg border border-line px-2 text-sm">
+              <span class="w-10 text-sm text-ink-3">g</span>
+              <button type="button" aria-label="재료 삭제" class="text-ink-3 hover:text-danger"><span data-icon="trash2" class="size-4"></span></button>
+            </div>
+            <div class="flex items-center gap-2">
+              <select class="h-10 flex-1 rounded-lg border border-line px-2 text-sm"><option>루꼴라</option><option>피자 도우</option><option>모짜렐라 치즈</option><option>토마토 소스</option></select>
+              <input type="number" step="any" min="0" value="30" class="h-10 w-24 rounded-lg border border-line px-2 text-sm">
+              <span class="w-10 text-sm text-ink-3">g</span>
+              <button type="button" aria-label="재료 삭제" class="text-ink-3 hover:text-danger"><span data-icon="trash2" class="size-4"></span></button>
+            </div>
+          </div>
+          <button type="button" data-when="default error new" class="inline-flex h-9 shrink-0 items-center justify-center gap-2 rounded-full border border-line bg-white px-4 text-sm font-semibold whitespace-nowrap text-ink-2 transition-colors hover:bg-subtle"><span data-icon="plus" class="size-4"></span> 재료 추가</button>
+        </div>
+
+        <div class="flex items-center justify-between gap-3 border-t border-line-soft pt-5">
+          <button type="button" data-when="default noinv error" class="text-sm font-semibold text-danger hover:underline">메뉴 삭제</button>
+          <button type="button" data-when="new" data-set-state="default" class="text-sm font-semibold text-ink-3 hover:text-ink-2">취소</button>
+          <button type="button" class="inline-flex h-11 shrink-0 items-center justify-center gap-2 rounded-xl bg-brand px-6 text-[0.95rem] font-semibold whitespace-nowrap text-white transition-colors hover:bg-brand-strong">저장</button>
+        </div>
+        <p data-when="error" class="text-sm text-danger" role="alert">저장에 실패했습니다. 재고 차감을 켠 메뉴는 재료가 1개 이상 필요합니다.</p>
+      </section>
+    </div>
+  </div>
+</div>
+</body>
+</html>

@@ -4,11 +4,13 @@ from __future__ import annotations
 
 import math
 
-from fastapi import APIRouter, Depends, Query, status
+from fastapi import APIRouter, Depends, Query, Response, status
 
 from app.api.deps import CurrentUserDep, SessionDep, require_business_access
+from app.api.inventory import lot_dto
 from app.models.order import Order
 from app.schemas.forecast import AIRecommendResponse
+from app.schemas.inventory import LotCreateRequest, LotResponse
 from app.schemas.orders import (
     ApprovalLogItem,
     ApprovalLogResponse,
@@ -94,16 +96,44 @@ async def get_order(
         note=order.note,
         items=[
             OrderDetailItem(
+                order_item_id=i.id,
                 item_id=i.item_id,
                 item_name=name,
                 final_quantity=float(i.final_quantity),
                 unit=unit,
-                unit_price=i.unit_price,
+                unit_price=float(i.unit_price) if i.unit_price is not None else None,
                 subtotal=i.subtotal,
+                receipt_status=i.receipt_status.value,
             )
             for i, name, unit in items
         ],
     )
+
+
+@router.post(
+    "/items/{order_item_id}/receive",
+    response_model=LotResponse,
+    status_code=status.HTTP_201_CREATED,
+)
+async def receive_order_item(
+    order_item_id: str, payload: LotCreateRequest, session: SessionDep, current: CurrentUserDep
+) -> LotResponse:
+    store_id = await _store_id(session, current.user_id)
+    lot = await OrderService(session).receive_item(
+        store_id=store_id, order_item_id=order_item_id, **payload.model_dump()
+    )
+    return lot_dto(lot)
+
+
+@router.post(
+    "/items/{order_item_id}/skip",
+    status_code=status.HTTP_204_NO_CONTENT,
+    response_class=Response,
+    response_model=None,
+)
+async def skip_order_item(order_item_id: str, session: SessionDep, current: CurrentUserDep) -> None:
+    store_id = await _store_id(session, current.user_id)
+    await OrderService(session).skip_item(store_id=store_id, order_item_id=order_item_id)
 
 
 @router.get("/{order_id}/approval-log", response_model=ApprovalLogResponse)

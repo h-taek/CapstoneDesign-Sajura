@@ -21,6 +21,14 @@ export async function listMenus(size = 100): Promise<MenuListResponse> {
   return api.get("menus", { searchParams: { size } }).json<MenuListResponse>();
 }
 
+export async function createMenu(input: MenuInput): Promise<MenuListItem> {
+  return api.post("menus", { json: input }).json<MenuListItem>();
+}
+
+export async function deleteMenu(menuId: string): Promise<void> {
+  await api.delete(`menus/${menuId}`);
+}
+
 export type MenuUpdateInput = S["MenuUpdateRequest"];
 
 export async function updateMenu(menuId: string, patch: MenuUpdateInput): Promise<MenuListItem> {

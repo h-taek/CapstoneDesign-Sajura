@@ -580,6 +580,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/orders/items/{order_item_id}/receive": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Receive Order Item */
+        post: operations["receive_order_item_api_orders_items__order_item_id__receive_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/orders/items/{order_item_id}/skip": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Skip Order Item */
+        post: operations["skip_order_item_api_orders_items__order_item_id__skip_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/orders/{order_id}/approval-log": {
         parameters: {
             query?: never;
@@ -1114,6 +1148,8 @@ export interface components {
             item_name: string;
             /** Lots */
             lots: components["schemas"]["LotResponse"][];
+            /** Pending Orders */
+            pending_orders: components["schemas"]["PendingOrderItem"][];
         };
         /** LotResponse */
         LotResponse: {
@@ -1269,11 +1305,6 @@ export interface components {
             item_id: string;
             /** Final Quantity */
             final_quantity: number | string;
-            /**
-             * Unit Price
-             * @default 0
-             */
-            unit_price?: number;
         };
         /** OrderApproveRequest */
         OrderApproveRequest: {
@@ -1300,6 +1331,8 @@ export interface components {
         };
         /** OrderDetailItem */
         OrderDetailItem: {
+            /** Order Item Id */
+            order_item_id: string;
             /** Item Id */
             item_id: string;
             /** Item Name */
@@ -1309,9 +1342,11 @@ export interface components {
             /** Unit */
             unit: string;
             /** Unit Price */
-            unit_price: number;
+            unit_price: number | null;
             /** Subtotal */
-            subtotal: number;
+            subtotal: number | null;
+            /** Receipt Status */
+            receipt_status: string;
         };
         /** OrderDetailResponse */
         OrderDetailResponse: {
@@ -1364,6 +1399,8 @@ export interface components {
             config_status: string;
             /** Recommendation Reason */
             recommendation_reason: string;
+            /** Unit Price */
+            unit_price: number | null;
         };
         /** OrderSummary */
         OrderSummary: {
@@ -1380,6 +1417,22 @@ export interface components {
             status: string;
             /** Item Count */
             item_count: number;
+        };
+        /** PendingOrderItem */
+        PendingOrderItem: {
+            /** Order Item Id */
+            order_item_id: string;
+            /** Order Id */
+            order_id: string;
+            /**
+             * Approved At
+             * Format: date-time
+             */
+            approved_at: string;
+            /** Final Quantity */
+            final_quantity: number;
+            /** Subtotal */
+            subtotal: number | null;
         };
         /** PosCreateRequest */
         PosCreateRequest: {
@@ -3293,6 +3346,74 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["OrderDetailResponse"];
                 };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    receive_order_item_api_orders_items__order_item_id__receive_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                order_item_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LotCreateRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LotResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    skip_order_item_api_orders_items__order_item_id__skip_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                order_item_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             /** @description Validation Error */
             422: {

@@ -44,6 +44,21 @@ export function stockStatus(item: InventoryItem, today: Date): StockStatus {
   return "NORMAL";
 }
 
+/** 재고 화면 소비기한 경고 — 단계 없이 D-3 이내(지난 것 포함)면 기한 글씨를 빨갛게 한다. */
+export function isExpiryWarning(item: InventoryItem, today: Date): boolean {
+  return (
+    item.nearest_expiry_date !== null &&
+    daysUntil(item.nearest_expiry_date, today) <= EXPIRY_WARN_DAYS
+  );
+}
+
+/** 재고 화면 수량 경고 — 확인 필요·재고 없음·기준 이하면 수량 글씨를 빨갛게 한다. */
+export function isStockWarning(item: InventoryItem): boolean {
+  return (
+    item.needs_check || item.total_quantity <= 0 || item.total_quantity <= item.low_stock_threshold
+  );
+}
+
 /** 소비기한이 없는 재료는 방향과 무관하게 맨 뒤. 같으면 재료명순. */
 export function sortInventory(
   items: InventoryItem[],
