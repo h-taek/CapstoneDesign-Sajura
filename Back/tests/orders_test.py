@@ -1,8 +1,11 @@
-"""추천발주 저장 + 발주 확정(approve) + 발주 내역 — 02_implementation_design.md §3.7."""
+"""추천발주 계산·저장 + 발주 확정(approve) + 발주 내역 — 02_implementation_design.md §3.7.
+
+추천발주는 BE가 저장된 예측(n8n 산출)과 그 시점 재고로 계산한다 (01_basic_design.md §3.7.2).
+"""
 
 from __future__ import annotations
 
-import io
+from datetime import timedelta
 from decimal import Decimal
 
 import pytest
@@ -10,10 +13,11 @@ from httpx import AsyncClient
 from sqlalchemy import func, select, text, update
 
 import app.db as app_db
-from app.integrations import ai_client
 from app.models.order import Order, OrderApprovalLog, OrderRecommendation
 from app.services.order_service import OrderService
-from tests.sales_test import _create_menu, _csv_bytes, _register_verified_user
+from tests.forecast_test import LAST_SALE, TARGETS, store_forecast, upload_one_sale
+from tests.notifications_test import _store_id
+from tests.sales_test import _create_menu, _register_verified_user
 
 
 async def _create_item(client: AsyncClient, auth: dict, name: str, **extra) -> str:
@@ -26,61 +30,33 @@ async def _create_item(client: AsyncClient, auth: dict, name: str, **extra) -> s
     return r.json()["item_id"]
 
 
-async def _setup_store(client: AsyncClient) -> tuple[dict, str, list[str]]:
-    """판매 1건(대상일 산출용) + 메뉴 + 재료 3종. 첫 재료만 리드타임·안전재고 모두 설정."""
-    _, auth = await _register_verified_user(client)
+async def _setup_store(
+    client: AsyncClient, *, forecast: bool = True
+) -> tuple[dict, str, list[str]]:
+    """판매 1건(대상일 산출용) + 메뉴(레시피 원두 15g·우유 100) + 재료 3종(현재고 각 100).
+
+    첫 재료만 리드타임·안전재고 모두 설정. forecast면 대상일마다 아메리카노 10잔 예측을 저장한다.
+    """
+    email, auth = await _register_verified_user(client)
     menu_id = await _create_menu(client, auth, "아메리카노")
-    r = await client.post(
-        "/api/sales/upload",
-        files={
-            "file": (
-                "s.csv",
-                io.BytesIO(_csv_bytes(["2026-01-15,아메리카노,1,4500,r1"])),
-                "text/csv",
-            )
-        },
-        data={
-            "date_column": "날짜",
-            "menu_column": "메뉴명",
-            "quantity_column": "수량",
-            "price_column": "금액",
-            "external_sale_id_column": "영수증번호",
-        },
-        headers=auth,
-    )
-    assert r.status_code == 201, r.text
+    await upload_one_sale(client, auth)
     items = [
         await _create_item(client, auth, "원두", lead_time_days=2, safety_stock=50),
         await _create_item(client, auth, "우유", lead_time_days=1),
         await _create_item(client, auth, "시럽"),
     ]
+    r = await client.put(
+        f"/api/menus/{menu_id}/recipe",
+        json={"ingredients": [
+            {"item_id": items[0], "quantity": 15, "unit": "g"},
+            {"item_id": items[1], "quantity": 100, "unit": "g"},
+        ]},
+        headers=auth,
+    )
+    assert r.status_code == 200, r.text
+    if forecast:
+        await store_forecast(await _store_id(email), {menu_id: 10})
     return auth, menu_id, items
-
-
-def _fake_recommend(menu_id: str, quantities: dict[str, float]):
-    async def fake(payload: dict) -> dict:
-        return {
-            "store_id": payload["store_id"],
-            "target_dates": payload["target_dates"],
-            "is_low_confidence": False,
-            "low_confidence_reason": None,
-            "menu_forecast": [{"menu_id": menu_id, "expected_quantity": 30.0}],
-            "recommendations": [
-                {
-                    "item_id": inv["item_id"],
-                    "recommended_quantity": quantities.get(inv["item_id"], 0.0),
-                    "expected_stockout_date": None,
-                    "lead_time_days": inv["lead_time_days"],
-                    "safety_stock": inv["safety_stock"],
-                    "config_status": "OK",
-                    "defaults_used": None,
-                    "recommendation_reason": "테스트",
-                }
-                for inv in payload["inventory"]
-            ],
-        }
-
-    return fake
 
 
 def _fake_prices(prices: dict[str, str]):
@@ -125,7 +101,6 @@ async def test_recommend_saves_snapshot_and_replaces_unapproved(
     client: AsyncClient, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     auth, menu_id, (bean, milk, syrup) = await _setup_store(client)
-    monkeypatch.setattr(ai_client, "recommend", _fake_recommend(menu_id, {bean: 500.0}))
 
     r = await client.get("/api/orders/recommend", headers=auth)
     assert r.status_code == 200, r.text
@@ -143,27 +118,56 @@ async def test_recommend_saves_snapshot_and_replaces_unapproved(
 
 
 @pytest.mark.asyncio
-async def test_recommend_sends_system_defaults_for_unset_config(
-    client: AsyncClient, monkeypatch: pytest.MonkeyPatch
-) -> None:
-    """미설정 리드타임·안전재고는 시스템 기본값(1일, 0) — low_stock_threshold로 대체하지 않는다."""
-    auth, menu_id, (bean, _, _) = await _setup_store(client)
-    condensed = await _create_item(client, auth, "연유", low_stock_threshold=500)
-
-    sent: dict = {}
-    fake = _fake_recommend(menu_id, {})
-
-    async def capture(payload: dict) -> dict:
-        sent.update(payload)
-        return await fake(payload)
-
-    monkeypatch.setattr(ai_client, "recommend", capture)
+async def test_recommend_calculates_from_stored_forecast(client: AsyncClient) -> None:
+    """3일 × 10잔 예측 · 레시피 · 현재고 100으로 §3.7.2 산식을 계산한다."""
+    auth, menu_id, (bean, milk, syrup) = await _setup_store(client)
     r = await client.get("/api/orders/recommend", headers=auth)
     assert r.status_code == 200, r.text
+    body = r.json()
+    assert body["target_dates"] == [d.isoformat() for d in TARGETS]
+    assert (body["is_low_confidence"], body["low_confidence_reason"]) == (False, None)
+    assert body["menu_forecast"] == [
+        {"menu_id": menu_id, "menu_name": "아메리카노", "expected_quantity": 30.0}
+    ]
+    recs = {x["item_id"]: x for x in body["recommendations"]}
+    # 원두 하루 150g × (3 + 리드타임 2) + 안전재고 50 − 현재고 100
+    assert recs[bean]["recommended_quantity"] == 700.0
+    assert recs[bean]["expected_stockout_date"] == (LAST_SALE + timedelta(days=1)).isoformat()
+    assert recs[bean]["recommendation_reason"] == (
+        "향후 3일+리드타임 2일 예상 소모 750.0g + 안전재고 50 − 현재고 100"
+    )
+    # 우유 하루 1000 × (3 + 기본 리드타임 1) + 기본 안전재고 0 − 100
+    assert (recs[milk]["lead_time_days"], recs[milk]["safety_stock"]) == (1, 0.0)
+    assert recs[milk]["recommended_quantity"] == 3900.0
+    assert recs[syrup]["recommended_quantity"] == 0.0
+    assert recs[syrup]["expected_stockout_date"] is None
+    assert recs[syrup]["recommendation_reason"] == (
+        "대상 기간 예상 소모 없음 — 레시피 연결 메뉴의 판매 예상 0"
+    )
 
-    inv = {x["item_id"]: x for x in sent["inventory"]}
-    assert (inv[bean]["lead_time_days"], inv[bean]["safety_stock"]) == (2, 50.0)
-    assert (inv[condensed]["lead_time_days"], inv[condensed]["safety_stock"]) == (1, 0.0)
+
+@pytest.mark.asyncio
+async def test_recommend_carries_earliest_low_confidence(client: AsyncClient) -> None:
+    email, auth = await _register_verified_user(client)
+    menu_id = await _create_menu(client, auth, "아메리카노")
+    await upload_one_sale(client, auth)
+    await store_forecast(
+        await _store_id(email), {menu_id: 10},
+        low={TARGETS[2]: "LONG_HORIZON", TARGETS[1]: "WIDE_INTERVAL"},
+    )
+    r = await client.get("/api/orders/recommend", headers=auth)
+    assert r.status_code == 200, r.text
+    assert (r.json()["is_low_confidence"], r.json()["low_confidence_reason"]) == (
+        True, "WIDE_INTERVAL",
+    )
+
+
+@pytest.mark.asyncio
+async def test_recommend_without_stored_forecast_is_404(client: AsyncClient) -> None:
+    auth, _, _ = await _setup_store(client, forecast=False)
+    r = await client.get("/api/orders/recommend", headers=auth)
+    assert r.status_code == 404, r.text
+    assert r.json()["error"] == "FORECAST_NOT_FOUND"
 
 
 @pytest.mark.asyncio
@@ -171,16 +175,13 @@ async def test_approve_with_recommendation_records_logs(
     client: AsyncClient, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     auth, menu_id, (bean, milk, syrup) = await _setup_store(client)
-    monkeypatch.setattr(
-        ai_client, "recommend", _fake_recommend(menu_id, {bean: 500.0, milk: 200.0})
-    )
     monkeypatch.setattr(OrderService, "_unit_prices", _fake_prices({bean: "28", syrup: "3"}))
     r = await client.get("/api/orders/recommend", headers=auth)
     rec_id = r.json()["recommendation_id"]
     prices = {x["item_id"]: x["unit_price"] for x in r.json()["recommendations"]}
     assert prices == {bean: 28.0, milk: None, syrup: 3.0}
 
-    # 원두 수정(500→300), 우유 제외, 시럽 추가(추천 0). 단가는 서버가 정한다
+    # 원두 수정(700→300), 우유 제외, 시럽 추가(추천 0). 단가는 서버가 정한다
     r = await client.post(
         "/api/orders/approve",
         json={
@@ -202,7 +203,7 @@ async def test_approve_with_recommendation_records_logs(
     assert r.status_code == 200, r.text
     logs = {x["item_id"]: x for x in r.json()["items"]}
     assert set(logs) == {bean, milk, syrup}
-    assert Decimal(str(logs[bean]["recommended_quantity"])) == 500
+    assert Decimal(str(logs[bean]["recommended_quantity"])) == 700
     assert Decimal(str(logs[bean]["final_quantity"])) == 300
     assert logs[bean]["was_modified"] is True
     assert Decimal(str(logs[milk]["final_quantity"])) == 0
@@ -222,7 +223,6 @@ async def test_approve_same_recommendation_twice_conflicts(
     client: AsyncClient, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     auth, menu_id, (bean, _milk, _syrup) = await _setup_store(client)
-    monkeypatch.setattr(ai_client, "recommend", _fake_recommend(menu_id, {bean: 500.0}))
     rec_id = (await client.get("/api/orders/recommend", headers=auth)).json()["recommendation_id"]
     body = {"recommendation_id": rec_id, "items": [{"item_id": bean, "final_quantity": 500}]}
 
@@ -260,32 +260,30 @@ async def test_recommend_sends_incoming_of_pending_items(
     )
     assert r.status_code == 201, r.text
 
-    sent: dict = {}
-    fake = _fake_recommend(menu_id, {})
-
-    async def capture(payload: dict) -> dict:
-        sent.update(payload)
-        return await fake(payload)
-
-    monkeypatch.setattr(ai_client, "recommend", capture)
     r = await client.get("/api/orders/recommend", headers=auth)
     assert r.status_code == 200, r.text
-
-    incoming = {x["item_id"]: x["incoming_quantity"] for x in sent["inventory"]}
-    assert incoming == {bean: 300.0, milk: 0.0, syrup: 5.0}
+    recs = {x["item_id"]: x for x in r.json()["recommendations"]}
+    # 입고 대기 원두 300은 발주량에서만 뺀다 — 소진 예상일은 손에 있는 재고 기준
+    assert recs[bean]["recommended_quantity"] == 400.0
+    assert recs[bean]["expected_stockout_date"] == (LAST_SALE + timedelta(days=1)).isoformat()
+    assert recs[bean]["recommendation_reason"].endswith("− 현재고 100 − 입고 예정 300")
+    # 우유는 입고 완료 40이 현재고에 들어갔고 입고 예정 없음
+    assert recs[milk]["recommended_quantity"] == 3860.0
+    assert "입고 예정" not in recs[milk]["recommendation_reason"]
 
 
 @pytest.mark.asyncio
 async def test_approve_unmodified_item_is_not_marked(
     client: AsyncClient, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    auth, menu_id, (bean, _milk, _syrup) = await _setup_store(client)
-    monkeypatch.setattr(ai_client, "recommend", _fake_recommend(menu_id, {bean: 500.0}))
+    auth, menu_id, (bean, milk, _syrup) = await _setup_store(client)
     rec_id = (await client.get("/api/orders/recommend", headers=auth)).json()["recommendation_id"]
 
     r = await client.post(
         "/api/orders/approve",
-        json={"recommendation_id": rec_id, "items": [{"item_id": bean, "final_quantity": 500}]},
+        json={"recommendation_id": rec_id, "items": [
+            {"item_id": bean, "final_quantity": 700}, {"item_id": milk, "final_quantity": 3900},
+        ]},
         headers=auth,
     )
     assert r.status_code == 201, r.text
@@ -299,8 +297,9 @@ async def test_approve_unmodified_item_is_not_marked(
         ).all()
     by_item = {log.item_id: log for log in logs}
     assert by_item[bean].was_modified is False
+    assert by_item[milk].was_modified is False
     # 추천 0 + 미포함 품목은 수정 아님
-    assert all(not log.was_modified for item, log in by_item.items() if item != bean)
+    assert all(not log.was_modified for log in by_item.values())
 
 
 @pytest.mark.asyncio
@@ -321,7 +320,6 @@ async def test_approve_without_recommendation_has_no_logs(client: AsyncClient) -
 async def test_approve_validation(client: AsyncClient, monkeypatch: pytest.MonkeyPatch) -> None:
     auth, menu_id, (bean, _milk, _syrup) = await _setup_store(client)
     other_auth, other_menu, _ = await _setup_store(client)
-    monkeypatch.setattr(ai_client, "recommend", _fake_recommend(other_menu, {}))
     other_rec = (await client.get("/api/orders/recommend", headers=other_auth)).json()[
         "recommendation_id"
     ]
@@ -398,8 +396,7 @@ async def test_list_and_detail(client: AsyncClient, monkeypatch: pytest.MonkeyPa
 async def test_inventory_delete_guards_ordered_items(
     client: AsyncClient, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    auth, menu_id, (bean, milk, _syrup) = await _setup_store(client)
-    monkeypatch.setattr(ai_client, "recommend", _fake_recommend(menu_id, {bean: 1.0, milk: 1.0}))
+    auth, menu_id, (bean, _milk, syrup) = await _setup_store(client)
     await client.get("/api/orders/recommend", headers=auth)
     r = await client.post(
         "/api/orders/approve",
@@ -412,8 +409,8 @@ async def test_inventory_delete_guards_ordered_items(
     assert r.status_code == 409, r.text
     assert r.json()["error"] == "INVENTORY_ITEM_IN_USE"
 
-    # 추천 스냅샷에만 있는 재료는 삭제된다
-    r = await client.delete(f"/api/inventory/{milk}", headers=auth)
+    # 추천 스냅샷에만 있는 재료(레시피 미연결)는 삭제된다
+    r = await client.delete(f"/api/inventory/{syrup}", headers=auth)
     assert r.status_code == 204, r.text
 
 

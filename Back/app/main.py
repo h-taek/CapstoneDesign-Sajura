@@ -32,6 +32,7 @@ from app.api.menu import router as menu_router
 from app.api.notifications import router as notifications_router
 from app.api.oauth import router as oauth_router
 from app.api.orders import router as orders_router
+from app.api.pipeline import router as pipeline_router
 from app.api.pos_stub import router as pos_router
 from app.api.prices import router as prices_router
 from app.api.sales import router as sales_router
@@ -100,6 +101,7 @@ def create_app() -> FastAPI:
     app.include_router(sales_router)
     app.include_router(prices_router)
     app.include_router(notifications_router)
+    app.include_router(pipeline_router)
 
     @app.exception_handler(StarletteHTTPException)
     async def _http_exc_handler(request: Request, exc: StarletteHTTPException) -> ORJSONResponse:

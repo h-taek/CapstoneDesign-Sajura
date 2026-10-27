@@ -69,7 +69,6 @@ class ApprovalLogItem(BaseModel):
     item_id: str
     item_name: str
     recommended_quantity: float
-    adjusted_quantity: float
     final_quantity: float
     unit: str
     was_modified: bool

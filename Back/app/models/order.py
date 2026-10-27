@@ -67,7 +67,6 @@ class OrderRecommendationItem(Base):
         CHAR(36), ForeignKey("inventory_items.item_id"), nullable=False
     )
     recommended_quantity: Mapped[Decimal] = mapped_column(DECIMAL(10, 3), nullable=False)
-    adjusted_quantity: Mapped[Decimal] = mapped_column(DECIMAL(10, 3), nullable=False)
     lead_time_days: Mapped[int] = mapped_column(Integer, nullable=False)
     safety_stock: Mapped[Decimal] = mapped_column(DECIMAL(10, 3), nullable=False)
     config_status: Mapped[ConfigStatus] = mapped_column(
@@ -130,6 +129,5 @@ class OrderApprovalLog(Base):
         CHAR(36), ForeignKey("inventory_items.item_id"), nullable=False
     )
     recommended_quantity: Mapped[Decimal] = mapped_column(DECIMAL(10, 3), nullable=False)
-    adjusted_quantity: Mapped[Decimal] = mapped_column(DECIMAL(10, 3), nullable=False)
     final_quantity: Mapped[Decimal] = mapped_column(DECIMAL(10, 3), nullable=False)
     was_modified: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)

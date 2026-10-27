@@ -1,4 +1,4 @@
-"""AI 수요예측·발주추천 DTOs — 02_implementation_design.md §3.8 계약을 BE 응답 형태로 재노출."""
+"""수요예측·추천발주 응답 — 02_implementation_design.md §3.7 (예측은 n8n 저장분, 추천은 BE 계산)."""
 from __future__ import annotations
 
 from datetime import date
@@ -19,6 +19,12 @@ class Explanation(BaseModel):
     sentence: str
 
 
+class MenuForecastItem(BaseModel):
+    menu_id: str
+    menu_name: str
+    expected_quantity: float
+
+
 class DailyPrediction(BaseModel):
     target_date: date
     horizon_days: int
@@ -28,16 +34,11 @@ class DailyPrediction(BaseModel):
     is_low_confidence: bool
     low_confidence_reason: str | None = None
     explanation: Explanation
+    menu_forecast: list[MenuForecastItem]  # 대상일 메뉴별 예상 수량, 내림차순
 
 
 class ForecastPredictResponse(BaseModel):
     predictions: list[DailyPrediction]
-
-
-class MenuForecastItem(BaseModel):
-    menu_id: str
-    menu_name: str
-    expected_quantity: float
 
 
 class OrderRecommendation(BaseModel):

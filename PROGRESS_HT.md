@@ -8,6 +8,15 @@
 
 ## 1. 개발 이력
 
+### 예측 배치 — n8n 모델 예측 + BE 추천발주 계산 (2026-10-28)
+
+- 결정 — n8n은 모델 예측만(입력 조회·AI 예측·예측 저장·실행 기록·Slack), 추천발주는 산식이라 BE가 점주 요청 시 저장된 예측과 그 시점 재고로 계산. 확정 전 수정값은 서버에 저장하지 않는다(`PATCH /api/orders/recommend`·`adjusted_quantity` 삭제). spec `01`·`02`·`03`·`04`·`05`(사용자 지시로 `05_ai.md`도 직접 수정), plan `07_forecast_batch.md`
+- 논의와 기각한 대안 — 처음 안은 'n8n은 깨우기만, 계산·저장은 전부 BE 내부 API'였다. 사용자 정정: 책임 분리 관점에서 n8n = 모델 예측, 발주 계산 = 알고리즘이라 BE. 수정안 저장은 "확정 버튼이 있는데 중간값을 서버에 둘 이유가 없다, 필요하면 FE 브라우저 저장소"로 MVP·2단계 모두에서 뺐다
+- AI Server — `/ai/orders/recommend` 삭제, `/ai/forecast/predict`가 `menu_sales_history`를 받아 대상일별 `menu_forecast` 반환(이력 부족·날짜 불일치면 빈 배열)
+- BE — 마이그레이션 `0014_forecast_v2`(`forecast_results` v2·`forecast_menu_items`, `adjusted_quantity` 삭제). `GET /api/forecast`는 저장분(+메뉴 이름), `POST /api/forecast/run`은 n8n 웹훅을 기다려 저장분 반환(10분 이내 RUNNING이면 429, 이력 부족 422, 실패 503). `OrderService.recommend`가 §3.7.2 산식을 직접 계산(AI 서버 산식·문구 이관). `GET /api/pipeline/status`·`/history`, `POST /api/pipeline/forecast-done`(`X-Internal-Token`). `ai_client` 삭제, `n8n.run_forecast` 추가
+- n8n — `docker/n8n/forecast.json`(시작점 셋: 02:00 스케줄·웹훅·CLI 재실행 → 매장마다 작업 기록 → 일별 매출·메뉴별 판매 → AI 예측(3회 재시도) → `JSON_TABLE`로 예측·메뉴 수량 UPSERT → 완료·BE 알림, 실패는 실패 기록·Slack). 웹훅은 헤더 인증, 값은 base64로 넘겨 쉼표가 파라미터 구분을 깨지 않게 했다. `docker/n8n/setup.sh`(자격 증명·워크플로우 설치), `docker/mysql/n8n_user.sh`(§4.5 권한), compose n8n 시간대 `Asia/Seoul`·환경값
+- 검증: BE 컨테이너 pytest 126/126(신규 예측 9·파이프라인 7·발주 산식 3), AI pytest 14/14, `0014` upgrade·downgrade 왕복, FE Vitest 61/61. 실서버 — 30일 매장 수동 실행 → 예측 3일·메뉴 수량·`DONE`·예측 완료 알림, 추천 원두 797g(손계산 일치), 재실행 시 행 중복 없음(3·6행), 5일 매장 422·`FAILED`. CLI로 전체 매장 실행 시 4곳 중 2곳 `DONE`·2곳 이력 부족 `FAILED`로 끝까지 진행. 날씨 수집·Slack 발송·02:00 스케줄 실제 발화는 미확인
+
 ### 알림 BE — 인앱·Web Push·소비기한 배치·파기 증빙 이메일 (2026-10-28)
 
 - spec 결정 — 알림 단위(소비기한 품목·조건, 재고 부족 품목, 이상치 업로드당), 소비기한 초과는 첫날 한 번, 같은 날 재실행 건너뜀, 알림 설정 4묶음(`users.notify_*`, 끄면 인앱·푸시 모두 안 만듦), 설정 API 2개. `01_basic_design.md` §3.3.6·§3.12, `02_implementation_design.md` §2.7·§3.10·§4.3.1. plan `06_notifications.md`

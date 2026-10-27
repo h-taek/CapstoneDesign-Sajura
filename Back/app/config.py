@@ -75,8 +75,9 @@ class Settings(BaseSettings):
     SENTRY_RELEASE: str = ""
 
     # External
-    AI_SERVER_BASE_URL: str = "http://ai:8001"  # docker-compose 서비스명 = ai
     N8N_BASE_URL: str = "http://n8n:5678"
+    # n8n ↔ BE 공유 비밀값 — 수동 예측 웹훅과 예측 완료 알림 API(X-Internal-Token). 비면 내부 API 거절
+    INTERNAL_API_TOKEN: str = ""
 
     # 국세청 사업자등록 조회 (M3.B3)
     NTS_API_BASE_URL: str = "https://api.odcloud.kr/api/nts-businessman/v1"

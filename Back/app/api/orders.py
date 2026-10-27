@@ -151,7 +151,6 @@ async def get_approval_log(
                 item_id=log.item_id,
                 item_name=name,
                 recommended_quantity=float(log.recommended_quantity),
-                adjusted_quantity=float(log.adjusted_quantity),
                 final_quantity=float(log.final_quantity),
                 unit=unit,
                 was_modified=log.was_modified,

@@ -2848,6 +2848,73 @@
         "operationId": "get_forecast_api_forecast_get",
         "parameters": [
           {
+            "name": "target_date",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "date"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Target Date"
+            }
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ForecastPredictResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/forecast/run": {
+      "post": {
+        "tags": [
+          "forecast"
+        ],
+        "summary": "Run Forecast",
+        "description": "저장된 예측이 없을 때 그 매장 예측을 n8n으로 즉시 실행한다 (01_basic_design.md §3.6.2).",
+        "operationId": "run_forecast_api_forecast_run_post",
+        "parameters": [
+          {
             "name": "authorization",
             "in": "header",
             "required": false,
@@ -3772,6 +3839,195 @@
           }
         }
       }
+    },
+    "/api/pipeline/status": {
+      "get": {
+        "tags": [
+          "pipeline"
+        ],
+        "summary": "Get Status",
+        "operationId": "get_status_api_pipeline_status_get",
+        "parameters": [
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PipelineStatusResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/pipeline/history": {
+      "get": {
+        "tags": [
+          "pipeline"
+        ],
+        "summary": "Get History",
+        "operationId": "get_history_api_pipeline_history_get",
+        "parameters": [
+          {
+            "name": "type",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/PipelineType"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Type"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 1,
+              "title": "Page"
+            }
+          },
+          {
+            "name": "size",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 100,
+              "minimum": 1,
+              "default": 20,
+              "title": "Size"
+            }
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PipelineHistoryResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/pipeline/forecast-done": {
+      "post": {
+        "tags": [
+          "pipeline"
+        ],
+        "summary": "Forecast Done",
+        "operationId": "forecast_done_api_pipeline_forecast_done_post",
+        "parameters": [
+          {
+            "name": "x-internal-token",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Internal-Token"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ForecastDoneRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -3939,10 +4195,6 @@
             "type": "number",
             "title": "Recommended Quantity"
           },
-          "adjusted_quantity": {
-            "type": "number",
-            "title": "Adjusted Quantity"
-          },
           "final_quantity": {
             "type": "number",
             "title": "Final Quantity"
@@ -3961,7 +4213,6 @@
           "item_id",
           "item_name",
           "recommended_quantity",
-          "adjusted_quantity",
           "final_quantity",
           "unit",
           "was_modified"
@@ -4282,6 +4533,13 @@
           },
           "explanation": {
             "$ref": "#/components/schemas/Explanation"
+          },
+          "menu_forecast": {
+            "items": {
+              "$ref": "#/components/schemas/MenuForecastItem"
+            },
+            "type": "array",
+            "title": "Menu Forecast"
           }
         },
         "type": "object",
@@ -4292,7 +4550,8 @@
           "interval_p10",
           "interval_p90",
           "is_low_confidence",
-          "explanation"
+          "explanation",
+          "menu_forecast"
         ],
         "title": "DailyPrediction"
       },
@@ -4401,6 +4660,19 @@
           "sentence"
         ],
         "title": "Explanation"
+      },
+      "ForecastDoneRequest": {
+        "properties": {
+          "store_id": {
+            "type": "string",
+            "title": "Store Id"
+          }
+        },
+        "type": "object",
+        "required": [
+          "store_id"
+        ],
+        "title": "ForecastDoneRequest"
       },
       "ForecastPredictResponse": {
         "properties": {
@@ -4850,6 +5122,37 @@
           "items"
         ],
         "title": "InventoryListResponse"
+      },
+      "JobSummary": {
+        "properties": {
+          "last_run_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Last Run At"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "error_message": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error Message"
+          }
+        },
+        "type": "object",
+        "required": [
+          "last_run_at",
+          "status",
+          "error_message"
+        ],
+        "title": "JobSummary"
       },
       "LoginRequest": {
         "properties": {
@@ -5976,6 +6279,139 @@
           "subtotal"
         ],
         "title": "PendingOrderItem"
+      },
+      "PipelineHistoryResponse": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/PipelineJobItem"
+            },
+            "type": "array",
+            "title": "Items"
+          },
+          "total": {
+            "type": "integer",
+            "title": "Total"
+          },
+          "page": {
+            "type": "integer",
+            "title": "Page"
+          },
+          "size": {
+            "type": "integer",
+            "title": "Size"
+          },
+          "total_pages": {
+            "type": "integer",
+            "title": "Total Pages"
+          }
+        },
+        "type": "object",
+        "required": [
+          "items",
+          "total",
+          "page",
+          "size",
+          "total_pages"
+        ],
+        "title": "PipelineHistoryResponse"
+      },
+      "PipelineJobItem": {
+        "properties": {
+          "job_id": {
+            "type": "string",
+            "title": "Job Id"
+          },
+          "type": {
+            "type": "string",
+            "title": "Type"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "triggered_by": {
+            "type": "string",
+            "title": "Triggered By"
+          },
+          "started_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Started At"
+          },
+          "finished_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Finished At"
+          },
+          "error_message": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error Message"
+          }
+        },
+        "type": "object",
+        "required": [
+          "job_id",
+          "type",
+          "status",
+          "triggered_by",
+          "started_at",
+          "finished_at",
+          "error_message"
+        ],
+        "title": "PipelineJobItem"
+      },
+      "PipelineStatusResponse": {
+        "properties": {
+          "forecast_job": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/JobSummary"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "train_job": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/JobSummary"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "forecast_job",
+          "train_job"
+        ],
+        "title": "PipelineStatusResponse"
+      },
+      "PipelineType": {
+        "type": "string",
+        "enum": [
+          "FORECAST",
+          "TRAIN"
+        ],
+        "title": "PipelineType"
       },
       "PosCreateRequest": {
         "properties": {

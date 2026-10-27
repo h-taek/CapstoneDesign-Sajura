@@ -1,0 +1,898 @@
+{
+  "id": "sajuraForecast01",
+  "name": "사주라 수요예측 배치",
+  "active": true,
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 2 * * *"
+            }
+          ]
+        }
+      },
+      "name": "02:00 스케줄",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        220,
+        -200
+      ],
+      "id": "00000000-0000-4000-8000-000000000001"
+    },
+    {
+      "parameters": {
+        "inputSource": "passthrough"
+      },
+      "name": "CLI 재실행",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        220,
+        -400
+      ],
+      "id": "00000000-0000-4000-8000-000000000002"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT store_id, 'N8N' AS triggered_by FROM stores WHERE onboarding_completed = 1",
+        "options": {}
+      },
+      "name": "전체 매장",
+      "type": "n8n-nodes-base.mySql",
+      "typeVersion": 2.4,
+      "position": [
+        440,
+        -200
+      ],
+      "id": "00000000-0000-4000-8000-000000000003",
+      "credentials": {
+        "mySql": {
+          "id": "sajuraMysql0001",
+          "name": "사주라 MySQL (n8n_user)"
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 2000
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "forecast",
+        "authentication": "headerAuth",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "name": "수동 실행 웹훅",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        220,
+        200
+      ],
+      "id": "00000000-0000-4000-8000-000000000004",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "sajuraInternal01",
+          "name": "사주라 내부 토큰"
+        }
+      },
+      "webhookId": "5a1a7f3e-6b1d-4c8e-9f2a-7d3c1b0e4f21"
+    },
+    {
+      "parameters": {
+        "jsCode": "const id = String($input.first().json.body?.store_id ?? '');\nif (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(id)) {\n  throw new Error('store_id 형식 오류');\n}\nreturn [{ json: { store_id: id, triggered_by: 'USER' } }];\n"
+      },
+      "name": "수동 실행 매장",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        440,
+        200
+      ],
+      "id": "00000000-0000-4000-8000-000000000005"
+    },
+    {
+      "parameters": {
+        "batchSize": 1,
+        "options": {}
+      },
+      "name": "매장마다",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        660,
+        0
+      ],
+      "id": "00000000-0000-4000-8000-000000000006"
+    },
+    {
+      "parameters": {
+        "jsCode": "const uuid = () => {\n  const h = Array.from({ length: 32 }, () => Math.floor(Math.random() * 16).toString(16)).join('');\n  return `${h.slice(0, 8)}-${h.slice(8, 12)}-4${h.slice(13, 16)}-${'89ab'[Math.floor(Math.random() * 4)]}${h.slice(17, 20)}-${h.slice(20, 32)}`;\n};\nconst s = $input.first().json;\nreturn [{ json: { store_id: s.store_id, triggered_by: s.triggered_by, job_id: uuid() } }];\n"
+      },
+      "name": "작업 시작",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        880,
+        0
+      ],
+      "id": "00000000-0000-4000-8000-000000000007"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO pipeline_jobs (job_id, store_id, type, status, triggered_by, started_at)\nVALUES ($1, $2, 'FORECAST', 'RUNNING', $3, UTC_TIMESTAMP())",
+        "options": {
+          "queryReplacement": "={{ $('작업 시작').first().json.job_id }},{{ $('작업 시작').first().json.store_id }},{{ $('작업 시작').first().json.triggered_by }}"
+        }
+      },
+      "name": "작업 기록",
+      "type": "n8n-nodes-base.mySql",
+      "typeVersion": 2.4,
+      "position": [
+        1100,
+        0
+      ],
+      "id": "00000000-0000-4000-8000-000000000008",
+      "credentials": {
+        "mySql": {
+          "id": "sajuraMysql0001",
+          "name": "사주라 MySQL (n8n_user)"
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 2000
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT DATE_FORMAT(DATE(sold_at), '%Y-%m-%d') AS date,\n       SUM(total_price) AS total_amount, COUNT(*) AS order_count\nFROM sale_records WHERE store_id = $1\nGROUP BY date ORDER BY date",
+        "options": {
+          "queryReplacement": "={{ $('작업 시작').first().json.store_id }}"
+        }
+      },
+      "name": "일별 매출",
+      "type": "n8n-nodes-base.mySql",
+      "typeVersion": 2.4,
+      "position": [
+        1320,
+        0
+      ],
+      "id": "00000000-0000-4000-8000-000000000009",
+      "credentials": {
+        "mySql": {
+          "id": "sajuraMysql0001",
+          "name": "사주라 MySQL (n8n_user)"
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 2000,
+      "executeOnce": true,
+      "alwaysOutputData": true,
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT DATE_FORMAT(DATE(sold_at), '%Y-%m-%d') AS date, menu_id, SUM(quantity) AS quantity\nFROM sale_records WHERE store_id = $1\nGROUP BY date, menu_id",
+        "options": {
+          "queryReplacement": "={{ $('작업 시작').first().json.store_id }}"
+        }
+      },
+      "name": "메뉴별 판매",
+      "type": "n8n-nodes-base.mySql",
+      "typeVersion": 2.4,
+      "position": [
+        1540,
+        0
+      ],
+      "id": "00000000-0000-4000-8000-000000000010",
+      "credentials": {
+        "mySql": {
+          "id": "sajuraMysql0001",
+          "name": "사주라 MySQL (n8n_user)"
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 2000,
+      "executeOnce": true,
+      "alwaysOutputData": true,
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "const job = $('작업 시작').first().json;\nconst daily = $('일별 매출').all().map((i) => i.json).filter((r) => r.date);\nconst menus = $('메뉴별 판매').all().map((i) => i.json).filter((r) => r.date);\nconst last = daily.length ? daily[daily.length - 1].date : null;\nconst add = (d, n) => {\n  const t = new Date(`${d}T00:00:00Z`);\n  t.setUTCDate(t.getUTCDate() + n);\n  return t.toISOString().slice(0, 10);\n};\n// 외부 데이터(기상청 단기예보)는 서비스키를 받으면 붙인다 — 그 전에는 날씨 없이 예측한다\nconst weather = [];\nreturn [{ json: { body: {\n  store_id: job.store_id,\n  target_dates: last ? [1, 2, 3].map((n) => add(last, n)) : [],\n  sales_history: daily.map((r) => ({ date: r.date, total_amount: Number(r.total_amount), order_count: Number(r.order_count) })),\n  menu_sales_history: menus.map((r) => ({ date: r.date, menu_id: r.menu_id, quantity: Number(r.quantity) })),\n  weather,\n} } }];\n"
+      },
+      "name": "AI 입력",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1760,
+        0
+      ],
+      "id": "00000000-0000-4000-8000-000000000011",
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.AI_SERVER_BASE_URL }}/ai/forecast/predict",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.body) }}",
+        "options": {
+          "timeout": 120000
+        }
+      },
+      "name": "AI 예측",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1980,
+        0
+      ],
+      "id": "00000000-0000-4000-8000-000000000012",
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 2000,
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "const b64 = (s) => (typeof Buffer !== 'undefined'\n  ? Buffer.from(s, 'utf8').toString('base64')\n  : btoa(unescape(encodeURIComponent(s))));\nconst job = $('작업 시작').first().json;\nconst rows = $input.first().json.predictions.map((p) => ({\n  target_date: p.target_date, horizon_days: p.horizon_days, predicted_sales: p.predicted_sales,\n  interval_p10: p.interval_p10, interval_p90: p.interval_p90,\n  is_low_confidence: p.is_low_confidence ? 1 : 0, low_confidence_reason: p.low_confidence_reason ?? null,\n  explanation: p.explanation ?? null, menu_forecast: p.menu_forecast ?? [],\n}));\nreturn [{ json: { job_id: job.job_id, store_id: job.store_id, payload: b64(JSON.stringify(rows)) } }];\n"
+      },
+      "name": "저장 준비",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2200,
+        0
+      ],
+      "id": "00000000-0000-4000-8000-000000000013",
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO forecast_results\n  (forecast_id, store_id, target_date, horizon_days, predicted_sales, interval_p10, interval_p90,\n   is_low_confidence, low_confidence_reason, explanation, generated_at)\nSELECT UUID(), $1, jt.target_date, jt.horizon_days, jt.predicted_sales, jt.interval_p10, jt.interval_p90,\n       jt.is_low_confidence, jt.low_confidence_reason, jt.explanation, UTC_TIMESTAMP()\nFROM JSON_TABLE(CONVERT(FROM_BASE64($2) USING utf8mb4), '$[*]' COLUMNS (\n  target_date DATE PATH '$.target_date',\n  horizon_days INT PATH '$.horizon_days',\n  predicted_sales INT PATH '$.predicted_sales',\n  interval_p10 INT PATH '$.interval_p10',\n  interval_p90 INT PATH '$.interval_p90',\n  is_low_confidence TINYINT PATH '$.is_low_confidence',\n  low_confidence_reason VARCHAR(32) PATH '$.low_confidence_reason',\n  explanation JSON PATH '$.explanation'\n)) AS jt\nON DUPLICATE KEY UPDATE\n  horizon_days = VALUES(horizon_days), predicted_sales = VALUES(predicted_sales),\n  interval_p10 = VALUES(interval_p10), interval_p90 = VALUES(interval_p90),\n  is_low_confidence = VALUES(is_low_confidence), low_confidence_reason = VALUES(low_confidence_reason),\n  explanation = VALUES(explanation), generated_at = VALUES(generated_at)",
+        "options": {
+          "queryReplacement": "={{ $('저장 준비').first().json.store_id }},{{ $('저장 준비').first().json.payload }}"
+        }
+      },
+      "name": "예측 저장",
+      "type": "n8n-nodes-base.mySql",
+      "typeVersion": 2.4,
+      "position": [
+        2420,
+        0
+      ],
+      "id": "00000000-0000-4000-8000-000000000014",
+      "credentials": {
+        "mySql": {
+          "id": "sajuraMysql0001",
+          "name": "사주라 MySQL (n8n_user)"
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 2000,
+      "executeOnce": true,
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "DELETE fmi FROM forecast_menu_items fmi\nJOIN forecast_results f ON f.forecast_id = fmi.forecast_id\nWHERE f.store_id = $1 AND f.target_date IN (\n  SELECT jt.target_date FROM JSON_TABLE(CONVERT(FROM_BASE64($2) USING utf8mb4), '$[*]' COLUMNS ( target_date DATE PATH '$.target_date')) AS jt\n)",
+        "options": {
+          "queryReplacement": "={{ $('저장 준비').first().json.store_id }},{{ $('저장 준비').first().json.payload }}"
+        }
+      },
+      "name": "메뉴 수량 비우기",
+      "type": "n8n-nodes-base.mySql",
+      "typeVersion": 2.4,
+      "position": [
+        2640,
+        0
+      ],
+      "id": "00000000-0000-4000-8000-000000000015",
+      "credentials": {
+        "mySql": {
+          "id": "sajuraMysql0001",
+          "name": "사주라 MySQL (n8n_user)"
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 2000,
+      "executeOnce": true,
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO forecast_menu_items (id, forecast_id, menu_id, expected_quantity)\nSELECT UUID(), f.forecast_id, jt.menu_id, jt.expected_quantity\nFROM JSON_TABLE(CONVERT(FROM_BASE64($2) USING utf8mb4), '$[*]' COLUMNS (\n  target_date DATE PATH '$.target_date',\n  NESTED PATH '$.menu_forecast[*]' COLUMNS (\n    menu_id CHAR(36) PATH '$.menu_id',\n    expected_quantity DECIMAL(10,3) PATH '$.expected_quantity')\n)) AS jt\nJOIN forecast_results f ON f.store_id = $1 AND f.target_date = jt.target_date\nWHERE jt.menu_id IS NOT NULL",
+        "options": {
+          "queryReplacement": "={{ $('저장 준비').first().json.store_id }},{{ $('저장 준비').first().json.payload }}"
+        }
+      },
+      "name": "메뉴 수량 저장",
+      "type": "n8n-nodes-base.mySql",
+      "typeVersion": 2.4,
+      "position": [
+        2860,
+        0
+      ],
+      "id": "00000000-0000-4000-8000-000000000016",
+      "credentials": {
+        "mySql": {
+          "id": "sajuraMysql0001",
+          "name": "사주라 MySQL (n8n_user)"
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 2000,
+      "executeOnce": true,
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "UPDATE pipeline_jobs SET status = 'DONE', finished_at = UTC_TIMESTAMP() WHERE job_id = $1",
+        "options": {
+          "queryReplacement": "={{ $('저장 준비').first().json.job_id }}"
+        }
+      },
+      "name": "작업 완료",
+      "type": "n8n-nodes-base.mySql",
+      "typeVersion": 2.4,
+      "position": [
+        3080,
+        0
+      ],
+      "id": "00000000-0000-4000-8000-000000000017",
+      "credentials": {
+        "mySql": {
+          "id": "sajuraMysql0001",
+          "name": "사주라 MySQL (n8n_user)"
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 2000,
+      "executeOnce": true,
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.BE_BASE_URL }}/api/pipeline/forecast-done",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ store_id: $('저장 준비').first().json.store_id }) }}",
+        "options": {
+          "timeout": 120000
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-Internal-Token",
+              "value": "={{ $env.INTERNAL_API_TOKEN }}"
+            }
+          ]
+        }
+      },
+      "name": "예측 완료 알림",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        3300,
+        0
+      ],
+      "id": "00000000-0000-4000-8000-000000000018",
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 2000,
+      "onError": "continueRegularOutput",
+      "executeOnce": true
+    },
+    {
+      "parameters": {
+        "jsCode": "return [{ json: { store_id: $('저장 준비').first().json.store_id, status: 'DONE', insufficient_history: false, error: null } }];\n"
+      },
+      "name": "완료 결과",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3520,
+        0
+      ],
+      "id": "00000000-0000-4000-8000-000000000019"
+    },
+    {
+      "parameters": {
+        "jsCode": "const b64 = (s) => (typeof Buffer !== 'undefined'\n  ? Buffer.from(s, 'utf8').toString('base64')\n  : btoa(unescape(encodeURIComponent(s))));\nconst job = $('작업 시작').first().json;\nconst raw = $input.first().json;\nconst e = raw.error ?? raw;\nconst msg = String((typeof e === 'string' ? e : e.message ?? e.description) ?? JSON.stringify(e)).slice(0, 480);\n// AI Server 422 = 판매 이력 부족 — 재시도·Slack 대상이 아니다 (01_basic_design.md §3.11.1)\nconst insufficient = /\\b422\\b/.test(msg);\nreturn [{ json: { job_id: job.job_id, store_id: job.store_id, status: 'FAILED',\n  insufficient_history: insufficient, error: msg, error_b64: b64(msg) } }];\n"
+      },
+      "name": "실패 정리",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1760,
+        300
+      ],
+      "id": "00000000-0000-4000-8000-000000000020"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "UPDATE pipeline_jobs SET status = 'FAILED', finished_at = UTC_TIMESTAMP(),\n  error_message = LEFT(CONVERT(FROM_BASE64($2) USING utf8mb4), 500)\nWHERE job_id = $1",
+        "options": {
+          "queryReplacement": "={{ $('실패 정리').first().json.job_id }},{{ $('실패 정리').first().json.error_b64 }}"
+        }
+      },
+      "name": "작업 실패",
+      "type": "n8n-nodes-base.mySql",
+      "typeVersion": 2.4,
+      "position": [
+        1980,
+        300
+      ],
+      "id": "00000000-0000-4000-8000-000000000021",
+      "credentials": {
+        "mySql": {
+          "id": "sajuraMysql0001",
+          "name": "사주라 MySQL (n8n_user)"
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 2000
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "id": "6f1c2b9e-0d4a-4f3b-8a7e-2c5d9e1f0a11",
+              "leftValue": "={{ !$('실패 정리').first().json.insufficient_history && !!$env.SLACK_WEBHOOK_URL }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "name": "Slack 보낼까",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        2200,
+        300
+      ],
+      "id": "00000000-0000-4000-8000-000000000022"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.SLACK_WEBHOOK_URL }}",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ text: '[사주라] 예측 배치 실패 — 매장 ' + $('실패 정리').first().json.store_id + ': ' + $('실패 정리').first().json.error }) }}",
+        "options": {
+          "timeout": 120000
+        }
+      },
+      "name": "Slack 알림",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2420,
+        300
+      ],
+      "id": "00000000-0000-4000-8000-000000000023",
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 2000,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "const f = $('실패 정리').first().json;\nreturn [{ json: { store_id: f.store_id, status: f.status, insufficient_history: f.insufficient_history, error: f.error } }];\n"
+      },
+      "name": "실패 결과",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2640,
+        300
+      ],
+      "id": "00000000-0000-4000-8000-000000000024"
+    },
+    {
+      "parameters": {
+        "jsCode": "const results = $input.all().map((i) => i.json);\nif (results.length === 1) return [{ json: results[0] }];\nreturn [{ json: {\n  status: results.every((r) => r.status === 'DONE') ? 'DONE' : 'PARTIAL',\n  stores: results.length, failed: results.filter((r) => r.status !== 'DONE').length,\n} }];\n"
+      },
+      "name": "요약",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2860,
+        -300
+      ],
+      "id": "00000000-0000-4000-8000-000000000025"
+    }
+  ],
+  "connections": {
+    "02:00 스케줄": {
+      "main": [
+        [
+          {
+            "node": "전체 매장",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "CLI 재실행": {
+      "main": [
+        [
+          {
+            "node": "전체 매장",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "전체 매장": {
+      "main": [
+        [
+          {
+            "node": "매장마다",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "수동 실행 웹훅": {
+      "main": [
+        [
+          {
+            "node": "수동 실행 매장",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "수동 실행 매장": {
+      "main": [
+        [
+          {
+            "node": "매장마다",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "매장마다": {
+      "main": [
+        [
+          {
+            "node": "요약",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "작업 시작",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "작업 시작": {
+      "main": [
+        [
+          {
+            "node": "작업 기록",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "작업 기록": {
+      "main": [
+        [
+          {
+            "node": "일별 매출",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "일별 매출": {
+      "main": [
+        [
+          {
+            "node": "메뉴별 판매",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "실패 정리",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "메뉴별 판매": {
+      "main": [
+        [
+          {
+            "node": "AI 입력",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "실패 정리",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI 입력": {
+      "main": [
+        [
+          {
+            "node": "AI 예측",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "실패 정리",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI 예측": {
+      "main": [
+        [
+          {
+            "node": "저장 준비",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "실패 정리",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "저장 준비": {
+      "main": [
+        [
+          {
+            "node": "예측 저장",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "실패 정리",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "예측 저장": {
+      "main": [
+        [
+          {
+            "node": "메뉴 수량 비우기",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "실패 정리",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "메뉴 수량 비우기": {
+      "main": [
+        [
+          {
+            "node": "메뉴 수량 저장",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "실패 정리",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "메뉴 수량 저장": {
+      "main": [
+        [
+          {
+            "node": "작업 완료",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "실패 정리",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "작업 완료": {
+      "main": [
+        [
+          {
+            "node": "예측 완료 알림",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "실패 정리",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "예측 완료 알림": {
+      "main": [
+        [
+          {
+            "node": "완료 결과",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "완료 결과": {
+      "main": [
+        [
+          {
+            "node": "매장마다",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "실패 정리": {
+      "main": [
+        [
+          {
+            "node": "작업 실패",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "작업 실패": {
+      "main": [
+        [
+          {
+            "node": "Slack 보낼까",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Slack 보낼까": {
+      "main": [
+        [
+          {
+            "node": "Slack 알림",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "실패 결과",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Slack 알림": {
+      "main": [
+        [
+          {
+            "node": "실패 결과",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "실패 결과": {
+      "main": [
+        [
+          {
+            "node": "매장마다",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "Asia/Seoul",
+    "saveDataErrorExecution": "all",
+    "saveDataSuccessExecution": "all"
+  },
+  "pinData": {},
+  "meta": {
+    "templateCredsSetupCompleted": true
+  }
+}

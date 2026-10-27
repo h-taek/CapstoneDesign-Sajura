@@ -14,6 +14,8 @@ services:
       MYSQL_DATABASE: ${MYSQL_DATABASE}
       MYSQL_USER: ${MYSQL_USER}
       MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+      N8N_DB_USER: ${N8N_DB_USER:-}
+      N8N_DB_PASSWORD: ${N8N_DB_PASSWORD:-}
       TZ: UTC
     command:
       - --character-set-server=utf8mb4
@@ -21,6 +23,7 @@ services:
     volumes:
       - mysql_data:/var/lib/mysql
       - ./docker/mysql/init.sh:/docker-entrypoint-initdb.d/init.sh:ro
+      - ./docker/mysql/n8n_user.sh:/docker-entrypoint-initdb.d/n8n_user.sh:ro
     ports:
       - "${DB_PORT:-3306}:3306"
     healthcheck:
@@ -50,9 +53,22 @@ services:
       N8N_HOST: n8n
       N8N_PORT: 5678
       N8N_PROTOCOL: http
-      GENERIC_TIMEZONE: UTC
+      # 예측 배치 02:00은 한국 시각 (01_basic_design.md §3.11.1)
+      GENERIC_TIMEZONE: Asia/Seoul
+      TZ: Asia/Seoul
+      # 워크플로우 식(HTTP 주소·헤더)에서 아래 값을 읽는다. 비밀값은 워크플로우 파일에 넣지 않는다
+      N8N_BLOCK_ENV_ACCESS_IN_NODE: "false"
+      AI_SERVER_BASE_URL: http://ai:8001
+      BE_BASE_URL: http://be:8000
+      INTERNAL_API_TOKEN: ${INTERNAL_API_TOKEN:-}
+      SLACK_WEBHOOK_URL: ${SLACK_WEBHOOK_URL:-}
+      # docker/n8n/setup.sh가 자격 증명을 만들 때 쓴다
+      DB_NAME: ${MYSQL_DATABASE}
+      N8N_DB_USER: ${N8N_DB_USER:-}
+      N8N_DB_PASSWORD: ${N8N_DB_PASSWORD:-}
     volumes:
       - n8n_data:/home/node/.n8n
+      - ./docker/n8n:/opt/sajura:ro
     ports:
       - "5678:5678"
     healthcheck:

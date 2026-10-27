@@ -5,8 +5,8 @@ Spec refs:
   - docs/spec/05_ai.md §3 초기 모델 V1-t (38차 확정)
   - docs/plan/03_ai.md M7.A1~A7
 
-라우터: /ai/health · /ai/forecast/{predict,train,status} · /ai/orders/recommend.
-[MVP] 구현 완료: health(M7.A6)·predict(M7.A2)·recommend(M7.A3, 계약 v2 A안).
+라우터: /ai/health · /ai/forecast/{predict,train,status}.
+[MVP] 구현 완료: health(M7.A6)·predict(M7.A2, 대상일별 메뉴 예상 수량 포함). 재료별 발주 계산은 BE 몫(05_ai.md §2).
 train/status는 [2단계](M7.A5) — 계약 스키마만 OpenAPI로 노출하고 501을 반환한다.
 plan의 /ai/xai/{forecast_id}(M7.A4)는 02_implementation_design.md §3.8에 없는 경로 —
 spec 방침(예측 근거를 predict 응답 필드로 추가)을 따르며, 경로 신설 여부는 spec 갱신 시 결정한다.
@@ -17,14 +17,12 @@ from fastapi import FastAPI
 
 from app.api.forecast import router as forecast_router
 from app.api.health import router as health_router
-from app.api.orders import router as orders_router
 
 
 def create_app() -> FastAPI:
     app = FastAPI(title="sajura-ai", version="0.1.0")
     app.include_router(health_router)
     app.include_router(forecast_router)
-    app.include_router(orders_router)
     return app
 
 

@@ -43,12 +43,20 @@ class StoreConfig(BaseModel):
     reopen_date: dt.date | None = None  # 리뉴얼 재개장일 — regime 피처 기준(EDA §2.6)
 
 
+class MenuDailySales(BaseModel):
+    date: dt.date
+    menu_id: str
+    quantity: int = Field(ge=0)
+
+
 class PredictRequest(BaseModel):
     store_id: str
     target_dates: list[dt.date] = Field(min_length=1, max_length=3)  # D+1~D+3
     sales_history: list[DailySales] = Field(min_length=1)  # 일계 이력(무매출일 생략 가능)
     weather: list[WeatherDay] = Field(default_factory=list)
     store_config: StoreConfig | None = None
+    # 모델 ② 비중 분해용 메뉴×일 이력(판매일만) — 없으면 menu_forecast는 빈 배열
+    menu_sales_history: list[MenuDailySales] = Field(default_factory=list)
 
 
 class TopFactor(BaseModel):
@@ -64,6 +72,11 @@ class Explanation(BaseModel):
     sentence: str
 
 
+class MenuForecastItem(BaseModel):
+    menu_id: str
+    expected_quantity: float  # 대상일 예상 수량 (참고치)
+
+
 class Prediction(BaseModel):
     target_date: dt.date
     horizon_days: int
@@ -73,76 +86,12 @@ class Prediction(BaseModel):
     is_low_confidence: bool
     low_confidence_reason: str | None = None  # 01_basic_design.md §3.6.3 코드 6종
     explanation: Explanation
+    menu_forecast: list[MenuForecastItem] = Field(default_factory=list)  # 모델 ②, 내림차순
 
 
 class PredictResponse(BaseModel):
     store_id: str
     predictions: list[Prediction]
-
-
-# ── POST /ai/orders/recommend — 계약 v2 (M7.A3 A안: 단일 호출) ──
-# 서버 내부에서 ①(V1-t 매출 예측) × ②(메뉴 비중 분해, notebooks/11) → 점주 레시피(BOM) 전개
-# → 재고·리드타임·안전재고 반영 발주 참고치까지 수행. 구 계약의 forecast_results(메뉴별 예측
-# 입력)는 폐기 — 메뉴별 예상 수량은 서버 산출물(menu_forecast)로 응답에 포함.
-class MenuDailySales(BaseModel):
-    date: dt.date
-    menu_id: str
-    quantity: int = Field(ge=0)
-
-
-class RecipeIn(BaseModel):
-    """점주 관리 레시피(재료 리스트업 = 사용자 몫, 38차 확정) — 메뉴 1개당 재료 소모량."""
-
-    menu_id: str
-    item_id: str
-    quantity_per_menu: float
-    unit: str
-
-
-class InventoryIn(BaseModel):
-    item_id: str
-    current_quantity: float
-    incoming_quantity: float = 0.0  # 입고 예정량 — 확정했지만 아직 도착 전인 발주 수량 합계
-    unit: str
-    lead_time_days: int
-    safety_stock: float
-    last_price: int | None = None
-
-
-class RecommendRequest(BaseModel):
-    store_id: str
-    target_dates: list[dt.date] = Field(min_length=1, max_length=3)  # predict와 동일 D+1~3
-    sales_history: list[DailySales] = Field(min_length=1)            # ① 학습용 일계 이력
-    menu_sales_history: list[MenuDailySales] = Field(min_length=1)   # ② 분해용 메뉴×일 이력
-    weather: list[WeatherDay] = Field(default_factory=list)
-    store_config: StoreConfig | None = None
-    recipes: list[RecipeIn] = Field(default_factory=list)
-    inventory: list[InventoryIn] = Field(default_factory=list)
-
-
-class MenuForecastItem(BaseModel):
-    menu_id: str
-    expected_quantity: float  # 대상 기간 합계 예상 수량 (참고치)
-
-
-class Recommendation(BaseModel):
-    item_id: str
-    recommended_quantity: float
-    expected_stockout_date: dt.date | None = None
-    lead_time_days: int
-    safety_stock: float
-    config_status: str
-    defaults_used: list[str] | None = None
-    recommendation_reason: str
-
-
-class RecommendResponse(BaseModel):
-    store_id: str
-    target_dates: list[dt.date]
-    is_low_confidence: bool          # ① 예측 신뢰도 전파 — 참고치는 배지와 동반 노출(§9 원칙)
-    low_confidence_reason: str | None = None
-    menu_forecast: list[MenuForecastItem]
-    recommendations: list[Recommendation]
 
 
 # ── POST /ai/forecast/train · GET /ai/forecast/status ───────
