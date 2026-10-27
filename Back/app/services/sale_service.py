@@ -23,13 +23,14 @@
 from __future__ import annotations
 
 import asyncio
+import math
 from dataclasses import dataclass, field
 from datetime import UTC, date, datetime, timedelta
 from io import BytesIO
 from typing import Iterator
 
 import pandas as pd
-from sqlalchemy import func, select
+from sqlalchemy import asc, desc, func, select
 from sqlalchemy.dialects.mysql import insert as mysql_insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -38,8 +39,11 @@ from app.core import errors
 from app.models.menu import Menu
 from app.models.sale_record import SaleRecord, SaleSource
 from app.schemas.sales import (
+    SaleListItem,
+    SalesListResponse,
     SalesSummaryResponse,
     SalesTrendsResponse,
+    SortOrder,
     TopMenuItem,
     TrendGroupBy,
     TrendPoint,
@@ -51,6 +55,7 @@ CHUNK_SIZE = 10_000
 AUTO_CATEGORY = "자동등록"
 AUTO_CREATE_PER_UPLOAD_LIMIT = 200
 STORE_MENU_HARD_LIMIT = 1_000
+MAX_LIST_RANGE_DAYS = 366
 
 
 @dataclass
@@ -227,6 +232,66 @@ class SaleService:
             last_sale_at=last_sale_at,
         )
 
+    async def list_sales(
+        self,
+        *,
+        store_id: str,
+        start_date: date,
+        end_date: date,
+        menu_id: str | None,
+        order: SortOrder,
+        page: int,
+        size: int,
+    ) -> SalesListResponse:
+        """기간 판매 목록 + 기간 합계 (02_implementation_design.md §3.6)."""
+        _check_range(start_date, end_date)
+        if (end_date - start_date).days + 1 > MAX_LIST_RANGE_DAYS:
+            raise errors.DomainError(
+                status_code=400,
+                error_code="VALIDATION_ERROR",
+                message=f"조회 기간은 {MAX_LIST_RANGE_DAYS}일을 넘을 수 없습니다.",
+            )
+        if menu_id is not None:
+            await self._get_menu(store_id=store_id, menu_id=menu_id)
+
+        conds = [SaleRecord.store_id == store_id, *_period(start_date, end_date)]
+        if menu_id is not None:
+            conds.append(SaleRecord.menu_id == menu_id)
+
+        total, total_revenue = (
+            await self.session.execute(
+                select(
+                    func.count(SaleRecord.sale_id),
+                    func.coalesce(func.sum(SaleRecord.total_price), 0),
+                ).where(*conds)
+            )
+        ).one()
+        direction = asc if order == "asc" else desc
+        rows = (
+            await self.session.execute(
+                select(SaleRecord, Menu.name)
+                .join(Menu, Menu.menu_id == SaleRecord.menu_id)
+                .where(*conds)
+                .order_by(direction(SaleRecord.sold_at), direction(SaleRecord.sale_id))
+                .offset((page - 1) * size)
+                .limit(size)
+            )
+        ).all()
+        return SalesListResponse(
+            items=[
+                SaleListItem(
+                    sale_id=s.sale_id, menu_id=s.menu_id, menu_name=name,
+                    quantity=s.quantity, total_price=s.total_price, sold_at=s.sold_at,
+                )
+                for s, name in rows
+            ],
+            total=total,
+            total_revenue=total_revenue,
+            page=page,
+            size=size,
+            total_pages=math.ceil(total / size),
+        )
+
     async def get_trends(
         self,
         *,
@@ -237,30 +302,15 @@ class SaleService:
         menu_id: str | None,
     ) -> SalesTrendsResponse:
         """기간별 판매 추세 — 빈 구간은 0으로 채운 연속 값 (02_implementation_design.md §3.6)."""
-        if start_date > end_date:
-            raise errors.DomainError(
-                status_code=400,
-                error_code="VALIDATION_ERROR",
-                message="시작일이 종료일보다 늦습니다.",
-            )
+        _check_range(start_date, end_date)
         menu_name = None
         if menu_id is not None:
-            menu = await self.session.get(Menu, menu_id)
-            if menu is None or menu.store_id != store_id:
-                raise errors.DomainError(
-                    status_code=404, error_code="NOT_FOUND", message="메뉴를 찾을 수 없습니다."
-                )
-            menu_name = menu.name
+            menu_name = (await self._get_menu(store_id=store_id, menu_id=menu_id)).name
 
         d = func.date(SaleRecord.sold_at)
         stmt = (
             select(d, func.sum(SaleRecord.quantity), func.sum(SaleRecord.total_price))
-            .where(
-                SaleRecord.store_id == store_id,
-                SaleRecord.sold_at >= datetime.combine(start_date, datetime.min.time()),
-                SaleRecord.sold_at
-                < datetime.combine(end_date + timedelta(days=1), datetime.min.time()),
-            )
+            .where(SaleRecord.store_id == store_id, *_period(start_date, end_date))
             .group_by(d)
         )
         if menu_id is not None:
@@ -297,8 +347,25 @@ class SaleService:
             data=[TrendPoint(date=s, quantity=q, revenue=r) for s, (q, r) in totals.items()],
         )
 
-    async def get_top_menus(self, *, store_id: str, limit: int = 5) -> list[TopMenuItem]:
-        """판매량 기준 인기 메뉴 — 재고·최저가 추천과 달리 실제 판매 데이터로 산출 가능."""
+    async def get_top_menus(
+        self,
+        *,
+        store_id: str,
+        start_date: date | None = None,
+        end_date: date | None = None,
+        limit: int = 5,
+    ) -> list[TopMenuItem]:
+        """판매량 기준 인기 메뉴. 기간을 생략하면 전체 판매 기간 누계."""
+        if (start_date is None) != (end_date is None):
+            raise errors.DomainError(
+                status_code=400,
+                error_code="VALIDATION_ERROR",
+                message="시작일과 종료일은 함께 지정해야 합니다.",
+            )
+        conds = [SaleRecord.store_id == store_id]
+        if start_date is not None and end_date is not None:
+            _check_range(start_date, end_date)
+            conds.extend(_period(start_date, end_date))
         rows = (
             await self.session.execute(
                 select(
@@ -307,7 +374,7 @@ class SaleService:
                     func.sum(SaleRecord.total_price),
                 )
                 .join(Menu, Menu.menu_id == SaleRecord.menu_id)
-                .where(SaleRecord.store_id == store_id)
+                .where(*conds)
                 .group_by(Menu.menu_id, Menu.name)
                 .order_by(func.sum(SaleRecord.quantity).desc())
                 .limit(limit)
@@ -317,6 +384,14 @@ class SaleService:
             TopMenuItem(menu_name=name, quantity=quantity, revenue=revenue)
             for name, quantity, revenue in rows
         ]
+
+    async def _get_menu(self, *, store_id: str, menu_id: str) -> Menu:
+        menu = await self.session.get(Menu, menu_id)
+        if menu is None or menu.store_id != store_id:
+            raise errors.DomainError(
+                status_code=404, error_code="NOT_FOUND", message="메뉴를 찾을 수 없습니다."
+            )
+        return menu
 
     async def _load_menu_map(self, *, store_id: str) -> dict[str, str]:
         rows = (
@@ -480,6 +555,23 @@ class SaleService:
         if ignored > 0:
             result.skipped += ignored
             result._dup_in_db_total += ignored
+
+
+def _check_range(start_date: date, end_date: date) -> None:
+    if start_date > end_date:
+        raise errors.DomainError(
+            status_code=400,
+            error_code="VALIDATION_ERROR",
+            message="시작일이 종료일보다 늦습니다.",
+        )
+
+
+def _period(start_date: date, end_date: date) -> list:
+    """양 끝 날짜를 포함하는 sold_at 범위 조건."""
+    return [
+        SaleRecord.sold_at >= datetime.combine(start_date, datetime.min.time()),
+        SaleRecord.sold_at < datetime.combine(end_date + timedelta(days=1), datetime.min.time()),
+    ]
 
 
 # ----------------------------------------------------------------------

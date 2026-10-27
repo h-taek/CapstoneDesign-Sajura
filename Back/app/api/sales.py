@@ -4,7 +4,7 @@ from __future__ import annotations
 from datetime import date
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, File, Form, UploadFile, status
+from fastapi import APIRouter, Depends, File, Form, Query, UploadFile, status
 
 from app.adapters.pos.csv_adapter import CSVAdapter
 from app.api.deps import CurrentUserDep, SessionDep, require_business_access
@@ -13,8 +13,10 @@ from app.schemas.sales import (
     CSVUploadResponse,
     InventoryDeduction,
     NeedsCheckItem,
+    SalesListResponse,
     SalesSummaryResponse,
     SalesTrendsResponse,
+    SortOrder,
     TopMenuItem,
     TrendGroupBy,
 )
@@ -27,6 +29,30 @@ router = APIRouter(
 
 # 업로드 크기 상한 — 10만 행 CSV가 평균 5~10 MB 수준. 안전 마진으로 50 MB.
 MAX_UPLOAD_BYTES = 50 * 1024 * 1024
+
+
+@router.get("", response_model=SalesListResponse)
+async def list_sales(
+    session: SessionDep,
+    current: CurrentUserDep,
+    start_date: date,
+    end_date: date,
+    menu_id: str | None = None,
+    order: SortOrder = "desc",
+    page: Annotated[int, Query(ge=1)] = 1,
+    size: Annotated[int, Query(ge=1, le=100)] = 20,
+) -> SalesListResponse:
+    """판매 조회 화면 — 기간 판매 목록 + 기간 합계."""
+    store_id = (await StoreService(session).get_store(current.user_id)).store_id
+    return await SaleService(session).list_sales(
+        store_id=store_id,
+        start_date=start_date,
+        end_date=end_date,
+        menu_id=menu_id,
+        order=order,
+        page=page,
+        size=size,
+    )
 
 
 @router.get("/summary", response_model=SalesSummaryResponse)
@@ -63,11 +89,15 @@ async def get_sales_trends(
 async def get_top_menus(
     session: SessionDep,
     current: CurrentUserDep,
-    limit: int = 5,
+    start_date: date | None = None,
+    end_date: date | None = None,
+    limit: Annotated[int, Query(ge=1, le=100)] = 5,
 ) -> list[TopMenuItem]:
     """홈 화면 인기 메뉴 랭킹 — 판매량 기준."""
     store_id = (await StoreService(session).get_store(current.user_id)).store_id
-    return await SaleService(session).get_top_menus(store_id=store_id, limit=limit)
+    return await SaleService(session).get_top_menus(
+        store_id=store_id, start_date=start_date, end_date=end_date, limit=limit
+    )
 
 
 @router.post("/upload", response_model=CSVUploadResponse, status_code=status.HTTP_201_CREATED)

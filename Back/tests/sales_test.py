@@ -561,3 +561,131 @@ async def test_trends_rejects_reversed_range(client: AsyncClient) -> None:
     )
     assert r.status_code == 400, r.text
     assert r.json()["error"] == "VALIDATION_ERROR"
+
+
+# ----------------------------------------------------------------------
+# GET /api/sales — 02_implementation_design.md §3.6
+# ----------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_list_sales_pages_newest_first_with_period_totals(client: AsyncClient) -> None:
+    auth, _ = await _trends_store(client)
+    r = await client.get(
+        "/api/sales",
+        params={"start_date": "2026-01-01", "end_date": "2026-01-31", "size": 2},
+        headers=auth,
+    )
+    assert r.status_code == 200, r.text
+    body = r.json()
+    assert (body["total"], body["total_revenue"]) == (4, 32000)
+    assert (body["page"], body["size"], body["total_pages"]) == (1, 2, 2)
+    assert [
+        (i["menu_name"], i["quantity"], i["total_price"], i["sold_at"]) for i in body["items"]
+    ] == [
+        ("아메리카노", 3, 13500, "2026-01-09T12:00:00"),
+        ("라떼", 1, 5000, "2026-01-03T11:00:00"),
+    ]
+    assert all(i["sale_id"] and i["menu_id"] for i in body["items"])
+
+
+@pytest.mark.asyncio
+async def test_list_sales_filters_by_menu_ascending(client: AsyncClient) -> None:
+    auth, latte = await _trends_store(client)
+    r = await client.get(
+        "/api/sales",
+        params={"start_date": "2026-01-01", "end_date": "2026-02-28", "order": "asc"},
+        headers=auth,
+    )
+    assert r.status_code == 200, r.text
+    assert [i["sold_at"][:10] for i in r.json()["items"]] == [
+        "2026-01-01", "2026-01-03", "2026-01-03", "2026-01-09", "2026-02-02",
+    ]
+
+    r = await client.get(
+        "/api/sales",
+        params={"start_date": "2026-01-01", "end_date": "2026-02-28", "menu_id": latte},
+        headers=auth,
+    )
+    assert r.status_code == 200, r.text
+    body = r.json()
+    assert (body["total"], body["total_revenue"]) == (1, 5000)
+    assert [(i["menu_id"], i["menu_name"]) for i in body["items"]] == [(latte, "라떼")]
+
+
+@pytest.mark.asyncio
+async def test_list_sales_unknown_menu_returns_404(client: AsyncClient) -> None:
+    auth, _ = await _trends_store(client)
+    r = await client.get(
+        "/api/sales",
+        params={"start_date": "2026-01-01", "end_date": "2026-01-31",
+                "menu_id": "00000000-0000-0000-0000-000000000000"},
+        headers=auth,
+    )
+    assert r.status_code == 404, r.text
+    assert r.json()["message"] == "메뉴를 찾을 수 없습니다."
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "params",
+    [
+        {"start_date": "2026-01-05", "end_date": "2026-01-01"},  # 역순
+        {"start_date": "2026-01-01", "end_date": "2027-01-02"},  # 367일
+        {"start_date": "2026-01-01"},  # end_date 누락
+        {"start_date": "2026-01-01", "end_date": "2026-01-31", "size": 101},
+    ],
+)
+async def test_list_sales_rejects_bad_query(client: AsyncClient, params: dict) -> None:
+    auth, _ = await _trends_store(client)
+    r = await client.get("/api/sales", params=params, headers=auth)
+    assert r.status_code == 400, r.text
+    assert r.json()["error"] == "VALIDATION_ERROR"
+
+
+@pytest.mark.asyncio
+async def test_list_sales_allows_366_days(client: AsyncClient) -> None:
+    auth, _ = await _trends_store(client)
+    r = await client.get(
+        "/api/sales",
+        params={"start_date": "2026-01-01", "end_date": "2027-01-01"},
+        headers=auth,
+    )
+    assert r.status_code == 200, r.text
+    assert r.json()["total"] == 5
+
+
+# ----------------------------------------------------------------------
+# GET /api/sales/top-menus — 02_implementation_design.md §3.6
+# ----------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_top_menus_limits_to_period(client: AsyncClient) -> None:
+    auth, _ = await _trends_store(client)
+    r = await client.get(
+        "/api/sales/top-menus",
+        params={"start_date": "2026-01-01", "end_date": "2026-01-03"},
+        headers=auth,
+    )
+    assert r.status_code == 200, r.text
+    assert [(m["menu_name"], m["quantity"], m["revenue"]) for m in r.json()] == [
+        ("아메리카노", 3, 13500),
+        ("라떼", 1, 5000),
+    ]
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "params",
+    [
+        {"start_date": "2026-01-01"},  # 한쪽만
+        {"start_date": "2026-01-05", "end_date": "2026-01-01"},  # 역순
+        {"limit": 101},
+    ],
+)
+async def test_top_menus_rejects_bad_query(client: AsyncClient, params: dict) -> None:
+    auth, _ = await _trends_store(client)
+    r = await client.get("/api/sales/top-menus", params=params, headers=auth)
+    assert r.status_code == 400, r.text
+    assert r.json()["error"] == "VALIDATION_ERROR"

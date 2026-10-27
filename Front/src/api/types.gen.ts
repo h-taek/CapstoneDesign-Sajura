@@ -648,6 +648,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/sales": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Sales
+         * @description 판매 조회 화면 — 기간 판매 목록 + 기간 합계.
+         */
+        get: operations["list_sales_api_sales_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/sales/summary": {
         parameters: {
             query?: never;
@@ -1536,6 +1556,39 @@ export interface components {
         RejectRequest: {
             /** Reason */
             reason: string;
+        };
+        /** SaleListItem */
+        SaleListItem: {
+            /** Sale Id */
+            sale_id: string;
+            /** Menu Id */
+            menu_id: string;
+            /** Menu Name */
+            menu_name: string;
+            /** Quantity */
+            quantity: number;
+            /** Total Price */
+            total_price: number;
+            /**
+             * Sold At
+             * Format: date-time
+             */
+            sold_at: string;
+        };
+        /** SalesListResponse */
+        SalesListResponse: {
+            /** Items */
+            items: components["schemas"]["SaleListItem"][];
+            /** Total */
+            total: number;
+            /** Total Revenue */
+            total_revenue: number;
+            /** Page */
+            page: number;
+            /** Size */
+            size: number;
+            /** Total Pages */
+            total_pages: number;
         };
         /**
          * SalesSummaryResponse
@@ -3490,6 +3543,44 @@ export interface operations {
             };
         };
     };
+    list_sales_api_sales_get: {
+        parameters: {
+            query: {
+                start_date: string;
+                end_date: string;
+                menu_id?: string | null;
+                order?: "asc" | "desc";
+                page?: number;
+                size?: number;
+            };
+            header?: {
+                authorization?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SalesListResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     get_sales_summary_api_sales_summary_get: {
         parameters: {
             query?: never;
@@ -3560,6 +3651,8 @@ export interface operations {
     get_top_menus_api_sales_top_menus_get: {
         parameters: {
             query?: {
+                start_date?: string | null;
+                end_date?: string | null;
                 limit?: number;
             };
             header?: {

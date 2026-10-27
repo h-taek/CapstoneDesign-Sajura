@@ -40,6 +40,25 @@ class SalesSummaryResponse(BaseModel):
     last_sale_at: datetime | None
 
 
+class SaleListItem(BaseModel):
+    sale_id: str
+    menu_id: str
+    menu_name: str
+    quantity: int
+    total_price: int
+    sold_at: datetime  # 매장 현지 시각, 시간대 표기 없음
+
+
+class SalesListResponse(BaseModel):
+    items: list[SaleListItem]
+    total: int  # 조건에 맞는 판매 기록 수
+    total_revenue: int  # 조건에 맞는 매출 합계
+    page: int
+    size: int
+    total_pages: int
+
+
+SortOrder = Literal["asc", "desc"]
 TrendGroupBy = Literal["day", "week", "month"]
 
 

@@ -8,6 +8,14 @@
 
 ## 1. 개발 이력
 
+### 판매 조회 BE — 판매 목록·인기 메뉴 기간 지정 (2026-10-28)
+
+- `GET /api/sales` — 기간(양 끝 포함, 366일 상한) 판매 목록과 기간 합계(`total`·`total_revenue`), 메뉴 필터, `sold_at` 정렬 `order` asc·desc, `size` 최대 100
+- `GET /api/sales/top-menus` — `start_date`·`end_date`(둘 다 주거나 둘 다 생략), `limit` 최대 100
+- 기간 검사·기간 조건·메뉴 조회를 `SaleService`의 추세 조회와 같이 쓰도록 묶었다
+- `Front/openapi.json`·`types.gen.ts` 재생성
+- 검증: BE 컨테이너 안 pytest 94/94(신규 판매 조회 13건), FE Vitest 61/61. `tsc`의 `src/sw.ts` workbox 모듈 오류 2건은 변경 전부터 있던 것
+
 ### 발주 입고 처리 + 재고·메뉴 화면 재설계 — `8f654d5` (2026-10-28)
 
 - 같은 추천안 재확정 409(`orders.recommendation_id` 유니크). 확정 화면은 성공·409 뒤 추천을 새로 받는다
