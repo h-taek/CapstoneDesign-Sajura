@@ -254,6 +254,10 @@ HANDOFF.md E단계 9개 검증 시나리오 수행 + 발견된 결함 일괄 정
 
 ## 2. 문서 수정 이력
 
+### 2026-10-28 — `PROGRESS.md` 작업 흐름 절 삭제
+
+§2 '작업 흐름'이 `docs/README.md`와 다른 규칙(파일명 자유, spec 없는 흐름)을 적고 있어 지웠다. §3·§4 → §2·§3. 번호 참조처 `docs/README.md`·`plan/01~03`·`research/backend/01_web_framework.md`를 함께 고쳤다. `PROGRESS_*` 이력 서술은 그대로 둔다.
+
 ### 2026-10-28 — 문서 규칙의 plan 정의 정정
 
 `docs/README.md` §4 — plan은 큰 작업마다 착수 때 `NN_<작업명>.md`로 새로 만들고 끝난 plan은 고치지 않는다, `01~04`는 이전 구현 기록, 목록에 `05_inventory_receipt.md` 추가. §2-1 연동 맵에서 `plan/01_be.md`·`plan/02_fe.md` 제거. §5-1 팀원 문서 경로 `plan/ai/` → `plan/03_ai.md`.
