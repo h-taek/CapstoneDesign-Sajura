@@ -85,7 +85,7 @@ function useOrderSelection(rows: SelectableRow[]) {
   const setQuantity = (itemId: string, value: string) =>
     setQuantities((prev) => ({ ...prev, [itemId]: value }));
 
-  // DB가 소수 셋째 자리까지 받는다 (02_implementation_design.md §4.3.20 DECIMAL(10,3))
+  // DB가 소수 셋째 자리까지 받는다 (02_implementation_design.md §4.3.19 DECIMAL(10,3))
   const items = rows
     .filter((r) => selected.has(r.item_id))
     .map((r) => ({

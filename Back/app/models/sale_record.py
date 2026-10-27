@@ -1,4 +1,4 @@
-"""SaleRecord ORM — 02_implementation_design.md §4.3.14. 테이블은 0001_init.py에 정의됨."""
+"""SaleRecord ORM — 02_implementation_design.md §4.3.13. 테이블은 0001_init.py에 정의됨."""
 from __future__ import annotations
 
 import enum

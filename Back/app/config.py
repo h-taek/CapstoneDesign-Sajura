@@ -53,7 +53,7 @@ class Settings(BaseSettings):
     # AES-256-GCM (03_be.md §10.1, pos_connections.api_key)
     AES_GCM_KEY_BASE64: str = ""
 
-    # VAPID (pywebpush, 02_implementation_design.md §4.3.23)
+    # VAPID (pywebpush, 02_implementation_design.md §4.3.22)
     VAPID_PUBLIC_KEY: str = ""
     VAPID_PRIVATE_KEY: str = ""
     VAPID_SUBJECT: str = "mailto:ops@example.com"

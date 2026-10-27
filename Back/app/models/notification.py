@@ -1,4 +1,4 @@
-"""알림 ORM — 02_implementation_design.md §4.3.23·§4.3.24 (테이블은 0001_init에 존재)."""
+"""알림 ORM — 02_implementation_design.md §4.3.22·§4.3.23 (테이블은 0001_init에 존재)."""
 
 from __future__ import annotations
 

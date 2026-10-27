@@ -51,6 +51,7 @@
 - 다중 업종 지원 — 카페·치킨집 등 주점 외 업종 확장
 - 데이터 내보내기·삭제 — GDPR 대응. 마이페이지에서 `GET /api/data/export`(CSV 다운로드), `DELETE /api/data`(전체 데이터 삭제)
 - 테스트 커버리지 80% — BE branch coverage 목표
+- 쿠팡 가격 이상값 반복 매장 처리 — 저장값과 3% 이상 다른 정가(`01_basic_design.md` §3.3.1)를 3회 이상 보낸 매장의 수집 차단 또는 경고
 
 3단계
 
@@ -316,26 +317,28 @@ sequenceDiagram
     사주라서버-->>사주라UI: 발주 확정 완료
 
     사용자->>사주라UI: 쿠팡 자동 담기 요청
-    사주라UI->>확장: 품목 목록 전달 (externally_connectable)
-    확장->>쿠팡: 품목별 검색
+    사주라UI->>확장: 검색 필요 품목의 재료명 전달 (externally_connectable)
+    확장->>쿠팡: 재료명으로 검색
     쿠팡-->>확장: 검색 결과 페이지
-    확장-->>사주라UI: 상품 카드 목록 (상품명·가격·용량·링크만)
+    확장-->>사주라UI: 상품 카드 목록 (04_fe.md §12.4 허용 필드만)
     사주라UI->>사주라서버: POST /api/orders/{order_id}/automate/match
-    사주라서버->>사주라서버: LLM 호출 — 품목별 상품 1개 선택
+    사주라서버->>사주라서버: 검색 품목은 LLM 호출로 상품 1개 선택, 연결 상품 품목은 연결 상품 지정
     사주라서버-->>사주라UI: 선택 결과
     사주라UI->>확장: 선택 결과 전달
-    확장->>쿠팡: 장바구니 담기 (고정 셀렉터)
+    확장->>쿠팡: 장바구니 담기 (고정 셀렉터) + 담은 상품 값 읽기
 
     alt 전체 성공
         쿠팡-->>확장: 담기 완료
-        확장-->>사주라UI: 성공 품목 목록
+        확장-->>사주라UI: 성공 품목 목록 + 담은 상품 값
         사주라UI->>사주라서버: POST /api/orders/{order_id}/automate/result
+        사주라서버->>DB: 공용 쿠팡 상품 저장·갱신, 재료 연결 갱신
         사주라서버->>DB: orders.status = AUTOMATED
         사주라UI-->>사용자: 쿠팡 결제 진행 안내 표시
     else 부분 실패
         쿠팡-->>확장: 일부 품목 실패
-        확장-->>사주라UI: 성공 품목 + 실패 품목 목록
+        확장-->>사주라UI: 성공 품목 + 담은 상품 값 + 실패 품목 목록
         사주라UI->>사주라서버: POST /api/orders/{order_id}/automate/result
+        사주라서버->>DB: 성공 품목의 공용 쿠팡 상품 저장·갱신, 재료 연결 갱신
         사주라서버->>DB: orders.status = MANUAL_REQUIRED
         사주라UI-->>사용자: 성공 품목 완료 안내 + 실패 품목 수동 처리 안내
     else 확장 미설치·전체 실패
@@ -368,7 +371,7 @@ sequenceDiagram
     AIServer-->>n8n: 예측 결과 + 예측 근거(05_ai.md §8) 반환
     n8n->>AIServer: POST /ai/orders/recommend
     AIServer-->>n8n: 추천발주안 반환
-    n8n->>DB: forecast_results·forecast_menu_items UPSERT (§4.3.15·§4.3.16)
+    n8n->>DB: forecast_results·forecast_menu_items UPSERT (§4.3.14·§4.3.15)
     n8n->>DB: order_recommendations INSERT (추천발주안)
 
     alt 전체 성공
@@ -1182,7 +1185,7 @@ Authorization: Bearer <access_token>
 
 #### GET /api/inventory/{item_id}
 
-> `coupang_url`과 `last_price`는 `inventory_item_sites` JOIN 결과 (쿠팡 사이트 기준). 등록된 쿠팡 상품이 없으면 `null`.
+> `coupang_product`는 재료에 연결된 공용 쿠팡 상품(§4.3.12)이다. 연결이 없으면 `null`. 단가 계산: `01_basic_design.md` §3.3.1.
 
 ```json
 // Response 200
@@ -1196,8 +1199,15 @@ Authorization: Bearer <access_token>
   "total_quantity": 2000.0,
   "nearest_expiry_date": "2026-08-06",
   "needs_check": false,
-  "coupang_url": "https://www.coupang.com/...",
-  "last_price": 28000,
+  "coupang_product": {
+    "product_name": "○○ 원두 1kg",
+    "list_price": 28000,           // 정가(원)
+    "content_quantity": 1000.0,    // 상품 1개 용량. 모르면 null
+    "content_unit": "g",
+    "updated_at": "2026-05-06T10:05:00Z"
+  },
+  "pack_quantity": null,         // 상품 1개에 든 재료 수량(재료 단위). LLM 판정 또는 점주 입력
+  "unit_price": 28.0,            // 재료 단위당 원. 계산할 수 없으면 null
   "created_at": "2026-05-06T00:00:00Z",
   "updated_at": "2026-05-06T00:00:00Z"
 }
@@ -1205,7 +1215,7 @@ Authorization: Bearer <access_token>
 
 #### PATCH /api/inventory/{item_id}
 
-> `coupang_url` 변경 시 `inventory_item_sites`의 쿠팡 레코드를 UPSERT. 기존 레코드가 없으면 신규 생성.
+> `pack_quantity`는 매장 재고 품목에만 저장하고 공용 쿠팡 상품에 쓰지 않는다 (`01_basic_design.md` §3.3.1).
 
 ```json
 // Request (변경할 필드만)
@@ -1213,7 +1223,7 @@ Authorization: Bearer <access_token>
   "low_stock_threshold": 800.0,
   "lead_time_days": 3,
   "safety_stock": 1200.0,
-  "coupang_url": "https://www.coupang.com/..."
+  "pack_quantity": 1000.0        // > 0. 연결된 쿠팡 상품이 없으면 400 VALIDATION_ERROR
 }
 // Response 200: GET /api/inventory/{item_id} 와 동일 구조
 ```
@@ -1622,7 +1632,7 @@ Authorization: Bearer <access_token>
 
 #### PATCH /api/orders/recommend
 
-> 점주 수정안을 `order_recommendation_items.adjusted_quantity`에 저장한다 (§4.3.18).
+> 점주 수정안을 `order_recommendation_items.adjusted_quantity`에 저장한다 (§4.3.17).
 
 ```json
 // Request
@@ -1721,7 +1731,13 @@ Authorization: Bearer <access_token>
       "unit": "g",
       "unit_price": 28.0,          // 미설정이었으면 null
       "subtotal": 84000,           // 미설정이었으면 null
-      "receipt_status": "PENDING"  // PENDING(입고 대기) | RECEIVED(입고 완료) | SKIPPED(입고 안 함)
+      "receipt_status": "PENDING", // PENDING(입고 대기) | RECEIVED(입고 완료) | SKIPPED(입고 안 함)
+      "coupang_search_required": false,  // 자동 담기 때 쿠팡 검색이 필요한지 (01_basic_design.md §3.8)
+      "coupang_product": {               // 재료에 연결된 공용 쿠팡 상품. 없으면 null
+        "product_id": "7335597976",
+        "vendor_item_id": "87234561234",
+        "product_name": "○○ 원두 1kg"
+      }
     }
   ]
 }
@@ -1756,50 +1772,68 @@ Authorization: Bearer <access_token>
 #### POST /api/orders/{order_id}/automate/match
 
 > 브라우저 조작은 사주라 확장이 점주 브라우저에서 수행한다. 서버는 담을 상품을 고르는 판단만 한다.
-> 전체 흐름·데이터 화이트리스트: `04_fe.md` §12.3·§12.4.
+> 전체 흐름·데이터 화이트리스트: `04_fe.md` §12.3·§12.4. 선택 규칙: `01_basic_design.md` §3.8.1.
 
 ```json
-// Request — 확장이 수집한 품목별 검색 결과 (전체 품목 1회 전송)
+// Request — 검색이 필요한 품목(coupang_search_required = true)의 검색 결과. 전체 품목 1회 전송
 {
   "candidates": [
     {
       "item_id": "uuid",
-      "query": "돼지고기 삼겹살 냉장",
+      "query": "삼겹살",                 // 재료명 그대로
       "results": [
         {
-          "product_name": "○○농장 삼겹살 1kg",
-          "price": 18900,
-          "unit_text": "1kg",
-          "product_url": "https://www.coupang.com/vp/products/..."
+          "product_id": "7335597976",
+          "vendor_item_id": "87234561234",
+          "product_name": "○○농장 삼겹살 (냉장), 500g, 1개",
+          "list_price": 13370,           // 정가(할인 전 가격). 할인 표시가 없으면 표시 가격
+          "display_price": 11740,        // 표시 가격(할인 적용가). 용량 계산에만 쓰고 저장하지 않는다
+          "unit_price_text": "100g당 2,348원"  // 쿠팡 단위가격 표시. 없으면 null
         }
       ]
     }
   ]
 }
 
-// Response 200 — 품목별 선택 1개. 적합한 상품이 없으면 selected: null
+// Response 200 — 발주의 모든 품목에 대해 선택 1개. 적합한 상품이 없으면 selected: null
 {
   "selections": [
     {
       "item_id": "uuid",
       "selected": {
-        "product_url": "https://www.coupang.com/vp/products/...",
-        "quantity": 5,
-        "reason": "발주 5kg = 1kg 5개"
+        "product_id": "7335597976",
+        "vendor_item_id": "87234561234",
+        "quantity": 4,                 // 담을 상품 개수
+        "pack_quantity": null,         // LLM이 판정한 포장 수량(재료 단위). 쿠팡 단위가격으로 계산되거나 판정 못 하면 null
+        "reason": "발주 2kg = 500g 4개"
       }
     }
   ]
 }
+// candidates가 비어 있으면 LLM을 호출하지 않는다
 ```
 
 #### POST /api/orders/{order_id}/automate/result
 
 ```json
-// Request — 확장의 담기 결과
+// Request — 확장의 담기 결과. 성공 품목은 담을 때 읽은 상품 값을 함께 보낸다
 {
-  "succeeded": [{ "item_id": "uuid", "product_url": "https://..." }],
+  "succeeded": [
+    {
+      "item_id": "uuid",
+      "product_id": "7335597976",
+      "vendor_item_id": "87234561234",
+      "product_name": "○○농장 삼겹살 (냉장), 500g, 1개",
+      "list_price": 13370,
+      "display_price": 11740,
+      "unit_price_text": "100g당 2,348원",
+      "pack_quantity": null,           // match 응답의 값 그대로
+      "searched": true                 // 이번에 검색으로 고른 상품이면 true, 연결 상품을 담았으면 false
+    }
+  ],
   "failed": [{ "item_id": "uuid", "reason": "NO_RESULT" }]
 }
+// 성공 품목마다 공용 쿠팡 상품을 저장·갱신하고 재료 연결을 갱신한다 (01_basic_design.md §3.3.1·§3.8.1)
 // reason: NO_RESULT | SELECTOR_MISMATCH | TIMEOUT | EXTENSION_UNAVAILABLE
 
 // Response 200
@@ -1920,7 +1954,7 @@ Authorization: Bearer <access_token>
   "inventory": [
     { "item_id": "uuid", "current_quantity": 2400.0, "unit": "g",  // current_quantity = 로트 잔여 수량 합계
       "incoming_quantity": 0.0,  // 입고 예정량(01_basic_design.md §3.7.2). 생략 시 0
-      "lead_time_days": 2, "safety_stock": 1000.0, "last_price": 28000 }
+      "lead_time_days": 2, "safety_stock": 1000.0 }
   ]
 }
 
@@ -2106,7 +2140,7 @@ Authorization: Bearer <access_token>
 
 ### 3.10 알림 API
 
-> 알림 정책: `01_basic_design.md` §3.12 / 저장 스키마: §4.3.23 `notifications`·§4.3.24 `push_subscriptions`
+> 알림 정책: `01_basic_design.md` §3.12 / 저장 스키마: §4.3.22 `notifications`·§4.3.23 `push_subscriptions`
 > 알림 채널·라이브러리: `docs/research/backend/06_external_integration.md` §3
 
 #### Endpoints
@@ -2398,11 +2432,15 @@ CREATE TABLE inventory_items (
     safety_stock        DECIMAL(10,3)   NULL COMMENT '추천발주 안전재고 수량. NULL이면 기본값 0 사용',
     deducted_until      DATETIME        NOT NULL COMMENT '차감 기준 시각(sold_at과 같은 매장 현지 시각). 이 시각보다 뒤에 팔린 판매만 차감. 등록 시각으로 시작',
     needs_check         TINYINT(1)      NOT NULL DEFAULT 0 COMMENT '재고 확인 필요 (01_basic_design.md §3.3.3)',
+    coupang_product_id  CHAR(36)        NULL COMMENT '연결된 공용 쿠팡 상품 (01_basic_design.md §3.3.1)',
+    coupang_linked_at   DATETIME        NULL COMMENT '검색으로 고른 상품을 연결한 시각. 자동 담기 검색 주기 기준 (01_basic_design.md §3.8.1)',
+    pack_quantity       DECIMAL(10,3)   NULL COMMENT '연결 상품 1개에 든 재료 수량(재료 단위). LLM 판정 또는 점주 입력',
     created_at          DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at          DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     PRIMARY KEY (item_id),
     KEY idx_inventory_items_store_id (store_id),
-    CONSTRAINT fk_inventory_items_store FOREIGN KEY (store_id) REFERENCES stores (store_id) ON DELETE CASCADE
+    CONSTRAINT fk_inventory_items_store FOREIGN KEY (store_id) REFERENCES stores (store_id) ON DELETE CASCADE,
+    CONSTRAINT fk_inventory_items_coupang_product FOREIGN KEY (coupang_product_id) REFERENCES coupang_products (coupang_product_id)
 );
 ```
 
@@ -2475,39 +2513,26 @@ CREATE TABLE disposal_logs (
 );
 ```
 
-#### 4.3.12 sites
+#### 4.3.12 coupang_products
+
+> 매장 공용 쿠팡 상품 (`01_basic_design.md` §3.3.1). 사주라 확장이 담기에 성공한 상품의 값만 들어온다. 매장 정보와 점주 입력은 담지 않는다.
 
 ```sql
-CREATE TABLE sites (
-    site_id     CHAR(36)        NOT NULL,
-    name        VARCHAR(50)     NOT NULL,
-    base_url    VARCHAR(255)    NOT NULL,
-    is_active   TINYINT(1)      NOT NULL DEFAULT 1,
-    PRIMARY KEY (site_id),
-    UNIQUE KEY uq_sites_name (name)
+CREATE TABLE coupang_products (
+    coupang_product_id  CHAR(36)        NOT NULL,
+    product_id          VARCHAR(20)     NOT NULL COMMENT '쿠팡 productId',
+    vendor_item_id      VARCHAR(20)     NOT NULL COMMENT '쿠팡 vendorItemId',
+    product_name        VARCHAR(300)    NOT NULL,
+    list_price          INT             NOT NULL COMMENT '정가(원). 할인 전 가격',
+    content_quantity    DECIMAL(10,3)   NULL COMMENT '상품 1개 용량. 쿠팡 단위가격 표시에서 계산. 모르면 NULL',
+    content_unit        VARCHAR(10)     NULL COMMENT '용량 단위 (g·ml·개·구 등)',
+    updated_at          DATETIME        NOT NULL COMMENT '확장이 마지막으로 값을 보낸 시각',
+    PRIMARY KEY (coupang_product_id),
+    UNIQUE KEY uq_coupang_products_item (product_id, vendor_item_id)
 );
 ```
 
-#### 4.3.13 inventory_item_sites
-
-```sql
-CREATE TABLE inventory_item_sites (
-    id              CHAR(36)        NOT NULL,
-    item_id         CHAR(36)        NOT NULL,
-    site_id         CHAR(36)        NOT NULL,
-    product_url     VARCHAR(500)    NOT NULL,
-    last_price      INT             NULL,
-    last_scraped_at DATETIME        NULL,
-    PRIMARY KEY (id),
-    UNIQUE KEY uq_item_site (item_id, site_id),
-    CONSTRAINT fk_item_sites_item FOREIGN KEY (item_id) REFERENCES inventory_items (item_id) ON DELETE CASCADE,
-    CONSTRAINT fk_item_sites_site FOREIGN KEY (site_id) REFERENCES sites (site_id)
-);
-```
-
-> API 응답의 `coupang_url`(= `product_url`)과 `last_price`는 이 테이블에서 쿠팡 사이트(`sites.name = '쿠팡'`) 기준으로 JOIN하여 제공한다. `inventory_items`에 직접 컬럼이 없으므로 서비스 레이어에서 JOIN 처리가 필요하다. MVP에서는 쿠팡 단일 사이트만 지원한다.
-
-#### 4.3.14 sale_records
+#### 4.3.13 sale_records
 
 ```sql
 CREATE TABLE sale_records (
@@ -2530,9 +2555,9 @@ CREATE TABLE sale_records (
 );
 ```
 
-#### 4.3.15 forecast_results
+#### 4.3.14 forecast_results
 
-> 예측 대상은 매장 일 매출이다 (`05_ai.md` §2 ①). 메뉴별 예상 수량은 §4.3.16에 분리 저장한다.
+> 예측 대상은 매장 일 매출이다 (`05_ai.md` §2 ①). 메뉴별 예상 수량은 §4.3.15에 분리 저장한다.
 
 ```sql
 CREATE TABLE forecast_results (
@@ -2553,9 +2578,9 @@ CREATE TABLE forecast_results (
 );
 ```
 
-#### 4.3.16 forecast_menu_items
+#### 4.3.15 forecast_menu_items
 
-> 매출 예측을 메뉴 비중으로 분해한 참고치 (`05_ai.md` §2 ②·§3.2). 신뢰도 배지는 §4.3.15의 값을 따른다.
+> 매출 예측을 메뉴 비중으로 분해한 참고치 (`05_ai.md` §2 ②·§3.2). 신뢰도 배지는 §4.3.14의 값을 따른다.
 
 ```sql
 CREATE TABLE forecast_menu_items (
@@ -2570,7 +2595,7 @@ CREATE TABLE forecast_menu_items (
 );
 ```
 
-#### 4.3.17 order_recommendations
+#### 4.3.16 order_recommendations
 
 ```sql
 CREATE TABLE order_recommendations (
@@ -2584,7 +2609,7 @@ CREATE TABLE order_recommendations (
 );
 ```
 
-#### 4.3.18 order_recommendation_items
+#### 4.3.17 order_recommendation_items
 
 ```sql
 CREATE TABLE order_recommendation_items (
@@ -2596,7 +2621,6 @@ CREATE TABLE order_recommendation_items (
     lead_time_days          INT             NOT NULL COMMENT '추천 계산 시 사용한 리드타임 스냅샷',
     safety_stock            DECIMAL(10,3)   NOT NULL COMMENT '추천 계산 시 사용한 안전재고 스냅샷',
     config_status           ENUM('USER_CONFIGURED','DEFAULT_USED') NOT NULL COMMENT '추천 계산 시 설정값 사용 상태',
-    last_price              INT             NULL,
     PRIMARY KEY (id),
     KEY idx_order_rec_items_recommendation_id (recommendation_id),
     CONSTRAINT fk_order_rec_items_recommendation FOREIGN KEY (recommendation_id) REFERENCES order_recommendations (recommendation_id) ON DELETE CASCADE,
@@ -2604,7 +2628,7 @@ CREATE TABLE order_recommendation_items (
 );
 ```
 
-#### 4.3.19 orders
+#### 4.3.18 orders
 
 ```sql
 CREATE TABLE orders (
@@ -2624,7 +2648,7 @@ CREATE TABLE orders (
 );
 ```
 
-#### 4.3.20 order_items
+#### 4.3.19 order_items
 
 ```sql
 CREATE TABLE order_items (
@@ -2646,7 +2670,7 @@ CREATE TABLE order_items (
 );
 ```
 
-#### 4.3.21 order_approval_logs
+#### 4.3.20 order_approval_logs
 
 ```sql
 CREATE TABLE order_approval_logs (
@@ -2664,7 +2688,7 @@ CREATE TABLE order_approval_logs (
 );
 ```
 
-#### 4.3.22 pipeline_jobs
+#### 4.3.21 pipeline_jobs
 
 ```sql
 CREATE TABLE pipeline_jobs (
@@ -2683,7 +2707,7 @@ CREATE TABLE pipeline_jobs (
 );
 ```
 
-#### 4.3.23 notifications
+#### 4.3.22 notifications
 
 ```sql
 CREATE TABLE notifications (
@@ -2708,7 +2732,7 @@ CREATE TABLE notifications (
 
 > 인앱 알림 저장소. `01_basic_design.md` §3.12 알림 정책 모두 본 테이블에 INSERT된다. Web Push 발송은 `push_subscriptions`를 참조해 BE Service가 비동기로 수행한다.
 
-#### 4.3.24 push_subscriptions
+#### 4.3.23 push_subscriptions
 
 ```sql
 CREATE TABLE push_subscriptions (
@@ -2727,6 +2751,22 @@ CREATE TABLE push_subscriptions (
 ```
 
 > VAPID 표준 Web Push 구독 정보. Push Service가 410(Gone) 응답 시 endpoint 만료 → 본 행 삭제.
+
+#### 4.3.24 coupang_price_candidates
+
+> 공용 쿠팡 상품과 정가가 3% 이상 다른 값을 확인 전까지 보관한다 (`01_basic_design.md` §3.3.1).
+
+```sql
+CREATE TABLE coupang_price_candidates (
+    coupang_product_id  CHAR(36)        NOT NULL,
+    store_id            CHAR(36)        NOT NULL COMMENT '후보를 보낸 매장',
+    list_price          INT             NOT NULL COMMENT '보낸 정가(원)',
+    received_at         DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (coupang_product_id, store_id),
+    CONSTRAINT fk_price_candidates_product FOREIGN KEY (coupang_product_id) REFERENCES coupang_products (coupang_product_id) ON DELETE CASCADE,
+    CONSTRAINT fk_price_candidates_store FOREIGN KEY (store_id) REFERENCES stores (store_id) ON DELETE CASCADE
+);
+```
 
 ### 4.4 인덱스 설계 요약
 
@@ -2786,7 +2826,7 @@ n8n은 운영 데이터 원본을 삭제하지 않는다. n8n의 쓰기 대상�
 | 인증 | `users`, `refresh_tokens` |
 | 매장/POS | `stores`, `pos_connections` |
 | 메뉴/레시피 | `menus`, `recipes`, `recipe_ingredients` |
-| 재고 | `inventory_items`, `inventory_lots`, `inventory_adjustment_logs`, `disposal_logs`, `sites`, `inventory_item_sites` |
+| 재고 | `inventory_items`, `inventory_lots`, `inventory_adjustment_logs`, `disposal_logs`, `coupang_products`, `coupang_price_candidates` |
 | 판매 | `sale_records` |
 | 수요예측 | `forecast_results`, `forecast_menu_items` |
 | 발주 | `order_recommendations`, `order_recommendation_items`, `orders`, `order_items`, `order_approval_logs` |
@@ -2825,13 +2865,14 @@ erDiagram
     inventory_items ||--o{ inventory_lots : "1:N"
     inventory_items ||--o{ inventory_adjustment_logs : "1:N"
     inventory_items ||--o{ disposal_logs : "1:N"
-    inventory_items ||--o{ inventory_item_sites : "1:N"
     inventory_items ||--o{ order_recommendation_items : "1:N"
     inventory_items ||--o{ order_items : "1:N"
     inventory_items ||--o{ order_approval_logs : "1:N"
     inventory_lots ||--o{ disposal_logs : "1:N"
     inventory_lots ||--o{ inventory_adjustment_logs : "1:N"
-    sites ||--o{ inventory_item_sites : "1:N"
+    coupang_products ||--o{ inventory_items : "1:N"
+    coupang_products ||--o{ coupang_price_candidates : "1:N"
+    stores ||--o{ coupang_price_candidates : "1:N"
     order_recommendations ||--o{ order_recommendation_items : "1:N"
     order_recommendations ||--o{ orders : "1:N"
     orders ||--o{ order_items : "1:N"
@@ -2872,12 +2913,13 @@ recipe_ingredients (N) ── (1) inventory_items
 inventory_items (1) ── (N) inventory_lots
 inventory_items (1) ── (N) inventory_adjustment_logs
 inventory_items (1) ── (N) disposal_logs
-inventory_items (1) ── (N) inventory_item_sites
 
 inventory_lots (1) ── (N) disposal_logs
 inventory_lots (1) ── (N) inventory_adjustment_logs
 
-sites (1) ── (N) inventory_item_sites
+coupang_products (1) ── (N) inventory_items
+coupang_products (1) ── (N) coupang_price_candidates
+stores (1) ── (N) coupang_price_candidates
 
 order_recommendations (1) ── (N) order_recommendation_items
 order_recommendation_items (N) ── (1) inventory_items

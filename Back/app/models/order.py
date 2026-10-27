@@ -1,4 +1,4 @@
-"""추천발주·발주 ORM — 02_implementation_design.md §4.3.17~§4.3.21 (테이블은 0001_init에 존재)."""
+"""추천발주·발주 ORM — 02_implementation_design.md §4.3.16~§4.3.20 (테이블은 0001_init에 존재)."""
 
 from __future__ import annotations
 

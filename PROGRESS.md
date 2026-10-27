@@ -26,14 +26,14 @@
 
 | 영역 | 결정 | 근거 위치 |
 |---|---|---|
-| 문서 구조 | spec(확정 사실) · research(spec 작성 위한 조사) · plan(구현 계획) 3폴더 분리 + research 하위 backend/frontend/ai 도메인 폴더 | `docs/README.md` |
+| 문서 구조 | spec(확정 사실) · research(spec 작성 위한 조사) · plan(구현 계획) 3폴더 분리 + research 하위 backend/frontend/ai 도메인 폴더. research는 조사·실측 관찰만 담고 결정(채택·선발·판정)은 넣지 않는다 — backend·frontend 24개 문서에서 결정 제거 (2026-10-28) | `docs/README.md` |
 | spec 파일 구성 | 기본 설계(요구사항·유즈케이스·기능·흐름·비기능) · 구현 설계(MVP·시퀀스·API·DB) · BE · FE · AI 5개. 같은 사실은 한 곳에만, 미확정·2단계 상세는 두지 않는다 (2026-10-19) | `docs/README.md` §2 |
 | MVP 데이터 | CSV 업로드 + POS API 연동(토스플레이스·키움페이·OKPOS 3사 한정, 코드 `TOSSPLACE`·`KIWOOM`·`OKPOS`). 2단계 항목은 상세 없이 한 줄 목록으로만 둔다 (2026-10-25 POS API를 2단계에서 MVP로 이동) | `docs/spec/02_implementation_design.md` §1, `01_basic_design.md` §3.4.3 |
-| 쿠팡 자동 담기 | 서버 Playwright 폐기 → **사주라 브라우저 확장**이 점주 브라우저에서 수행. 서버는 상품 선택(LLM)·결과 기록만 하고 쿠팡 자격증명을 보유하지 않는다 (2026-09-13) | `04_fe.md` §12 |
+| 쿠팡 자동 담기 | 서버 Playwright 폐기 → **사주라 브라우저 확장**이 점주 브라우저에서 수행. 서버는 상품 선택(LLM)·결과 기록만 하고 쿠팡 자격증명을 보유하지 않는다 (2026-09-13). 검색어는 재료명 그대로, LLM은 상품 선택·담을 개수·포장 수량 판정에만 발주당 1회. 연결 상품이 있고 연결 후 3일 이내면 검색 생략. 담기 성공 시 공용 쿠팡 상품 저장·재료 연결 덮어쓰기. LLM 제공자는 환경변수로 교체(Claude API·OpenAI API·OpenAI 호환 로컬 서버) (2026-10-28) | `01_basic_design.md` §3.8.1, `03_be.md` §2.4, `04_fe.md` §12 |
 | 시연 범위 | Phase 8(n8n 배치)·10(자동 담기)·13(통합 검증·배포) 모두 범위 안. 배포 대상은 자체 운영 서버(Mac mini) SSH. Phase 10은 착수 우선순위 최하 (2026-09-13) | `plan/04_gantt.md` §6 |
-| 식자재 단가 | 단가 출처는 매장 공용 쿠팡 상품 테이블 하나(상품 = `productId`+`vendorItemId`, 가격은 사주라 확장이 점주 브라우저에서 읽어 전송). 점주는 단가를 입력·수정하지 않고, 입고 구매 금액은 로트 실지출일 뿐 단가를 바꾸지 않는다. 쿠팡 Open API는 판매자 자기 상품용이라 가격 출처 아님, 서버 크롤링·봇 우회 미사용. 테이블·전송은 쿠팡 자동 담기 때 — 그 전까지 단가 미설정. KAMIS는 홈 시세 참고만 (2026-10-28, 09-13 'KAMIS 대체' 번복) | `01_basic_design.md` §3.3.1 |
+| 식자재 단가 | 단가 출처는 매장 공용 쿠팡 상품 테이블 하나 — 상품 고유 ID(`productId`+`vendorItemId`)·상품명·정가·상품 1개 용량·갱신 시각만, 매장 정보·할인가(사람마다 다른 가격)·점주 입력은 넣지 않는다. 값은 확장이 담기에 성공할 때만 보낸다. 단가 = 정가 ÷ 용량(재료 단위 환산) → 안 되면 정가 ÷ 포장 수량(LLM 판정, 실패 시 점주 입력, 매장 재고 품목에 저장) → 둘 다 없으면 미설정. 저장 정가와 3% 이상 다른 값은 가격 후보로 보관하고 다른 매장 1곳이 3% 이내로 확인하면 반영(같은 매장 반복은 확인 아님, 후보 14일 만료). 반복 이상값 매장 처리는 2단계. 점주는 단가를 입력·수정하지 않고, 입고 구매 금액은 단가를 바꾸지 않는다. 쿠팡 Open API·서버 크롤링·봇 우회 미사용. KAMIS는 홈 시세 참고만 (2026-10-28) | `01_basic_design.md` §3.3.1, `research/backend/15_coupang_price_validation.md` |
 | 재고 차감 | 판매는 품목별 '차감 기준 시각'(마지막으로 차감한 판매 시각, 시작값은 품목 등록 시각) 이후 것만 FIFO 차감. 소비기한 없는 로트는 뒤에 입고일 순. 로트 금액은 구매 총액으로 저장 (2026-10-19) | `01_basic_design.md` §3.3.3 |
-| 예측 저장 구조 | `forecast_results`(매장 일 매출·P10/P90·근거) + `forecast_menu_items`(메뉴 분해) 2테이블. 구 메뉴별 단일 테이블 폐기 (2026-09-13) | `02_implementation_design.md` §4.3.15·§4.3.16 |
+| 예측 저장 구조 | `forecast_results`(매장 일 매출·P10/P90·근거) + `forecast_menu_items`(메뉴 분해) 2테이블. 구 메뉴별 단일 테이블 폐기 (2026-09-13) | `02_implementation_design.md` §4.3.14·§4.3.15 |
 | 배치 시각 | ARQ 소비기한 점검 01:30 / n8n 예측 배치 02:00 / ARQ 탈퇴 계정 파기 03:00 — 같은 호스트라 분산 (2026-10-03 파기 추가) | `01_basic_design.md` §3.3.6·§3.11.1, `01_basic_design.md` §5.2.1 |
 | 웹 프레임워크 | FastAPI + Pydantic v2 + orjson | `03_be.md` §1 |
 | 앱 서버 | Gunicorn + uvicorn.workers, 로컬 개발·운영 공통 (워커 4, --max-requests 1000, --preload). 로컬 개발도 운영과 같은 compose·이미지로 띄운다 (2026-10-25 dev Uvicorn 단독 폐기) | `03_be.md` §1·§15.2 |
@@ -42,10 +42,10 @@
 | 인증·암호화 | Authlib + python-jose + passlib[bcrypt] + cryptography(AES-256-GCM) | `03_be.md` §7·§10 |
 | OAuth 콜백 응답 | 302 Redirect to FE root + Set-Cookie refresh_token (Access Token 본문/URL 미노출, FE 첫 진입에서 `POST /api/auth/refresh`로 동기) | `02_implementation_design.md` §3.2, `02_implementation_design.md` §2.2 |
 | 외부 연동 | httpx + tenacity + aiobreaker + BeautifulSoup4(lxml) + Playwright(Chromium 단일) | `03_be.md` §1 |
-| 알림 | 점주 알림은 인앱 + Web Push(pywebpush, `notifications` 테이블). 이메일(fastapi-mail)은 탈퇴 파기 증빙만. Slack은 운영자 모니터링 전용 (2026-10-28 갱신) | `03_be.md` §4, `02_implementation_design.md` §4.3.23~§4.3.24 |
+| 알림 | 점주 알림은 인앱 + Web Push(pywebpush, `notifications` 테이블). 이메일(fastapi-mail)은 탈퇴 파기 증빙만. Slack은 운영자 모니터링 전용 (2026-10-28 갱신) | `03_be.md` §4, `02_implementation_design.md` §4.3.22~§4.3.23 |
 | 인앱 알림 폴링 | 5분 고정 (코드 상수, 사용자 설정 미노출) + 수동 새로고침 권장 — BE rate limit 보호 | `04_fe.md`, `research/frontend/06_pwa_push.md` |
 | 캐시·관측 | Redis + redis-py(async) + structlog + asgi-correlation-id + Sentry(BE+FE 동일 release `git-<sha>`, PII scrubbing, traces 5%) | `03_be.md` §1, `03_be.md` §14.4 |
-| 비동기 작업 분리 | n8n = AI 파이프라인(외부 데이터 수집·AI Server 호출). ARQ cron_jobs = BE 도메인 정기 작업(소비기한 점검 등). BackgroundTasks = 짧은 후처리 | `research/backend/08_async_pipeline.md` §1.4 |
+| 비동기 작업 분리 | n8n = AI 파이프라인(외부 데이터 수집·AI Server 호출). ARQ cron_jobs = BE 도메인 정기 작업(소비기한 점검 등). BackgroundTasks = 짧은 후처리 | `research/backend/08_async_pipeline.md` §1 |
 | 알림 발송 규칙 | 한 건의 단위 — 소비기한은 품목·조건, 재고 부족은 품목, 이상치는 업로드 한 번, 예측 완료는 매장. 소비기한은 D-3·D-1·초과 첫날에 한 번씩(초과를 매일 반복하지 않음), 같은 날 재실행은 건너뜀. 알림 설정 4묶음(소비기한 임박·재고 부족·예측 완료·이상치), 끈 묶음은 인앱·푸시 모두 만들지 않음 (2026-10-28) | `01_basic_design.md` §3.3.6·§3.12, `02_implementation_design.md` §3.10 |
 | 알림 송출 단일 경로 | BE `NotificationService.create_and_push`만 사용. n8n은 BE API 트리거만, DB `notifications` 직접 INSERT 금지 | `02_implementation_design.md` §4.5 n8n_user 권한 |
 | 테스트·품질 | pytest + pytest-asyncio + pytest-cov + factory_boy + Faker + testcontainers + respx + ruff + mypy + bandit + pip-audit + pre-commit | `research/backend/09_testing_quality.md` |
