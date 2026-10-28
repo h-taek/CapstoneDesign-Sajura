@@ -4,6 +4,9 @@ LLM 설정(.env)으로 1회 선택해 check_rule.py 형식으로 남긴다. BE �
 사용: DATA_DIR=data_v2 RUN_DIR=run_srv_out [INJECT=1] [EFFORT=low] python3 server_eval.py
       RUN_DIR=run_srv_out EXPECT_SET=out_v2 python3 check_rule.py
 결과의 selected는 서버 답 검사를 거친 값이다(검사에서 빠지면 null). LLM 원답은 llm에 남긴다.
+
+보안 분류기만: GUARD_URL=http://host.docker.internal:11434/v1 DATA_DIR=data_v2 INJECT=1 python3 server_eval.py
+      분류기 판정·사유·소요 시간을 출력한다. 모델은 .env의 LLM_GUARD_MODEL.
 """
 import json, os, subprocess
 
@@ -29,6 +32,17 @@ for it in p["order"]:
     lines.append((it["item_id"], line, rows))
     by_key[it["item_id"]] = (line, rows)
 
+async def guard():
+    t = time.time()
+    try:
+        v = (await llm.get_guard_client().complete(
+            system=a.GUARD_SYSTEM, user=f"{a.SELECT_SYSTEM}\n\n{a.build_prompt(lines, p['logged_in'])}",
+            schema=a._GuardVerdict,
+        )).model_dump()
+    except llm.LLMError as exc:
+        v = {"decision": "FAILED", "reason": str(exc)[:300]}
+    print(json.dumps({"seconds": round(time.time() - t, 1), **v}, ensure_ascii=False))
+
 async def main():
     t = time.time()
     ans = await llm.get_llm_client().complete(
@@ -45,20 +59,27 @@ async def main():
         })
     print(json.dumps({"seconds": round(time.time() - t, 1), "selections": out}, ensure_ascii=False))
 
-asyncio.run(main())
+asyncio.run(guard() if p.get("guard") else main())
 '''
 
 
 def main():
     env = {**os.environ, "RUN_DIR": RUN}
     subprocess.run(["python3", os.path.join(BASE, "build.py")], check=True, env=env)
-    payload = open(os.path.join(RUN, "truth_input.json"), encoding="utf-8").read()
+    payload = json.load(open(os.path.join(RUN, "truth_input.json"), encoding="utf-8"))
+    guard_url = os.environ.get("GUARD_URL")
+    payload["guard"] = bool(guard_url)
+    guard_env = ["-e", "LLM_GUARD_ENABLED=true", "-e", f"LLM_GUARD_BASE_URL={guard_url}"]
     p = subprocess.run(
         ["docker", "compose", "exec", "-T",
          *(["-e", f"LLM_REASONING_EFFORT={e}"] if (e := os.environ.get("EFFORT")) else []),
+         *(guard_env if guard_url else []),
          "be", "python", "-c", RUNNER],
-        input=payload, capture_output=True, text=True, cwd=ROOT, timeout=600,
+        input=json.dumps(payload, ensure_ascii=False), capture_output=True, text=True, cwd=ROOT, timeout=600,
     )
+    if guard_url:
+        print(p.stdout.strip() or p.stderr[-2000:])
+        return
     os.makedirs(os.path.join(RUN, "out"), exist_ok=True)
     last = p.stdout.strip().splitlines()[-1] if p.stdout.strip() else ""
     seconds = json.loads(last)["seconds"] if last.startswith("{") else None

@@ -53,14 +53,12 @@ class OpenAICompatibleClient:
         base_url: str,
         reasoning_effort: str = "",
         timeout: float = SELECT_TIMEOUT_SECONDS,
-        extra_body: dict[str, Any] | None = None,
     ) -> None:
         self.model = model
         self.api_key = api_key
         self.base_url = base_url
         self.reasoning_effort = reasoning_effort
         self.timeout = timeout
-        self.extra_body = extra_body
 
     async def complete(self, *, system: str, user: str, schema: type[T]) -> T:
         from openai import AsyncOpenAI, OpenAIError
@@ -75,8 +73,6 @@ class OpenAICompatibleClient:
         kwargs: dict[str, Any] = {}
         if self.reasoning_effort:
             kwargs["reasoning_effort"] = self.reasoning_effort
-        if self.extra_body:
-            kwargs["extra_body"] = self.extra_body
         try:
             resp = await client.chat.completions.create(
                 model=self.model,
@@ -152,6 +148,6 @@ def get_guard_client() -> LLMClient | None:
         model=s.LLM_GUARD_MODEL,
         api_key="",
         base_url=s.LLM_GUARD_BASE_URL,
+        reasoning_effort="none",  # Ollama는 이 값으로 생각 모드를 끈다
         timeout=GUARD_TIMEOUT_SECONDS,
-        extra_body={"think": False},
     )
