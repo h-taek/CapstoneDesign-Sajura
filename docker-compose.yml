@@ -62,6 +62,7 @@ services:
       BE_BASE_URL: http://be:8000
       INTERNAL_API_TOKEN: ${INTERNAL_API_TOKEN:-}
       SLACK_WEBHOOK_URL: ${SLACK_WEBHOOK_URL:-}
+      KMA_SERVICE_KEY: ${KMA_SERVICE_KEY:-}
       # docker/n8n/setup.sh가 자격 증명을 만들 때 쓴다
       DB_NAME: ${MYSQL_DATABASE}
       N8N_DB_USER: ${N8N_DB_USER:-}

@@ -1873,7 +1873,7 @@ Authorization: Bearer <access_token>
 #### POST /ai/forecast/predict
 
 > 타깃은 매장 일 매출이다(`05_ai.md` §2·§3). 메뉴별 예상 수량은 예측 매출을 메뉴 비중으로 나눈 참고치(`05_ai.md` §2 ②)로 대상일마다 함께 반환한다. 대상일은 D+1~D+3(선행일별 신뢰도 차등)이고, P10/P90 예측 구간·예측 근거·신뢰도 배지(`01_basic_design.md` §3.6.3)를 포함한다.
-> 공휴일·학사일정은 AI Server 내장 지식이라 payload로 받지 않는다. 기상은 과거 관측 + 대상일 예보를 함께 전달한다(단기예보의 TMN/TMX — 평균기온은 (min+max)/2 근사). 구현: `AI/app/api/forecast.py`.
+> 공휴일·학사일정은 AI Server 내장 지식이라 payload로 받지 않는다. 기상은 과거 관측 + 대상일 예보를 함께 전달한다 — 어제까지는 ASOS 일자료(`minTa`·`maxTa`·`sumRn`), 오늘 이후는 단기예보(TMN·TMX, 강수량은 PCP 시간값 합). 평균기온은 (min+max)/2 근사. 매장 위치가 없거나 그 날짜 값을 받지 못하면 그 날짜를 빼고 보낸다. 구현: `AI/app/api/forecast.py`.
 
 ```json
 // Request
@@ -2253,6 +2253,11 @@ CREATE TABLE stores (
     store_size            ENUM('SMALL','MEDIUM','LARGE')              NULL COMMENT '소형~10석 / 중형11~30석 / 대형31석~',
     operation_type        ENUM('HALL','DELIVERY','BOTH')              NULL COMMENT '홀 운영 / 배달 전용 / 홀+배달',
     address               VARCHAR(255)                                NULL,
+    latitude              DECIMAL(9,6)                                NULL COMMENT '주소에서 변환한 위도 — 변환 실패·주소 없음이면 NULL',
+    longitude             DECIMAL(9,6)                                NULL COMMENT '주소에서 변환한 경도',
+    kma_nx                SMALLINT                                    NULL COMMENT '기상청 단기예보 격자 X',
+    kma_ny                SMALLINT                                    NULL COMMENT '기상청 단기예보 격자 Y',
+    asos_stn_id           SMALLINT                                    NULL COMMENT '가장 가까운 기상청 ASOS 관측소 번호',
     phone                 VARCHAR(20)                                 NULL COMMENT 'NATIONAL 형식 010-1234-5678 — BE가 phonenumbers로 정규화 후 저장',
     onboarding_completed  TINYINT(1)                                  NOT NULL DEFAULT 0,
     created_at            DATETIME                                    NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -2265,6 +2270,8 @@ CREATE TABLE stores (
 ```
 
 > 매장 행은 계정 생성(소셜/이메일) 시 1:1로 함께 생성되며, `store_name`·`business_no`·`business_type` 등은 NULL로 시작해 사업자 검증·온보딩에서 채운다.
+>
+> 위치 칸(`latitude`~`asos_stn_id`)은 Backend가 주소를 저장할 때마다 다시 계산한다(`01_basic_design.md` §3.11.1). 좌표 변환은 Google Geocoding API, 격자는 기상청 단기예보 격자 변환식, 관측소는 ASOS 관측소 목록에서 좌표 거리가 가장 가까운 곳이다. 변환에 실패하면 다섯 칸을 모두 NULL로 둔다. API 응답에는 내보내지 않는다.
 >
 > 사업자 검증 상태(`business_status`) 흐름: `UNVERIFIED`(초기) → NTS 즉시검증 통과 + 사업자등록증 업로드 → `PENDING`(관리자 심사 대기) → 관리자 승인 → `VERIFIED` / 반려 → `REJECTED`(재시도 가능). 온보딩 진입은 `PENDING` 또는 `VERIFIED`에서 허용(`UNVERIFIED`·`REJECTED`는 차단). 마스터 코드(`NTS_MASTER_BYPASS_CODE`)는 곧바로 `VERIFIED`. 등록증 원본 파일은 서버 볼륨에 저장하고 DB엔 경로만 둔다(민감정보, `03_be.md` §10.2). `uq_stores_business_no`는 NULL 다중 허용(MySQL)이라 미검증 매장 공존 가능.
 
