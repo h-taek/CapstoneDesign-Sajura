@@ -1,7 +1,7 @@
 """서버 상품 선택 코드(automation_service의 SELECT_SYSTEM·build_prompt·check_answer)와 BE 컨테이너의
 LLM 설정(.env)으로 1회 선택해 check_rule.py 형식으로 남긴다. BE 컨테이너가 떠 있어야 한다.
 
-사용: DATA_DIR=data_v2 RUN_DIR=run_srv_out [INJECT=1] [EFFORT=low] python3 server_eval.py
+사용: DATA_DIR=data_v2 RUN_DIR=run_srv_out [INJECT=1] [EFFORT=low] [MODEL=gpt-6-sol] python3 server_eval.py
       RUN_DIR=run_srv_out EXPECT_SET=out_v2 python3 check_rule.py
 결과의 selected는 서버 답 검사를 거친 값이다(검사에서 빠지면 null). LLM 원답은 llm에 남긴다.
 
@@ -73,6 +73,7 @@ def main():
     p = subprocess.run(
         ["docker", "compose", "exec", "-T",
          *(["-e", f"LLM_REASONING_EFFORT={e}"] if (e := os.environ.get("EFFORT")) else []),
+         *(["-e", f"LLM_MODEL={m}"] if (m := os.environ.get("MODEL")) else []),
          *(guard_env if guard_url else []),
          "be", "python", "-c", RUNNER],
         input=json.dumps(payload, ensure_ascii=False), capture_output=True, text=True, cwd=ROOT, timeout=600,
