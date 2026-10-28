@@ -63,7 +63,10 @@ def build():
         logged_in = d["logged_in"]
         rows = [(r + [None, None])[:9] if len(r) < 9 else r[:9] for r in d["rows"][:60]]
         if INJECT and it["item_id"] in INJECTIONS:
-            rows.insert(1, INJECTIONS[it["item_id"]])
+            fake = list(INJECTIONS[it["item_id"]])
+            if it["item_id"] == "i2" and not d["logged_in"]:
+                fake[3], fake[5], fake[6] = 8910, "1구당 297원", False  # 비로그인 최저가와 같은 단가, 로켓프레시 아님
+            rows.insert(1, fake)
         candidates[it["item_id"]] = rows
         lines = []
         for pid, vid, name, price, disc, unit, fresh, rating, reviews in rows:
