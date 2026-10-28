@@ -2694,6 +2694,24 @@ CREATE TABLE coupang_price_candidates (
 );
 ```
 
+#### 4.3.25 weather_observations
+
+> 기상청 ASOS 일자료를 관측소·날짜 단위로 보관한다. 같은 관측소를 쓰는 매장끼리 같은 행을 쓴다. n8n 예측 배치만 쓰고 읽는다 (`01_basic_design.md` §3.11.1).
+>
+> 행이 있으면 그 관측소·날짜는 받은 것이다. 기상청이 값 없음(빈 값)으로 준 날은 기온을 NULL로 저장해 다시 받지 않는다. 응답에 그 날짜가 없으면(아직 발표 전) 저장하지 않는다.
+
+```sql
+CREATE TABLE weather_observations (
+    asos_stn_id     SMALLINT        NOT NULL COMMENT '기상청 ASOS 관측소 번호 (stores.asos_stn_id)',
+    obs_date        DATE            NOT NULL,
+    temp_min        DECIMAL(4,1)    NULL COMMENT '일 최저기온(℃) — 기상청 값 없음이면 NULL',
+    temp_max        DECIMAL(4,1)    NULL COMMENT '일 최고기온(℃)',
+    rainfall_mm     DECIMAL(5,1)    NULL COMMENT '일 강수량(mm) — 비 없는 날 0',
+    fetched_at      DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (asos_stn_id, obs_date)
+);
+```
+
 ### 4.4 인덱스 설계 요약
 
 | 테이블 | 인덱스 | 목적 |
@@ -2710,6 +2728,7 @@ CREATE TABLE coupang_price_candidates (
 | `refresh_tokens` | `token_hash` UNIQUE | 토큰 검증 |
 | `notifications` | `(user_id, is_read, created_at)` | 점주 미읽음 알림 목록 조회 |
 | `push_subscriptions` | `endpoint` UNIQUE | 브라우저 구독 endpoint 중복 방지 |
+| `weather_observations` | `(asos_stn_id, obs_date)` PK | 관측소·날짜당 한 행, 받은 날짜 확인 |
 
 ### 4.5 DB 계정 분리 정책
 
@@ -2726,14 +2745,14 @@ DB 직접 접근은 용도별 전용 계정으로 분리한다. 개발자·운�
 
 | 권한 | 테이블 |
 |------|--------|
-| SELECT | `stores`, `menus`, `sale_records`, `forecast_results`, `forecast_menu_items`, `pipeline_jobs` |
-| INSERT | `pipeline_jobs`, `forecast_results`, `forecast_menu_items` |
-| UPDATE | `pipeline_jobs`, `forecast_results` |
+| SELECT | `stores`, `menus`, `sale_records`, `forecast_results`, `forecast_menu_items`, `pipeline_jobs`, `weather_observations` |
+| INSERT | `pipeline_jobs`, `forecast_results`, `forecast_menu_items`, `weather_observations` |
+| UPDATE | `pipeline_jobs`, `forecast_results`, `weather_observations` |
 | DELETE | `forecast_menu_items` (같은 예측의 메뉴 수량 교체) |
 
 > 점주 대상 알림(`notifications`·`push_subscriptions`)은 BE `NotificationService.create_and_push`가 처리한다(§2.5). n8n은 `notifications`에 직접 INSERT하지 않으며 n8n_user에 해당 권한이 없다.
 
-n8n은 운영 데이터 원본을 삭제하지 않는다. n8n의 쓰기 대상은 예측 산출물과 실행 이력 테이블로 제한한다.
+n8n은 운영 데이터 원본을 삭제하지 않는다. n8n의 쓰기 대상은 예측 산출물, 실행 이력, 수집한 외부 데이터(`weather_observations`) 테이블로 제한한다.
 
 ### 4.6 암호화 대상 컬럼
 
@@ -2758,8 +2777,9 @@ n8n은 운영 데이터 원본을 삭제하지 않는다. n8n의 쓰기 대상�
 | 발주 | `order_recommendations`, `order_recommendation_items`, `orders`, `order_items`, `order_approval_logs` |
 | 파이프라인 | `pipeline_jobs` |
 | 알림 | `notifications`, `push_subscriptions` |
+| 외부 데이터 | `weather_observations` |
 
-총 24개 테이블
+총 25개 테이블
 
 ### 4.8 ERD 다이어그램
 
@@ -2799,6 +2819,7 @@ erDiagram
     coupang_products ||--o{ inventory_items : "1:N"
     coupang_products ||--o{ coupang_price_candidates : "1:N"
     stores ||--o{ coupang_price_candidates : "1:N"
+    stores }o..o{ weather_observations : "asos_stn_id (FK 아님)"
     order_recommendations ||--o{ order_recommendation_items : "1:N"
     order_recommendations ||--o{ orders : "1:N"
     orders ||--o{ order_items : "1:N"
@@ -2866,8 +2887,9 @@ POS 연동 / CSV 업로드
 
 n8n 야간 배치 (또는 수동 실행으로 매장 하나)
 → pipeline_jobs 생성 (FORECAST, N8N·USER)
-→ DB에서 일별 매출·메뉴별 판매 조회
-→ 외부 API 데이터 수집
+→ DB에서 일별 매출·메뉴별 판매·매장 위치 조회
+→ 관측 날씨: weather_observations에 없는 날짜만 기상청 ASOS에서 받아 저장
+→ 대상일 예보: 기상청 단기예보 (저장하지 않음)
 → AI Server 수요예측 호출 (매출 + 메뉴별 예상 수량)
 → forecast_results + forecast_menu_items 저장
 → pipeline_jobs 상태 갱신 → BE 예측 완료 알림

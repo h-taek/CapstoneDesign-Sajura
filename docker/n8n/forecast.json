@@ -216,7 +216,7 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        2200,
+        2640,
         0
       ],
       "id": "00000000-0000-4000-8000-000000000011",
@@ -237,7 +237,7 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        2420,
+        2860,
         0
       ],
       "id": "00000000-0000-4000-8000-000000000012",
@@ -254,7 +254,7 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        2640,
+        3080,
         0
       ],
       "id": "00000000-0000-4000-8000-000000000013",
@@ -272,7 +272,7 @@
       "type": "n8n-nodes-base.mySql",
       "typeVersion": 2.4,
       "position": [
-        2860,
+        3300,
         0
       ],
       "id": "00000000-0000-4000-8000-000000000014",
@@ -300,7 +300,7 @@
       "type": "n8n-nodes-base.mySql",
       "typeVersion": 2.4,
       "position": [
-        3080,
+        3520,
         0
       ],
       "id": "00000000-0000-4000-8000-000000000015",
@@ -328,7 +328,7 @@
       "type": "n8n-nodes-base.mySql",
       "typeVersion": 2.4,
       "position": [
-        3300,
+        3740,
         0
       ],
       "id": "00000000-0000-4000-8000-000000000016",
@@ -356,7 +356,7 @@
       "type": "n8n-nodes-base.mySql",
       "typeVersion": 2.4,
       "position": [
-        3520,
+        3960,
         0
       ],
       "id": "00000000-0000-4000-8000-000000000017",
@@ -396,7 +396,7 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        3740,
+        4180,
         0
       ],
       "id": "00000000-0000-4000-8000-000000000018",
@@ -414,7 +414,7 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        3960,
+        4400,
         0
       ],
       "id": "00000000-0000-4000-8000-000000000019"
@@ -427,7 +427,7 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        2200,
+        2640,
         300
       ],
       "id": "00000000-0000-4000-8000-000000000020"
@@ -444,7 +444,7 @@
       "type": "n8n-nodes-base.mySql",
       "typeVersion": 2.4,
       "position": [
-        2420,
+        2860,
         300
       ],
       "id": "00000000-0000-4000-8000-000000000021",
@@ -486,7 +486,7 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
       "position": [
-        2640,
+        3080,
         300
       ],
       "id": "00000000-0000-4000-8000-000000000022"
@@ -506,7 +506,7 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        2860,
+        3300,
         300
       ],
       "id": "00000000-0000-4000-8000-000000000023",
@@ -523,7 +523,7 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        3080,
+        3520,
         300
       ],
       "id": "00000000-0000-4000-8000-000000000024"
@@ -572,16 +572,74 @@
     },
     {
       "parameters": {
-        "jsCode": "// 날씨 — 판매 이력 기간과 어제까지의 대상일은 ASOS 일자료, 오늘 이후 대상일은 단기예보 (01_basic_design.md §3.11.1).\n// 위치가 없거나 호출이 실패하면 그 날짜를 빼고 진행한다 — 날씨 실패로 작업을 실패시키지 않는다.\nconst loc = $('매장 위치').first().json;\nconst daily = $('일별 매출').all().map((i) => i.json).filter((r) => r.date);\nconst key = $env.KMA_SERVICE_KEY;\nconst API = 'https://apis.data.go.kr/1360000';\nconst notes = [];\n\nconst add = (d, n) => {\n  const t = new Date(`${d}T00:00:00Z`);\n  t.setUTCDate(t.getUTCDate() + n);\n  return t.toISOString().slice(0, 10);\n};\nconst ymd = (d) => d.replaceAll('-', '');\nconst kstNow = new Date(Date.now() + 9 * 3600 * 1000); // UTC 게터로 한국 시각을 읽는다\nconst today = kstNow.toISOString().slice(0, 10);\nconst yesterday = add(today, -1);\n\nconst get = async (path, qs) => {\n  let last;\n  for (let i = 0; i < 3; i++) {\n    try {\n      const res = await this.helpers.httpRequest({\n        method: 'GET', url: `${API}/${path}`, json: true, timeout: 20000,\n        qs: { serviceKey: key, dataType: 'JSON', ...qs },\n      });\n      const head = res?.response?.header;\n      if (head?.resultCode !== '00') throw new Error(`${head?.resultCode} ${head?.resultMsg}`);\n      return res.response.body;\n    } catch (e) {\n      last = e;\n      await new Promise((r) => setTimeout(r, 2000));\n    }\n  }\n  throw last;\n};\nconst getAll = async (path, qs, rows) => {\n  const items = [];\n  for (let page = 1; ; page++) {\n    const body = await get(path, { ...qs, pageNo: page, numOfRows: rows });\n    const got = body?.items?.item ?? [];\n    items.push(...got);\n    if (!got.length || items.length >= Number(body.totalCount ?? 0)) return items;\n  }\n};\nconst num = (v) => (v === '' || v == null || Number.isNaN(Number(v)) ? null : Number(v));\n// 단기예보 PCP — '강수없음' 0, '1mm 미만' 0.5, 'a~bmm' a, '50.0mm 이상' 50, 'xmm' x\nconst pcp = (v) => {\n  const s = String(v ?? '').trim();\n  if (!s || s === '강수없음') return 0;\n  if (s.includes('미만')) return 0.5;\n  const m = s.match(/[\\d.]+/);\n  return m ? Number(m[0]) : 0;\n};\n\nconst last = daily.length ? daily[daily.length - 1].date : null;\nconst targets = last ? [1, 2, 3].map((n) => add(last, n)) : [];\nconst weather = new Map();\n\nif (!loc?.asos_stn_id || !loc?.kma_nx || !key || !daily.length) {\n  notes.push('위치·서비스키·판매 이력 중 없는 것이 있어 날씨 없이 예측');\n} else {\n  // 과거 관측 — 판매 이력 첫날부터 min(어제, 마지막 대상일)까지\n  const end = [yesterday, targets[targets.length - 1]].sort()[0];\n  if (daily[0].date <= end) {\n    try {\n      const items = await getAll('AsosDalyInfoService/getWthrDataList', {\n        dataCd: 'ASOS', dateCd: 'DAY', startDt: ymd(daily[0].date), endDt: ymd(end),\n        stnIds: loc.asos_stn_id,\n      }, 999);\n      for (const it of items) {\n        const lo = num(it.minTa);\n        const hi = num(it.maxTa);\n        if (lo == null || hi == null) continue;\n        weather.set(it.tm, { date: it.tm, temp_min: lo, temp_max: hi, rainfall_mm: num(it.sumRn) ?? 0 });\n      }\n    } catch (e) {\n      notes.push(`ASOS 실패: ${e.message ?? e}`);\n    }\n  }\n\n  // 대상일 예보 — 오늘 02시 발표(02:10 전이면 전날 23시 발표). 그 뒤 발표는 지나간 오늘 TMN·TMX가 빠진다\n  const future = targets.filter((d) => d >= today);\n  if (future.length) {\n    const early = kstNow.getUTCHours() * 60 + kstNow.getUTCMinutes() < 2 * 60 + 10;\n    const baseDate = ymd(early ? yesterday : today);\n    const baseTime = early ? '2300' : '0200';\n    try {\n      const items = await getAll('VilageFcstInfoService_2.0/getVilageFcst', {\n        base_date: baseDate, base_time: baseTime, nx: loc.kma_nx, ny: loc.kma_ny,\n      }, 1000);\n      const byDate = {};\n      for (const it of items) {\n        const d = `${it.fcstDate.slice(0, 4)}-${it.fcstDate.slice(4, 6)}-${it.fcstDate.slice(6, 8)}`;\n        const day = (byDate[d] ??= { tmp: [], rain: 0 });\n        if (it.category === 'TMN') day.tmn = num(it.fcstValue);\n        if (it.category === 'TMX') day.tmx = num(it.fcstValue);\n        if (it.category === 'TMP' && num(it.fcstValue) != null) day.tmp.push(num(it.fcstValue));\n        if (it.category === 'PCP') day.rain += pcp(it.fcstValue);\n      }\n      for (const d of future) {\n        const day = byDate[d];\n        if (!day) continue;\n        // TMN·TMX가 빠진 날은 1시간 기온의 최저·최고로 채운다\n        const lo = day.tmn ?? (day.tmp.length ? Math.min(...day.tmp) : null);\n        const hi = day.tmx ?? (day.tmp.length ? Math.max(...day.tmp) : null);\n        if (lo == null || hi == null) continue;\n        weather.set(d, { date: d, temp_min: lo, temp_max: hi, rainfall_mm: Math.round(day.rain * 10) / 10 });\n      }\n    } catch (e) {\n      notes.push(`단기예보 실패: ${e.message ?? e}`);\n    }\n  }\n}\n\nreturn [{ json: {\n  weather: [...weather.values()].sort((a, b) => (a.date < b.date ? -1 : 1)),\n  notes,\n} }];\n"
+        "jsCode": "// 날씨 — 판매 이력 기간과 어제까지의 대상일은 ASOS 일자료, 오늘 이후 대상일은 단기예보 (01_basic_design.md §3.11.1).\n// 관측 날씨는 관측소·날짜 단위로 DB에 쌓고 없는 날짜만 받는다. 예보는 저장하지 않는다.\n// 위치가 없거나 호출이 실패하면 그 날짜를 빼고 진행한다 — 날씨 실패로 작업을 실패시키지 않는다.\nconst num = (v) => (v === '' || v == null || Number.isNaN(Number(v)) ? null : Number(v));\nconst b64 = (s) => (typeof Buffer !== 'undefined'\n  ? Buffer.from(s, 'utf8').toString('base64')\n  : btoa(unescape(encodeURIComponent(s))));\nconst loc = $('매장 위치').first().json;\nconst daily = $('일별 매출').all().map((i) => i.json).filter((r) => r.date);\n// DB에 쌓인 관측 날씨 (02_implementation_design.md §4.3.25) — 행이 있으면 받은 날짜\nconst have = new Map($('관측 날씨 조회').all().map((i) => i.json).filter((r) => r.date)\n  .map((r) => [r.date, { date: r.date, temp_min: num(r.temp_min), temp_max: num(r.temp_max), rainfall_mm: num(r.rainfall_mm) }]));\nconst newRows = [];\nconst key = $env.KMA_SERVICE_KEY;\nconst API = 'https://apis.data.go.kr/1360000';\nconst notes = [];\n\nconst add = (d, n) => {\n  const t = new Date(`${d}T00:00:00Z`);\n  t.setUTCDate(t.getUTCDate() + n);\n  return t.toISOString().slice(0, 10);\n};\nconst ymd = (d) => d.replaceAll('-', '');\nconst kstNow = new Date(Date.now() + 9 * 3600 * 1000); // UTC 게터로 한국 시각을 읽는다\nconst today = kstNow.toISOString().slice(0, 10);\nconst yesterday = add(today, -1);\n\nconst get = async (path, qs) => {\n  let last;\n  for (let i = 0; i < 3; i++) {\n    try {\n      const res = await this.helpers.httpRequest({\n        method: 'GET', url: `${API}/${path}`, json: true, timeout: 20000,\n        qs: { serviceKey: key, dataType: 'JSON', ...qs },\n      });\n      const head = res?.response?.header;\n      if (head?.resultCode !== '00') throw new Error(`${head?.resultCode} ${head?.resultMsg}`);\n      return res.response.body;\n    } catch (e) {\n      last = e;\n      await new Promise((r) => setTimeout(r, 2000));\n    }\n  }\n  throw last;\n};\nconst getAll = async (path, qs, rows) => {\n  const items = [];\n  for (let page = 1; ; page++) {\n    const body = await get(path, { ...qs, pageNo: page, numOfRows: rows });\n    const got = body?.items?.item ?? [];\n    items.push(...got);\n    if (!got.length || items.length >= Number(body.totalCount ?? 0)) return items;\n  }\n};\n// 단기예보 PCP — '강수없음' 0, '1mm 미만' 0.5, 'a~bmm' a, '50.0mm 이상' 50, 'xmm' x\nconst pcp = (v) => {\n  const s = String(v ?? '').trim();\n  if (!s || s === '강수없음') return 0;\n  if (s.includes('미만')) return 0.5;\n  const m = s.match(/[\\d.]+/);\n  return m ? Number(m[0]) : 0;\n};\n\nconst last = daily.length ? daily[daily.length - 1].date : null;\nconst targets = last ? [1, 2, 3].map((n) => add(last, n)) : [];\nconst weather = new Map();\n\nif (!loc?.asos_stn_id || !loc?.kma_nx || !key || !daily.length) {\n  notes.push('위치·서비스키·판매 이력 중 없는 것이 있어 날씨 없이 예측');\n} else {\n  // 과거 관측 — 판매 이력 첫날부터 min(어제, 마지막 대상일)까지 중 DB에 없는 날짜만 받아 저장한다\n  const end = [yesterday, targets[targets.length - 1]].sort()[0];\n  const missing = [];\n  for (let d = daily[0].date; d <= end; d = add(d, 1)) if (!have.has(d)) missing.push(d);\n  if (missing.length) {\n    try {\n      const items = await getAll('AsosDalyInfoService/getWthrDataList', {\n        dataCd: 'ASOS', dateCd: 'DAY', startDt: ymd(missing[0]), endDt: ymd(missing[missing.length - 1]),\n        stnIds: loc.asos_stn_id,\n      }, 999);\n      for (const it of items) {\n        if (have.has(it.tm)) continue;\n        // 기상청이 값 없음으로 준 날도 기온 NULL로 저장해 다시 받지 않는다. 비 없는 날 sumRn은 빈 값 = 0\n        const row = { date: it.tm, temp_min: num(it.minTa), temp_max: num(it.maxTa), rainfall_mm: num(it.sumRn) ?? 0 };\n        have.set(it.tm, row);\n        newRows.push(row);\n      }\n    } catch (e) {\n      notes.push(`ASOS 실패: ${e.message ?? e}`);\n    }\n  }\n  for (const r of have.values()) {\n    if (r.date < daily[0].date || r.date > end || r.temp_min == null || r.temp_max == null) continue;\n    weather.set(r.date, { date: r.date, temp_min: r.temp_min, temp_max: r.temp_max, rainfall_mm: r.rainfall_mm ?? 0 });\n  }\n\n  // 대상일 예보 — 오늘 02시 발표(02:10 전이면 전날 23시 발표). 그 뒤 발표는 지나간 오늘 TMN·TMX가 빠진다\n  const future = targets.filter((d) => d >= today);\n  if (future.length) {\n    const early = kstNow.getUTCHours() * 60 + kstNow.getUTCMinutes() < 2 * 60 + 10;\n    const baseDate = ymd(early ? yesterday : today);\n    const baseTime = early ? '2300' : '0200';\n    try {\n      const items = await getAll('VilageFcstInfoService_2.0/getVilageFcst', {\n        base_date: baseDate, base_time: baseTime, nx: loc.kma_nx, ny: loc.kma_ny,\n      }, 1000);\n      const byDate = {};\n      for (const it of items) {\n        const d = `${it.fcstDate.slice(0, 4)}-${it.fcstDate.slice(4, 6)}-${it.fcstDate.slice(6, 8)}`;\n        const day = (byDate[d] ??= { tmp: [], rain: 0 });\n        if (it.category === 'TMN') day.tmn = num(it.fcstValue);\n        if (it.category === 'TMX') day.tmx = num(it.fcstValue);\n        if (it.category === 'TMP' && num(it.fcstValue) != null) day.tmp.push(num(it.fcstValue));\n        if (it.category === 'PCP') day.rain += pcp(it.fcstValue);\n      }\n      for (const d of future) {\n        const day = byDate[d];\n        if (!day) continue;\n        // TMN·TMX가 빠진 날은 1시간 기온의 최저·최고로 채운다\n        const lo = day.tmn ?? (day.tmp.length ? Math.min(...day.tmp) : null);\n        const hi = day.tmx ?? (day.tmp.length ? Math.max(...day.tmp) : null);\n        if (lo == null || hi == null) continue;\n        weather.set(d, { date: d, temp_min: lo, temp_max: hi, rainfall_mm: Math.round(day.rain * 10) / 10 });\n      }\n    } catch (e) {\n      notes.push(`단기예보 실패: ${e.message ?? e}`);\n    }\n  }\n}\n\nreturn [{ json: {\n  weather: [...weather.values()].sort((a, b) => (a.date < b.date ? -1 : 1)),\n  notes,\n  stn: loc?.asos_stn_id ?? 0,\n  fetched: newRows.length,\n  payload: b64(JSON.stringify(newRows)),\n} }];\n"
       },
       "id": "9ba20505-3903-45e0-aea6-cb7260304d4b",
       "name": "날씨",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
+        2200,
+        0
+      ],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT DATE_FORMAT(obs_date, '%Y-%m-%d') AS date, temp_min, temp_max, rainfall_mm\nFROM weather_observations WHERE asos_stn_id = $1 AND obs_date >= $2 ORDER BY obs_date",
+        "options": {
+          "queryReplacement": "={{ $('매장 위치').first().json.asos_stn_id ?? 0 }},{{ $('일별 매출').first().json.date ?? '1970-01-01' }}"
+        }
+      },
+      "id": "7f5c0294-ddab-422c-a8df-0dffbb78293a",
+      "name": "관측 날씨 조회",
+      "type": "n8n-nodes-base.mySql",
+      "typeVersion": 2.4,
+      "position": [
         1980,
         0
       ],
+      "credentials": {
+        "mySql": {
+          "id": "sajuraMysql0001",
+          "name": "사주라 MySQL (n8n_user)"
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 2000,
+      "executeOnce": true,
+      "alwaysOutputData": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO weather_observations (asos_stn_id, obs_date, temp_min, temp_max, rainfall_mm, fetched_at)\nSELECT $1, jt.obs_date, jt.temp_min, jt.temp_max, jt.rainfall_mm, UTC_TIMESTAMP()\nFROM JSON_TABLE(CONVERT(FROM_BASE64($2) USING utf8mb4), '$[*]' COLUMNS (\n  obs_date DATE PATH '$.date',\n  temp_min DECIMAL(4,1) PATH '$.temp_min',\n  temp_max DECIMAL(4,1) PATH '$.temp_max',\n  rainfall_mm DECIMAL(5,1) PATH '$.rainfall_mm'\n)) AS jt\nON DUPLICATE KEY UPDATE\n  temp_min = VALUES(temp_min), temp_max = VALUES(temp_max),\n  rainfall_mm = VALUES(rainfall_mm), fetched_at = VALUES(fetched_at)",
+        "options": {
+          "queryReplacement": "={{ $('날씨').first().json.stn }},{{ $('날씨').first().json.payload }}"
+        }
+      },
+      "id": "647e56d5-be64-42df-89f9-477b45c46d7b",
+      "name": "관측 날씨 저장",
+      "type": "n8n-nodes-base.mySql",
+      "typeVersion": 2.4,
+      "position": [
+        2420,
+        0
+      ],
+      "credentials": {
+        "mySql": {
+          "id": "sajuraMysql0001",
+          "name": "사주라 MySQL (n8n_user)"
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 2000,
+      "executeOnce": true,
+      "alwaysOutputData": true,
       "onError": "continueRegularOutput"
     }
   ],
@@ -931,7 +989,7 @@
       "main": [
         [
           {
-            "node": "날씨",
+            "node": "관측 날씨 조회",
             "type": "main",
             "index": 0
           }
@@ -939,6 +997,28 @@
       ]
     },
     "날씨": {
+      "main": [
+        [
+          {
+            "node": "관측 날씨 저장",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "관측 날씨 조회": {
+      "main": [
+        [
+          {
+            "node": "날씨",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "관측 날씨 저장": {
       "main": [
         [
           {

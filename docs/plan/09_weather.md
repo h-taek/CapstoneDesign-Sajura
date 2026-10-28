@@ -28,3 +28,13 @@
 4. compose n8n 환경값 `KMA_SERVICE_KEY`. Code 노드의 `this.helpers.httpRequest`·`$env`로 부른다.
 
 검증: 조치원 주소 매장(판매 60일)으로 CLI·웹훅 실행 → AI 요청 `weather`가 판매 이력 60일(ASOS) + 대상일 3일(예보)을 덮고 `forecast_results` 저장·`DONE`. 위치 없는 매장·틀린 서비스키는 날씨 없이 `DONE`.
+
+## 4. 관측 날씨 저장 — 완료
+
+> 결정 `01_basic_design.md` §3.11.1, 테이블 `02_implementation_design.md` §4.3.25·§4.5.
+
+1. 마이그레이션 `0016_weather_observations`(쿠팡 `0017`이 뒤에 잇는다). BE ORM 모델은 두지 않는다.
+2. `docker/mysql/n8n_user.sh` — `weather_observations` SELECT·INSERT·UPDATE.
+3. n8n — '매장 위치' 뒤에 '관측 날씨 조회'(그 관측소의 판매 이력 첫날 이후 행) → '날씨'(기간 중 없는 날짜의 처음~끝을 한 번에 받는다, 받은 날짜는 기온이 비어도 저장 대상) → '관측 날씨 저장'(`JSON_TABLE` UPSERT). 조회·저장 실패는 날씨 없이 진행.
+
+검증: 조치원 매장 1회차 DB 0행 → 60행 받아 저장, 2회차 DB 60행·새로 받음 0, 중간 하루를 지우면 그 하루만 받음. 세 번 모두 같은 예측·`DONE`. `0016` upgrade·downgrade 왕복.

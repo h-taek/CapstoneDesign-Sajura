@@ -19,6 +19,7 @@ mysql -u root -p"${MYSQL_ROOT_PASSWORD}" <<-EOSQL
     GRANT SELECT, INSERT, UPDATE ON \`${DB}\`.forecast_results TO '${N8N_DB_USER}'@'%';
     GRANT SELECT, INSERT, DELETE ON \`${DB}\`.forecast_menu_items TO '${N8N_DB_USER}'@'%';
     GRANT SELECT, INSERT, UPDATE ON \`${DB}\`.pipeline_jobs TO '${N8N_DB_USER}'@'%';
+    GRANT SELECT, INSERT, UPDATE ON \`${DB}\`.weather_observations TO '${N8N_DB_USER}'@'%';
     FLUSH PRIVILEGES;
 EOSQL
 echo "n8n DB 계정 준비 완료: ${N8N_DB_USER}"

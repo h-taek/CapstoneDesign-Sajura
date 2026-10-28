@@ -15,7 +15,8 @@
 - 사용자 정정 — 모델이 어떤 입력을 쓰는지는 모델 담당 몫이고, 우리는 spec대로 넘길 입력을 구성하면 끝이다
 - BE — 마이그레이션 `0015_store_location`(위치 5칸), `app/integrations/geocoding.py`, `app/core/weather_location.py`(격자 변환·최근접 관측소), `app/data/asos_stations.json`(운영 중 ASOS 97곳), `StoreService.update_store`가 주소가 바뀔 때만 다시 계산, `app/scripts/backfill_store_location.py`. 테스트는 conftest가 Google 실호출을 막는다
 - n8n — `forecast.json`에 '매장 위치'(MySQL)·'날씨'(Code, ASOS 999행 페이지·단기예보 오늘 02시 발표·3회 재시도) 노드, 'AI 입력'이 날씨를 넣는다. compose n8n 환경값 `KMA_SERVICE_KEY`
-- 검증: BE 컨테이너 pytest 132/132(신규 4), `0015` upgrade·downgrade 왕복. 실서버 — 확인용 매장(조치원 세종로 2639, 판매 60일)을 API로 만들어 위치 65·106·서청주 181 저장 확인, CLI 배치로 날씨 63일(ASOS 60 + 예보 3) → 예측 저장·`DONE`, 틀린 서비스키·위치 없음도 날씨 없이 `DONE`, BE 수동 실행(웹훅) 예측값이 날씨 있는 실행과 같음. 02:00 스케줄 실제 발화는 미확인
+- 관측 날씨 저장 — 매 배치가 이력 기간 전체를 다시 받지 않게 `weather_observations`(관측소·날짜, 마이그레이션 `0016`)에 쌓고 없는 날짜만 받는다. 수집·저장 모두 n8n(외부 데이터 수집 층), BE는 위치 계산만. 예보는 저장하지 않는다. n8n 계정 권한 추가. 같은 시각 다른 세션의 쿠팡 마이그레이션과 번호가 겹쳐 쿠팡이 `0017`로 뒤에 이었다
+- 검증: BE 컨테이너 pytest 132/132(신규 4), `0015` upgrade·downgrade 왕복. 실서버 — 확인용 매장(조치원 세종로 2639, 판매 60일)을 API로 만들어 위치 65·106·서청주 181 저장 확인, CLI 배치로 날씨 63일(ASOS 60 + 예보 3) → 예측 저장·`DONE`, 틀린 서비스키·위치 없음도 날씨 없이 `DONE`, BE 수동 실행(웹훅) 예측값이 날씨 있는 실행과 같음. 관측 저장 — 1회차 60행 저장, 2회차 새로 받음 0, 중간 하루 삭제 시 그 하루만 받음, `0016` 왕복. 02:00 스케줄 실제 발화는 미확인
 
 ### 대시보드 BE — 예측 vs 실제 매출 API (2026-10-28)
 
