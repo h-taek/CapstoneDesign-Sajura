@@ -1774,7 +1774,9 @@ Authorization: Bearer <access_token>
           "display_price": 11740,        // 표시 가격(원)
           "discount_label": "쿠폰할인",  // 할인 표시 글자 원문. 없으면 null. '와우'가 들어가면 판매가로 쓰지 않는다
           "unit_price_text": "100g당 2,348원",  // 쿠팡 단위가격 표시. 없으면 null
-          "rocket_fresh": false
+          "rocket_fresh": false,
+          "rating": 4.5,                 // 별점 0~5, 0.5 단위. 없으면 null
+          "review_count": 3991           // 리뷰 수. 없으면 null
         }
       ]
     }

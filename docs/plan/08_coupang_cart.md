@@ -22,11 +22,11 @@
 
 1. `manifest.json` — `host_permissions`는 `*://*.coupang.com/*`만, `externally_connectable.matches`는 PWA 도메인(dev `http://localhost:5173/*`). 개발용 고정 확장 ID(`key`)와 PWA 환경변수 `VITE_EXTENSION_ID`.
 2. 로그인 확인 — 머리글에 '로그아웃' 링크(`login.coupang.com/login/logout.pang`)가 있으면 로그인, '로그인' 링크(`login.pang`)면 비로그인(`research/backend/16` §5).
-3. 검색 — 쿠팡 검색창에 재료명 입력. 결과 페이지 주소를 직접 열거나 요청하지 않는다. 카드(`li.ProductUnit_productUnit__…`)에서 `productId`·`vendorItemId`·상품명(카드 글자 첫 줄이 아니라 상품명 요소 — 배지가 첫 줄인 카드가 있다, `research/backend/17` §3.3)·표시 가격·할인 표시 글자·단위가격 표시·로켓프레시(`logo_fresh` 이미지)만 읽고, 광고 카드와 같은 `vendorItemId` 중복은 뺀다.
+3. 검색 — 쿠팡 검색창에 재료명 입력. 결과 페이지 주소를 직접 열거나 요청하지 않는다. 카드(`li.ProductUnit_productUnit__…`)에서 `productId`·`vendorItemId`·상품명(카드 글자 첫 줄이 아니라 상품명 요소 — 배지가 첫 줄인 카드가 있다, `research/backend/17` §3.3)·표시 가격·할인 표시 글자·단위가격 표시·로켓프레시(`logo_fresh` 이미지)·별점(`ProductRating_fullRating` 1점·`ProductRating_halfRating` 0.5점 요소 수)·리뷰 수('(3,991)' 글자)만 읽고, 광고 카드와 같은 `vendorItemId` 중복은 뺀다.
 4. 담기 — 상품 페이지 열기, 수량 입력칸에 담을 개수, `button.prod-cart-btn` 클릭, '담겼습니다' 표시로 성공 판정. 품목당 10초·전체 30초. 담을 때 상품 페이지의 표시 가격·할인 표시·단위가격을 다시 읽어 결과에 싣는다.
 5. 실패 사유 — `NO_RESULT`·`SELECTOR_MISMATCH`·`TIMEOUT`, 재시도 없음.
 
-검증: Vitest — 저장해 둔 검색·상품 페이지 HTML로 파싱(광고·중복 제외, 와우 표시, 단위가격 없음), 메시지 형식. 실제 쿠팡에서 개발자 모드로 담기 1회(판매자 상품·로켓프레시 비로그인 알림).
+검증: Vitest — 저장해 둔 검색·상품 페이지 HTML로 파싱(광고·중복 제외, 와우 표시, 단위가격 없음, 별점·리뷰 수), 메시지 형식. 실제 쿠팡에서 개발자 모드로 담기 1회(판매자 상품·로켓프레시 비로그인 알림).
 
 ## 3. FE
 
