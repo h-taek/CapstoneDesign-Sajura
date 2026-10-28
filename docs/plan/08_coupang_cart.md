@@ -11,10 +11,10 @@
 3. 단가 계산 — `coupang_pricing.py` 순수 함수 한 곳: 단위가격 표시 파싱, 용량 계산(`표시 가격 ÷ 단위가격 × 기준 수량`), 상품명 용량 파싱과 2% 대조, 재료 단위 환산, 단가(판매가 ÷ 용량 → 판매가 ÷ 포장 수량). `OrderService._unit_prices`가 이것을 쓴다.
 4. `LLMClient` — 인터페이스와 어댑터 `anthropic`·`openai_compatible`, 설정 `LLM_PROVIDER`·`LLM_MODEL`·`LLM_API_KEY`·`LLM_BASE_URL`과 보안 분류기 `LLM_GUARD_ENABLED`·`LLM_GUARD_BASE_URL`·`LLM_GUARD_MODEL`(`config.py`·`.env.example`). 응답은 Pydantic 스키마로 검증한다.
 5. 발주 상세 — 품목별 `coupang_search_required`·`coupang_product`(연결 없음·3일 경과·포장 수량 미상·로켓프레시는 비로그인 시 확장이 판단).
-6. `POST /api/orders/{id}/automate/match` — 연결 상품 품목은 담을 개수만 계산, 검색 품목이 있으면 요청 검사(검색 필요 품목·중복·결과 60개) → Redis 같은 입력 재사용 → 호출 횟수(발주 3·매장 하루 20·전체 하루 500, 초과 429 `ORDER_LLM_QUOTA_EXCEEDED`) → 보안 분류기(켜졌을 때, 판정된 결과 제외) → LLM 1회(서버 재료명, 외부 글 구분 태그, 상품명 200자, 비로그인이면 로켓프레시 제외) → 답 검사(후보 밖·로켓프레시·포장 수량) → 담을 개수 서버 계산. 호출 실패·검증 실패는 그 품목들을 `selected: null`.
+6. `POST /api/orders/{id}/automate/match` — 연결 상품 품목은 담을 개수만 계산, 검색 품목이 있으면 요청 검사(검색 필요 품목·중복·결과 60개) → Redis 같은 입력 재사용 → 호출 횟수(발주 3·매장 하루 20·전체 하루 500, 초과 429 `ORDER_LLM_QUOTA_EXCEEDED`) → 보안 분류기(켜졌을 때 요청 승인·거부, 거부면 422 `ORDER_LLM_GUARD_REJECTED` + 사유) → LLM 1회(서버 재료명, 외부 글 구분 태그, 상품명 200자, 비로그인이면 로켓프레시 제외) → 답 검사(후보 밖·로켓프레시·포장 수량) → 담을 개수 서버 계산. 호출 실패·검증 실패는 그 품목들을 `selected: null`.
 7. `POST /api/orders/{id}/automate/result` — 성공 품목마다 공용 상품 저장·갱신(와우 할인 표시면 판매가 갱신 안 함, 용량 대조 실패면 공용 값 갱신 안 함, 20% 초과면 가격 후보, 다른 매장 확인 시 반영·후보 삭제, 14일 지난 후보 무시), 재고 품목 연결 덮어쓰기·연결 시각·포장 수량 규칙. `orders.status`·`automated_at`·`manual_guide_url`.
 
-검증: `coupang_pricing_test.py`(단위 기준 100g·10g·1구·100ml·1세트·표시 없음, 상품명 용량 '500g, 4개'·'30구, 1개'·'1박스, 1kg'·'30개, 10ml', 2% 대조, 환산 불가), `automation_test.py`(LLM·분류기는 가짜 어댑터 — 검색 품목 없으면 호출 0회, 비로그인 로켓프레시 제외, 실패 시 null, 검색 불필요 품목·중복·결과 61개 400, 같은 입력 재사용 시 호출 0회, 발주 4번째·매장 21번째·전체 501번째 호출 429, 답의 후보 밖 상품·포장 수량 0·포장 수량 미상 null, LLM이 준 개수 무시하고 서버 계산, 분류기 꺼짐이면 분류기 호출 0회, 켜짐이면 판정된 결과 제외·전부 제외 null·분류기 실패 시 선택 LLM 호출 0회; result의 와우 표시·용량 불일치·20% 경계·후보 덮어쓰기·다른 매장 확인·14일 만료·같은 매장 반복, 연결 덮어쓰기와 연결 시각, 전체 성공 AUTOMATED·일부 실패 MANUAL_REQUIRED, 다른 매장 발주 404), 재고 PATCH `pack_quantity`(연결 없으면 400). `0015` upgrade·downgrade 왕복. BE 전체 pytest.
+검증: `coupang_pricing_test.py`(단위 기준 100g·10g·1구·100ml·1세트·표시 없음, 상품명 용량 '500g, 4개'·'30구, 1개'·'1박스, 1kg'·'30개, 10ml', 2% 대조, 환산 불가), `automation_test.py`(LLM·분류기는 가짜 어댑터 — 검색 품목 없으면 호출 0회, 비로그인 로켓프레시 제외, 실패 시 null, 검색 불필요 품목·중복·결과 61개 400, 같은 입력 재사용 시 호출 0회, 발주 4번째·매장 21번째·전체 501번째 호출 429, 답의 후보 밖 상품·포장 수량 0·포장 수량 미상 null, LLM이 준 개수 무시하고 서버 계산, 분류기 꺼짐이면 분류기 호출 0회, 켜짐이면 거부 시 422와 사유·선택 LLM 호출 0회·호출 횟수 증가·재사용 저장 안 함, 분류기 실패는 고정 사유로 거부; result의 와우 표시·용량 불일치·20% 경계·후보 덮어쓰기·다른 매장 확인·14일 만료·같은 매장 반복, 연결 덮어쓰기와 연결 시각, 전체 성공 AUTOMATED·일부 실패 MANUAL_REQUIRED, 다른 매장 발주 404), 재고 PATCH `pack_quantity`(연결 없으면 400). `0015` upgrade·downgrade 왕복. BE 전체 pytest.
 
 ## 2. 확장
 
@@ -30,12 +30,12 @@
 
 ## 3. FE
 
-1. 발주 확정 이력 — '쿠팡에 담기' 버튼(확장 미설치면 비활성 + 설치 안내), 확장 호출 → `automate/match` → 확장 담기 → `automate/result`. `match`가 429 `ORDER_LLM_QUOTA_EXCEEDED`면 검색 품목은 실패로 두고 연결 상품 품목만 담는다.
+1. 발주 확정 이력 — '쿠팡에 담기' 버튼(확장 미설치면 비활성 + 설치 안내), 확장 호출 → `automate/match` → 확장 담기 → `automate/result`. `match`가 429 `ORDER_LLM_QUOTA_EXCEEDED`나 422 `ORDER_LLM_GUARD_REJECTED`면 검색 품목은 실패로 두고 연결 상품 품목만 담는다. 거부면 확장에 거부 표시와 사유(일반 텍스트).
 2. `/orders/{id}/result` — 성공 품목·실패 품목과 수동 처리 안내(`manual_guide_url`), 비로그인 로켓프레시 알림.
 3. 재고 펼침 '쿠팡 상품 줄' — 연결 상품명·판매가·단가, 단가 미설정이면 포장 수량 입력.
 4. `openapi.json`·`types.gen.ts` 재생성.
 
-검증: Vitest(확장 없음 비활성, 결과 화면 세 분기, `match` 429 시 연결 상품만 담기, 포장 수량 저장), typecheck. 실서버 + 확장으로 확정 → 담기 → 결과 화면 → 재고의 연결 상품·단가 확인.
+검증: Vitest(확장 없음 비활성, 결과 화면 세 분기, `match` 429·422 시 연결 상품만 담기, 거부 사유 표시, 포장 수량 저장), typecheck. 실서버 + 확장으로 확정 → 담기 → 결과 화면 → 재고의 연결 상품·단가 확인.
 
 ## 4. 마무리
 

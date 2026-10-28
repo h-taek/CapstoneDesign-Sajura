@@ -1799,6 +1799,7 @@ Authorization: Bearer <access_token>
 // candidates가 비어 있으면 LLM을 호출하지 않는다
 // 검사·재사용·호출 제한·보안 분류기: 03_be.md §2.4
 // 429 ORDER_LLM_QUOTA_EXCEEDED: 상품 선택 LLM 호출 횟수 초과 — 점주는 수동 처리
+// 422 ORDER_LLM_GUARD_REJECTED: 보안 분류기(켜졌을 때)가 요청 거부 — "detail": { "reason": "상품명에 AI 지시문이 있습니다" }
 ```
 
 #### POST /api/orders/{order_id}/automate/result
