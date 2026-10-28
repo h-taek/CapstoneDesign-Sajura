@@ -1792,7 +1792,7 @@ Authorization: Bearer <access_token>
         "product_id": "7335597976",
         "vendor_item_id": "87234561234",
         "quantity": 4,                 // 담을 상품 개수. 서버가 발주 수량 ÷ 포장 수량을 올림해 계산
-        "pack_quantity": null,         // LLM이 판정한 포장 수량(재료 단위). 쿠팡 단위가격으로 계산되거나 판정 못 하면 null
+        "pack_quantity": null,         // LLM이 판정한 포장 수량(재료 단위). 쿠팡 단위가격 표시로 용량이 계산되는 상품이면 null — 그때 LLM 판정값은 서버 대조(03_be.md §2.4.1)에만 쓴다
         "reason": "냉장 삼겹살 500g 1개 단위"   // LLM이 쓴 선택 이유
       }
     }
