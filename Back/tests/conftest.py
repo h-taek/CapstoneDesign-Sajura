@@ -8,6 +8,7 @@ from __future__ import annotations
 import uuid
 from collections.abc import AsyncIterator
 
+import pytest
 import pytest_asyncio
 from fakeredis import FakeAsyncRedis
 from httpx import ASGITransport, AsyncClient
@@ -18,6 +19,7 @@ from sqlalchemy.pool import NullPool
 import app.db as app_db
 from app.config import get_settings
 from app.core.rate_limit import init_rate_limit
+from app.integrations import geocoding
 from app.main import app
 from app.models.user import User
 
@@ -45,6 +47,15 @@ def make_test_email(tag: str = "u") -> str:
 async def _rate_limit_store() -> None:
     # ASGITransport는 lifespan을 돌리지 않는다. 테스트마다 빈 저장소로 시작해 횟수를 나눈다
     await init_rate_limit(FakeAsyncRedis())
+
+
+@pytest.fixture(autouse=True)
+def _no_real_geocoding(monkeypatch: pytest.MonkeyPatch) -> None:
+    # 매장 주소 저장마다 Google을 부르지 않게 한다 — 위치가 필요한 테스트는 다시 바꿔 끼운다
+    async def _none(address: str) -> None:
+        return None
+
+    monkeypatch.setattr(geocoding, "geocode", _none)
 
 
 @pytest_asyncio.fixture(loop_scope="session")

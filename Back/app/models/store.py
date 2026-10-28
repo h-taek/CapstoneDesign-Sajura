@@ -3,9 +3,20 @@ from __future__ import annotations
 
 import enum
 from datetime import datetime
+from decimal import Decimal
 from typing import TYPE_CHECKING
 
-from sqlalchemy import CHAR, Boolean, DateTime, Enum, ForeignKey, String, func
+from sqlalchemy import (
+    CHAR,
+    DECIMAL,
+    Boolean,
+    DateTime,
+    Enum,
+    ForeignKey,
+    SmallInteger,
+    String,
+    func,
+)
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.models.base import Base, new_uuid
@@ -55,6 +66,12 @@ class Store(Base):
         Enum(OperationType, name="operation_type"), nullable=True
     )
     address: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    # 매장 위치 — 주소 저장 시 BE가 계산 (02_implementation_design.md §4.3.3). 변환 실패면 모두 NULL
+    latitude: Mapped[Decimal | None] = mapped_column(DECIMAL(9, 6), nullable=True)
+    longitude: Mapped[Decimal | None] = mapped_column(DECIMAL(9, 6), nullable=True)
+    kma_nx: Mapped[int | None] = mapped_column(SmallInteger, nullable=True)
+    kma_ny: Mapped[int | None] = mapped_column(SmallInteger, nullable=True)
+    asos_stn_id: Mapped[int | None] = mapped_column(SmallInteger, nullable=True)
     phone: Mapped[str | None] = mapped_column(String(20), nullable=True)
     onboarding_completed: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     created_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, server_default=func.current_timestamp())

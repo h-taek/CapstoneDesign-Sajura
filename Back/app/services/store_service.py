@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import re
+from decimal import Decimal
 
 import phonenumbers
 from fastapi import UploadFile
@@ -11,7 +12,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import get_settings
 from app.core import errors, storage
-from app.integrations import nts
+from app.core.weather_location import kma_grid, nearest_asos
+from app.integrations import geocoding, nts
 from app.models.store import BusinessStatus, OperationType, Store, StoreSize
 
 _BIZ_NO_RE = re.compile(r"^\d{3}-?\d{2}-?\d{5}$")
@@ -36,6 +38,18 @@ def _normalize_phone_kr(raw: str | None) -> str | None:
             status_code=400, error_code="VALIDATION_ERROR", message="유효하지 않은 전화번호입니다."
         )
     return phonenumbers.format_number(parsed, phonenumbers.PhoneNumberFormat.NATIONAL)
+
+
+async def set_location(store: Store) -> None:
+    """주소로 위치 5칸을 다시 채운다. 주소가 없거나 좌표 변환에 실패하면 모두 비운다 (02 §4.3.3)."""
+    coords = await geocoding.geocode(store.address) if store.address else None
+    if coords is None:
+        store.latitude = store.longitude = store.kma_nx = store.kma_ny = store.asos_stn_id = None
+        return
+    lat, lng = coords
+    store.latitude, store.longitude = Decimal(f"{lat:.6f}"), Decimal(f"{lng:.6f}")
+    store.kma_nx, store.kma_ny = kma_grid(lat, lng)
+    store.asos_stn_id = nearest_asos(lat, lng)
 
 
 class StoreService:
@@ -107,8 +121,9 @@ class StoreService:
             store.store_size = StoreSize(store_size)
         if operation_type is not None:
             store.operation_type = OperationType(operation_type)
-        if address is not None:
+        if address is not None and address != store.address:
             store.address = address
+            await set_location(store)
         if phone is not None:
             store.phone = _normalize_phone_kr(phone)
         await self.session.commit()

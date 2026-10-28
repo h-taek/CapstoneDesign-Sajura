@@ -93,6 +93,9 @@ class Settings(BaseSettings):
     KAMIS_API_CERT_ID: str = ""
     KAMIS_API_STUB_MODE: bool = True
 
+    # 매장 주소 → 좌표 (Google Geocoding API) — 날씨 격자·관측소 계산용. 비면 위치를 비운다
+    GOOGLE_MAPS_API_KEY: str = ""
+
     # 사업자등록증 업로드 저장 (03_be.md §10.2) — be 컨테이너 볼륨 마운트 경로
     UPLOAD_DIR: str = "/app/uploads"
     UPLOAD_MAX_BYTES: int = 10 * 1024 * 1024  # 10MB

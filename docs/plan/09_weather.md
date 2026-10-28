@@ -7,15 +7,15 @@
 
 `Back/app/data/asos_stations.json` — 운영 중인 ASOS 97곳(지점번호·이름·위도·경도). 받은 방법은 `research/backend/18_weather_location_probe.md` §2. 관측소가 바뀌면 같은 방법으로 다시 받는다.
 
-## 2. BE
+## 2. BE — 완료
 
 1. 마이그레이션 `0015_store_location` — `stores`에 `latitude`·`longitude`(DECIMAL(9,6))·`kma_nx`·`kma_ny`·`asos_stn_id`(SMALLINT), 모두 NULL.
 2. `app/integrations/geocoding.py` — `geocode(address) -> (lat, lng) | None`. Google Geocoding(`language=ko`, `region=kr`), `status != OK`·HTTP 오류·`GOOGLE_MAPS_API_KEY` 비어 있음이면 None(경고 로그). 설정에 `GOOGLE_MAPS_API_KEY` 추가.
 3. `app/core/weather_location.py` — `kma_grid(lat, lng) -> (nx, ny)`(기상청 격자 변환식, 조치원 36.6014·127.2985 → 66·106), `nearest_asos(lat, lng) -> stn_id`(관측소 목록에서 대권 거리 최소).
 4. `StoreService.update_store` — 주소가 바뀌면 좌표 변환 → 다섯 칸을 채우거나 모두 NULL. 빈 주소면 NULL. 좌표 변환 실패가 주소 저장을 막지 않는다.
-5. 기존 매장 채우기 — `Back/scripts/backfill_store_location.py`(주소가 있고 `latitude`가 NULL인 매장).
+5. 기존 매장 채우기 — `app/scripts/backfill_store_location.py`(주소가 있고 `latitude`가 NULL인 매장). 실행 `docker compose exec be python -m app.scripts.backfill_store_location`.
 
-검증: `store_test.py`(주소 저장 → 위치 칸 채움, 변환 실패·빈 주소 → NULL·저장 성공, 주소 그대로면 재호출 없음 — geocoding은 respx), 격자·최근접 관측소 단위 테스트, `0015` 왕복, BE 전체 pytest.
+검증: `store_location_test.py`(주소 저장 → 위치 칸 채움, 변환 실패·빈 주소 → NULL·저장 성공, 주소 그대로면 재호출 없음 — geocoding은 monkeypatch, 다른 테스트도 conftest가 실호출을 막는다), 격자·최근접 관측소 단위 테스트, `0015` 왕복, BE 전체 pytest.
 
 ## 3. n8n
 
