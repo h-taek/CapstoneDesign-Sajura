@@ -1765,9 +1765,8 @@ Authorization: Bearer <access_token>
   "coupang_logged_in": false,          // false면 로켓프레시 상품을 고르지 않는다 (01_basic_design.md §3.8.1)
   "candidates": [
     {
-      "item_id": "uuid",
-      "query": "삼겹살",                 // 재료명 그대로
-      "results": [
+      "item_id": "uuid",                 // 그 발주의 검색 필요 품목만, 중복 없이. 아니면 400 VALIDATION_ERROR
+      "results": [                       // 60개 이하. 넘으면 400 VALIDATION_ERROR
         {
           "product_id": "7335597976",
           "vendor_item_id": "87234561234",
@@ -1790,14 +1789,16 @@ Authorization: Bearer <access_token>
       "selected": {
         "product_id": "7335597976",
         "vendor_item_id": "87234561234",
-        "quantity": 4,                 // 담을 상품 개수
+        "quantity": 4,                 // 담을 상품 개수. 서버가 발주 수량 ÷ 포장 수량을 올림해 계산
         "pack_quantity": null,         // LLM이 판정한 포장 수량(재료 단위). 쿠팡 단위가격으로 계산되거나 판정 못 하면 null
-        "reason": "발주 2kg = 500g 4개"
+        "reason": "냉장 삼겹살 500g 1개 단위"   // LLM이 쓴 선택 이유
       }
     }
   ]
 }
 // candidates가 비어 있으면 LLM을 호출하지 않는다
+// 검사·재사용·호출 제한·보안 분류기: 03_be.md §2.4
+// 429 ORDER_LLM_QUOTA_EXCEEDED: 상품 선택 LLM 호출 횟수 초과 — 점주는 수동 처리
 ```
 
 #### POST /api/orders/{order_id}/automate/result
