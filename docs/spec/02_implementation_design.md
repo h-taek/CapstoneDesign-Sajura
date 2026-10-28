@@ -1757,7 +1757,7 @@ Authorization: Bearer <access_token>
 #### POST /api/orders/{order_id}/automate/match
 
 > 브라우저 조작은 사주라 확장이 점주 브라우저에서 수행한다. 서버는 담을 상품을 고르는 판단만 한다.
-> 전체 흐름·데이터 화이트리스트: `04_fe.md` §12.3·§12.4. 선택 규칙: `01_basic_design.md` §3.8.1.
+> 전체 흐름·데이터 화이트리스트: `04_fe.md` §12.3·§12.5. 선택 규칙: `01_basic_design.md` §3.8.1.
 
 ```json
 // Request — 검색이 필요한 품목의 검색 결과. 전체 품목 1회 전송
