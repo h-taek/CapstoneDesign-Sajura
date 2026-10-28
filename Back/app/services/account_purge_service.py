@@ -24,7 +24,7 @@ GRACE_PERIOD = timedelta(days=30)
 
 log = structlog.get_logger(__name__)
 
-# 매장 소유 행 삭제 순서. menus는 recipes·recipe_ingredients를, inventory_items는 lots·item_sites를
+# 매장 소유 행 삭제 순서. menus는 recipes·recipe_ingredients를, inventory_items는 lots를
 # CASCADE로 함께 지운다. stores 자체는 users 삭제의 CASCADE로 지워진다.
 _STORE_SCOPED = (
     "orders",  # order_items·order_approval_logs CASCADE

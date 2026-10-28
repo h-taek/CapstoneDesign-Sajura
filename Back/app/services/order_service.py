@@ -18,6 +18,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core import errors
+from app.models.coupang import CoupangProduct
 from app.models.inventory_item import InventoryItem, InventoryLot
 from app.models.menu import Menu, Recipe, RecipeIngredient
 from app.models.order import (
@@ -31,6 +32,7 @@ from app.models.order import (
     ReceiptStatus,
 )
 from app.schemas.orders import OrderApproveItem
+from app.services import coupang_pricing
 from app.services.forecast_service import ForecastService
 from app.services.inventory_service import InventoryService
 
@@ -95,12 +97,33 @@ class OrderService:
         self.session = session
 
     async def _unit_prices(self, *, item_ids: list[str]) -> dict[str, Decimal]:
-        """재료 단위당 단가 — 출처는 매장 공용 쿠팡 상품 테이블 하나다(01_basic_design.md §3.3.1).
+        """재료 단위당 단가 — 연결된 공용 쿠팡 상품으로만 계산한다(01_basic_design.md §3.3.1).
 
-        그 테이블과 확장의 가격 전송은 쿠팡 자동 담기 단계에서 만든다.
-        그 전까지 단가는 모두 미설정이다.
+        계산할 수 없는 재료(미설정)는 결과에 넣지 않는다.
         """
-        return {}
+        rows = (
+            await self.session.execute(
+                select(InventoryItem, CoupangProduct)
+                .join(
+                    CoupangProduct,
+                    CoupangProduct.coupang_product_id == InventoryItem.coupang_product_id,
+                )
+                .where(InventoryItem.item_id.in_(item_ids))
+            )
+        ).all()
+        prices = {}
+        for item, product in rows:
+            price = coupang_pricing.unit_price(
+                sale_price=product.sale_price,
+                content=coupang_pricing.stored_content(
+                    product.content_quantity, product.content_unit
+                ),
+                item_unit=item.unit,
+                stored_pack=item.pack_quantity,
+            )
+            if price is not None:
+                prices[item.item_id] = price
+        return prices
 
     async def _incoming_quantities(self, *, store_id: str) -> dict[str, Decimal]:
         """입고 예정량 — 입고 대기 상태인 발주 품목의 확정 수량 합계 (01_basic_design.md §3.7.2)."""

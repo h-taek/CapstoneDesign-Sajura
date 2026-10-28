@@ -1833,7 +1833,7 @@ Authorization: Bearer <access_token>
   "order_id": "uuid",
   "status": "AUTOMATED",              // 전체 성공. 하나라도 실패면 MANUAL_REQUIRED
   "automated_at": "2026-05-06T10:05:00Z",
-  "manual_guide_url": null            // MANUAL_REQUIRED 시 쿠팡 검색 링크
+  "manual_guide_url": null            // MANUAL_REQUIRED 시 쿠팡 첫 화면 https://www.coupang.com/ — 검색 결과 주소를 직접 열면 차단될 수 있다
 }
 ```
 

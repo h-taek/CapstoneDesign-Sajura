@@ -8,19 +8,26 @@ from fastapi import APIRouter, Depends, Query, Response, status
 
 from app.api.deps import CurrentUserDep, SessionDep, require_business_access
 from app.api.inventory import lot_dto
+from app.models.coupang import CoupangProduct
 from app.models.order import Order
 from app.schemas.forecast import AIRecommendResponse
 from app.schemas.inventory import LotCreateRequest, LotResponse
 from app.schemas.orders import (
     ApprovalLogItem,
     ApprovalLogResponse,
+    AutomationResultRequest,
+    AutomationResultResponse,
+    MatchRequest,
+    MatchResponse,
     OrderApproveRequest,
     OrderApproveResponse,
+    OrderCoupangProduct,
     OrderDetailItem,
     OrderDetailResponse,
     OrderListResponse,
     OrderSummary,
 )
+from app.services.automation_service import AutomationService, search_required, utcnow
 from app.services.order_service import OrderService
 from app.services.store_service import StoreService
 
@@ -88,6 +95,8 @@ async def get_order(
     service = OrderService(session)
     order = await service.get_order(store_id=store_id, order_id=order_id)
     items = await service.get_order_items(order_id=order_id)
+    lines = await AutomationService(session).lines(order_id=order_id)
+    now = utcnow()
     return OrderDetailResponse(
         order_id=order.order_id,
         approved_at=order.approved_at,
@@ -104,9 +113,52 @@ async def get_order(
                 unit_price=float(i.unit_price) if i.unit_price is not None else None,
                 subtotal=i.subtotal,
                 receipt_status=i.receipt_status.value,
+                coupang_search_required=search_required(
+                    lines[i.item_id].item, lines[i.item_id].product, now
+                ),
+                coupang_product=_coupang_product(lines[i.item_id].product),
             )
             for i, name, unit in items
         ],
+    )
+
+
+def _coupang_product(product: CoupangProduct | None) -> OrderCoupangProduct | None:
+    if product is None:
+        return None
+    return OrderCoupangProduct(
+        product_id=product.product_id,
+        vendor_item_id=product.vendor_item_id,
+        product_name=product.product_name,
+        rocket_fresh=product.rocket_fresh,
+    )
+
+
+@router.post("/{order_id}/automate/match", response_model=MatchResponse)
+async def automate_match(
+    order_id: str, payload: MatchRequest, session: SessionDep, current: CurrentUserDep
+) -> MatchResponse:
+    """확장이 수집한 검색 결과로 담을 상품을 고른다 (03_be.md §2.4)."""
+    store_id = await _store_id(session, current.user_id)
+    return await AutomationService(session).match(
+        store_id=store_id, order_id=order_id, req=payload
+    )
+
+
+@router.post("/{order_id}/automate/result", response_model=AutomationResultResponse)
+async def automate_result(
+    order_id: str, payload: AutomationResultRequest, session: SessionDep, current: CurrentUserDep
+) -> AutomationResultResponse:
+    """확장의 담기 결과 — 공용 쿠팡 상품·재료 연결·발주 상태를 갱신한다."""
+    store_id = await _store_id(session, current.user_id)
+    order, guide = await AutomationService(session).record_result(
+        store_id=store_id, order_id=order_id, req=payload
+    )
+    return AutomationResultResponse(
+        order_id=order.order_id,
+        status=order.status.value,
+        automated_at=order.automated_at,
+        manual_guide_url=guide,
     )
 
 

@@ -34,6 +34,16 @@ class InventoryItemUpdateRequest(BaseModel):
     low_stock_threshold: JsonDecimal | None = Field(default=None, ge=0)
     lead_time_days: int | None = Field(default=None, ge=0)
     safety_stock: JsonDecimal | None = Field(default=None, ge=0)
+    # 연결된 쿠팡 상품이 없으면 400 VALIDATION_ERROR (02_implementation_design.md §3.5)
+    pack_quantity: JsonDecimal | None = Field(default=None, gt=0)
+
+
+class InventoryCoupangProduct(BaseModel):
+    product_name: str
+    sale_price: int | None  # 판매가(원). 비었으면 null
+    content_quantity: JsonDecimal | None  # 상품 1개 용량. 모르면 null
+    content_unit: str | None
+    updated_at: datetime
 
 
 class InventoryItemResponse(BaseModel):
@@ -46,9 +56,9 @@ class InventoryItemResponse(BaseModel):
     low_stock_threshold: JsonDecimal
     lead_time_days: int | None
     safety_stock: JsonDecimal | None
-    # 품목↔쿠팡 상품 매핑 도메인(inventory_item_sites) 완성 전까지 항상 null
-    coupang_url: str | None = None
-    last_price: int | None = None
+    coupang_product: InventoryCoupangProduct | None  # 연결된 공용 쿠팡 상품
+    pack_quantity: JsonDecimal | None  # 상품 1개에 든 재료 수량(재료 단위)
+    unit_price: JsonDecimal | None  # 재료 단위당 원. 계산할 수 없으면 null
     created_at: datetime
     updated_at: datetime
 

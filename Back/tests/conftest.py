@@ -19,6 +19,7 @@ from sqlalchemy.pool import NullPool
 import app.db as app_db
 from app.config import get_settings
 from app.core.rate_limit import init_rate_limit
+from app.core.redis import set_redis
 from app.integrations import geocoding
 from app.main import app
 from app.models.user import User
@@ -46,7 +47,9 @@ def make_test_email(tag: str = "u") -> str:
 @pytest_asyncio.fixture(autouse=True, loop_scope="function")
 async def _rate_limit_store() -> None:
     # ASGITransport는 lifespan을 돌리지 않는다. 테스트마다 빈 저장소로 시작해 횟수를 나눈다
-    await init_rate_limit(FakeAsyncRedis())
+    fake = FakeAsyncRedis()
+    set_redis(fake)
+    await init_rate_limit(fake)
 
 
 @pytest.fixture(autouse=True)

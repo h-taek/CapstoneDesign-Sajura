@@ -40,6 +40,7 @@ from app.api.sales import router as sales_router
 from app.api.store import router as store_router
 from app.config import get_settings
 from app.core.rate_limit import init_rate_limit
+from app.core.redis import set_redis
 from app.logging_config import configure_logging
 
 
@@ -54,7 +55,9 @@ def _default_error_code(status_code: int) -> str:
 
 @asynccontextmanager
 async def _lifespan(app: FastAPI) -> AsyncIterator[None]:
-    await init_rate_limit(Redis.from_url(get_settings().redis_url))
+    redis = Redis.from_url(get_settings().redis_url)
+    set_redis(redis)
+    await init_rate_limit(redis)
     yield
     await FastAPILimiter.close()
 

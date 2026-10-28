@@ -13,6 +13,7 @@ from app.schemas.inventory import (
     AdjustmentResponse,
     DisposeRequest,
     DisposeResponse,
+    InventoryCoupangProduct,
     InventoryItemCreateRequest,
     InventoryItemResponse,
     InventoryItemUpdateRequest,
@@ -23,6 +24,7 @@ from app.schemas.inventory import (
     LotUpdateRequest,
     PendingOrderItem,
 )
+from app.services import coupang_pricing
 from app.services.inventory_service import InventoryService, ItemStock
 from app.services.order_service import OrderService
 from app.services.store_service import StoreService
@@ -37,7 +39,7 @@ async def _store_id(session, user_id: str) -> str:
 
 
 def _to_dto(stock: ItemStock) -> InventoryItemResponse:
-    item = stock.item
+    item, product = stock.item, stock.product
     return InventoryItemResponse(
         item_id=item.item_id,
         name=item.name,
@@ -48,6 +50,24 @@ def _to_dto(stock: ItemStock) -> InventoryItemResponse:
         low_stock_threshold=item.low_stock_threshold,
         lead_time_days=item.lead_time_days,
         safety_stock=item.safety_stock,
+        coupang_product=InventoryCoupangProduct(
+            product_name=product.product_name,
+            sale_price=product.sale_price,
+            content_quantity=product.content_quantity,
+            content_unit=product.content_unit,
+            updated_at=product.updated_at,
+        )
+        if product
+        else None,
+        pack_quantity=item.pack_quantity,
+        unit_price=coupang_pricing.unit_price(
+            sale_price=product.sale_price,
+            content=coupang_pricing.stored_content(product.content_quantity, product.content_unit),
+            item_unit=item.unit,
+            stored_pack=item.pack_quantity,
+        )
+        if product
+        else None,
         created_at=item.created_at,
         updated_at=item.updated_at,
     )

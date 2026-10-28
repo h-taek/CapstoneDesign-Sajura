@@ -72,7 +72,6 @@ class OrderRecommendationItem(Base):
     config_status: Mapped[ConfigStatus] = mapped_column(
         Enum(ConfigStatus, name="config_status"), nullable=False
     )
-    last_price: Mapped[int | None] = mapped_column(Integer, nullable=True)
 
 
 class Order(Base):

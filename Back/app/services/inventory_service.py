@@ -16,6 +16,7 @@ from sqlalchemy import delete, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core import errors
+from app.models.coupang import CoupangProduct
 from app.models.inventory_item import (
     AdjustmentReason,
     DisposalLog,
@@ -61,6 +62,7 @@ class ItemStock:
     item: InventoryItem
     total_quantity: Decimal
     nearest_expiry: date | None  # 잔여 수량이 남은 로트 중 가장 빠른 소비기한
+    product: CoupangProduct | None = None  # 연결된 공용 쿠팡 상품
 
 
 @dataclass
@@ -93,12 +95,30 @@ class InventoryService:
             )
         ).all()
         agg = await self._lot_aggregates([i.item_id for i in items])
-        return [ItemStock(i, *agg.get(i.item_id, (Decimal(0), None))) for i in items]
+        products = await self._products(items)
+        return [
+            ItemStock(
+                i, *agg.get(i.item_id, (Decimal(0), None)), products.get(i.coupang_product_id)
+            )
+            for i in items
+        ]
 
     async def get_stock(self, *, store_id: str, item_id: str) -> ItemStock:
         item = await self.get_item(store_id=store_id, item_id=item_id)
         agg = await self._lot_aggregates([item_id])
-        return ItemStock(item, *agg.get(item_id, (Decimal(0), None)))
+        products = await self._products([item])
+        return ItemStock(
+            item, *agg.get(item_id, (Decimal(0), None)), products.get(item.coupang_product_id)
+        )
+
+    async def _products(self, items: list[InventoryItem]) -> dict[str | None, CoupangProduct]:
+        ids = {i.coupang_product_id for i in items if i.coupang_product_id}
+        if not ids:
+            return {}
+        rows = await self.session.scalars(
+            select(CoupangProduct).where(CoupangProduct.coupang_product_id.in_(ids))
+        )
+        return {p.coupang_product_id: p for p in rows}
 
     async def get_item(self, *, store_id: str, item_id: str) -> InventoryItem:
         item = await self.session.get(InventoryItem, item_id)
@@ -157,6 +177,8 @@ class InventoryService:
         new_name = patch.get("name")
         if new_name is not None and new_name != item.name:
             await self._assert_unique_name(store_id=store_id, name=new_name)
+        if patch.get("pack_quantity") is not None and item.coupang_product_id is None:
+            raise errors.validation_error("연결된 쿠팡 상품이 없어 포장 수량을 저장할 수 없습니다.")
         for k, v in patch.items():
             if v is not None:
                 setattr(item, k, v)
