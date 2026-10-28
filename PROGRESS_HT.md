@@ -8,6 +8,15 @@
 
 ## 1. 개발 이력
 
+### 날씨 — 매장 위치 + n8n 날씨 수집 (2026-10-28)
+
+- 결정 — 날씨는 매장 위치 기준. 판매 이력 기간과 어제까지는 기상청 ASOS 일자료(가장 가까운 관측소), 오늘 이후는 단기예보(매장 격자). 주소 저장 시 BE가 Google Geocoding으로 좌표를 구해 격자·관측소를 `stores`에 둔다. 위치 없음·호출 실패는 날씨 없이 예측. spec `01` §3.11.1·§5.2.1, `02` §3.8·§4.3.3, `03_be` §2, `05_ai` §4.2, plan `09_weather.md`, research `backend/18`
+- 논의와 기각한 대안 — 위치를 조치원 고정으로 두는 지름길 대신 매장별 위치(사용자 선택). 좌표 변환은 카카오 로컬(앱 카카오맵 설정을 못 찾음)·브이월드 대신 Google. 관측소 목록은 공공데이터포털 지점정보 서비스에 신청 버튼이 없어 기상자료개방포털 조회 결과로 받았다
+- 사용자 정정 — 모델이 어떤 입력을 쓰는지는 모델 담당 몫이고, 우리는 spec대로 넘길 입력을 구성하면 끝이다
+- BE — 마이그레이션 `0015_store_location`(위치 5칸), `app/integrations/geocoding.py`, `app/core/weather_location.py`(격자 변환·최근접 관측소), `app/data/asos_stations.json`(운영 중 ASOS 97곳), `StoreService.update_store`가 주소가 바뀔 때만 다시 계산, `app/scripts/backfill_store_location.py`. 테스트는 conftest가 Google 실호출을 막는다
+- n8n — `forecast.json`에 '매장 위치'(MySQL)·'날씨'(Code, ASOS 999행 페이지·단기예보 오늘 02시 발표·3회 재시도) 노드, 'AI 입력'이 날씨를 넣는다. compose n8n 환경값 `KMA_SERVICE_KEY`
+- 검증: BE 컨테이너 pytest 132/132(신규 4), `0015` upgrade·downgrade 왕복. 실서버 — 확인용 매장(조치원 세종로 2639, 판매 60일)을 API로 만들어 위치 65·106·서청주 181 저장 확인, CLI 배치로 날씨 63일(ASOS 60 + 예보 3) → 예측 저장·`DONE`, 틀린 서비스키·위치 없음도 날씨 없이 `DONE`, BE 수동 실행(웹훅) 예측값이 날씨 있는 실행과 같음. 02:00 스케줄 실제 발화는 미확인
+
 ### 대시보드 BE — 예측 vs 실제 매출 API (2026-10-28)
 
 - 결정 — 대시보드 BE는 `GET /api/dashboard/forecast-vs-actual` 하나. 매출 추이·메뉴 비중은 기존 `GET /api/sales/trends`·`top-menus`로 그린다. 화면에 쓰는 곳 없는 요약(`GET /api/dashboard`)·폐기 현황(`/api/dashboard/waste`)과 대시보드 캐시(`dashboard:{store_id}`)는 spec에서 삭제. spec `02` §3.9, `03_be` §2·§12·§14.1.2

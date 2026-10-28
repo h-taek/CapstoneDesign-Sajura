@@ -82,6 +82,7 @@
 | 예측 배치 책임 분리 | n8n은 모델 예측만 — 입력 조회·외부 데이터·AI 예측(매출 + 대상일별 메뉴 수량)·예측 저장·실행 기록·Slack. 추천발주는 산식이라 BE가 점주 요청 시 저장된 예측과 그 시점 재고로 계산(AI `/ai/orders/recommend` 폐지). 수동 실행은 BE가 n8n 웹훅으로 매장 하나 실행, 예측 완료 알림은 n8n → BE 내부 API (2026-10-28) | `01_basic_design.md` §3.7.2·§3.11.1, `05_ai.md` §2 |
 | 추천 수정안 저장 폐지 | 확정 전 수정값은 서버에 저장하지 않는다 — 확정 버튼이 저장 시점. `PATCH /api/orders/recommend`·`adjusted_quantity` 삭제. 화면을 나가도 남기려면 FE 브라우저 저장소 (2026-10-28) | `01_basic_design.md` §3.7.4 |
 | 대시보드 API | 대시보드 전용 API는 날짜별 예측 매출 vs 실제 매출(`GET /api/dashboard/forecast-vs-actual`) 하나. 매출 추이·메뉴 비중은 판매 집계 API를 쓴다. 요약(`GET /api/dashboard`)·폐기 현황(`/waste`)·대시보드 캐시 삭제 (2026-10-28) | `02_implementation_design.md` §3.9 |
+| 날씨 입력 | 날씨는 매장 위치 기준 — 어제까지 기상청 ASOS 일자료(최근접 관측소), 오늘 이후 단기예보(매장 격자). 위치는 주소 저장 시 BE가 Google Geocoding으로 계산해 `stores`에 둔다. 위치 없음·호출 실패는 날씨 없이 예측 (2026-10-28) | `01_basic_design.md` §3.11.1, `02_implementation_design.md` §4.3.3 |
 | 매출 CSV 재업로드 dedup 정책 (2026-08-17) | `UNIQUE(store_id, source, external_sale_id)`는 MySQL에서 NULL끼리 서로 다르게 취급되어, 영수증번호 컬럼 없이(FE 기본값) 업로드한 CSV는 재업로드 시 DB 레벨 중복 방지가 전혀 동작하지 않는다 — 실사례로 소주 8,984개가 98,824개(11배)로 중복 적재. `external_sale_id`가 NULL이면 `(menu_id, sold_at)` 합성 식별자를 만들어 같은 UNIQUE 제약 경로를 타도록 애플리케이션 레벨에서 정규화(스키마 변경 없음) | `Back/app/services/sale_service.py` `_insert_chunk` |
 
 ---

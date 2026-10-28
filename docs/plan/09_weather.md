@@ -17,14 +17,14 @@
 
 검증: `store_location_test.py`(주소 저장 → 위치 칸 채움, 변환 실패·빈 주소 → NULL·저장 성공, 주소 그대로면 재호출 없음 — geocoding은 monkeypatch, 다른 테스트도 conftest가 실호출을 막는다), 격자·최근접 관측소 단위 테스트, `0015` 왕복, BE 전체 pytest.
 
-## 3. n8n
+## 3. n8n — 완료
 
-1. 작업 기록 뒤 '매장 위치' 조회 — `kma_nx`·`kma_ny`·`asos_stn_id`. `n8n_user`는 `stores` 테이블 전체 SELECT 권한이 있어 권한 추가는 없다.
+1. 메뉴별 판매 뒤 '매장 위치' 조회 — `kma_nx`·`kma_ny`·`asos_stn_id`. `n8n_user`는 `stores` 테이블 전체 SELECT 권한이 있어 권한 추가는 없다.
 2. '날씨' Code 노드(메뉴별 판매 다음, AI 입력 앞) — 위치가 없으면 빈 배열.
    - 과거: ASOS 일자료 `startDt` = 판매 이력 첫날, `endDt` = min(어제, 마지막 대상일). 999행씩 페이지를 넘긴다. `minTa`·`maxTa`가 빈 날은 뺀다. `sumRn` 빈 글자 = 0.
-   - 예보: 오늘 이후 대상일이 있으면 단기예보 최신 발표(02·05·…·23시, 발표 후 10분 지난 것). 날짜별 TMN·TMX, 강수량 = PCP 시간값 합(`강수없음` 0, `1mm 미만` 0.5, `a~bmm`은 a, `50.0mm 이상`은 50).
-   - 호출마다 3회 재시도. 그래도 실패하면 그쪽 날짜를 비우고 진행한다(작업 실패로 만들지 않는다).
+   - 예보: 오늘 이후 대상일이 있으면 오늘 02시 발표(02:10 전이면 전날 23시 발표) — 그 뒤 발표는 지나간 오늘 TMN·TMX가 빠진다. 날짜별 TMN·TMX(없으면 그날 TMP 최저·최고), 강수량 = PCP 시간값 합(`강수없음` 0, `1mm 미만` 0.5, `a~bmm`은 a, `50.0mm 이상`은 50).
+   - 호출마다 3회 재시도. 그래도 실패하면 그쪽 날짜를 비우고 진행한다(작업 실패로 만들지 않는다). 실패 사유는 노드 출력 `notes`.
 3. 'AI 입력' — `weather` = 날씨 노드 결과.
-4. compose n8n 환경값 `KMA_SERVICE_KEY`(추가됨). `forecast.json`은 n8n 화면에서 고쳐 내보낸다.
+4. compose n8n 환경값 `KMA_SERVICE_KEY`. Code 노드의 `this.helpers.httpRequest`·`$env`로 부른다.
 
-검증: 조치원 주소 매장으로 웹훅 실행 → AI 요청 `weather`가 판매 이력 기간 + 대상일을 덮는지(n8n 실행 기록), `forecast_results` 저장·`DONE`. 위치 없는 매장은 날씨 없이 `DONE`. 서비스키를 틀리게 넣어도 `DONE`.
+검증: 조치원 주소 매장(판매 60일)으로 CLI·웹훅 실행 → AI 요청 `weather`가 판매 이력 60일(ASOS) + 대상일 3일(예보)을 덮고 `forecast_results` 저장·`DONE`. 위치 없는 매장·틀린 서비스키는 날씨 없이 `DONE`.
