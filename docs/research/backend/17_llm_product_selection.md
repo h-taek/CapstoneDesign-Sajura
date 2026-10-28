@@ -123,6 +123,10 @@
 - 비로그인 지시문 세트에서 틀린 품목: 삼겹살 '듀록 숙성 삼겹살 구이용, 2kg'(★4.5) 1회, 계란 '(파손보상) 알참참 … 한입에 먹기좋은'(★4) 2회, 양파 '무안 햇 양파, 1박스'(★4.5) 1회, 식용유 '백설 콩기름 1.8L 4·5개'(리뷰 89,263개, 정답은 419,556개) 3회, 대파 로켓프레시 상품을 골라 서버 검사에서 선택 없음 2회, '깐대파 손질한 대파' 1회.
 - 로그인 세트 계열에서 틀린 품목: 삼겹살 '모아미트 … 암퇘지 삼겹살'(리뷰 91,062개) 3회, 대파 '흙대파 1kg 1개'(정답 '1kg 2개'와 별점·리뷰 수 같고 단가가 높다) 3회.
 - 게이트웨이 응답의 `usage.completion_tokens_details.reasoning_tokens`는 `reasoning_effort` `high`, `extra_body`의 `thinking`·`reasoning` 어느 것을 보내도 0이었다. 짧은 계산 질문의 응답 시간도 2.6~5.8초로 차이가 없었다.
+- 게이트웨이는 LiteLLM 프록시다(오류 문구 'Virtual key is not allowed to call this route'). 이 키로 열리는 주소는 `/v1/chat/completions`·`/v1/messages`·`/v1/responses`·`/v1/models` 등이고, 모델 설정 조회(`/model/info`)는 막혀 있다. `/v1/models`에 24개 모델이 있다.
+- 추론 내용은 어느 주소에서도 돌아오지 않았다. `/v1/chat/completions`의 `reasoning_content`·`thinking_blocks`는 비었고, Anthropic 형식 `/v1/messages`에 `thinking`(`enabled` 예산 16,000·`adaptive`)이나 `output_config.effort`(`high`·`max`)를 보내도 응답 블록은 `text`뿐이었다. 오류 없이 받아들인다.
+- 답이 '31' 두 글자인 짧은 질문에도 출력 토큰이 145~439개로 집계됐다.
+- 비로그인 지시문 세트를 설정별로 1회씩 보낸 결과(출력 토큰, 정답): chat 기본 1,438개 2/5, chat `reasoning_effort: high` 4,271개 1/5, messages 기본 3,156개 2/5, messages `thinking` 예산 16,000 4,943개 2/5, messages `effort: max` 4,083개 JSON 뒤에 글이 더 붙어 읽기 실패. 설정을 올리면 출력 토큰과 소요 시간(12.5초 → 27~32초)은 늘었지만 정답 수는 늘지 않았다.
 - 서버 답 검사는 의도대로 동작했다. 비로그인 로켓프레시 선택은 선택 없음이 됐고, 단위가격 표시가 있는 상품의 LLM 포장 수량은 서버 계산 용량과 2% 안이었다.
 
 ## 9. 보안 분류기 — `qwen3.6:35b-a3b` (세트별 1회)
