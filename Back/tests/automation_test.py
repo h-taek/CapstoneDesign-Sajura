@@ -171,16 +171,16 @@ def _selections(r) -> dict[str, dict | None]:
 
 
 def _answer(*picks: tuple[str, str | None, float | None]) -> dict:
-    """(i번호, vendor_item_id, pack_quantity) 목록 → LLM 답."""
+    """(i번호, 행 번호, pack_quantity) 목록 → LLM 답."""
     return {
         "selections": [
             {
                 "item_id": key,
                 "selected": None
-                if vid is None
-                else {"vendor_item_id": vid, "pack_quantity": pack, "reason": "테스트"},
+                if row is None
+                else {"row": row, "pack_quantity": pack, "reason": "테스트"},
             }
-            for key, vid, pack in picks
+            for key, row, pack in picks
         ]
     }
 
@@ -243,12 +243,12 @@ async def test_select_checks_answer_and_computes_quantity(client: AsyncClient, f
     tofu = _row()
     selector, _ = fake_llm(
         _answer(
-            ("i1", pork["vendor_item_id"], 500),
-            ("i2", egg["vendor_item_id"], 30),  # 단위가격 표시 없음 → LLM 포장 수량
-            ("i3", "12345", 1000),  # 후보 밖
-            ("i4", oil["vendor_item_id"], 1900),  # 1800ml와 2% 넘게 다름
-            ("i5", leek["vendor_item_id"], None),  # 포장 수량 미상
-            ("i6", tofu["vendor_item_id"], 0),  # 포장 수량 0
+            ("i1", "r2", 500),  # 두 번째 행
+            ("i2", "r1", 30),  # 단위가격 표시 없음 → LLM 포장 수량
+            ("i3", "r2", 1000),  # 후보 밖 행 번호
+            ("i4", "r1", 1900),  # 1800ml와 2% 넘게 다름
+            ("i5", "r1", None),  # 포장 수량 미상
+            ("i6", "r1", 0),  # 포장 수량 0
         )
     )
     sel = _selections(
@@ -257,7 +257,7 @@ async def test_select_checks_answer_and_computes_quantity(client: AsyncClient, f
             auth,
             order_id,
             {
-                ids["삼겹살"]: [pork],
+                ids["삼겹살"]: [_row(), pork],
                 ids["계란"]: [egg],
                 ids["양파"]: [onion],
                 ids["식용유"]: [oil],
@@ -269,6 +269,7 @@ async def test_select_checks_answer_and_computes_quantity(client: AsyncClient, f
     assert len(selector.calls) == 1
     prompt = selector.calls[0]
     assert "재료명: 삼겹살, 재료 단위: g" in prompt and "<coupang_search_results" in prompt
+    assert "- row=r2 | 상품명:" in prompt and pork["vendor_item_id"] not in prompt
     assert sel[ids["삼겹살"]] == {
         "product_id": pork["product_id"],  # 검색 결과 행의 값
         "vendor_item_id": pork["vendor_item_id"],
@@ -288,7 +289,7 @@ async def test_logged_out_excludes_rocket_fresh(client: AsyncClient, fake_llm) -
     await _link(ids["계란"], content=("30", "구"), rocket_fresh=True)
     order_id = await _order(client, auth, {ids["삼겹살"]: 1000, ids["계란"]: 60})
     fresh = _row(rocket_fresh=True)
-    selector, _ = fake_llm(_answer(("i1", fresh["vendor_item_id"], 500)))
+    selector, _ = fake_llm(_answer(("i1", "r1", 500)))
 
     # 비로그인이면 로켓프레시 연결 품목은 검색 품목 — 결과가 없으면 선택 없음
     sel = _selections(await _match(client, auth, order_id, {ids["삼겹살"]: [fresh]}))
@@ -349,7 +350,7 @@ async def test_same_input_is_reused(client: AsyncClient, fake_llm) -> None:
     auth, _, ids = await _store(client, {"삼겹살": "g"})
     order_id = await _order(client, auth, {ids["삼겹살"]: 1000})
     row = _row()
-    selector, _ = fake_llm(_answer(("i1", row["vendor_item_id"], 500)))
+    selector, _ = fake_llm(_answer(("i1", "r1", 500)))
     candidates = {ids["삼겹살"]: [row]}
 
     first = _selections(await _match(client, auth, order_id, candidates))
@@ -403,7 +404,7 @@ async def test_guard_off_is_never_called(
     auth, _, ids = await _store(client, {"삼겹살": "g"})
     order_id = await _order(client, auth, {ids["삼겹살"]: 1000})
     row = _row()
-    selector = FakeLLM(_answer(("i1", row["vendor_item_id"], 500)))
+    selector = FakeLLM(_answer(("i1", "r1", 500)))
     monkeypatch.setattr(llm, "get_llm_client", lambda: selector)
     sel = _selections(await _match(client, auth, order_id, {ids["삼겹살"]: [row]}))
     assert sel[ids["삼겹살"]] is not None
