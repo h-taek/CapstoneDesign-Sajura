@@ -25,6 +25,7 @@ from starlette.middleware.sessions import SessionMiddleware
 
 from app.api.admin import router as admin_router
 from app.api.auth import router as auth_router
+from app.api.dashboard import router as dashboard_router
 from app.api.forecast import router as forecast_router
 from app.api.health import router as health_router
 from app.api.inventory import router as inventory_router
@@ -102,6 +103,7 @@ def create_app() -> FastAPI:
     app.include_router(prices_router)
     app.include_router(notifications_router)
     app.include_router(pipeline_router)
+    app.include_router(dashboard_router)
 
     @app.exception_handler(StarletteHTTPException)
     async def _http_exc_handler(request: Request, exc: StarletteHTTPException) -> ORJSONResponse:

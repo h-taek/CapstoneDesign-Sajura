@@ -1959,52 +1959,40 @@ Authorization: Bearer <access_token>
 
 | Method | Path | 설명 |
 |--------|------|------|
-| `GET` | `/api/dashboard` | 대시보드 전체 요약 데이터 조회 |
-| `GET` | `/api/dashboard/waste` | 폐기 현황 조회 |
+| `GET` | `/api/dashboard/forecast-vs-actual` | 날짜별 예측 매출과 실제 매출 비교 |
 | `GET` | `/api/pipeline/status` | 파이프라인 최근 실행 상태 조회 |
 | `POST` | `/api/pipeline/forecast-done` | 예측 완료 알림 요청 (n8n 전용) |
 | `GET` | `/api/pipeline/history` | 파이프라인 실행 이력 목록 |
 
-#### GET /api/dashboard
-
-```json
-// Response 200
-{
-  // 재고 현황(부족·임박 품목 수)은 FE가 GET /api/inventory로 계산한다 (03_be.md §2)
-  "sales_summary": {
-    "today_revenue": 320000,
-    "month_revenue": 4500000,
-    "mom_change_rate": 0.08
-  },
-  "waste_summary": {
-    "month_waste_cost": 45000,
-    "mom_change_rate": -0.12
-  },
-  "order_summary": {
-    "last_order_at": "2026-05-05T10:00:00Z",
-    "pending_alerts": 2
-  }
-}
-```
-
-#### GET /api/dashboard/waste
+#### GET /api/dashboard/forecast-vs-actual
 
 ```json
 // Query: ?start_date=2026-01-01&end_date=2026-01-31
+// start_date·end_date: 필수, 양 끝 포함. start_date > end_date면 400 VALIDATION_ERROR
+// data: 기간의 모든 날짜를 오름차순으로 채운다
+// actual_sales: 그 날짜 판매 합계(원, sale_records.total_price 합). 매장 마지막 판매일 이후 날짜는 null, 그 이전 판매 없는 날은 0
+// predicted_sales·interval_p10·interval_p90·horizon_days: 그 날짜의 저장된 예측(forecast_results). 없으면 모두 null
+//   예측은 대상일마다 가장 마지막에 만든 것 하나만 남는다 — 지난 날짜는 보통 하루 전 예측(horizon_days 1)
 // Response 200
 {
-  "period": {
-    "start_date": "2026-01-01",
-    "end_date": "2026-01-31"
-  },
-  "total_waste_cost": 52000,
-  "items": [
+  "start_date": "2026-01-01",
+  "end_date": "2026-01-31",
+  "data": [
     {
-      "item_id": "uuid",
-      "item_name": "원두",
-      "disposed_quantity": 500.0,
-      "unit": "g",
-      "waste_cost": 14000
+      "date": "2026-01-01",
+      "actual_sales": 320000,
+      "predicted_sales": 300000,
+      "interval_p10": 250000,
+      "interval_p90": 350000,
+      "horizon_days": 1
+    },
+    {
+      "date": "2026-01-02",
+      "actual_sales": null,
+      "predicted_sales": 310000,
+      "interval_p10": 260000,
+      "interval_p90": 360000,
+      "horizon_days": 1
     }
   ]
 }

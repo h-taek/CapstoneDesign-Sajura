@@ -8,6 +8,13 @@
 
 ## 1. 개발 이력
 
+### 대시보드 BE — 예측 vs 실제 매출 API (2026-10-28)
+
+- 결정 — 대시보드 BE는 `GET /api/dashboard/forecast-vs-actual` 하나. 매출 추이·메뉴 비중은 기존 `GET /api/sales/trends`·`top-menus`로 그린다. 화면에 쓰는 곳 없는 요약(`GET /api/dashboard`)·폐기 현황(`/api/dashboard/waste`)과 대시보드 캐시(`dashboard:{store_id}`)는 spec에서 삭제. spec `02` §3.9, `03_be` §2·§12·§14.1.2
+- 사용자 지시 — FE 그래프는 상황에 따라 바뀌거나 빠질 수 있다. 예측 데이터는 기본설계 §3.9.1 '수요예측 결과 시각화'·시연 8단계라 남을 가능성이 높아 API는 먼저 만들었다
+- BE — 기간의 모든 날짜를 채워 실제 매출(마지막 판매일 이후 null, 그 이전 판매 없는 날 0)과 저장된 예측(매출·P10/P90·horizon, 없으면 null)을 돌려준다. 예측은 대상일마다 마지막 것만 남아 지난 날짜는 보통 하루 전 예측. `DashboardService`·`app/api/dashboard.py`, `Front/openapi.json`·`types.gen.ts` 재생성
+- 검증: BE 컨테이너 pytest 128/128(신규 2). dev DB에 계정이 없어 실데이터 호출은 안 함
+
 ### 예측 배치 — n8n 모델 예측 + BE 추천발주 계산 (2026-10-28)
 
 - 결정 — n8n은 모델 예측만(입력 조회·AI 예측·예측 저장·실행 기록·Slack), 추천발주는 산식이라 BE가 점주 요청 시 저장된 예측과 그 시점 재고로 계산. 확정 전 수정값은 서버에 저장하지 않는다(`PATCH /api/orders/recommend`·`adjusted_quantity` 삭제). spec `01`·`02`·`03`·`04`·`05`(사용자 지시로 `05_ai.md`도 직접 수정), plan `07_forecast_batch.md`

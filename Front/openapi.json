@@ -4028,6 +4028,76 @@
           }
         }
       }
+    },
+    "/api/dashboard/forecast-vs-actual": {
+      "get": {
+        "tags": [
+          "dashboard"
+        ],
+        "summary": "Get Forecast Vs Actual",
+        "description": "대시보드 '수요예측 vs 실제 판매량' 그래프 — 날짜별 예측 매출과 실제 매출.",
+        "operationId": "get_forecast_vs_actual_api_dashboard_forecast_vs_actual_get",
+        "parameters": [
+          {
+            "name": "start_date",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "date",
+              "title": "Start Date"
+            }
+          },
+          {
+            "name": "end_date",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "date",
+              "title": "End Date"
+            }
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ForecastVsActualResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -4661,6 +4731,80 @@
         ],
         "title": "Explanation"
       },
+      "ForecastActualPoint": {
+        "properties": {
+          "date": {
+            "type": "string",
+            "format": "date",
+            "title": "Date"
+          },
+          "actual_sales": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Actual Sales"
+          },
+          "predicted_sales": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Predicted Sales"
+          },
+          "interval_p10": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Interval P10"
+          },
+          "interval_p90": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Interval P90"
+          },
+          "horizon_days": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Horizon Days"
+          }
+        },
+        "type": "object",
+        "required": [
+          "date",
+          "actual_sales",
+          "predicted_sales",
+          "interval_p10",
+          "interval_p90",
+          "horizon_days"
+        ],
+        "title": "ForecastActualPoint"
+      },
       "ForecastDoneRequest": {
         "properties": {
           "store_id": {
@@ -4689,6 +4833,34 @@
           "predictions"
         ],
         "title": "ForecastPredictResponse"
+      },
+      "ForecastVsActualResponse": {
+        "properties": {
+          "start_date": {
+            "type": "string",
+            "format": "date",
+            "title": "Start Date"
+          },
+          "end_date": {
+            "type": "string",
+            "format": "date",
+            "title": "End Date"
+          },
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/ForecastActualPoint"
+            },
+            "type": "array",
+            "title": "Data"
+          }
+        },
+        "type": "object",
+        "required": [
+          "start_date",
+          "end_date",
+          "data"
+        ],
+        "title": "ForecastVsActualResponse"
       },
       "HTTPValidationError": {
         "properties": {
