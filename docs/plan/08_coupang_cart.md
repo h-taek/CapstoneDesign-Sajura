@@ -9,7 +9,7 @@
 1. 마이그레이션 `0015` — `coupang_products`·`coupang_price_candidates` 생성, `inventory_items`에 `coupang_product_id`·`coupang_linked_at`·`pack_quantity`, `sites`·`inventory_item_sites`·`order_recommendation_items.last_price` 삭제. `AccountPurgeService`의 `item_sites` 주석 정리.
 2. 모델·스키마 — `CoupangProduct`·`CoupangPriceCandidate`, `InventoryItem` 연결 칸. 재고 응답의 `coupang_url`·`last_price`를 `coupang_product`·`pack_quantity`·`unit_price`로, PATCH에 `pack_quantity`.
 3. 단가 계산 — `coupang_pricing.py` 순수 함수 한 곳: 단위가격 표시 파싱, 용량 계산(`표시 가격 ÷ 단위가격 × 기준 수량`), 상품명 용량 파싱과 2% 대조, 재료 단위 환산, 단가(판매가 ÷ 용량 → 판매가 ÷ 포장 수량). `OrderService._unit_prices`가 이것을 쓴다.
-4. `LLMClient` — 인터페이스와 어댑터 `anthropic`·`openai_compatible`, 설정 `LLM_PROVIDER`·`LLM_MODEL`·`LLM_API_KEY`·`LLM_BASE_URL`과 보안 분류기 `LLM_GUARD_ENABLED`·`LLM_GUARD_BASE_URL`·`LLM_GUARD_MODEL`(`config.py`·`.env.example`). 응답은 Pydantic 스키마로 검증한다.
+4. `LLMClient` — 인터페이스와 어댑터 `anthropic`·`openai_compatible`, 설정 `LLM_PROVIDER`·`LLM_MODEL`·`LLM_API_KEY`·`LLM_BASE_URL`·`LLM_REASONING_EFFORT`와 보안 분류기 `LLM_GUARD_ENABLED`·`LLM_GUARD_BASE_URL`·`LLM_GUARD_MODEL`(`config.py`·`.env.example`). 응답은 Pydantic 스키마로 검증한다. 게이트웨이가 `reasoning_effort`를 받는지 실제 호출로 확인한다.
 5. 발주 상세 — 품목별 `coupang_search_required`·`coupang_product`(연결 없음·3일 경과·포장 수량 미상·로켓프레시는 비로그인 시 확장이 판단).
 6. `POST /api/orders/{id}/automate/match` — 연결 상품 품목은 담을 개수만 계산, 검색 품목이 있으면 요청 검사(검색 필요 품목·중복·결과 60개) → Redis 같은 입력 재사용 → 호출 횟수(발주 3·매장 하루 20·전체 하루 500, 초과 429 `ORDER_LLM_QUOTA_EXCEEDED`) → 보안 분류기(켜졌을 때 요청 승인·거부, 거부면 422 `ORDER_LLM_GUARD_REJECTED` + 사유) → LLM 1회(서버 재료명, 외부 글 구분 태그, 상품명 200자, 비로그인이면 로켓프레시 제외) → 답 검사(후보 밖·로켓프레시·포장 수량) → 담을 개수 서버 계산. 호출 실패·검증 실패는 그 품목들을 `selected: null`.
 7. `POST /api/orders/{id}/automate/result` — 성공 품목마다 공용 상품 저장·갱신(와우 할인 표시면 판매가 갱신 안 함, 용량 대조 실패면 공용 값 갱신 안 함, 20% 초과면 가격 후보, 다른 매장 확인 시 반영·후보 삭제, 14일 지난 후보 무시), 재고 품목 연결 덮어쓰기·연결 시각·포장 수량 규칙. `orders.status`·`automated_at`·`manual_guide_url`.
@@ -21,8 +21,8 @@
 저장소 루트 `Extension/`(PWA와 별도 배포 단위). Chrome Manifest V3, TypeScript + Vite 빌드, Vitest.
 
 1. `manifest.json` — `host_permissions`는 `*://*.coupang.com/*`만, `externally_connectable.matches`는 PWA 도메인(dev `http://localhost:5173/*`). 개발용 고정 확장 ID(`key`)와 PWA 환경변수 `VITE_EXTENSION_ID`.
-2. 로그인 확인 — 머리글 '로그인' 링크 유무. 로그인 상태 표시는 실제 로그인 화면에서 확인해 `research/backend/16`에 남기고 판별을 확정한다.
-3. 검색 — 쿠팡 검색창에 재료명 입력. 결과 페이지 주소를 직접 열거나 요청하지 않는다. 카드(`li.ProductUnit_productUnit__…`)에서 `productId`·`vendorItemId`·상품명·표시 가격·할인 표시 글자·단위가격 표시·로켓프레시(`logo_fresh` 이미지)만 읽고, 광고 카드와 같은 `vendorItemId` 중복은 뺀다.
+2. 로그인 확인 — 머리글에 '로그아웃' 링크(`login.coupang.com/login/logout.pang`)가 있으면 로그인, '로그인' 링크(`login.pang`)면 비로그인(`research/backend/16` §5).
+3. 검색 — 쿠팡 검색창에 재료명 입력. 결과 페이지 주소를 직접 열거나 요청하지 않는다. 카드(`li.ProductUnit_productUnit__…`)에서 `productId`·`vendorItemId`·상품명(카드 글자 첫 줄이 아니라 상품명 요소 — 배지가 첫 줄인 카드가 있다, `research/backend/17` §3.3)·표시 가격·할인 표시 글자·단위가격 표시·로켓프레시(`logo_fresh` 이미지)만 읽고, 광고 카드와 같은 `vendorItemId` 중복은 뺀다.
 4. 담기 — 상품 페이지 열기, 수량 입력칸에 담을 개수, `button.prod-cart-btn` 클릭, '담겼습니다' 표시로 성공 판정. 품목당 10초·전체 30초. 담을 때 상품 페이지의 표시 가격·할인 표시·단위가격을 다시 읽어 결과에 싣는다.
 5. 실패 사유 — `NO_RESULT`·`SELECTOR_MISMATCH`·`TIMEOUT`, 재시도 없음.
 
