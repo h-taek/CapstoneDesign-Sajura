@@ -81,3 +81,6 @@ catboost_info/
 
 # MLflow 실험 추적 — 로컬 전용 (지표에 매출 절대액 포함 가능, 공개 저장소 정책)
 mlruns/
+
+# 상품 선택 LLM 비교 실행 결과
+scripts/llm_eval/run*/
