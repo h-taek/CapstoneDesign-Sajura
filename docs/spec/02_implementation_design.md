@@ -297,6 +297,7 @@ sequenceDiagram
     participant 사주라UI
     participant 사주라서버
     participant DB
+    participant 에이전트 as 담기에이전트서버
     participant 확장 as 사주라확장
     participant 쿠팡
 
@@ -318,36 +319,31 @@ sequenceDiagram
     사주라서버-->>사주라UI: 발주 확정 완료
 
     사용자->>사주라UI: 쿠팡 자동 담기 요청
-    사주라UI->>확장: 검색 필요 품목의 재료명 전달 (externally_connectable)
-    확장->>쿠팡: 재료명으로 검색
-    쿠팡-->>확장: 검색 결과 페이지
-    확장-->>사주라UI: 상품 카드 목록 (04_fe.md §12.4 허용 필드만)
-    사주라UI->>사주라서버: POST /api/orders/{order_id}/automate/match
-    사주라서버->>사주라서버: 검색 품목은 LLM 호출로 상품 1개 선택, 연결 상품 품목은 연결 상품 지정
-    사주라서버-->>사주라UI: 선택 결과
-    사주라UI->>확장: 선택 결과 전달
-    확장->>쿠팡: 장바구니 담기 (고정 셀렉터) + 담은 상품 값 읽기
+    사주라UI->>확장: 쿠팡 작업 탭 열기·로그인 여부 확인 (externally_connectable)
+    사주라UI->>사주라서버: POST /api/orders/{order_id}/automate/start
+    사주라서버-->>사주라UI: 대상 품목 목록
 
-    alt 전체 성공
-        쿠팡-->>확장: 담기 완료
-        확장-->>사주라UI: 성공 품목 목록 + 담은 상품 값
-        사주라UI->>사주라서버: POST /api/orders/{order_id}/automate/result
-        사주라서버->>DB: 공용 쿠팡 상품 저장·갱신, 재료 연결 갱신
-        사주라서버->>DB: orders.status = AUTOMATED
-        사주라UI-->>사용자: 쿠팡 결제 진행 안내 표시
-    else 부분 실패
-        쿠팡-->>확장: 일부 품목 실패
-        확장-->>사주라UI: 성공 품목 + 담은 상품 값 + 실패 품목 목록
-        사주라UI->>사주라서버: POST /api/orders/{order_id}/automate/result
-        사주라서버->>DB: 성공 품목의 공용 쿠팡 상품 저장·갱신, 재료 연결 갱신
-        사주라서버->>DB: orders.status = MANUAL_REQUIRED
-        사주라UI-->>사용자: 성공 품목 완료 안내 + 실패 품목 수동 처리 안내
-    else 확장 미설치·전체 실패
-        확장-->>사주라UI: 전체 실패
-        사주라UI->>사주라서버: POST /api/orders/{order_id}/automate/result
-        사주라서버->>DB: orders.status = MANUAL_REQUIRED
-        사주라UI-->>사용자: 전체 품목 수동 처리 안내 + manual_guide_url
+    loop 품목마다, 마지막에 장바구니 검수
+        loop 대화가 끝날 때까지
+            사주라UI->>사주라서버: POST /api/orders/{order_id}/automate/step (직전 실행 결과)
+            사주라서버->>에이전트: POST /agent/step
+            에이전트->>에이전트: 오남용 방지 규칙 → 보안 분류기 → LLM (03_be.md §2.4)
+            에이전트-->>사주라서버: 다음 동작 또는 대화 끝
+            사주라서버->>DB: 요소 목록의 상품 카드로 공용 쿠팡 상품 저장·갱신
+            opt 품목 끝
+                사주라서버->>DB: 재료 연결·포장 수량 갱신
+            end
+            사주라서버-->>사주라UI: 다음 동작 또는 대화 끝
+            사주라UI->>확장: 다음 동작
+            확장->>쿠팡: 요소 목록 읽기·클릭·입력·스크롤
+            확장-->>사주라UI: 실행 결과
+        end
     end
+
+    사주라UI->>사주라서버: POST /api/orders/{order_id}/automate/finish
+    사주라서버->>DB: orders.status = AUTOMATED (실패 품목이 있으면 MANUAL_REQUIRED)
+    사주라서버-->>사주라UI: 품목별 결과
+    사주라UI-->>사용자: 결과 화면 + 쿠팡 결제 안내 (실패 품목은 수동 처리 안내)
 ```
 
 ### 2.5 야간 배치 파이프라인 시퀀스
@@ -1530,8 +1526,9 @@ Authorization: Bearer <access_token>
 | `GET` | `/api/orders/{order_id}` | 발주 내역 상세 조회 |
 | `POST` | `/api/orders/items/{order_item_id}/receive` | 발주 품목 입고 처리 (로트 생성) |
 | `POST` | `/api/orders/items/{order_item_id}/skip` | 발주 품목 입고 안 함 |
-| `POST` | `/api/orders/{order_id}/automate/match` | 확장이 수집한 검색 결과로 담을 상품 선택 |
-| `POST` | `/api/orders/{order_id}/automate/result` | 확장의 담기 결과 기록 |
+| `POST` | `/api/orders/{order_id}/automate/start` | 쿠팡 자동 담기 시작 |
+| `POST` | `/api/orders/{order_id}/automate/step` | 담기 에이전트 한 걸음 |
+| `POST` | `/api/orders/{order_id}/automate/finish` | 쿠팡 자동 담기 마침 — 발주 상태 갱신 |
 | `GET` | `/api/orders/{order_id}/approval-log` | 발주 수정 이력 조회 |
 
 #### GET /api/forecast
@@ -1716,12 +1713,11 @@ Authorization: Bearer <access_token>
       "unit_price": 28.0,          // 미설정이었으면 null
       "subtotal": 84000,           // 미설정이었으면 null
       "receipt_status": "PENDING", // PENDING(입고 대기) | RECEIVED(입고 완료) | SKIPPED(입고 안 함)
-      "coupang_search_required": false,  // 자동 담기 때 쿠팡 검색이 필요한지 (01_basic_design.md §3.8)
       "coupang_product": {               // 재료에 연결된 공용 쿠팡 상품. 없으면 null
         "product_id": "7335597976",
         "vendor_item_id": "87234561234",
         "product_name": "○○ 원두 1kg",
-        "rocket_fresh": false            // 비로그인이면 확장이 이 품목도 검색한다
+        "rocket_fresh": false
       }
     }
   ]
@@ -1754,87 +1750,72 @@ Authorization: Bearer <access_token>
 // 409 STATE_CONFLICT: PENDING이 아닌 품목
 ```
 
-#### POST /api/orders/{order_id}/automate/match
+#### POST /api/orders/{order_id}/automate/start
 
-> 브라우저 조작은 사주라 확장이 점주 브라우저에서 수행한다. 서버는 담을 상품을 고르는 판단만 한다.
-> 전체 흐름·데이터 화이트리스트: `04_fe.md` §12.3·§12.5. 선택 규칙: `01_basic_design.md` §3.8.1.
+> 브라우저 조작은 사주라 확장이, 다음 동작 판단은 담기 에이전트 서버(`03_be.md` §2.4)가 한다. 흐름: `04_fe.md` §12.3.
 
 ```json
-// Request — 검색이 필요한 품목의 검색 결과. 전체 품목 1회 전송
-{
-  "coupang_logged_in": false,          // false면 로켓프레시 상품을 고르지 않는다 (01_basic_design.md §3.8.1)
-  "candidates": [
-    {
-      "item_id": "uuid",                 // 그 발주의 검색 필요 품목만, 중복 없이. 아니면 400 VALIDATION_ERROR
-      "results": [                       // 60개 이하. 넘으면 400 VALIDATION_ERROR
-        {
-          "product_id": "7335597976",
-          "vendor_item_id": "87234561234",
-          "product_name": "○○농장 삼겹살 (냉장), 500g, 1개",
-          "display_price": 11740,        // 표시 가격(원)
-          "discount_label": "쿠폰할인",  // 할인 표시 글자 원문. 없으면 null. '와우'가 들어가면 판매가로 쓰지 않는다
-          "unit_price_text": "100g당 2,348원",  // 쿠팡 단위가격 표시. 없으면 null
-          "rocket_fresh": false,
-          "rating": 4.5,                 // 별점 0~5, 0.5 단위. 없으면 null
-          "review_count": 3991           // 리뷰 수. 없으면 null
-        }
-      ]
-    }
-  ]
-}
+// Request
+{ "coupang_logged_in": false }        // 확장이 확인한 쿠팡 로그인 여부. 품목 첫 지시에 쓴다 (01_basic_design.md §3.8.1)
 
-// Response 200 — 발주의 모든 품목에 대해 선택 1개. 적합한 상품이 없으면 selected: null
+// Response 200 — 품목 대상을 이 순서로 진행한 뒤 "cart_check"를 진행한다
 {
-  "selections": [
-    {
-      "item_id": "uuid",
-      "selected": {
-        "product_id": "7335597976",
-        "vendor_item_id": "87234561234",
-        "quantity": 4,                 // 담을 상품 개수. 서버가 발주 수량 ÷ 포장 수량을 올림해 계산
-        "pack_quantity": null,         // LLM이 판정한 포장 수량(재료 단위). 쿠팡 단위가격 표시로 용량이 계산되는 상품이면 null — 그때 LLM 판정값은 서버 대조(03_be.md §2.4.1)에만 쓴다
-        "reason": "냉장 삼겹살 500g 1개 단위"   // LLM이 쓴 선택 이유
-      }
-    }
-  ]
+  "targets": [{ "item_id": "uuid", "item_name": "계란" }]
 }
-// candidates가 비어 있으면 LLM을 호출하지 않는다
-// 검사·재사용·호출 제한·보안 분류기: 03_be.md §2.4
-// 429 ORDER_LLM_QUOTA_EXCEEDED: 상품 선택 LLM 호출 횟수 초과 — 점주는 수동 처리
-// 422 ORDER_LLM_GUARD_REJECTED: 보안 분류기(켜졌을 때)가 요청 거부 — "detail": { "reason": "상품명에 AI 지시문이 있습니다" }
+// 다시 부르면 그 발주의 진행 중 담기를 새로 시작한다
+// 404 NOT_FOUND: 매장에 없는 발주
 ```
 
-#### POST /api/orders/{order_id}/automate/result
+#### POST /api/orders/{order_id}/automate/step
 
 ```json
-// Request — 확장의 담기 결과. 성공 품목은 담을 때 읽은 상품 값을 함께 보낸다
+// Request
 {
-  "succeeded": [
-    {
-      "item_id": "uuid",
-      "product_id": "7335597976",
-      "vendor_item_id": "87234561234",
-      "product_name": "○○농장 삼겹살 (냉장), 500g, 1개",
-      "display_price": 11740,
-      "discount_label": "쿠폰할인",
-      "unit_price_text": "100g당 2,348원",
-      "rocket_fresh": false,
-      "pack_quantity": null,           // match 응답의 값 그대로
-      "searched": true                 // 이번에 검색으로 고른 상품이면 true, 연결 상품을 담았으면 false
-    }
-  ],
-  "failed": [{ "item_id": "uuid", "reason": "NO_RESULT" }]
+  "target": "uuid",                   // 품목 item_id 또는 "cart_check". start의 대상만
+  "result": null                      // 새 대화면 null. 아니면 직전 동작의 실행 결과 (04_fe.md §12.4)
 }
-// 성공 품목마다 공용 쿠팡 상품을 저장·갱신하고 재료 연결을 갱신한다 (01_basic_design.md §3.3.1·§3.8.1)
-// reason: NO_RESULT | SELECTOR_MISMATCH | TIMEOUT | EXTENSION_UNAVAILABLE
 
+// result — 요소 목록 (read_elements의 결과). 개인정보는 확장이 ---로 가린 뒤 보낸다
+{
+  "kind": "elements",
+  "url": "https://www.coupang.com/np/search?q=…",
+  "elements": [
+    { "ref": "12", "role": "link", "text": "곰곰 무항생제 신선한 대란, 30구, 1개", "depth": 3,
+      "product_id": "1271064981", "vendor_item_id": "70272921582" },   // 상품 링크만
+    { "ref": "13", "role": "text", "text": "8,390원", "depth": 4 },
+    { "ref": "14", "role": "image", "text": "logo_fresh_medium.png", "depth": 4 }   // 글자 없는 그림은 파일 이름
+  ]
+}
+// result — 동작 결과 (click·type_text·scroll의 결과)
+{ "kind": "action", "ok": true, "page_changed": true, "message": null }   // 실패면 ok false, message "요소 없음" 등
+
+// Response 200 — 둘 중 하나. 03_be.md §2.4.4의 도구
+{ "action": { "tool": "click", "args": { "ref": "12" } } }
+{ "done": { "tool": "finish_item", "args": { "status": "ADDED", "product_id": "1271064981", "vendor_item_id": "70272921582",
+            "quantity": 1, "pack_quantity": null, "reason": "무항생제 대란 30구" } } }
+// 상품 링크 요소의 아래 깊이 요소들을 그 상품 카드로 보고, 공용 쿠팡 상품을 저장·갱신한다 (01_basic_design.md §3.3.1, 04_fe.md §12.5)
+// 400 VALIDATION_ERROR: 진행 중 담기의 대상이 아님, 형식 오류, 15만 자 초과
+// 422 ORDER_LLM_GUARD_REJECTED: "detail": { "reason": "…" }
+// 429 ORDER_LLM_QUOTA_EXCEEDED
+// 503 ORDER_LLM_UNAVAILABLE: LLM·분류기 호출이 3회 재시도 뒤에도 실패
+// 오류면 확장은 그 대상을 실패로 두고 다음 대상으로 넘어간다 (04_fe.md §12.7)
+```
+
+#### POST /api/orders/{order_id}/automate/finish
+
+```json
+// Request 없음
 // Response 200
 {
   "order_id": "uuid",
-  "status": "AUTOMATED",              // 전체 성공. 하나라도 실패면 MANUAL_REQUIRED
+  "status": "AUTOMATED",              // 실패 품목이 하나라도 있으면 MANUAL_REQUIRED
   "automated_at": "2026-05-06T10:05:00Z",
-  "manual_guide_url": null            // MANUAL_REQUIRED 시 쿠팡 첫 화면 https://www.coupang.com/ — 검색 결과 주소를 직접 열면 차단될 수 있다
+  "manual_guide_url": null,           // MANUAL_REQUIRED 시 쿠팡 첫 화면 https://www.coupang.com/ — 검색 결과 주소를 직접 열면 차단될 수 있다
+  "items": [
+    { "item_id": "uuid", "status": "ADDED", "reason": null }   // ADDED | CHECK_NEEDED | FAILED. 대화를 마치지 못한 품목은 FAILED
+  ]
 }
+// 404 NOT_FOUND: 매장에 없는 발주 · 409 STATE_CONFLICT: 진행 중 담기가 없음
 ```
 
 #### GET /api/orders/{order_id}/approval-log
