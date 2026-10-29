@@ -8,7 +8,7 @@
              — 서버는 받은 요소 목록이 진짜 쿠팡 화면인지 알 수 없다(03_be.md §2.4.2)
 
 공격 문구 출처(둘 중 하나):
-  --name-file 파일(한 줄에 하나) · --misuse-file 파일(`---` 줄로 나눔). 기본 data_guard/attacks_name.txt·attacks_misuse.txt
+  --name-file 파일(한 줄에 하나) · --misuse-file 파일(`---` 줄로 나눔). 여러 번 주면 파일마다 묶음을 나눈다
   --hf 데이터셋 — 허깅페이스 datasets-server에서 label 1(공격) 행을 받아 앞 절반은 상품명, 뒤 절반은 오남용에 쓴다
 
 사용(모델 하나씩, 건마다 판정·사유·시간이 바로 찍힌다):
@@ -308,7 +308,7 @@ async def bench(model_name: str, groups: dict[str, list[tuple[str, str]]]) -> No
                 f.write(json.dumps(row, ensure_ascii=False) + "\n")
                 f.flush()
                 mark = "O" if ok else "X"
-                print(f"[{n:3d}/{total}] {mark} {group:4s} | {label[:40]:40s} | {len(text):7,}자 | "
+                print(f"[{n:3d}/{total}] {mark} {group:14s} | {label[:40]:40s} | {len(text):7,}자 | "
                       f"{verdict:7s} | {sec:5.1f}초 | {reason[:80]}", flush=True)
     model.close()
 
@@ -329,24 +329,27 @@ async def bench(model_name: str, groups: dict[str, list[tuple[str, str]]]) -> No
 async def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("models", nargs="*", default=["qwen3.6:35b-a3b", "qwen3.8:27b", "prompt-guard"])
-    ap.add_argument("--name-file", default=os.path.join(DATA_GUARD, "attacks_name.txt"))
-    ap.add_argument("--misuse-file", default=os.path.join(DATA_GUARD, "attacks_misuse.txt"))
+    ap.add_argument("--name-file", action="append", default=[],
+                    help="상품명 문구 파일(한 줄에 하나). 여러 번 주면 파일마다 묶음을 나눈다")
+    ap.add_argument("--misuse-file", action="append", default=[],
+                    help="오남용 문구 파일(--- 줄로 나눔). 여러 번 주면 파일마다 묶음을 나눈다")
     ap.add_argument("--hf", help="공격 문구를 받을 허깅페이스 데이터셋 (예: deepset/prompt-injections)")
     ap.add_argument("--limit", type=int, default=50, help="묶음마다 최대 건수")
     args = ap.parse_args()
 
-    name_attacks = load_file(args.name_file, sep_dash=False)
-    misuse_attacks = load_file(args.misuse_file, sep_dash=True)
+    def source(path: str) -> str:
+        return os.path.splitext(os.path.basename(path))[0].replace("attacks_name_", "").replace("attacks_misuse_", "")
+
+    groups = {"정상": normal_cases()[: args.limit]}
+    for path in args.name_file:
+        groups[f"상품명:{source(path)}"] = name_cases(load_file(path, sep_dash=False)[: args.limit])
+    for path in args.misuse_file:
+        groups[f"오남용:{source(path)}"] = misuse_cases(load_file(path, sep_dash=True)[: args.limit])
     if args.hf:
         got = load_hf(args.hf, args.limit * 2)
         half = len(got) // 2
-        name_attacks += got[:half]
-        misuse_attacks += got[half:]
-    groups = {
-        "정상": normal_cases()[: args.limit],
-        "상품명": name_cases(name_attacks[: args.limit]),
-        "오남용": misuse_cases(misuse_attacks[: args.limit]),
-    }
+        groups["상품명:hf"] = name_cases(got[:half])
+        groups["오남용:hf"] = misuse_cases(got[half:])
     print("입력 " + ", ".join(f"{k} {len(v)}건" for k, v in groups.items()), flush=True)
     for m in args.models:
         await bench(m, groups)
