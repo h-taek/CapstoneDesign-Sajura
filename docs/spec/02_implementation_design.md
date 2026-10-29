@@ -326,7 +326,7 @@ sequenceDiagram
         loop 대화가 끝날 때까지
             사주라UI->>사주라서버: POST /api/orders/{order_id}/automate/step (직전 실행 결과)
             alt 동작 결과에 담기 결과(cart_added)
-                사주라서버->>DB: 재료 연결 갱신
+                사주라서버->>DB: 재료 연결·발주 품목 단가 갱신
                 사주라서버-->>사주라UI: 대화 끝 (에이전트 서버를 부르지 않음)
             else
                 사주라서버->>에이전트: POST /agent/step
@@ -1609,7 +1609,7 @@ Authorization: Bearer <access_token>
       "safety_stock": 1000.0,
       "config_status": "DEFAULT_USED",
       "recommendation_reason": "향후 3일+리드타임 2일 예상 소모 6.4kg + 안전재고 1 − 현재고 2.4",
-      "unit_price": 28.0                     // 재료 단위당 원 (01_basic_design.md §3.3.1). 미설정이면 null
+      "unit_price": 28.0                     // 예상 재료 단위당 원 (01_basic_design.md §3.7.1). 미설정이면 null
     }
   ]
 }
@@ -1647,7 +1647,7 @@ Authorization: Bearer <access_token>
 {
   "order_id": "uuid",
   "approved_at": "2026-05-06T10:00:00Z",
-  "total_estimated_cost": 84000,
+  "total_estimated_cost": 0,          // 확정 때는 단가가 비어 있어 0. 담기 결과로 소계가 저장되면 다시 합한다
   "status": "APPROVED"
 }
 // 404 NOT_FOUND: 매장에 없는 재료 또는 추천안
@@ -1657,9 +1657,9 @@ Authorization: Bearer <access_token>
 
 | 산출 값 | 규칙 |
 |---|---|
-| `unit_price` | 확정 시점의 재료 단가 (`01_basic_design.md` §3.3.1). 미설정이면 null |
+| `unit_price` | 확정 때 null. 담기 결과를 받을 때 담은 상품 페이지 표시 가격으로 계산한 재료 단가 (`01_basic_design.md` §3.8.1). 계산하지 못하면 null |
 | `subtotal` | `round(final_quantity × unit_price)`. `unit_price`가 null이면 null |
-| `total_estimated_cost` | null이 아닌 `subtotal` 합계 |
+| `total_estimated_cost` | null이 아닌 `subtotal` 합계. 소계가 저장될 때마다 다시 합한다 |
 | 입고 상태 | 모든 품목 `PENDING`(입고 대기) |
 
 `recommendation_id`가 있으면 수정 이력을 품목별로 남긴다.
@@ -1711,8 +1711,8 @@ Authorization: Bearer <access_token>
       "item_name": "원두",
       "final_quantity": 3000.0,
       "unit": "g",
-      "unit_price": 28.0,          // 미설정이었으면 null
-      "subtotal": 84000,           // 미설정이었으면 null
+      "unit_price": 28.0,          // 담기 전이거나 계산하지 못했으면 null
+      "subtotal": 84000,           // 담기 전이거나 계산하지 못했으면 null
       "receipt_status": "PENDING", // PENDING(입고 대기) | RECEIVED(입고 완료) | SKIPPED(입고 안 함)
       "coupang_product": {               // 재료에 연결된 공용 쿠팡 상품. 없으면 null
         "item_id": "10000000001",
@@ -1790,14 +1790,14 @@ Authorization: Bearer <access_token>
 }
 // result — 동작 결과 (click·type_text·scroll의 결과)
 { "kind": "action", "ok": true, "page_changed": true, "message": null,   // 실패면 ok false, message "요소 없음" 등
-  "cart_added": null }   // 클릭 뒤 상품 페이지에 담기 완료 표시가 나타나면 { "item_id": "…", "product_id": "…", "vendor_item_id": "…" } (04_fe.md §12.4)
+  "cart_added": null }   // 클릭 뒤 상품 페이지에 담기 완료 표시가 나타나면 { "item_id": "…", "product_id": "…", "vendor_item_id": "…", "price": 12900 } — price는 그 상품 페이지의 표시 가격(원) (04_fe.md §12.4)
 
 // Response 200 — 둘 중 하나. 03_be.md §2.4.4의 도구
 { "action": { "tool": "click", "args": { "ref": "12" } } }
 { "done": { "tool": "finish_item", "args": { "reason": null } } }
 // 동작 결과에 담기 결과(cart_added)가 있으면 에이전트 서버를 부르지 않고 그 품목 대화를 끝낸다 — { "done": { "tool": "finish_item", "args": { "reason": null } } }
 // 상품 고유 ID가 붙은 요소의 아래 깊이 요소들을 그 상품의 값으로 보고, 공용 쿠팡 상품을 저장·갱신한다 (01_basic_design.md §3.3.1, 04_fe.md §12.5)
-// 담기 결과(cart_added)를 받으면 그 상품에 재고 품목을 연결한다. 그 품목 대화에 담기 결과가 있으면 성공이다. LLM이 답한 값은 저장하지 않는다 (01_basic_design.md §3.8.1)
+// 담기 결과(cart_added)를 받으면 그 상품에 재고 품목을 연결하고, 발주 품목의 단가·소계를 저장한다(01_basic_design.md §3.8.1). 그 품목 대화에 담기 결과가 있으면 성공이다. LLM이 답한 값은 저장하지 않는다 (01_basic_design.md §3.8.1)
 // 400 VALIDATION_ERROR: 진행 중 담기의 대상이 아님, 형식 오류, 15만 자 초과
 // 422 ORDER_LLM_GUARD_REJECTED: "detail": { "reason": "…" }
 // 429 ORDER_LLM_QUOTA_EXCEEDED
@@ -2568,7 +2568,7 @@ CREATE TABLE order_items (
     order_id        CHAR(36)        NOT NULL,
     item_id         CHAR(36)        NOT NULL,
     final_quantity  DECIMAL(10,3)   NOT NULL,
-    unit_price      DECIMAL(12,3)   NULL COMMENT '확정 시점 재료 단위당 단가(원). 미설정이면 NULL',
+    unit_price      DECIMAL(12,3)   NULL COMMENT '담기 결과를 받을 때의 재료 단위당 단가(원). 담기 전이거나 계산하지 못하면 NULL',
     subtotal        INT             NULL COMMENT 'round(final_quantity × unit_price). unit_price가 NULL이면 NULL',
     receipt_status  ENUM('PENDING','RECEIVED','SKIPPED') NOT NULL DEFAULT 'PENDING',
     lot_id          CHAR(36)        NULL COMMENT '입고 처리로 만든 로트',
