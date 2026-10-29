@@ -12,7 +12,7 @@
 | 2. 설계 (기능·API·DB·백엔드·프론트·AI) | `docs/spec/` 전체 | 완료 |
 | 3. 리서치 | `docs/research/` (backend·frontend·ai) | 완료 |
 | 4. 구현 계획 | `docs/plan/` | 완료 |
-| 5. 구현 | Phase 2·3·4·5·6·7·8(n8n 예측 배치·날씨)·11·12·알림 BE·대시보드 BE 구현됨 / Phase 10(쿠팡 자동 담기)은 BE(start·step·finish, 공용 쿠팡 상품·매장 가격, 예상 단가) 구현됨, 담기 에이전트 서버·확장·FE 전 | 진행 중 |
+| 5. 구현 | Phase 2·3·4·5·6·7·8(n8n 예측 배치·날씨)·11·12·알림 BE·대시보드 BE 구현됨 / Phase 10(쿠팡 자동 담기)은 BE(start·step·finish, 공용 쿠팡 상품·매장 가격, 예상 단가)·담기 에이전트 서버 구현됨, 확장·FE 전 | 진행 중 |
 | 6. 테스트 & 배포 | Phase 13 — 자체 운영 서버(Mac mini) SSH 배포 | 예정 |
 
 > Phase 5·9·11은 코드가 존재하나 `docs/plan/`의 마일스톤 대조는 아직 하지 않았다.

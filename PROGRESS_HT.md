@@ -8,6 +8,14 @@
 
 ## 1. 개발 이력
 
+### 쿠팡 자동 담기 — 담기 에이전트 서버 (plan 08 §2) — 3f8cad0 (2026-10-29)
+
+- `Agent/`(FastAPI·Redis), compose 서비스 `agent`(포트 미공개, 호스트 Ollama용 `host.docker.internal`)
+- `/agent/step` — 대화 기록 `agent:conv:*`(1시간, 최근 요소 목록만, 외부 글은 `<coupang_page>` 태그 안에서 꺾쇠·줄바꿈 바꿈) → 15만 자 → 호출 횟수(대화 40·매장 하루 300·전체 하루 3,000, 분류기 거부도 셈) → 분류기 `openai_chat`(생각 모드 끔) → LLM `openai_compatible`(`tool_choice: required`, 120초) → 도구 인자 검사. 형식 오류·호출 실패는 3회 다시 보내고(횟수 안 셈) 503. `type_text` 50자·`finish_item` 200자 자르기, `open_url`은 상품 페이지 주소만
+- `/agent/filter` — 후보 50개 이하, `keep_candidates`, 받지 않은 ref 버림
+- 요청에 대화 종류 `kind`(item | cart_check)를 더해 쓰는 도구를 정한다(spec §2.4.5·BE 호출). BE의 `anthropic`·`openai` 의존성 삭제
+- 검증: 에이전트 pytest 25/25(컨테이너), BE pytest 162/162, BE → `agent:8000` 연결. 실제 게이트웨이 한 품목 대화 — 검색 7걸음·연결 상품 3걸음으로 담기까지(research 17 §13, `scripts/llm_eval/agent_trial.py`). 분류기는 꺼진 채로만 시험
+
 ### 쿠팡 자동 담기 — BE 구현 (plan 08 §1) — 466f60a~2f33e81 (2026-10-29)
 
 - spec 빈칸 닫기(466f60a) — 요소 목록의 취소선 가격은 종류 `deletion`, 서버가 상품 값을 읽는 법(표시 가격 = 취소선이 아닌 첫 'N원', 할인 표시·단위가격·`logo_fresh` 그림), BE의 에이전트 서버 주소 `AGENT_BASE_URL`(연결 실패·시간 초과는 503 `ORDER_LLM_UNAVAILABLE`), finish 품목 `reason` 뜻. 사용자 결정: 취소선 구분은 확장이 표시(①), 단위가격 바로 앞·최소 금액 안 기각
