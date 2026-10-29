@@ -8,6 +8,11 @@
 
 ## 1. 개발 이력
 
+### Slack 배치 실패 알림 연결 (2026-10-30)
+
+- Slack 워크스페이스 Sajura에 앱 `sajura-alert`(Incoming Webhook 하나, 채널 `#sajura-alert`)를 만들고 `.env` `SLACK_WEBHOOK_URL`에 넣음(사용자). n8n 컨테이너를 다시 만들어 반영
+- 검증: `ai`를 멈춘 채 시험 매장(weather-probe) 수동 예측 → `FAILED`(`getaddrinfo ENOTFOUND ai`), `#sajura-alert`에 '[사주라] 예측 배치 실패 — 매장 862ebe99-…: getaddrinfo ENOTFOUND ai' 수신(02:38). `ai`를 다시 켜고 같은 매장 `DONE`
+
 ### 확장 — 그림 파일 이름은 개인정보 가리기에서 뺌 (2026-10-30)
 
 - 원인(실제 쿠팡 계란 검색 화면에서 셈): 이름 붙은 그림 162개 중 91개가 `---`로 바뀜. 체크 상자 배경 그림 `search_assets_160912@2x.png`(85개) 등 고해상도 이름의 '@2x.png'가 이메일 모양, 상품 페이지의 16진수 이름 속 숫자 묶음이 전화번호 모양에 걸림
