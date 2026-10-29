@@ -144,7 +144,12 @@ async function run(tabId: number, a: Action, q: NonWowQueue): Promise<ElementsRe
       await send(tabId, { cmd: "scroll", direction: a.args.direction });
       return action({ page_changed: false });
     case "open_url":
-      await chrome.tabs.update(tabId, { url: a.args.url });
+      try {
+        await send(tabId, { cmd: "navigate", url: a.args.url }, false);
+      } catch {
+        // 쿠팡 페이지가 아니라 content script가 없으면 탭에 주소를 넣는다
+        await chrome.tabs.update(tabId, { url: a.args.url });
+      }
       await sleep(300);
       await waitComplete(tabId);
       await sleep(SETTLE_MS);

@@ -13,12 +13,14 @@ import {
   takeDialogs,
   typeText,
 } from "./page";
+import { PRODUCT_URL_PREFIX } from "./messages";
 
 export type Command =
   | { cmd: "read" }
   | { cmd: "click"; ref: string }
   | { cmd: "type"; ref: string; text: string }
   | { cmd: "scroll"; direction: "up" | "down" }
+  | { cmd: "navigate"; url: string }
   | { cmd: "login" }
   | { cmd: "fetch"; url: string }
   | { cmd: "notice"; title: string; detail: string | null };
@@ -42,6 +44,12 @@ async function handle(c: Command): Promise<unknown> {
     case "scroll":
       scroll(window, c.direction);
       return withDialogs({ ok: true, message: null, cart_added: null });
+    case "navigate":
+      // 페이지 안 이동 — 쿠팡 안에서 넘어온 요청이 된다. 탭에 주소를 바로 넣으면 차단 화면이 왔다
+      // (research/backend/16 §6.13). 상품 페이지 주소만 받는다
+      if (!c.url.startsWith(PRODUCT_URL_PREFIX)) return { ok: false };
+      setTimeout(() => location.assign(c.url), 50); // 답을 먼저 보낸다
+      return { ok: true };
     case "login":
       return { logged_in: loggedIn(document) };
     case "fetch":
