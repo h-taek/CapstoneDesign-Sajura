@@ -1,7 +1,7 @@
 // 쿠팡 탭 안의 동작 (04_fe.md §12.4~§12.7). content.ts가 background의 명령을 받아 부른다.
 // DOM만 다루고 chrome API는 쓰지 않는다 — 저장한 화면으로 시험한다.
 
-import { DIALOG_EVENT, WORK_FLAG } from "./dialogGuard";
+import { DIALOGS, WORK_FLAG } from "./dialogGuard";
 import { type Snapshot, buildElements, pageProduct, parseNonWowPrice } from "./elements";
 import type { CartAdded, ElementsResult } from "./messages";
 import { PRODUCT_URL_PREFIX } from "./messages";
@@ -20,26 +20,37 @@ export interface ClickResult {
 }
 
 let snapshot: Snapshot | null = null;
-const dialogs: string[] = [];
 
-/** 이 탭을 작업 탭으로 표시하고, 페이지 쪽 스크립트가 넘기는 알림·확인 창 글을 모은다. */
+/** 이 탭을 작업 탭으로 표시한다 — 페이지 쪽 스크립트가 알림·확인 창을 띄우지 않고 글을 적어 둔다. */
 export function claimWorkTab(doc: Document): void {
   if (doc.documentElement.dataset[WORK_FLAG] === "1") return;
   doc.documentElement.dataset[WORK_FLAG] = "1";
-  doc.addEventListener(DIALOG_EVENT, (e) => {
-    dialogs.push(String((e as CustomEvent).detail).replace(/\s+/g, " ").slice(0, 200));
-  });
+  try {
+    // 다음 페이지가 열리는 맨 처음부터 알림 창을 막게 탭에 남긴다 (dialogGuard.ts)
+    doc.defaultView?.sessionStorage.setItem(WORK_FLAG, "1");
+  } catch {
+    // 저장소를 못 쓰면 이 페이지만 막는다
+  }
 }
 
-/** 모인 알림 글을 꺼낸다 — 동작 결과의 메시지로 LLM에 넘긴다. */
-export function takeDialogs(): string[] {
-  return dialogs.splice(0);
+/** 문서에 적힌 알림 글을 꺼낸다 — 동작 결과의 메시지나 요소 목록 끝의 '알림'으로 LLM에 넘긴다. */
+export function takeDialogs(doc: Document = document): string[] {
+  const root = doc.documentElement;
+  const raw = root.dataset[DIALOGS];
+  delete root.dataset[DIALOGS];
+  try {
+    return raw ? (JSON.parse(raw) as string[]) : [];
+  } catch {
+    return [];
+  }
 }
+
+const hasDialogs = (doc: Document) => Boolean(doc.documentElement.dataset[DIALOGS]);
 
 export function readPage(doc: Document, url: string): ElementsResult & { wowCards: Snapshot["wowCards"] } {
   snapshot = buildElements(doc, url);
   // 앞선 동작 뒤에 뜬 알림 창은 목록 끝에 '알림' 요소로 붙인다. 번호는 누를 수 없는 이름
-  const alerts = takeDialogs().map((text, i) => ({ ref: `알림${i + 1}`, role: "alert", text, depth: 0 }));
+  const alerts = takeDialogs(doc).map((text, i) => ({ ref: `알림${i + 1}`, role: "alert", text, depth: 0 }));
   return {
     kind: "elements",
     url: url.slice(0, 2000),
@@ -87,7 +98,7 @@ export async function click(doc: Document, url: string, ref: string): Promise<Cl
   if (!waitCart) return { ok: true, message: null, cart_added: null };
   for (let t = 0; t < CART_WAIT_MS; t += POLL_MS) {
     await sleep(POLL_MS);
-    if (dialogs.length) break; // 담기 대신 알림 창이 떴다
+    if (hasDialogs(doc)) break; // 담기 대신 알림 창이 떴다
     if (cartAddedAppeared(before, pageText(doc))) {
       const product = pageProduct(buildElements(doc, url).elements);
       return { ok: true, message: product ? null : "담은 상품을 읽지 못함", cart_added: product };

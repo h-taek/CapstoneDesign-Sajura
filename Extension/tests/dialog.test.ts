@@ -24,19 +24,34 @@ describe("페이지 쪽 알림 창 가로채기", () => {
 
   it("작업 탭이 아니면 그대로 띄운다", () => {
     delete document.documentElement.dataset.sajuraWork;
+    sessionStorage.removeItem("sajuraWork");
     window.alert("다른 탭");
     expect(native.alert).toHaveBeenCalledWith("다른 탭");
     document.documentElement.dataset.sajuraWork = "1";
   });
 
+  it("작업 탭의 다음 페이지는 명령을 받기 전에도 막는다 — 탭에 남긴 표시", () => {
+    // 새 페이지가 열린 직후: 문서 표시는 아직 없고 sessionStorage에만 있다
+    delete document.documentElement.dataset.sajuraWork;
+    sessionStorage.setItem("sajuraWork", "1");
+    window.alert("서버에서 오류가 발생하였습니다.");
+    expect(native.alert).not.toHaveBeenCalledWith("서버에서 오류가 발생하였습니다.");
+    // content script가 붙기 전에 뜬 알림도 문서에 남아 나중에 꺼낸다
+    expect(takeDialogs()).toEqual(["알림: 서버에서 오류가 발생하였습니다."]);
+    document.documentElement.dataset.sajuraWork = "1";
+  });
+
   it("다음 요소 목록 끝에 누를 수 없는 '알림' 요소로 붙는다", () => {
     window.alert("품절된 상품입니다");
-    const els = readPage(load("search"), SEARCH_URL).elements;
+    document.documentElement.innerHTML = load("search").documentElement.innerHTML;
+    const els = readPage(document, SEARCH_URL).elements;
     expect(els.at(-1)).toEqual({ ref: "알림1", role: "alert", text: "알림: 품절된 상품입니다", depth: 0 });
   });
 
   it("담기 버튼 뒤 알림 창이 뜨면 담기 완료를 더 기다리지 않는다", async () => {
-    const doc = load("product");
+    // 알림 글은 페이지 쪽 스크립트가 지금 문서에 적는다 — 저장 화면을 지금 문서에 연다
+    document.documentElement.innerHTML = load("product").documentElement.innerHTML;
+    const doc = document;
     const ref = readPage(doc, PRODUCT_URL).elements.find((e) => e.text === "장바구니 담기")?.ref as string;
     doc.querySelector(".prod-cart-btn")?.addEventListener("click", () => {
       setTimeout(() => window.alert("서버에서 오류가 발생하였습니다."), 50);

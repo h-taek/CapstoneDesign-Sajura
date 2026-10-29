@@ -27,7 +27,7 @@ export type Command =
 
 /** 동작 결과에 그사이 뜬 알림 창 글을 붙인다. */
 function withDialogs(r: ClickResult): ClickResult {
-  const notes = takeDialogs();
+  const notes = takeDialogs(document);
   if (!notes.length) return r;
   return { ...r, message: [r.message, ...notes].filter(Boolean).join(" / ").slice(0, 200) };
 }
