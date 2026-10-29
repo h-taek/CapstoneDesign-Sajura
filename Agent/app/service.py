@@ -24,6 +24,7 @@ from app.prompts import (
     render_action,
     render_candidates,
     render_elements,
+    render_order,
 )
 from app.redis_client import get_redis
 from app.schemas import ElementsResult, FilterRequest, StepRequest
@@ -111,15 +112,16 @@ async def step(req: StepRequest) -> dict[str, Any]:
     key = _conv_key(req.conversation_id)
 
     if req.instruction is not None:
-        if req.result is not None:
-            raise errors.validation_error("새 대화에는 실행 결과를 보내지 않습니다.")
+        if req.result is not None or req.order is None:
+            raise errors.validation_error("새 대화는 지시문과 발주 데이터만 보냅니다.")
+        # 첫 메시지 = 서버가 쓴 고정 지시문 + 태그로 감싼 발주 데이터. 분류기에는 발주 데이터만
+        new_input = render_order(req.order)
         conv: dict[str, Any] = {
             "kind": req.kind,
-            "messages": [{"role": "user", "content": req.instruction}],
+            "messages": [{"role": "user", "content": f"{req.instruction}\n\n{new_input}"}],
             "screen": None,  # 가장 최근 요소 목록 메시지의 위치
             "pending": None,  # 실행 결과를 기다리는 도구 호출 ID
         }
-        new_input = req.instruction
     else:
         raw = await redis.get(key)
         if raw is None:

@@ -54,6 +54,7 @@ async def step(
     store_id: str,
     order_id: str,
     instruction: str | None,
+    order: str | None,
     result: dict[str, Any] | None,
 ) -> dict[str, Any]:
     """한 걸음 — {"action": …} 또는 {"done": …}. kind는 대화 종류(item | cart_check)."""
@@ -64,7 +65,8 @@ async def step(
             "kind": kind,
             "store_id": store_id,
             "order_id": order_id,
-            "instruction": instruction,
+            "instruction": instruction,  # 서버가 쓴 고정 지시문
+            "order": order,  # 발주 데이터 — 에이전트 서버는 이것만 분류기에 넣는다
             "result": result,
         },
     )

@@ -143,6 +143,23 @@ def _qty(value: Decimal) -> str:
     return f"{value.normalize():f}"
 
 
+def _value(text: str) -> str:
+    """발주 데이터 한 칸 — 줄바꿈으로 가짜 줄을 만들지 못하게 한 줄로."""
+    return " ".join(text.split())
+
+
+@dataclass(frozen=True)
+class Instruction:
+    """새 대화의 첫 지시 (03_be.md §2.4.1).
+
+    text는 서버가 쓴 고정 지시문이고 매장 데이터를 담지 않는다. order는 DB 값으로 채운 발주 데이터다.
+    에이전트 서버는 order만 보안 분류기에 넣는다.
+    """
+
+    text: str
+    order: str
+
+
 def item_instruction(
     item: InventoryItem,
     final_quantity: Decimal,
@@ -150,9 +167,13 @@ def item_instruction(
     *,
     logged_in: bool,
     now: datetime,
-) -> tuple[str, str | None]:
+) -> tuple[Instruction, str | None]:
     """품목 대화의 첫 지시와, 연결 상품을 담으라고 지시했으면 그 itemId (03_be.md §2.4.1)."""
-    head = f"품목: {item.name} (재료 단위 {item.unit}), 발주 수량 {_qty(final_quantity)}{item.unit}"
+    order = [
+        f"재료명: {_value(item.name)}",
+        f"재료 단위: {item.unit}",
+        f"발주 수량: {_qty(final_quantity)}{item.unit}",
+    ]
     fresh = "" if logged_in else (
         " 쿠팡에 로그인되어 있지 않아 로켓프레시 상품은 담을 수 없으니 로켓프레시 상품도 뺀다."
     )
@@ -166,39 +187,43 @@ def item_instruction(
     if linked:
         assert product is not None
         url = PRODUCT_URL.format(product_id=product.product_id, item_id=product.item_id)
+        order.append(f"연결 상품 페이지: {url}")
         body = (
-            f"연결된 상품 페이지 {url} 를 열어 그 상품을 담는다. 담지 못하면 쿠팡 검색창에 "
-            f"'{item.name}'을 그대로 넣어 검색하고 아래 기준으로 골라 담는다.\n{rules}"
+            "발주 데이터의 연결 상품 페이지를 열어 그 상품을 담는다. 담지 못하면 쿠팡 검색창에 "
+            f"발주 데이터의 재료명을 그대로 넣어 검색하고 아래 기준으로 골라 담는다.\n{rules}"
         )
-        return f"{head}\n\n{body}\n\n{ADD_RULES}", product.item_id
-    body = f"쿠팡 검색창에 '{item.name}'을 그대로 넣어 검색한다. {rules}"
-    return f"{head}\n\n{body}\n\n{ADD_RULES}", None
+        return Instruction(f"{body}\n\n{ADD_RULES}", "\n".join(order)), product.item_id
+    body = f"쿠팡 검색창에 발주 데이터의 재료명을 그대로 넣어 검색한다. {rules}"
+    return Instruction(f"{body}\n\n{ADD_RULES}", "\n".join(order)), None
 
 
 def cart_check_instruction(
     lines: list[tuple[InventoryItem, Decimal, CoupangProduct | None]],
-) -> str:
+) -> Instruction:
     """장바구니 검수 대화의 첫 지시 — 품목별 담기 결과의 상품과 재고 품목 (03_be.md §2.4.1)."""
     rows = []
     for item, qty, product in lines:
         label = (
-            f"{product.product_name}{', ' + product.option_name if product.option_name else ''}"
-            f" (itemId {product.item_id})"
+            _value(
+                f"{product.product_name}"
+                f"{', ' + product.option_name if product.option_name else ''}"
+            )
+            + f" (itemId {product.item_id})"
             if product
             else "상품 정보 없음"
         )
         rows.append(
-            f"- item_id={item.item_id} | 재료: {item.name} | 발주 수량: {_qty(qty)}{item.unit}"
-            f" | 담은 상품: {label}"
+            f"- item_id={item.item_id} | 재료: {_value(item.name)}"
+            f" | 발주 수량: {_qty(qty)}{item.unit} | 담은 상품: {label}"
         )
-    return (
-        "장바구니 검수. 쿠팡 장바구니를 열어 아래 품목마다 담은 상품이 발주 수량에 맞는 "
+    text = (
+        "장바구니 검수. 쿠팡 장바구니를 열어 발주 데이터의 품목마다 담은 상품이 발주 수량에 맞는 "
         "개수(발주 수량 ÷ 포장 수량을 올림)로 담겼는지 본다. 모자라면 수량을 늘린다. "
         "많으면 줄이지 않고 그 품목을 CHECK_NEEDED로 둔다. "
         "점주가 원래 담아 둔 같은 상품과 합쳐졌을 수 있다.\n"
-        "모두 보면 finish_cart_check로 품목마다 item_id와 status(OK 또는 CHECK_NEEDED)를 답한다.\n"
-        + "\n".join(rows)
+        "모두 보면 finish_cart_check로 품목마다 item_id와 status(OK 또는 CHECK_NEEDED)를 답한다."
     )
+    return Instruction(text, "\n".join(rows))
 
 
 def _run_key(run_id: str) -> str:
@@ -339,7 +364,7 @@ class AutomationService:
             await self.session.commit()
 
         conversations: dict[str, dict[str, Any]] = run["conversations"]
-        instruction = None
+        instruction: Instruction | None = None
         if req.result is None:
             instruction, linked_item_id = await self._instruction(
                 store_id=store_id, run=run, target=req.target, quantities=quantities, now=now
@@ -374,7 +399,8 @@ class AutomationService:
                 kind="cart_check" if req.target == CART_CHECK else "item",
                 store_id=store_id,
                 order_id=run_id,
-                instruction=instruction,
+                instruction=instruction.text if instruction else None,
+                order=instruction.order if instruction else None,
                 result=req.result.model_dump(mode="json") if req.result is not None else None,
             )
         except agent.AgentError as exc:
@@ -415,7 +441,7 @@ class AutomationService:
         target: str,
         quantities: dict[str, Decimal],
         now: datetime,
-    ) -> tuple[str, str | None]:
+    ) -> tuple[Instruction, str | None]:
         items = await self._items(store_id=store_id, item_ids=list(quantities))
         if target != CART_CHECK:
             item = items[target]

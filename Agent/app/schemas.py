@@ -44,7 +44,9 @@ class StepRequest(BaseModel):
     kind: Literal["item", "cart_check"]  # 대화 종류 — 새 대화에서 쓸 도구를 정한다
     store_id: str = Field(min_length=1, max_length=64)
     order_id: str = Field(min_length=1, max_length=64)
-    instruction: str | None = None  # 새 대화의 첫 지시
+    instruction: str | None = None  # 새 대화의 고정 지시문 — 서버가 쓴 글, 매장 데이터 없음
+    # 새 대화의 발주 데이터 — DB 값. 분류기는 이것과 확장의 실행 결과만 본다
+    order: str | None = Field(default=None, max_length=20_000)
     result: StepResult | None = None  # 직전 실행 결과. 새 대화면 null
 
 

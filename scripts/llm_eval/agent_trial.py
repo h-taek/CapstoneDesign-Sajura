@@ -1,7 +1,8 @@
 """확장 대역 — 저장한 쿠팡 검색 결과로 화면을 흉내 내고 에이전트 서버와 한 품목 대화를 돌린다.
 
 agent 컨테이너 안에서 실제 LLM 설정(.env)으로 /agent/step을 부른다. 첫 지시는 BE의
-`automation_service.item_instruction`으로 만든 글을 파일로 넣는다.
+`automation_service.item_instruction`이 만든 고정 지시문(text)과 발주 데이터(order)를 한 파일에
+`---` 줄로 나눠 넣는다(위가 지시문, 아래가 발주 데이터).
 
 사용: docker compose cp scripts/llm_eval/agent_trial.py agent:/tmp/
       docker compose cp scripts/llm_eval/data/양파.json agent:/tmp/onion.json
@@ -16,7 +17,9 @@ import uuid
 
 import httpx
 
-instruction = open(sys.argv[1], encoding="utf-8").read().strip()
+instruction, order = (
+    part.strip() for part in open(sys.argv[1], encoding="utf-8").read().split("\n---\n", 1)
+)
 data = json.load(open(sys.argv[2], encoding="utf-8"))
 rows = data["rows"]
 
@@ -114,7 +117,7 @@ def act(tool, args):
 
 conv = str(uuid.uuid4())
 body = {"conversation_id": conv, "kind": "item", "store_id": "trial-store", "order_id": "trial",
-        "instruction": instruction, "result": None}
+        "instruction": instruction, "order": order, "result": None}
 with httpx.Client(base_url="http://localhost:8000", timeout=130) as client:
     for n in range(1, 41):
         t = time.monotonic()
@@ -130,4 +133,4 @@ with httpx.Client(base_url="http://localhost:8000", timeout=130) as client:
             break
         if result["kind"] == "elements":
             print(f"   요소 {len(result['elements'])}개, {len(json.dumps(result, ensure_ascii=False)):,}자")
-        body = {**body, "instruction": None, "result": result}
+        body = {**body, "instruction": None, "order": None, "result": result}
