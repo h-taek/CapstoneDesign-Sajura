@@ -87,5 +87,6 @@ scripts/llm_eval/run*/
 
 # 보안 분류기 로컬 모델(scripts/guard-up.sh) — 수십 GB
 Back/ollama/
+Back/hf_models/
 .guard-ollama.log
 .guard-ollama.pid

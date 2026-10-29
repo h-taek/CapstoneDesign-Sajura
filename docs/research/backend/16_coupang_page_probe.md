@@ -228,3 +228,24 @@
 - '미국산 삼겹살 구이용 (냉장), 1개, 1kg'의 15820은 §5의 비로그인 표시 가격과 같다.
 - 받은 뒤 같은 탭에서 검색창으로 '양파'를 검색하자 정상으로 카드 36개가 나왔다.
 - 한 번에 8개보다 많은 요청, 더 짧은 간격, 여러 검색에 걸친 누적은 확인하지 않았다.
+
+### 6.12 확장 구현 전 화면 구조 (2026-10-29, 비로그인)
+
+Claude in Chrome 페이지 스크립트로 첫 화면 → 검색창 값 넣기 + 검색 버튼 `click()`('양파') → 카드 `target` 지우고 `click()` → 상품 페이지 → 장바구니 순서로 봤다. 확장 저장 화면(`Extension/tests/fixtures/`)은 이 구조를 옮겨 썼다.
+
+- 머리글: 검색창 `input[name=q]`(`headerSearchKeyword`, 안내 글 '찾고 싶은 상품을 검색해보세요!'), 검색 버튼 `button.headerSearchBtn`(`type=submit`, 글자 없음). 비로그인 링크 '로그인'(`login.coupang.com/login/login.pang?rtnUrl=…`)·'회원가입', 장바구니 링크 글자 '0 장바구니'.
+- 검색 결과 카드(60개 중 광고 10·로켓프레시 24·와우 표시 0): `li.ProductUnit_productUnit__Qd6sv`의 자식은 `a` 하나이고 그 `a`가 사진·상품명·가격·별점을 모두 감싼다(`target="_blank"`).
+  - 상품명 `div.ProductUnit_productNameV2__cV9cw`, 사진 `img`의 `alt`도 상품명.
+  - 가격 `div.PriceArea_priceArea__NntJz` 안에 취소선 `del`('7,600원'), 할인율 '44 %', 표시 가격 `span`('4,200원').
+  - 별점은 글자 없이 `div.ProductRating_fullRating__…` 4개 + `ProductRating_halfRating__…` 1개, 리뷰 수는 `span` '( 115 )'.
+  - 적립 '최대 210원 적립'(그림 `list-cash-icon@2x.png`의 `alt`와 `span`), 광고 카드는 `span` '광고' + 글자 없는 `button`.
+- 상품 페이지(`/vp/products/{productId}?itemId=…&vendorItemId=…&q=…&searchId=…` 등): 제목 `h1.product-title`.
+  - 가격 영역 `.price-container` 하나. 첫 줄 '37%' · '4,910원' · '(100g당 491원)' · '7,900원', 둘째 줄 '990원' · '쿠폰할인' · '5,900원'. 취소선(7,900원·5,900원)은 클래스 `twc-line-through`이고 화면 계산값 `text-decoration-line`도 `line-through`다. §6.10의 `final-price-amount`·`sales-price-amount` 클래스는 없었다.
+  - 페이지 데이터에 `landedItemId`·`landedVendorItemId` 이름이 없었다. `itemId`·`vendorItemId`는 주소에 있고, 페이지 데이터(`self.__next_f.push` 글)에는 `nonWowMemberPrice\":{\"price\":4910,…`처럼 따옴표가 `\"`로 바뀐 모양으로 있었다(화면 표시 가격 4,910원과 같다).
+  - 옵션 목록(양파(중) 10kg·1kg·5kg, 양파(특) 5kg)이 가격과 '100g당 N원'을 달고 나온다.
+  - 버튼: '수량빼기'(활성)·'수량더하기'(비활성)가 두 벌, '장바구니 담기' `button.prod-cart-btn`, '바로구매' `button.prod-buy-btn`. 수량 칸 값 1이 두 개.
+- 담기: '장바구니 담기'가 화면 밖에 있을 때 `click()`하자 담기 요청이 나가지 않았고 장바구니는 0 그대로였다. `scrollIntoView` 뒤 `click()`하자 `POST /next-api/order/add-cart` → `GET /n-api/web-adapter/cart-count`가 나가고 '990원 할인받고 담기 완료' 글자가 나타났다. 클릭 전 화면 글자에 '담기 완료'·'장바구니에 담겼습니다'는 없었다. 리뷰 글에 '담'이 든 문장이 여럿 있다.
+- 장바구니(`cart.coupang.com/cartView.pang`): 상품 줄에 체크칸, 상품명 링크(`span` 상품명 + `span` '옵션: 1개, 양파(중) 1kg'), '삭제' `div`(커서 `auto`, 역할 없음), '할인'·'7,900원'·'32%', 가격 '5,310'과 '원'이 다른 `span`, '(100g당 531원)'.
+  - 수량은 `input.cart-quantity-input`(값 1) 양옆의 글자 없는 `div` 둘이다. 클래스 `twc-bg-minus-icon`(수량 1이면 `twc-bg-minus-icon-disable`도)·`twc-bg-plus-icon`, 배경 그림은 `data:image/svg+xml` 주소라 파일 이름이 없다. 커서는 `auto`.
+  - '삭제' `click()`으로 상품이 빠졌고 확인 창은 없었다.
+- 검색 결과 주소 `/np/search?q=양파`를 직접 열어도 정상 결과가 나왔다.

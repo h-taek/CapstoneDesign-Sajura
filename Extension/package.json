@@ -1,0 +1,19 @@
+{
+  "name": "sajura-extension",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "packageManager": "pnpm@9.15.0",
+  "scripts": {
+    "build": "vite build --mode background && vite build --mode content",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@types/chrome": "0.0.287",
+    "jsdom": "25.0.1",
+    "typescript": "5.9.3",
+    "vite": "6.4.2",
+    "vitest": "3.2.4"
+  }
+}

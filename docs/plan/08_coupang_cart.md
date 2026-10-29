@@ -33,7 +33,7 @@
 
 1. `manifest.json` — `host_permissions`는 `*://*.coupang.com/*`만, `externally_connectable.matches`는 PWA 도메인(dev `http://localhost:5173/*`). 개발용 고정 확장 ID(`key`)와 PWA 환경변수 `VITE_EXTENSION_ID`.
 2. 작업 탭 — 담기 시작 때 쿠팡 첫 화면 탭 하나를 열고 그 탭에서만 동작. 로그인 확인(머리글 '로그아웃' 링크, `research/backend/16` §5).
-3. 요소 목록 — 화면 전체, 요소마다 번호·종류·글자·깊이, 상품 고유 ID `productId`·`itemId`·`vendorItemId`(검색 결과 화면은 카드 링크 주소에서, 상품 페이지는 페이지 주소와 페이지 데이터의 `landedItemId`·`landedVendorItemId`·`nonWowMemberPrice`에서 읽어 상품명 요소에 붙이고 가격 요소를 그 아래에), 글자 없는 그림은 파일 이름, 누를 수 있는 글자 요소 포함. 번호 → 요소 대응표는 그 화면에서만.
+3. 요소 목록 — 화면 전체, 요소마다 번호·종류·글자·깊이, 상품 고유 ID `productId`·`itemId`·`vendorItemId`(검색 결과 화면은 카드 링크 주소에서, 상품 페이지는 페이지 주소의 `itemId`·`vendorItemId`(없으면 페이지 데이터의 상품 주소)와 페이지 데이터의 `nonWowMemberPrice`에서 읽어 상품명 요소에 붙이고 가격 영역을 그 아래에), 글자 없는 그림은 파일 이름, 누를 수 있는 글자 요소 포함. 번호 → 요소 대응표는 그 화면에서만.
 4. 개인정보 가리기 — 머리글 이름 표시·'마이쿠팡' 링크 설명 글, 전화번호·이메일·주소 모양을 `---`로.
 5. 동작 — 클릭(링크면 `target` 지움), 입력(값 설정 + `input`·`change`), 스크롤, 주소 열기(작업 탭에서 쿠팡 상품 페이지 주소). 화면이 바뀌면 다 뜰 때까지 기다리고 `page_changed`. 없는 번호면 '요소 없음'. 상품 페이지에서 클릭 뒤 담기 완료 표시('담기 완료'·'장바구니에 담겼습니다')가 나타나면 `cart_added`에 그 페이지의 상품 고유 ID와 표시 가격(`price`).
 6. 와우 할인 카드 비회원 가격 — 요소 목록을 돌려준 뒤 와우 할인 카드 링크를 같은 출처 `fetch`(쿠키 포함)로 1.5초 간격 하나씩, 받은 HTML의 `nonWowMemberPrice`. 담기마다 같은 `itemId` 한 번, 실패·차단 페이지면 그 담기에서 중단. 다음 `step`(마지막이면 `finish`)의 `non_wow_prices`에 화면 가격·단위가격 표시와 함께 싣기(`04_fe.md` §12.5).
