@@ -6,7 +6,7 @@ Spec: docs/spec/03_be.md §1 (pydantic-settings),
 from functools import lru_cache
 from typing import Literal
 
-from pydantic import Field, model_validator
+from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -96,16 +96,8 @@ class Settings(BaseSettings):
     # 매장 주소 → 좌표 (Google Geocoding API) — 날씨 격자·관측소 계산용. 비면 위치를 비운다
     GOOGLE_MAPS_API_KEY: str = ""
 
-    # LLM — 쿠팡 자동 담기 상품 선택 (03_be.md §2.4)
-    LLM_PROVIDER: Literal["anthropic", "openai_compatible"] = "openai_compatible"
-    LLM_MODEL: str = ""
-    LLM_API_KEY: str = ""
-    LLM_BASE_URL: str = ""  # openai_compatible의 API 주소. 비우면 OpenAI API
-    LLM_REASONING_EFFORT: str = ""  # 비우면 보내지 않는다
-    # 보안 분류기 (03_be.md §2.4.3) — 시연용, 기본 꺼짐
-    LLM_GUARD_ENABLED: bool = False
-    LLM_GUARD_BASE_URL: str = ""
-    LLM_GUARD_MODEL: str = ""
+    # 담기 에이전트 서버 — 쿠팡 자동 담기 LLM 대화 (03_be.md §2.4.5). LLM 설정은 에이전트 서버에 둔다
+    AGENT_BASE_URL: str = "http://agent:8000"
 
     # 사업자등록증 업로드 저장 (03_be.md §10.2) — be 컨테이너 볼륨 마운트 경로
     UPLOAD_DIR: str = "/app/uploads"
@@ -114,13 +106,6 @@ class Settings(BaseSettings):
     # Middleware policy (03_be.md §13)
     CORS_ALLOW_ORIGINS: str = "http://localhost:5173"
     TRUSTED_HOSTS: str = "localhost,be"
-
-    @model_validator(mode="after")
-    def _guard_configured(self) -> "Settings":
-        # 켜졌는데 분류기 주소·모델이 비면 BE가 시작하지 않는다 (03_be.md §2.4.3)
-        if self.LLM_GUARD_ENABLED and not (self.LLM_GUARD_BASE_URL and self.LLM_GUARD_MODEL):
-            raise ValueError("LLM_GUARD_ENABLED=true면 LLM_GUARD_BASE_URL·LLM_GUARD_MODEL이 필요하다")
-        return self
 
     @property
     def cors_origins_list(self) -> list[str]:

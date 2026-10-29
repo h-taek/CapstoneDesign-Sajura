@@ -20,7 +20,7 @@ import app.db as app_db
 from app.config import get_settings
 from app.core.rate_limit import init_rate_limit
 from app.core.redis import set_redis
-from app.integrations import geocoding
+from app.integrations import agent, geocoding
 from app.main import app
 from app.models.user import User
 
@@ -38,6 +38,8 @@ app_db.SessionLocal = _test_session_local
 
 TEST_EMAIL_PREFIX = "pytest-auth-"
 TEST_EMAIL_DOMAIN = "example.com"
+TEST_COUPANG_PREFIX = "999"  # 테스트가 만드는 쿠팡 itemId·productId 앞자리
+CLICK = {"action": {"tool": "click", "args": {"ref": "1"}}}
 
 
 def make_test_email(tag: str = "u") -> str:
@@ -59,6 +61,43 @@ def _no_real_geocoding(monkeypatch: pytest.MonkeyPatch) -> None:
         return None
 
     monkeypatch.setattr(geocoding, "geocode", _none)
+
+
+class FakeAgent:
+    """담기 에이전트 서버 대역. answers를 차례로 돌려주고(비면 클릭), 예외면 던진다.
+
+    filter_answer가 None이면 받은 후보를 모두 남긴다.
+    """
+
+    def __init__(self) -> None:
+        self.answers: list[dict | Exception] = []
+        self.steps: list[dict] = []
+        self.filter_answer: list[str] | Exception | None = None
+        self.filters: list[dict] = []
+
+    async def step(self, **kwargs) -> dict:
+        self.steps.append(kwargs)
+        answer = self.answers.pop(0) if self.answers else CLICK
+        if isinstance(answer, Exception):
+            raise answer
+        return answer
+
+    async def filter_candidates(self, **kwargs) -> list[str]:
+        self.filters.append(kwargs)
+        if isinstance(self.filter_answer, Exception):
+            raise self.filter_answer
+        if self.filter_answer is None:
+            return [c["ref"] for c in kwargs["candidates"]]
+        return self.filter_answer
+
+
+@pytest.fixture(autouse=True)
+def fake_agent(monkeypatch: pytest.MonkeyPatch) -> FakeAgent:
+    # 담기 에이전트 서버를 실제로 부르지 않게 한다
+    fake = FakeAgent()
+    monkeypatch.setattr(agent, "step", fake.step)
+    monkeypatch.setattr(agent, "filter_candidates", fake.filter_candidates)
+    return fake
 
 
 @pytest_asyncio.fixture(loop_scope="session")
@@ -113,5 +152,11 @@ async def _cleanup_test_users() -> AsyncIterator[None]:
             await session.execute(delete(Menu).where(Menu.store_id.in_(store_ids)))
         await session.execute(
             delete(User).where(User.email.like(f"{TEST_EMAIL_PREFIX}%@{TEST_EMAIL_DOMAIN}"))
+        )
+        # 공용 쿠팡 상품은 매장에 속하지 않는다 — 재료(매장과 함께 삭제)가 지워진 뒤 정리
+        from app.models.coupang import CoupangProduct
+
+        await session.execute(
+            delete(CoupangProduct).where(CoupangProduct.item_id.like(f"{TEST_COUPANG_PREFIX}%"))
         )
         await session.commit()

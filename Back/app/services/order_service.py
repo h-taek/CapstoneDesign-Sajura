@@ -1,23 +1,28 @@
-"""OrderService — 추천발주 계산·저장 + 발주 확정·내역.
+"""OrderService — 추천발주 계산·저장 + 발주 내역·입고 처리.
 
-02_implementation_design.md §3.7, 03_be.md §5.
+02_implementation_design.md §3.7, 03_be.md §2.4.6.
 
 추천발주는 조회 시점에 n8n이 저장한 예측과 그 시점 재고로 BE가 계산해 추천안으로 저장한다
-(01_basic_design.md §3.7.2). AI Server는 호출하지 않는다.
+(01_basic_design.md §3.7.2). AI Server는 호출하지 않는다. 발주 확정은 쿠팡 담기를 마칠 때
+AutomationService가 한다.
 """
 
 from __future__ import annotations
 
+import asyncio
+import json
 import math
 from datetime import date, datetime, timedelta
-from decimal import ROUND_HALF_UP, Decimal
+from decimal import Decimal
 from zoneinfo import ZoneInfo
 
-from sqlalchemy import delete, func, select
-from sqlalchemy.exc import IntegrityError
+import structlog
+from sqlalchemy import delete, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core import errors
+from app.core.redis import get_redis
+from app.integrations import agent
 from app.models.coupang import CoupangProduct
 from app.models.inventory_item import InventoryItem, InventoryLot
 from app.models.menu import Menu, Recipe, RecipeIngredient
@@ -28,16 +33,17 @@ from app.models.order import (
     OrderItem,
     OrderRecommendation,
     OrderRecommendationItem,
-    OrderStatus,
     ReceiptStatus,
 )
-from app.schemas.orders import OrderApproveItem
 from app.services import coupang_pricing
 from app.services.forecast_service import ForecastService
 from app.services.inventory_service import InventoryService
 
+log = structlog.get_logger(__name__)
 KST = ZoneInfo("Asia/Seoul")
 ZERO = Decimal(0)
+PRICE_CANDIDATES = 50  # 예상 단가 후보 최대 수 (01_basic_design.md §3.7.1)
+PRICE_FILTER_TTL_SECONDS = 2 * 24 * 60 * 60
 
 
 def _dec(value: float) -> Decimal:
@@ -46,10 +52,6 @@ def _dec(value: float) -> Decimal:
 
 def _not_found(message: str) -> errors.DomainError:
     return errors.DomainError(status_code=404, error_code="NOT_FOUND", message=message)
-
-
-def _already_approved() -> errors.DomainError:
-    return errors.state_conflict("이미 발주를 확정한 추천안입니다.")
 
 
 def _recommend_item(
@@ -96,33 +98,127 @@ class OrderService:
     def __init__(self, session: AsyncSession) -> None:
         self.session = session
 
-    async def _unit_prices(self, *, item_ids: list[str]) -> dict[str, Decimal]:
-        """재료 단위당 단가 — 연결된 공용 쿠팡 상품으로만 계산한다(01_basic_design.md §3.3.1).
+    async def _unit_prices(
+        self, *, store_id: str, items: list[InventoryItem]
+    ) -> dict[str, Decimal]:
+        """예상 단가 — 연결 상품이 있으면 재고 품목 단가, 없으면 공용 쿠팡 상품에서 찾는다.
 
-        계산할 수 없는 재료(미설정)는 결과에 넣지 않는다.
+        01_basic_design.md §3.7.1. 미설정인 재료는 결과에 넣지 않는다.
         """
-        rows = (
-            await self.session.execute(
-                select(InventoryItem, CoupangProduct)
-                .join(
-                    CoupangProduct,
-                    CoupangProduct.coupang_product_id == InventoryItem.coupang_product_id,
+        linked = {i.item_id: i for i in items if i.coupang_item_id}
+        products = {
+            p.item_id: p
+            for p in (
+                await self.session.scalars(
+                    select(CoupangProduct).where(
+                        CoupangProduct.item_id.in_([i.coupang_item_id for i in linked.values()])
+                    )
                 )
-                .where(InventoryItem.item_id.in_(item_ids))
-            )
-        ).all()
+            ).all()
+        } if linked else {}
         prices = {}
-        for item, product in rows:
-            price = coupang_pricing.unit_price(
-                sale_price=product.sale_price,
-                content=coupang_pricing.stored_content(
-                    product.content_quantity, product.content_unit
-                ),
-                item_unit=item.unit,
-                stored_pack=item.pack_quantity,
+        for item in linked.values():
+            product = products.get(item.coupang_item_id)
+            price = (
+                coupang_pricing.item_unit_price(product.unit_price, product.content_unit, item.unit)
+                if product
+                else None
             )
             if price is not None:
                 prices[item.item_id] = price
+        unlinked = [i for i in items if not i.coupang_item_id]
+        prices.update(await self._expected_prices(store_id=store_id, items=unlinked))
+        return prices
+
+    async def _expected_prices(
+        self, *, store_id: str, items: list[InventoryItem]
+    ) -> dict[str, Decimal]:
+        """연결 상품이 없는 재료 — 공용 단가 낮은 순 후보 50개를 에이전트 서버가 거른 뒤 최저 단가.
+
+        거른 결과(itemId 목록)는 `price_filter:{재료명}:{재료 단위}`에 이틀 둔다. 오류면 미설정.
+        """
+        redis = get_redis()
+        kept: dict[str, list[str]] = {}
+        to_filter: list[tuple[InventoryItem, str, list[CoupangProduct]]] = []
+        for item in items:
+            content_unit = coupang_pricing.content_unit_for(item.unit)
+            if content_unit is None:
+                continue
+            key = f"price_filter:{item.name}:{item.unit}"
+            cached = await redis.get(key)
+            if cached is not None:
+                kept[item.item_id] = json.loads(cached)
+                continue
+            candidates = (
+                await self.session.scalars(
+                    select(CoupangProduct)
+                    .where(
+                        or_(
+                            CoupangProduct.product_name.contains(item.name, autoescape=True),
+                            CoupangProduct.option_name.contains(item.name, autoescape=True),
+                        ),
+                        CoupangProduct.unit_price.is_not(None),
+                        CoupangProduct.content_unit == content_unit,
+                    )
+                    .order_by(CoupangProduct.unit_price, CoupangProduct.item_id)
+                    .limit(PRICE_CANDIDATES)
+                )
+            ).all()
+            if candidates:
+                to_filter.append((item, key, list(candidates)))
+
+        answers = await asyncio.gather(
+            *(
+                agent.filter_candidates(
+                    store_id=store_id,
+                    name=item.name,
+                    unit=item.unit,
+                    candidates=[
+                        {
+                            "ref": str(n),
+                            "product_name": p.product_name,
+                            "option_name": p.option_name,
+                        }
+                        for n, p in enumerate(candidates, start=1)
+                    ],
+                )
+                for item, _, candidates in to_filter
+            ),
+            return_exceptions=True,
+        )
+        for (item, key, candidates), answer in zip(to_filter, answers, strict=True):
+            if isinstance(answer, agent.AgentError):
+                log.warning("price_filter_failed", item_id=item.item_id, status=answer.status_code)
+                continue
+            if isinstance(answer, BaseException):
+                raise answer
+            refs = {r for r in answer if r.isdigit()}
+            kept_ids = [p.item_id for n, p in enumerate(candidates, start=1) if str(n) in refs]
+            await redis.set(key, json.dumps(kept_ids), ex=PRICE_FILTER_TTL_SECONDS)
+            kept[item.item_id] = kept_ids
+
+        all_ids = {i for ids in kept.values() for i in ids}
+        rows = {
+            p.item_id: p
+            for p in (
+                await self.session.scalars(
+                    select(CoupangProduct).where(
+                        CoupangProduct.item_id.in_(all_ids), CoupangProduct.unit_price.is_not(None)
+                    )
+                )
+            ).all()
+        } if all_ids else {}
+        units = {i.item_id: i.unit for i in items}
+        prices = {}
+        for item_id, ids in kept.items():
+            values = [
+                coupang_pricing.item_unit_price(p.unit_price, p.content_unit, units[item_id])
+                for i in ids
+                if (p := rows.get(i)) is not None
+            ]
+            found = [v for v in values if v is not None]
+            if found:
+                prices[item_id] = min(found)
         return prices
 
     async def _incoming_quantities(self, *, store_id: str) -> dict[str, Decimal]:
@@ -170,6 +266,8 @@ class OrderService:
         stocks = await InventoryService(self.session).list_stocks(store_id=store_id)
         incoming = await self._incoming_quantities(store_id=store_id)
         horizon = len(predictions)
+        # 에이전트 서버 호출을 기다리는 동안 추천안 트랜잭션을 열어 두지 않게 먼저 구한다
+        prices = await self._unit_prices(store_id=store_id, items=[st.item for st in stocks])
 
         # 같은 날 추천안 중 발주에 연결되지 않은 것은 대체한다 (하위 품목은 FK CASCADE)
         today = datetime.now(KST).date()
@@ -185,7 +283,6 @@ class OrderService:
         self.session.add(rec)
         await self.session.flush()
 
-        prices = await self._unit_prices(item_ids=[st.item.item_id for st in stocks])
         recommendations = []
         for st in stocks:
             inv = st.item
@@ -238,114 +335,6 @@ class OrderService:
             "recommendations": recommendations,
         }
 
-    async def approve_order(
-        self,
-        *,
-        store_id: str,
-        recommendation_id: str | None,
-        items: list[OrderApproveItem],
-        note: str | None,
-    ) -> Order:
-        item_ids = [i.item_id for i in items]
-        found = set(
-            (
-                await self.session.scalars(
-                    select(InventoryItem.item_id).where(
-                        InventoryItem.store_id == store_id, InventoryItem.item_id.in_(item_ids)
-                    )
-                )
-            ).all()
-        )
-        missing = [item_id for item_id in item_ids if item_id not in found]
-        if missing:
-            raise errors.DomainError(
-                status_code=404,
-                error_code="NOT_FOUND",
-                message="존재하지 않는 재료가 포함되어 있습니다.",
-                detail={"item_ids": missing},
-            )
-
-        rec_items: dict[str, OrderRecommendationItem] = {}
-        if recommendation_id is not None:
-            rec = await self.session.scalar(
-                select(OrderRecommendation).where(
-                    OrderRecommendation.recommendation_id == recommendation_id,
-                    OrderRecommendation.store_id == store_id,
-                )
-            )
-            if rec is None:
-                raise _not_found("추천안을 찾을 수 없습니다.")
-            if await self.session.scalar(
-                select(Order.order_id).where(Order.recommendation_id == recommendation_id)
-            ):
-                raise _already_approved()
-            rec_items = {
-                ri.item_id: ri
-                for ri in (
-                    await self.session.scalars(
-                        select(OrderRecommendationItem).where(
-                            OrderRecommendationItem.recommendation_id == recommendation_id
-                        )
-                    )
-                ).all()
-            }
-
-        # 확정 시점 단가 — 미설정이면 단가·소계를 비운다 (01_basic_design.md §3.7.4)
-        prices = await self._unit_prices(item_ids=item_ids)
-        subtotals = {
-            i.item_id: int(
-                (i.final_quantity * prices[i.item_id]).quantize(Decimal(1), rounding=ROUND_HALF_UP)
-            )
-            for i in items
-            if i.item_id in prices
-        }
-        order = Order(
-            store_id=store_id,
-            recommendation_id=recommendation_id,
-            status=OrderStatus.APPROVED,
-            total_estimated_cost=sum(subtotals.values()),
-            note=note,
-        )
-        self.session.add(order)
-        try:
-            await self.session.flush()
-        except IntegrityError as exc:  # 같은 추천안 확정이 동시에 들어온 경우
-            await self.session.rollback()
-            if "uq_orders_recommendation_id" in str(exc.orig).lower():
-                raise _already_approved() from exc
-            raise
-
-        for i in items:
-            self.session.add(
-                OrderItem(
-                    order_id=order.order_id,
-                    item_id=i.item_id,
-                    final_quantity=i.final_quantity,
-                    unit_price=prices.get(i.item_id),
-                    subtotal=subtotals.get(i.item_id),
-                )
-            )
-
-        if recommendation_id is not None:
-            finals = {i.item_id: i.final_quantity for i in items}
-            for item_id in [*rec_items, *(x for x in finals if x not in rec_items)]:
-                ri = rec_items.get(item_id)
-                recommended = ri.recommended_quantity if ri else ZERO
-                final = finals.get(item_id, ZERO)
-                self.session.add(
-                    OrderApprovalLog(
-                        order_id=order.order_id,
-                        item_id=item_id,
-                        recommended_quantity=recommended,
-                        final_quantity=final,
-                        was_modified=final != recommended,
-                    )
-                )
-
-        await self.session.commit()
-        await self.session.refresh(order)
-        return order
-
     async def list_orders(
         self, *, store_id: str, page: int, size: int
     ) -> tuple[list[tuple[Order, int]], int]:
@@ -383,6 +372,17 @@ class OrderService:
             )
         ).all()
         return [(item, name, unit) for item, name, unit in rows]
+
+    async def linked_products(self, *, item_ids: list[str]) -> dict[str, CoupangProduct]:
+        """재료 → 연결된 공용 쿠팡 상품. 연결이 없는 재료는 넣지 않는다."""
+        rows = (
+            await self.session.execute(
+                select(InventoryItem.item_id, CoupangProduct)
+                .join(CoupangProduct, CoupangProduct.item_id == InventoryItem.coupang_item_id)
+                .where(InventoryItem.item_id.in_(item_ids))
+            )
+        ).all()
+        return {item_id: product for item_id, product in rows}
 
     async def get_approval_logs(self, *, order_id: str) -> list[tuple[OrderApprovalLog, str, str]]:
         rows = (

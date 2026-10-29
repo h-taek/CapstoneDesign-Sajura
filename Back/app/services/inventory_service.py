@@ -98,7 +98,7 @@ class InventoryService:
         products = await self._products(items)
         return [
             ItemStock(
-                i, *agg.get(i.item_id, (Decimal(0), None)), products.get(i.coupang_product_id)
+                i, *agg.get(i.item_id, (Decimal(0), None)), products.get(i.coupang_item_id)
             )
             for i in items
         ]
@@ -108,17 +108,17 @@ class InventoryService:
         agg = await self._lot_aggregates([item_id])
         products = await self._products([item])
         return ItemStock(
-            item, *agg.get(item_id, (Decimal(0), None)), products.get(item.coupang_product_id)
+            item, *agg.get(item_id, (Decimal(0), None)), products.get(item.coupang_item_id)
         )
 
     async def _products(self, items: list[InventoryItem]) -> dict[str | None, CoupangProduct]:
-        ids = {i.coupang_product_id for i in items if i.coupang_product_id}
+        ids = {i.coupang_item_id for i in items if i.coupang_item_id}
         if not ids:
             return {}
         rows = await self.session.scalars(
-            select(CoupangProduct).where(CoupangProduct.coupang_product_id.in_(ids))
+            select(CoupangProduct).where(CoupangProduct.item_id.in_(ids))
         )
-        return {p.coupang_product_id: p for p in rows}
+        return {p.item_id: p for p in rows}
 
     async def get_item(self, *, store_id: str, item_id: str) -> InventoryItem:
         item = await self.session.get(InventoryItem, item_id)
@@ -177,8 +177,6 @@ class InventoryService:
         new_name = patch.get("name")
         if new_name is not None and new_name != item.name:
             await self._assert_unique_name(store_id=store_id, name=new_name)
-        if patch.get("pack_quantity") is not None and item.coupang_product_id is None:
-            raise errors.validation_error("연결된 쿠팡 상품이 없어 포장 수량을 저장할 수 없습니다.")
         for k, v in patch.items():
             if v is not None:
                 setattr(item, k, v)

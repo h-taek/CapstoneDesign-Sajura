@@ -41,12 +41,11 @@ class InventoryItem(Base):
     # 판매 시각(sold_at)과 같은 매장 현지 시각(KST, naive). 01_basic_design.md §3.3.3
     deducted_until: Mapped[datetime] = mapped_column(DateTime, nullable=False)
     needs_check: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
-    # 연결된 공용 쿠팡 상품과 포장 수량 — 01_basic_design.md §3.3.1·§3.8.1
-    coupang_product_id: Mapped[str | None] = mapped_column(
-        CHAR(36), ForeignKey("coupang_products.coupang_product_id"), nullable=True
+    # 연결된 공용 쿠팡 상품 — 01_basic_design.md §3.3.1·§3.8.1
+    coupang_item_id: Mapped[str | None] = mapped_column(
+        String(20), ForeignKey("coupang_products.item_id"), nullable=True
     )
     coupang_linked_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
-    pack_quantity: Mapped[Decimal | None] = mapped_column(DECIMAL(10, 3), nullable=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime, nullable=False, server_default=func.current_timestamp()
     )

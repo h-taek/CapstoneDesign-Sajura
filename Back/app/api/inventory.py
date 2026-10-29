@@ -51,20 +51,20 @@ def _to_dto(stock: ItemStock) -> InventoryItemResponse:
         lead_time_days=item.lead_time_days,
         safety_stock=item.safety_stock,
         coupang_product=InventoryCoupangProduct(
+            item_id=product.item_id,
+            product_id=product.product_id,
             product_name=product.product_name,
+            option_name=product.option_name,
             sale_price=product.sale_price,
             content_quantity=product.content_quantity,
             content_unit=product.content_unit,
+            unit_price=product.unit_price,
             updated_at=product.updated_at,
         )
         if product
         else None,
-        pack_quantity=item.pack_quantity,
-        unit_price=coupang_pricing.unit_price(
-            sale_price=product.sale_price,
-            content=coupang_pricing.stored_content(product.content_quantity, product.content_unit),
-            item_unit=item.unit,
-            stored_pack=item.pack_quantity,
+        unit_price=coupang_pricing.item_unit_price(
+            product.unit_price, product.content_unit, item.unit
         )
         if product
         else None,

@@ -1,42 +1,18 @@
-"""발주 확정·내역 DTOs — 02_implementation_design.md §3.7."""
+"""발주 내역·쿠팡 담기 DTOs — 02_implementation_design.md §3.7."""
 
 from __future__ import annotations
 
 from datetime import datetime
 from decimal import Decimal
-from typing import Literal
+from typing import Annotated, Any, Literal
 
-from pydantic import BaseModel, Field, field_validator, model_validator
-
-from app.schemas.types import JsonDecimal
+from pydantic import BaseModel, Field, field_validator
 
 
-class OrderApproveItem(BaseModel):
-    item_id: str
-    final_quantity: Decimal = Field(gt=0, max_digits=10, decimal_places=3)
-
-
-class OrderApproveRequest(BaseModel):
-    recommendation_id: str | None = None
-    items: list[OrderApproveItem] = Field(min_length=1)
-    note: str | None = Field(default=None, max_length=500)
-
-    @field_validator("items")
-    @classmethod
-    def _unique_items(cls, v: list[OrderApproveItem]) -> list[OrderApproveItem]:
-        if len({i.item_id for i in v}) != len(v):
-            raise ValueError("같은 재료가 중복되었습니다.")
-        return v
-
-
-class OrderApproveResponse(BaseModel):
+class OrderSummary(BaseModel):
     order_id: str
     approved_at: datetime
     total_estimated_cost: int
-    status: str
-
-
-class OrderSummary(OrderApproveResponse):
     item_count: int
 
 
@@ -49,10 +25,11 @@ class OrderListResponse(BaseModel):
 
 
 class OrderCoupangProduct(BaseModel):
+    item_id: str  # 쿠팡 itemId
     product_id: str
-    vendor_item_id: str
     product_name: str
-    rocket_fresh: bool  # 비로그인이면 확장이 이 품목도 검색한다
+    option_name: str | None
+    rocket_fresh: bool
 
 
 class OrderDetailItem(BaseModel):
@@ -61,17 +38,15 @@ class OrderDetailItem(BaseModel):
     item_name: str
     final_quantity: float
     unit: str
-    unit_price: float | None  # 확정 시 단가 미설정이면 null
+    unit_price: float | None  # 담기 결과로 계산하지 못했으면 null
     subtotal: int | None
     receipt_status: str
-    coupang_search_required: bool  # 자동 담기 때 쿠팡 검색이 필요한지 (01_basic_design.md §3.8.1)
     coupang_product: OrderCoupangProduct | None  # 재료에 연결된 공용 쿠팡 상품
 
 
 class OrderDetailResponse(BaseModel):
     order_id: str
     approved_at: datetime
-    status: str
     total_estimated_cost: int
     note: str | None
     items: list[OrderDetailItem]
@@ -91,99 +66,120 @@ class ApprovalLogResponse(BaseModel):
     items: list[ApprovalLogItem]
 
 
-# ---------------------------------------------------------------- 쿠팡 자동 담기 (§3.7)
+# ---------------------------------------------------------------- 쿠팡 담기 (§3.7)
 
 _DIGITS = r"^\d{1,20}$"
-MAX_RESULTS_PER_ITEM = 60
 
 
-class CoupangSearchResult(BaseModel):
-    """확장이 검색 결과 카드에서 읽은 값 (04_fe.md §12.4 허용 필드)."""
-
-    product_id: str = Field(pattern=_DIGITS)
-    vendor_item_id: str = Field(pattern=_DIGITS)
-    product_name: str = Field(min_length=1, max_length=300)
-    display_price: int = Field(gt=0)
-    discount_label: str | None = Field(default=None, max_length=50)
-    unit_price_text: str | None = Field(default=None, max_length=50)
-    rocket_fresh: bool
-    rating: float | None = Field(default=None, ge=0, le=5)
-    review_count: int | None = Field(default=None, ge=0)
-
-    @field_validator("rating")
-    @classmethod
-    def _half_step(cls, v: float | None) -> float | None:
-        if v is not None and (v * 2) != int(v * 2):
-            raise ValueError("별점은 0.5 단위입니다.")
-        return v
-
-
-class MatchCandidate(BaseModel):
+class AutomateItem(BaseModel):
     item_id: str
-    results: list[CoupangSearchResult] = Field(max_length=MAX_RESULTS_PER_ITEM)
+    final_quantity: Decimal = Field(gt=0, max_digits=10, decimal_places=3)
 
 
-class MatchRequest(BaseModel):
+class AutomateStartRequest(BaseModel):
+    recommendation_id: str | None = None
+    items: list[AutomateItem] = Field(min_length=1)
+    note: str | None = Field(default=None, max_length=500)
     coupang_logged_in: bool
-    candidates: list[MatchCandidate]
 
-    @field_validator("candidates")
+    @field_validator("items")
     @classmethod
-    def _unique_items(cls, v: list[MatchCandidate]) -> list[MatchCandidate]:
-        if len({c.item_id for c in v}) != len(v):
-            raise ValueError("같은 품목이 중복되었습니다.")
+    def _unique_items(cls, v: list[AutomateItem]) -> list[AutomateItem]:
+        if len({i.item_id for i in v}) != len(v):
+            raise ValueError("같은 재료가 중복되었습니다.")
         return v
 
 
-class MatchSelected(BaseModel):
-    product_id: str
-    vendor_item_id: str
-    quantity: int  # 담을 상품 개수 — 서버가 발주 수량 ÷ 포장 수량을 올림
-    pack_quantity: JsonDecimal | None  # LLM 판정 포장 수량. 단위가격 표시로 용량이 계산되면 null
-    reason: str
-
-
-class MatchSelection(BaseModel):
+class AutomateTarget(BaseModel):
     item_id: str
-    selected: MatchSelected | None
+    item_name: str
 
 
-class MatchResponse(BaseModel):
-    selections: list[MatchSelection]
+class AutomateStartResponse(BaseModel):
+    run_id: str
+    targets: list[AutomateTarget]
 
 
-class AutomationSucceeded(BaseModel):
-    item_id: str
+class PageElement(BaseModel):
+    """요소 목록의 요소 하나 (04_fe.md §12.4)."""
+
+    ref: str = Field(max_length=20)
+    role: str = Field(max_length=30)
+    text: str
+    depth: int = Field(ge=0)
+    product_id: str | None = Field(default=None, pattern=_DIGITS)
+    item_id: str | None = Field(default=None, pattern=_DIGITS)
+    vendor_item_id: str | None = Field(default=None, pattern=_DIGITS)
+    non_wow_price: int | None = Field(default=None, gt=0)  # 상품 페이지의 비회원 가격
+
+
+class ElementsResult(BaseModel):
+    kind: Literal["elements"]
+    url: str = Field(max_length=2000)
+    elements: list[PageElement]
+
+
+class CartAdded(BaseModel):
+    """상품 페이지에서 담기 완료 표시가 나타났을 때의 담기 결과."""
+
+    item_id: str = Field(pattern=_DIGITS)
     product_id: str = Field(pattern=_DIGITS)
     vendor_item_id: str = Field(pattern=_DIGITS)
-    product_name: str = Field(min_length=1, max_length=300)
-    display_price: int = Field(gt=0)
-    discount_label: str | None = Field(default=None, max_length=50)
+    price: int = Field(gt=0)  # 그 상품 페이지의 표시 가격(원)
+
+
+class ActionResult(BaseModel):
+    kind: Literal["action"]
+    ok: bool
+    page_changed: bool
+    message: str | None = Field(default=None, max_length=200)
+    cart_added: CartAdded | None = None
+
+
+StepResult = Annotated[ElementsResult | ActionResult, Field(discriminator="kind")]
+
+
+class NonWowPrice(BaseModel):
+    """확장이 뒤에서 받은 와우 할인 카드의 비회원 가격 (04_fe.md §12.5)."""
+
+    item_id: str = Field(pattern=_DIGITS)
+    non_wow_price: int = Field(gt=0)
+    display_price: int = Field(gt=0)  # 그 카드의 화면 표시 가격 — 단위가격 대조용
     unit_price_text: str | None = Field(default=None, max_length=50)
-    rocket_fresh: bool
-    pack_quantity: JsonDecimal | None = Field(default=None, gt=0)  # match 응답 값 그대로
-    searched: bool  # 이번에 검색으로 고른 상품이면 true
 
 
-class AutomationFailed(BaseModel):
+class AutomateStepRequest(BaseModel):
+    target: str  # 품목 item_id 또는 "cart_check"
+    result: StepResult | None = None  # 새 대화면 null
+    non_wow_prices: list[NonWowPrice] = Field(default_factory=list)
+
+
+class AgentCall(BaseModel):
+    tool: str
+    args: dict[str, Any]
+
+
+class AutomateStepAction(BaseModel):
+    action: AgentCall
+
+
+class AutomateStepDone(BaseModel):
+    done: AgentCall
+
+
+class AutomateFinishRequest(BaseModel):
+    non_wow_prices: list[NonWowPrice] = Field(default_factory=list)
+
+
+class AutomateItemResult(BaseModel):
     item_id: str
-    reason: Literal["NO_RESULT", "SELECTOR_MISMATCH", "TIMEOUT", "EXTENSION_UNAVAILABLE"]
+    status: Literal["ADDED", "CHECK_NEEDED", "FAILED"]
+    reason: str | None  # 담지 못한 사유(에이전트의 finish_item). 없으면 null
 
 
-class AutomationResultRequest(BaseModel):
-    succeeded: list[AutomationSucceeded] = Field(default_factory=list)
-    failed: list[AutomationFailed] = Field(default_factory=list)
-
-    @model_validator(mode="after")
-    def _unique_items(self) -> AutomationResultRequest:
-        ids = [s.item_id for s in self.succeeded] + [f.item_id for f in self.failed]
-        if len(set(ids)) != len(ids):
-            raise ValueError("같은 품목이 중복되었습니다.")
-        return self
-
-
-class AutomationResultResponse(BaseModel):
-    order_id: str
-    status: str  # AUTOMATED | MANUAL_REQUIRED
-    automated_at: datetime
-    manual_guide_url: str | None  # MANUAL_REQUIRED일 때 쿠팡 링크
+class AutomateFinishResponse(BaseModel):
+    order_id: str | None  # 담긴 품목이 없으면 null
+    approved_at: datetime
+    total_estimated_cost: int
+    manual_guide_url: str | None  # 실패 품목이 있으면 쿠팡 첫 화면
+    items: list[AutomateItemResult]

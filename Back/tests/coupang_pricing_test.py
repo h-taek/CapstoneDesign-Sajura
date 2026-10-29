@@ -1,87 +1,118 @@
-"""쿠팡 상품 용량·포장 수량·단가 계산 — 01_basic_design.md §3.3.1."""
+"""쿠팡 상품명·용량·단가 계산 — 01_basic_design.md §3.3.1."""
 
 from __future__ import annotations
 
+from datetime import datetime, timedelta
 from decimal import Decimal
 
 import pytest
 
 from app.services.coupang_pricing import (
     Content,
-    content_from_name,
-    content_from_unit_price,
-    name_mismatch,
-    pack_quantity,
-    to_item_unit,
-    unit_price,
+    content,
+    content_unit_for,
+    item_unit_price,
+    majority,
+    split_name,
+    store_price,
+    unit_price_matches,
 )
+
+
+def test_split_name_at_first_comma() -> None:
+    assert split_name("해표 카놀라유, 900ml, 3개") == ("해표 카놀라유", "900ml, 3개")
+    assert split_name("햇양파 1kg") == ("햇양파 1kg", None)
+    assert split_name("햇양파,") == ("햇양파", None)
 
 
 @pytest.mark.parametrize(
-    ("price", "text", "expected"),
+    ("raw", "expected"),
     [
-        (11740, "100g당 2,348원", Content(Decimal("500"), "g")),
-        (12000, "10g당 600원", Content(Decimal("200"), "g")),
-        (9460, "1구당 946원", Content(Decimal("10"), "구")),
-        (5460, "(100ml당 546원)", Content(Decimal("1000"), "ml")),
-        (9900, "1세트당 9,900원", Content(Decimal("1"), "세트")),
-        (9900, None, None),
-        (9900, "단위가격 없음", None),
+        ("해표 카놀라유, 900ml, 3개", Content(Decimal("2700"), "ml")),
+        ("양파 1kg, 1개", Content(Decimal("1000"), "g")),
+        ("돼지 목심, 500g, 4팩", Content(Decimal("2000"), "g")),
+        ("해표 식용유, 1개, 1.8L", Content(Decimal("1800"), "ml")),
+        ("알부자집 대란, 30구, 2개", Content(Decimal("60"), "개")),
+        ("대파 1000g, 1개입", Content(Decimal("1000"), "g")),
+        ("국산 대파 흙대파 1kg 3kg 5kg, 1개", None),  # 기준 용량 둘 이상
+        ("[양계장] 대란(L 52~59g) 30구, 1개", None),  # 상품명에 기준 용량 둘
+        ("청정원 카놀라유, 1개", None),  # 기준 용량 없음
     ],
 )
-def test_content_from_unit_price(price: int, text: str | None, expected: Content | None) -> None:
-    assert content_from_unit_price(price, text) == expected
+def test_content(raw: str, expected: Content | None) -> None:
+    assert content(*split_name(raw)) == expected
 
 
-@pytest.mark.parametrize(
-    ("name", "expected"),
-    [
-        ("돼지 삼겹살 (냉장), 500g, 4개", Content(Decimal("2000"), "g")),
-        ("알부자집 대란 30구, 1개", Content(Decimal("30"), "구")),
-        ("착한가격 삼겹살 구이용, 1박스, 1kg", Content(Decimal("1"), "kg")),
-        ("미국산 삼겹살 구이용 (냉장), 1개, 1kg", Content(Decimal("1"), "kg")),
-        ("일회용 간장 30개, 10ml", Content(Decimal("300"), "ml")),
-        ("해표 콩기름 1.8L, 6개", Content(Decimal("10.8"), "L")),
-        ("대파 1,000g", Content(Decimal("1000"), "g")),
-        ("햇양파", None),
-        ("삼겹살 500g + 목살 1kg", None),
-    ],
-)
-def test_content_from_name(name: str, expected: Content | None) -> None:
-    assert content_from_name(name) == expected
+def test_unit_price_matches_within_two_percent() -> None:
+    g2000 = Content(Decimal("2000"), "g")
+    assert unit_price_matches(58280, g2000, "100g당 2,914원")
+    assert unit_price_matches(58280, g2000, "(100g당 2,914원)")
+    # 계산 2,914원 — 표시 2,857원이면 2.0% 이내, 2,856원이면 넘는다
+    assert unit_price_matches(58280, g2000, "100g당 2,857원")
+    assert not unit_price_matches(58280, g2000, "100g당 2,856원")
+    assert unit_price_matches(12900, Content(Decimal("30"), "개"), "1구당 430원")
+    assert not unit_price_matches(12900, Content(Decimal("2000"), "g"), "1구당 430원")  # 계열 다름
+    assert not unit_price_matches(4810, Content(Decimal("1"), "개"), "1세트당 4,810원")
+    assert not unit_price_matches(58280, g2000, None)
+    assert not unit_price_matches(58280, None, "100g당 2,914원")
 
 
-def test_to_item_unit_converts_within_family_only() -> None:
-    assert to_item_unit(Content(Decimal("500"), "g"), "kg") == Decimal("0.5")
-    assert to_item_unit(Content(Decimal("1.8"), "L"), "ml") == Decimal("1800")
-    assert to_item_unit(Content(Decimal("30"), "구"), "개") == Decimal("30")
-    assert to_item_unit(Content(Decimal("500"), "g"), "ml") is None  # 환산 불가
-    assert to_item_unit(Content(Decimal("1"), "세트"), "개") is None
-    assert to_item_unit(None, "g") is None
-
-
-def test_name_mismatch_over_two_percent() -> None:
-    name = "삼겹살, 500g, 4개"  # 2000g
-    assert not name_mismatch(Content(Decimal("2040"), "g"), name)  # 2.0%
-    assert name_mismatch(Content(Decimal("2041"), "g"), name)
-    assert not name_mismatch(Content(Decimal("2"), "kg"), name)
-    assert not name_mismatch(Content(Decimal("9999"), "g"), "햇양파")  # 표기 없으면 대조 안 함
-    assert not name_mismatch(Content(Decimal("10"), "구"), name)  # 단위 계열이 다르면 대조 안 함
-
-
-def test_unit_price_from_content_then_pack_quantity() -> None:
-    kg = Content(Decimal("1"), "kg")
-    assert unit_price(sale_price=28000, content=kg, item_unit="g", stored_pack=None) == Decimal(28)
-    # 용량이 환산되지 않으면 포장 수량
-    box = Content(Decimal("1"), "세트")
-    assert unit_price(sale_price=9900, content=box, item_unit="개", stored_pack=Decimal(30)) == (
-        Decimal(330)
+def test_store_price_sale_and_unit() -> None:
+    g2000 = Content(Decimal("2000"), "g")
+    common = {"discount_label": None, "non_wow_price": None, "content": g2000}
+    assert store_price(display_price=58280, unit_price_text="100g당 2,914원", **common) == (
+        58280, Decimal("29.1400"),
     )
-    assert unit_price(sale_price=9900, content=None, item_unit="개", stored_pack=None) is None
-    assert unit_price(sale_price=None, content=kg, item_unit="g", stored_pack=None) is None
+    # 대조를 통과하지 못하면 그 관측의 단가는 비운다
+    assert store_price(display_price=58280, unit_price_text="100g당 1,000원", **common) == (
+        58280, None,
+    )
+    assert store_price(display_price=58280, unit_price_text=None, **common) == (58280, None)
+    assert store_price(
+        display_price=58280, unit_price_text="100g당 2,914원", discount_label="쿠폰할인",
+        non_wow_price=None, content=None,
+    ) == (58280, None)
 
 
-def test_pack_quantity_prefers_converted_content() -> None:
-    assert pack_quantity(Content(Decimal("1"), "kg"), "g", Decimal(7)) == Decimal(1000)
-    assert pack_quantity(Content(Decimal("1"), "세트"), "g", Decimal(7)) == Decimal(7)
-    assert pack_quantity(None, "g", None) is None
+def test_store_price_wow_uses_non_wow_price() -> None:
+    g800 = Content(Decimal("800"), "g")
+    # 대조는 표시 가격(와우 가격)과 단위가격 표시로, 단가는 비회원 가격 ÷ 용량
+    assert store_price(
+        display_price=9600, discount_label="와우할인", unit_price_text="100g당 1,200원",
+        non_wow_price=9900, content=g800,
+    ) == (9900, Decimal("12.3750"))
+    # 비회원 가격이 없으면 매장 가격으로 쓰지 않는다
+    assert store_price(
+        display_price=9600, discount_label="와우쿠폰할인", unit_price_text="100g당 1,200원",
+        non_wow_price=None, content=g800,
+    ) is None
+
+
+def test_majority() -> None:
+    t = datetime(2026, 10, 29, 9)
+    assert majority([]) is None
+    assert majority([(10000, Decimal("10"), t)]) == (10000, Decimal("10"))
+    # 2:1이면 많은 쪽, 단가는 그 판매가의 가장 최근 매장 가격
+    assert majority([
+        (10000, None, t),
+        (12000, Decimal("12"), t + timedelta(minutes=1)),
+        (10000, Decimal("10"), t + timedelta(minutes=2)),
+    ]) == (10000, Decimal("10"))
+    # 매장 수가 같으면 가장 최근에 받은 판매가
+    assert majority([
+        (10000, Decimal("10"), t + timedelta(minutes=5)),
+        (12000, Decimal("12"), t),
+    ]) == (10000, Decimal("10"))
+
+
+def test_item_unit_price_converts_to_item_unit() -> None:
+    assert item_unit_price(Decimal("29.14"), "g", "kg") == Decimal("29140.000")
+    assert item_unit_price(Decimal("29.14"), "g", "g") == Decimal("29.140")
+    assert item_unit_price(Decimal("2.5"), "ml", "L") == Decimal("2500.000")
+    assert item_unit_price(Decimal("430"), "개", "개") == Decimal("430.000")
+    assert item_unit_price(Decimal("29.14"), "g", "개") is None  # 바꿀 수 없으면 미설정
+    assert item_unit_price(None, "g", "g") is None
+    assert (content_unit_for("kg"), content_unit_for("L"), content_unit_for("개")) == (
+        "g", "ml", "개",
+    )
+    assert content_unit_for("봉") is None

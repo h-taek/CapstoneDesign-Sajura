@@ -13,6 +13,7 @@ from arq.connections import RedisSettings
 import app.db as app_db
 from app.config import get_settings
 from app.services.account_purge_service import AccountPurgeService
+from app.services.automation_service import AutomationService
 from app.services.inventory_service import InventoryService
 
 KST = timezone(timedelta(hours=9))
@@ -35,11 +36,18 @@ async def purge_withdrawn_accounts(ctx: dict) -> int:
         return await AccountPurgeService(session).purge_expired()
 
 
+async def clear_coupang_store_prices(ctx: dict) -> int:
+    """쿠팡 매장 가격 삭제 — 이틀마다 00:00 (01_basic_design.md §3.3.1). 날짜 순번이 짝수인 날만."""
+    async with app_db.SessionLocal() as session:
+        return await AutomationService(session).clear_store_prices(today=datetime.now(KST).date())
+
+
 class WorkerSettings:
     redis_settings = _redis_settings()
     timezone = KST
-    functions: list = [check_expiry, purge_withdrawn_accounts]
+    functions: list = [check_expiry, purge_withdrawn_accounts, clear_coupang_store_prices]
     cron_jobs: list = [
+        cron(clear_coupang_store_prices, hour=0, minute=0),
         cron(check_expiry, hour=1, minute=30),
         cron(purge_withdrawn_accounts, hour=3, minute=0),
     ]

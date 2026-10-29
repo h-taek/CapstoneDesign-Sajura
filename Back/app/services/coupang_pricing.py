@@ -1,158 +1,79 @@
-"""쿠팡 상품 용량·포장 수량·단가 계산 — 01_basic_design.md §3.3.1·§3.8.1.
+"""쿠팡 상품명·용량·단가 계산 — 01_basic_design.md §3.3.1·§3.8.1.
 
-DB를 보지 않는 순수 함수만 둔다. 자동 담기(AutomationService)와 단가(OrderService)가 같이 쓴다.
+DB를 보지 않는 순수 함수만 둔다. 자동 담기(AutomationService)·재고·추천발주가 같이 쓴다.
 """
 
 from __future__ import annotations
 
 import re
+from collections.abc import Iterable
 from dataclasses import dataclass
+from datetime import datetime
 from decimal import ROUND_HALF_UP, Decimal
 
 Q3 = Decimal("0.001")
-MISMATCH_RATIO = Decimal("0.02")  # 상품명 용량 대조·LLM 포장 수량 대조 허용 차이
+Q4 = Decimal("0.0001")
+MISMATCH_RATIO = Decimal("0.02")  # 관측 단가와 쿠팡 단위가격 표시의 허용 차이
 
-# 재료 단위로 환산되는 용량 단위 — 무게는 무게끼리, 부피는 부피끼리, 개수 단위는 재료 단위 '개'로
-_WEIGHT = {"g": Decimal(1), "kg": Decimal(1000)}
-_VOLUME = {"ml": Decimal(1), "L": Decimal(1000)}
-_COUNT = {"개", "구", "입"}
-
+# 기준 용량(g·kg·ml·L·구)과 옵션 이름의 개수 표기
+_MEASURE = re.compile(r"(\d+(?:,\d{3})*(?:\.\d+)?)\s*(kg|g|ml|l|구)(?![a-z])", re.I)
+_COUNT = re.compile(r"(\d+)\s*(?:개입|개|입|팩|봉|병|박스|세트)")
 _UNIT_PRICE = re.compile(r"^\(?\s*([\d.,]+)\s*([^\d\s]+?)\s*당\s*([\d,]+)\s*원\s*\)?$")
-# 상품명 용량 표기 — 용량('500g'·'1.8L'·'30구'·'10개입')과 묶음 개수('4개')
-_NAME_MEASURE = re.compile(
-    r"(\d+(?:,\d{3})*(?:\.\d+)?)\s*(kg|g|ml|l|구|개입|입)(?![a-z가-힣])", re.I
-)
-_NAME_COUNT = re.compile(r"(\d+)\s*개(?![입가-힣])")
+
+# 용량 단위 → (단위 계열, 저장 단위 g·ml·개 배수)
+_FAMILY = {
+    "g": ("weight", Decimal(1)),
+    "kg": ("weight", Decimal(1000)),
+    "ml": ("volume", Decimal(1)),
+    "l": ("volume", Decimal(1000)),
+    "개": ("count", Decimal(1)),
+    "구": ("count", Decimal(1)),
+}
+_STORED_UNIT = {"weight": "g", "volume": "ml", "count": "개"}
+# 저장 단위 → 재료 단위 배수 (g은 g·kg, ml은 ml·L, 개는 개)
+_TO_ITEM = {
+    ("g", "g"): Decimal(1),
+    ("g", "kg"): Decimal(1000),
+    ("ml", "ml"): Decimal(1),
+    ("ml", "L"): Decimal(1000),
+    ("개", "개"): Decimal(1),
+}
 
 
 @dataclass(frozen=True)
 class Content:
-    """상품 1개 용량."""
+    """상품 1개 용량 — 단위는 g·ml·개."""
 
     quantity: Decimal
     unit: str
 
 
-def _norm_unit(unit: str) -> str:
-    low = unit.lower()
-    if low in ("g", "kg", "ml"):
-        return low
-    if low == "l":
-        return "L"
-    if unit == "개입":
-        return "입"
-    return unit
+def split_name(raw: str) -> tuple[str, str | None]:
+    """상품명 원문을 첫 쉼표로 나눈 (상품명, 옵션 이름). 쉼표가 없으면 옵션 이름은 None."""
+    name, sep, option = raw.partition(",")
+    option = option.strip()
+    return name.strip(), (option or None) if sep else None
 
 
-def _family(unit: str) -> tuple[str, Decimal] | None:
-    """(단위 계열, 기준 단위 배수). 계열 밖이면 None."""
-    if unit in _WEIGHT:
-        return "weight", _WEIGHT[unit]
-    if unit in _VOLUME:
-        return "volume", _VOLUME[unit]
-    if unit in _COUNT:
-        return "count", Decimal(1)
-    return None
+def _measures(text: str) -> set[tuple[Decimal, str]]:
+    return {(Decimal(q.replace(",", "")), u.lower()) for q, u in _MEASURE.findall(text)}
 
 
-def content_from_unit_price(display_price: int, unit_price_text: str | None) -> Content | None:
-    """쿠팡 단위가격 표시로 상품 1개 용량 — 표시 가격 ÷ 단위가격 × 기준 수량.
+def content(product_name: str, option_name: str | None) -> Content | None:
+    """상품 1개 용량 — 옵션 이름(없으면 상품명)의 기준 용량 하나 × 옵션 이름의 개수 표기.
 
-    예: 11,740원과 '100g당 2,348원' → 500g. 표시가 없거나 읽을 수 없으면 None.
+    기준 용량을 못 찾거나 둘 이상이면 None. 예: '900ml, 3개' → 2,700ml, '양파 1kg' + '1개' → 1,000g.
     """
-    if not unit_price_text:
+    measures = _measures(option_name or "") or _measures(product_name)
+    if len(measures) != 1:
         return None
-    m = _UNIT_PRICE.match(unit_price_text.strip())
-    if m is None:
+    quantity, unit = measures.pop()
+    for count in _COUNT.findall(option_name or ""):
+        quantity *= Decimal(count)
+    family, factor = _FAMILY[unit]
+    if quantity <= 0:
         return None
-    base = Decimal(m.group(1).replace(",", ""))
-    per = Decimal(m.group(3).replace(",", ""))
-    if base <= 0 or per <= 0 or display_price <= 0:
-        return None
-    quantity = (Decimal(display_price) / per * base).quantize(Q3, rounding=ROUND_HALF_UP)
-    return Content(quantity, _norm_unit(m.group(2)))
-
-
-def content_from_name(product_name: str) -> Content | None:
-    """상품명의 용량 표기 — '500g, 4개' → 2000g. 표기가 없거나 둘 이상이면 None."""
-    measures = {
-        (Decimal(q.replace(",", "")), _norm_unit(u)) for q, u in _NAME_MEASURE.findall(product_name)
-    }
-    counts = _NAME_COUNT.findall(product_name)
-    if len(counts) > 1 or len(measures) > 1:
-        return None
-    times = Decimal(counts[0]) if counts else Decimal(1)
-    if measures:
-        quantity, unit = measures.pop()
-        return Content(quantity * times, unit)
-    if counts:
-        return Content(times, "개")
-    return None
-
-
-def to_item_unit(content: Content | None, item_unit: str) -> Decimal | None:
-    """상품 1개 용량을 재료 단위로 환산한다. 환산되지 않으면 None."""
-    if content is None:
-        return None
-    src = _family(content.unit)
-    dst = _family(_norm_unit(item_unit))
-    if src is None or dst is None or src[0] != dst[0]:
-        return None
-    if dst[0] == "count" and _norm_unit(item_unit) != "개":
-        return None
-    return (content.quantity * src[1] / dst[1]).quantize(Q3, rounding=ROUND_HALF_UP)
-
-
-def differs(value: Decimal, reference: Decimal) -> bool:
-    """value가 reference와 2% 넘게 다른가."""
-    if reference <= 0:
-        return True
-    return abs(value - reference) / reference > MISMATCH_RATIO
-
-
-def name_mismatch(content: Content, product_name: str) -> bool:
-    """계산한 용량이 상품명 용량 표기와 2% 넘게 다른가.
-
-    표기가 없거나 단위 계열이 다르면 대조하지 않는다.
-    """
-    named = content_from_name(product_name)
-    if named is None:
-        return False
-    a, b = _family(content.unit), _family(named.unit)
-    if a is None or b is None or a[0] != b[0]:
-        return False
-    return differs(content.quantity * a[1], named.quantity * b[1])
-
-
-def pack_quantity(
-    content: Content | None, item_unit: str, stored: Decimal | None
-) -> Decimal | None:
-    """상품 1개에 든 재료 수량 — 용량이 재료 단위로 환산되면 그 값, 아니면 저장된 포장 수량."""
-    converted = to_item_unit(content, item_unit)
-    if converted is not None and converted > 0:
-        return converted
-    if stored is not None and stored > 0:
-        return stored
-    return None
-
-
-def unit_price(
-    *,
-    sale_price: int | None,
-    content: Content | None,
-    item_unit: str,
-    stored_pack: Decimal | None,
-) -> Decimal | None:
-    """재료 단위당 단가(원) — 판매가 ÷ 용량(재료 단위), 안 되면 판매가 ÷ 포장 수량.
-
-    못 구하면 None.
-    """
-    if sale_price is None:
-        return None
-    pack = pack_quantity(content, item_unit, stored_pack)
-    if pack is None:
-        return None
-    return (Decimal(sale_price) / pack).quantize(Q3, rounding=ROUND_HALF_UP)
+    return Content((quantity * factor).quantize(Q3, rounding=ROUND_HALF_UP), _STORED_UNIT[family])
 
 
 def stored_content(quantity: Decimal | None, unit: str | None) -> Content | None:
@@ -160,3 +81,94 @@ def stored_content(quantity: Decimal | None, unit: str | None) -> Content | None
     if quantity is None or unit is None:
         return None
     return Content(quantity, unit)
+
+
+def unit_price_matches(display_price: int | None, c: Content | None, text: str | None) -> bool:
+    """`표시 가격 ÷ 용량`을 쿠팡 단위가격 표시의 기준 수량으로 바꾼 값이 표시 금액과 2% 이내인가.
+
+    용량·단위가격 표시가 없거나, 읽을 수 없거나, 단위 계열이 다르면 False.
+    예: 58,280원, 2,000g, '100g당 2,914원' → True.
+    """
+    if display_price is None or display_price <= 0 or c is None or not text:
+        return False
+    m = _UNIT_PRICE.match(text.strip())
+    if m is None:
+        return False
+    base_family = _FAMILY.get(m.group(2).lower())
+    if base_family is None or _STORED_UNIT[base_family[0]] != c.unit:
+        return False
+    base = Decimal(m.group(1).replace(",", "")) * base_family[1]
+    shown = Decimal(m.group(3).replace(",", ""))
+    if base <= 0 or shown <= 0 or c.quantity <= 0:
+        return False
+    computed = Decimal(display_price) / c.quantity * base
+    return abs(computed - shown) / shown <= MISMATCH_RATIO
+
+
+def is_unit_price_text(text: str) -> bool:
+    """쿠팡 단위가격 표시 모양('100g당 2,348원'·'(1구당 430원)')인가."""
+    return _UNIT_PRICE.match(text.strip()) is not None
+
+
+def is_wow(discount_label: str | None) -> bool:
+    """와우 회원 할인('와우할인'·'와우쿠폰할인')인가."""
+    return discount_label is not None and "와우" in discount_label
+
+
+def store_price(
+    *,
+    display_price: int | None,
+    discount_label: str | None,
+    unit_price_text: str | None,
+    non_wow_price: int | None,
+    content: Content | None,
+) -> tuple[int, Decimal | None] | None:
+    """그 관측의 매장 가격 (판매가, 단가). 매장 가격으로 쓸 수 없는 관측이면 None.
+
+    판매가는 와우 할인이 아니면 표시 가격, 와우 할인이면 비회원 가격이다. 대조는 표시 가격과
+    단위가격 표시로 하고, 단가는 판매가 ÷ 용량이다. 대조를 통과하지 못하면 단가는 None.
+    """
+    sale = non_wow_price if is_wow(discount_label) else display_price
+    if sale is None or sale <= 0:
+        return None
+    if content is None or not unit_price_matches(display_price, content, unit_price_text):
+        return sale, None
+    return sale, (Decimal(sale) / content.quantity).quantize(Q4, rounding=ROUND_HALF_UP)
+
+
+def majority(
+    prices: Iterable[tuple[int, Decimal | None, datetime]],
+) -> tuple[int, Decimal | None] | None:
+    """매장 가격 (판매가, 단가, 받은 시각) 목록의 다수결 — (판매가, 공용 단가).
+
+    가장 많은 매장이 보낸 판매가, 매장 수가 같으면 가장 최근에 받은 판매가. 공용 단가는
+    그 판매가를 보낸 매장 가격 중 가장 최근 것의 단가다. 목록이 비면 None.
+    """
+    counts: dict[int, int] = {}
+    latest: dict[int, tuple[datetime, Decimal | None]] = {}
+    for sale, unit, received_at in prices:
+        counts[sale] = counts.get(sale, 0) + 1
+        if sale not in latest or received_at > latest[sale][0]:
+            latest[sale] = (received_at, unit)
+    if not counts:
+        return None
+    best = max(counts, key=lambda s: (counts[s], latest[s][0]))
+    return best, latest[best][1]
+
+
+def content_unit_for(item_unit: str) -> str | None:
+    """재료 단위로 바꿀 수 있는 용량 단위(g·ml·개). 바꿀 수 없는 재료 단위면 None."""
+    return next((src for src, dst in _TO_ITEM if dst == item_unit), None)
+
+
+def item_unit_price(
+    per_unit: Decimal | None, content_unit: str | None, item_unit: str
+) -> Decimal | None:
+    """용량 단위 1당 원 → 재료 단위 1당 원. 예: 29.14원/g, 재료 단위 kg → 29,140원/kg.
+
+    값이 없거나 재료 단위로 바꿀 수 없으면 None.
+    """
+    factor = _TO_ITEM.get((content_unit or "", item_unit))
+    if per_unit is None or factor is None:
+        return None
+    return (per_unit * factor).quantize(Q3, rounding=ROUND_HALF_UP)

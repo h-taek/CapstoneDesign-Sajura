@@ -1,10 +1,13 @@
-"""추천발주 계산·저장 + 발주 확정(approve) + 발주 내역 — 02_implementation_design.md §3.7.
+"""추천발주 계산·저장·예상 단가 + 발주 내역·입고 — 02_implementation_design.md §3.7.
 
 추천발주는 BE가 저장된 예측(n8n 산출)과 그 시점 재고로 계산한다 (01_basic_design.md §3.7.2).
+발주 확정(쿠팡 담기)은 automation_test.
 """
 
 from __future__ import annotations
 
+import json
+import uuid
 from datetime import timedelta
 from decimal import Decimal
 
@@ -13,8 +16,14 @@ from httpx import AsyncClient
 from sqlalchemy import func, select, text, update
 
 import app.db as app_db
-from app.models.order import Order, OrderApprovalLog, OrderRecommendation
-from app.services.order_service import OrderService
+from app.core.redis import get_redis
+from app.integrations import agent
+from app.models.coupang import CoupangProduct
+from app.models.inventory_item import InventoryItem
+from app.models.order import Order, OrderRecommendation
+from app.services.automation_service import utcnow
+from tests.automation_test import coupang_id, place_order
+from tests.conftest import FakeAgent
 from tests.forecast_test import LAST_SALE, TARGETS, store_forecast, upload_one_sale
 from tests.notifications_test import _store_id
 from tests.sales_test import _create_menu, _register_verified_user
@@ -59,21 +68,8 @@ async def _setup_store(
     return auth, menu_id, items
 
 
-def _fake_prices(prices: dict[str, str]):
-    async def fake(self, *, item_ids: list[str]) -> dict[str, Decimal]:
-        return {k: Decimal(v) for k, v in prices.items() if k in item_ids}
-
-    return fake
-
-
-async def _approve(client: AsyncClient, auth: dict, items: dict[str, float]) -> str:
-    r = await client.post(
-        "/api/orders/approve",
-        json={"items": [{"item_id": k, "final_quantity": v} for k, v in items.items()]},
-        headers=auth,
-    )
-    assert r.status_code == 201, r.text
-    return r.json()["order_id"]
+async def _order(client: AsyncClient, auth: dict, items: dict[str, float]) -> str:
+    return (await place_order(client, auth, items))["order_id"]
 
 
 async def _order_item_ids(client: AsyncClient, auth: dict, order_id: str) -> dict[str, str]:
@@ -171,83 +167,14 @@ async def test_recommend_without_stored_forecast_is_404(client: AsyncClient) -> 
 
 
 @pytest.mark.asyncio
-async def test_approve_with_recommendation_records_logs(
-    client: AsyncClient, monkeypatch: pytest.MonkeyPatch
-) -> None:
-    auth, menu_id, (bean, milk, syrup) = await _setup_store(client)
-    monkeypatch.setattr(OrderService, "_unit_prices", _fake_prices({bean: "28", syrup: "3"}))
-    r = await client.get("/api/orders/recommend", headers=auth)
-    rec_id = r.json()["recommendation_id"]
-    prices = {x["item_id"]: x["unit_price"] for x in r.json()["recommendations"]}
-    assert prices == {bean: 28.0, milk: None, syrup: 3.0}
-
-    # 원두 수정(700→300), 우유 제외, 시럽 추가(추천 0). 단가는 서버가 정한다
-    r = await client.post(
-        "/api/orders/approve",
-        json={
-            "recommendation_id": rec_id,
-            "items": [
-                {"item_id": bean, "final_quantity": 300},
-                {"item_id": syrup, "final_quantity": 10.5},
-            ],
-            "note": "행사 주간",
-        },
-        headers=auth,
-    )
-    assert r.status_code == 201, r.text
-    order = r.json()
-    assert order["status"] == "APPROVED"
-    assert order["total_estimated_cost"] == 300 * 28 + round(10.5 * 3)
-
-    r = await client.get(f"/api/orders/{order['order_id']}/approval-log", headers=auth)
-    assert r.status_code == 200, r.text
-    logs = {x["item_id"]: x for x in r.json()["items"]}
-    assert set(logs) == {bean, milk, syrup}
-    assert Decimal(str(logs[bean]["recommended_quantity"])) == 700
-    assert Decimal(str(logs[bean]["final_quantity"])) == 300
-    assert logs[bean]["was_modified"] is True
-    assert Decimal(str(logs[milk]["final_quantity"])) == 0
-    assert logs[milk]["was_modified"] is True
-    assert Decimal(str(logs[syrup]["recommended_quantity"])) == 0
-    assert logs[syrup]["was_modified"] is True
-    assert logs[bean]["item_name"] == "원두"
-
-    # 확정에 연결된 추천안은 다음 조회에서 대체되지 않는다
-    new_id = (await client.get("/api/orders/recommend", headers=auth)).json()["recommendation_id"]
-    assert await _count_recommendations(new_id) == 2
-
-
-
-@pytest.mark.asyncio
-async def test_approve_same_recommendation_twice_conflicts(
-    client: AsyncClient, monkeypatch: pytest.MonkeyPatch
-) -> None:
-    auth, menu_id, (bean, _milk, _syrup) = await _setup_store(client)
-    rec_id = (await client.get("/api/orders/recommend", headers=auth)).json()["recommendation_id"]
-    body = {"recommendation_id": rec_id, "items": [{"item_id": bean, "final_quantity": 500}]}
-
-    r = await client.post("/api/orders/approve", json=body, headers=auth)
-    assert r.status_code == 201, r.text
-    r = await client.post("/api/orders/approve", json=body, headers=auth)
-    assert r.status_code == 409, r.text
-    assert r.json()["error"] == "STATE_CONFLICT"
-
-    async with app_db.SessionLocal() as session:
-        count = await session.scalar(
-            select(func.count()).select_from(Order).where(Order.recommendation_id == rec_id)
-        )
-    assert count == 1
-
-
-@pytest.mark.asyncio
 async def test_recommend_sends_incoming_of_pending_items(
     client: AsyncClient, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     """입고 예정량 = 입고 대기 상태인 발주 품목의 확정 수량 합계 (01_basic_design.md §3.7.2)."""
     auth, menu_id, (bean, milk, syrup) = await _setup_store(client)
-    await _approve(client, auth, {bean: 300, syrup: 5})
-    skipped = await _approve(client, auth, {bean: 200})
-    received = await _approve(client, auth, {milk: 40})
+    await _order(client, auth, {bean: 300, syrup: 5})
+    skipped = await _order(client, auth, {bean: 200})
+    received = await _order(client, auth, {milk: 40})
     r = await client.post(
         f"/api/orders/items/{(await _order_item_ids(client, auth, skipped))[bean]}/skip",
         headers=auth,
@@ -273,103 +200,11 @@ async def test_recommend_sends_incoming_of_pending_items(
 
 
 @pytest.mark.asyncio
-async def test_approve_unmodified_item_is_not_marked(
-    client: AsyncClient, monkeypatch: pytest.MonkeyPatch
-) -> None:
-    auth, menu_id, (bean, milk, _syrup) = await _setup_store(client)
-    rec_id = (await client.get("/api/orders/recommend", headers=auth)).json()["recommendation_id"]
-
-    r = await client.post(
-        "/api/orders/approve",
-        json={"recommendation_id": rec_id, "items": [
-            {"item_id": bean, "final_quantity": 700}, {"item_id": milk, "final_quantity": 3900},
-        ]},
-        headers=auth,
-    )
-    assert r.status_code == 201, r.text
-    assert r.json()["total_estimated_cost"] == 0  # 단가 미설정
-
-    async with app_db.SessionLocal() as session:
-        logs = (
-            await session.scalars(
-                select(OrderApprovalLog).where(OrderApprovalLog.order_id == r.json()["order_id"])
-            )
-        ).all()
-    by_item = {log.item_id: log for log in logs}
-    assert by_item[bean].was_modified is False
-    assert by_item[milk].was_modified is False
-    # 추천 0 + 미포함 품목은 수정 아님
-    assert all(not log.was_modified for log in by_item.values())
-
-
-@pytest.mark.asyncio
-async def test_approve_without_recommendation_has_no_logs(client: AsyncClient) -> None:
-    auth, _menu_id, (bean, _milk, _syrup) = await _setup_store(client)
-    r = await client.post(
-        "/api/orders/approve",
-        json={"recommendation_id": None, "items": [{"item_id": bean, "final_quantity": 2}]},
-        headers=auth,
-    )
-    assert r.status_code == 201, r.text
-    r = await client.get(f"/api/orders/{r.json()['order_id']}/approval-log", headers=auth)
-    assert r.status_code == 200, r.text
-    assert r.json()["items"] == []
-
-
-@pytest.mark.asyncio
-async def test_approve_validation(client: AsyncClient, monkeypatch: pytest.MonkeyPatch) -> None:
-    auth, menu_id, (bean, _milk, _syrup) = await _setup_store(client)
-    other_auth, other_menu, _ = await _setup_store(client)
-    other_rec = (await client.get("/api/orders/recommend", headers=other_auth)).json()[
-        "recommendation_id"
-    ]
-
-    dup = [{"item_id": bean, "final_quantity": 1}, {"item_id": bean, "final_quantity": 2}]
-    r = await client.post("/api/orders/approve", json={"items": dup}, headers=auth)
-    assert r.status_code == 400, r.text
-
-    r = await client.post(
-        "/api/orders/approve",
-        json={"items": [{"item_id": bean, "final_quantity": 0}]},
-        headers=auth,
-    )
-    assert r.status_code == 400, r.text
-
-    r = await client.post("/api/orders/approve", json={"items": []}, headers=auth)
-    assert r.status_code == 400, r.text
-
-    r = await client.post(
-        "/api/orders/approve",
-        json={"items": [{"item_id": "00000000-0000-0000-0000-000000000000", "final_quantity": 1}]},
-        headers=auth,
-    )
-    assert r.status_code == 404, r.text
-
-    r = await client.post(
-        "/api/orders/approve",
-        json={"recommendation_id": other_rec, "items": [{"item_id": bean, "final_quantity": 1}]},
-        headers=auth,
-    )
-    assert r.status_code == 404, r.text
-
-
-@pytest.mark.asyncio
-async def test_list_and_detail(client: AsyncClient, monkeypatch: pytest.MonkeyPatch) -> None:
+async def test_list_and_detail(client: AsyncClient) -> None:
     auth, _menu_id, (bean, milk, _syrup) = await _setup_store(client)
-    monkeypatch.setattr(OrderService, "_unit_prices", _fake_prices({bean: "10"}))
-    for qty in (1, 2, 3):
-        r = await client.post(
-            "/api/orders/approve",
-            json={
-                "items": [
-                    {"item_id": bean, "final_quantity": qty},
-                    {"item_id": milk, "final_quantity": 1},
-                ]
-            },
-            headers=auth,
-        )
-        assert r.status_code == 201, r.text
-    last_id = r.json()["order_id"]
+    for qty in (1, 2, 3):  # 원두는 1kg 10,000원 상품 → 10원/g, 우유는 용량 없는 상품
+        order = await place_order(client, auth, {bean: qty, milk: 1}, prices={bean: 10000})
+    last_id = order["order_id"]
 
     r = await client.get("/api/orders", params={"page": 1, "size": 2}, headers=auth)
     assert r.status_code == 200, r.text
@@ -398,12 +233,7 @@ async def test_inventory_delete_guards_ordered_items(
 ) -> None:
     auth, menu_id, (bean, _milk, syrup) = await _setup_store(client)
     await client.get("/api/orders/recommend", headers=auth)
-    r = await client.post(
-        "/api/orders/approve",
-        json={"items": [{"item_id": bean, "final_quantity": 1}]},
-        headers=auth,
-    )
-    assert r.status_code == 201, r.text
+    await place_order(client, auth, {bean: 1})
 
     r = await client.delete(f"/api/inventory/{bean}", headers=auth)
     assert r.status_code == 409, r.text
@@ -418,8 +248,8 @@ async def test_inventory_delete_guards_ordered_items(
 async def test_receive_and_skip_order_items(client: AsyncClient) -> None:
     """입고 처리 → 로트·입고 완료, 입고 안 함 → 로트 없음. 처리한 품목은 다시 못 한다 (§3.7.5)."""
     auth, _menu_id, (bean, milk, _syrup) = await _setup_store(client)
-    first = await _approve(client, auth, {bean: 300, milk: 50})
-    second = await _approve(client, auth, {bean: 200})
+    first = await _order(client, auth, {bean: 300, milk: 50})
+    second = await _order(client, auth, {bean: 200})
     first_items = await _order_item_ids(client, auth, first)
     async with app_db.SessionLocal() as session:  # 확정 시각은 초 단위 — 순서를 분명히 한다
         await session.execute(
@@ -475,3 +305,110 @@ async def test_receive_and_skip_order_items(client: AsyncClient) -> None:
     second_bean = (await _order_item_ids(client, auth, second))[bean]
     r = await client.post(f"/api/orders/items/{second_bean}/skip", headers=other_auth)
     assert r.status_code == 404, r.text
+
+
+async def _public_product(
+    product_name: str, option_name: str | None, unit_price: str | None, content_unit: str = "g"
+) -> str:
+    """공용 쿠팡 상품 한 행을 직접 넣는다. unit_price는 용량 단위 1당 원."""
+    cid = coupang_id()
+    async with app_db.SessionLocal() as session:
+        session.add(
+            CoupangProduct(
+                item_id=cid, product_id=cid, vendor_item_id=cid, product_name=product_name,
+                option_name=option_name, sale_price=1000,
+                unit_price=Decimal(unit_price) if unit_price else None,
+                content_quantity=Decimal(1000), content_unit=content_unit, updated_at=utcnow(),
+            )
+        )
+        await session.commit()
+    return cid
+
+
+async def _rename(client: AsyncClient, auth: dict, item_id: str, name: str) -> None:
+    r = await client.patch(f"/api/inventory/{item_id}", json={"name": name}, headers=auth)
+    assert r.status_code == 200, r.text
+
+
+@pytest.mark.asyncio
+async def test_recommend_unit_price_linked_and_expected(
+    client: AsyncClient, fake_agent: FakeAgent
+) -> None:
+    """연결 상품이면 재고 품목 단가, 없으면 에이전트 서버가 거른 공용 상품 최저 (§3.7.1)."""
+    auth, _, (bean, milk, syrup) = await _setup_store(client)
+    tag = uuid.uuid4().hex[:8]
+    linked = await _public_product(f"연결 원두 {tag}", "1kg", "28")
+    async with app_db.SessionLocal() as session:
+        await session.execute(
+            update(InventoryItem)
+            .where(InventoryItem.item_id == bean)
+            .values(coupang_item_id=linked, coupang_linked_at=utcnow())
+        )
+        await session.commit()
+    milk_name = f"우유{tag}"
+    await _rename(client, auth, milk, milk_name)
+    candy = await _public_product(f"{milk_name} 맛 사탕", "100g", "1.0")  # LLM이 거른다
+    sterile = await _public_product(f"매일 {milk_name} 멸균", "1kg", "2.5")
+    option = await _public_product("덴마크", f"{milk_name} 1kg", "3")  # 옵션 이름에 재료명
+    await _public_product(f"서울 {milk_name}", "1L", "0.9", content_unit="ml")  # 단위 못 바꿈
+    await _public_product(f"{milk_name} 단가 없음", "1kg", None)
+    fake_agent.filter_answer = ["2", "3"]
+
+    async def prices() -> dict[str, float | None]:
+        r = await client.get("/api/orders/recommend", headers=auth)
+        assert r.status_code == 200, r.text
+        return {x["item_id"]: x["unit_price"] for x in r.json()["recommendations"]}
+
+    got = await prices()
+    assert (got[bean], got[milk], got[syrup]) == (28.0, 2.5, None)
+    # 연결 재료·후보 없는 재료는 부르지 않는다
+    assert [c["name"] for c in fake_agent.filters] == [milk_name]
+    candidates = fake_agent.filters[0]["candidates"]
+    assert [c["ref"] for c in candidates] == ["1", "2", "3"]  # 공용 단가 낮은 순
+    assert [c["option_name"] for c in candidates] == ["100g", "1kg", f"{milk_name} 1kg"]
+    kept = json.loads(await get_redis().get(f"price_filter:{milk_name}:g"))
+    assert kept == [sterile, option] and candy not in kept
+
+    # 보관한 목록이 있으면 다시 부르지 않고, 단가는 공용 상품에서 다시 읽는다
+    async with app_db.SessionLocal() as session:
+        await session.execute(
+            update(CoupangProduct)
+            .where(CoupangProduct.item_id == option)
+            .values(unit_price=Decimal("2"))
+        )
+        await session.commit()
+    fake_agent.filters.clear()
+    assert (await prices())[milk] == 2.0
+    assert fake_agent.filters == []
+
+
+@pytest.mark.asyncio
+async def test_recommend_unit_price_converts_to_item_unit(
+    client: AsyncClient, fake_agent: FakeAgent
+) -> None:
+    auth, _, _ = await _setup_store(client)
+    tag = uuid.uuid4().hex[:8]
+    r = await client.post(
+        "/api/inventory", json={"name": f"밀가루{tag}", "unit": "kg", "quantity": 0}, headers=auth
+    )
+    flour = r.json()["item_id"]
+    await _public_product(f"밀가루{tag} 중력분", "1kg", "1.5")
+    r = await client.get("/api/orders/recommend", headers=auth)
+    got = {x["item_id"]: x["unit_price"] for x in r.json()["recommendations"]}
+    assert got[flour] == 1500.0  # 1.5원/g → 1,500원/kg
+
+
+@pytest.mark.asyncio
+async def test_recommend_unit_price_agent_error_is_null(
+    client: AsyncClient, fake_agent: FakeAgent
+) -> None:
+    auth, _, (_bean, milk, _syrup) = await _setup_store(client)
+    milk_name = f"우유{uuid.uuid4().hex[:8]}"
+    await _rename(client, auth, milk, milk_name)
+    await _public_product(f"매일 {milk_name}", "1kg", "2.5")
+    fake_agent.filter_answer = agent.AgentError(503, agent.UNAVAILABLE)
+    r = await client.get("/api/orders/recommend", headers=auth)
+    assert r.status_code == 200, r.text
+    got = {x["item_id"]: x["unit_price"] for x in r.json()["recommendations"]}
+    assert got[milk] is None
+    assert await get_redis().get(f"price_filter:{milk_name}:g") is None

@@ -28,12 +28,6 @@ class ConfigStatus(str, enum.Enum):
     DEFAULT_USED = "DEFAULT_USED"
 
 
-class OrderStatus(str, enum.Enum):
-    APPROVED = "APPROVED"
-    AUTOMATED = "AUTOMATED"
-    MANUAL_REQUIRED = "MANUAL_REQUIRED"
-
-
 class ReceiptStatus(str, enum.Enum):
     PENDING = "PENDING"
     RECEIVED = "RECEIVED"
@@ -83,15 +77,12 @@ class Order(Base):
     recommendation_id: Mapped[str | None] = mapped_column(
         CHAR(36), ForeignKey("order_recommendations.recommendation_id"), unique=True, nullable=True
     )
-    status: Mapped[OrderStatus] = mapped_column(
-        Enum(OrderStatus, name="order_status"), nullable=False, default=OrderStatus.APPROVED
-    )
     total_estimated_cost: Mapped[int] = mapped_column(Integer, nullable=False)
     note: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    # 쿠팡 담기를 마쳐 발주를 확정한 시각
     approved_at: Mapped[datetime] = mapped_column(
         DateTime, nullable=False, server_default=func.current_timestamp()
     )
-    automated_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
 
 
 class OrderItem(Base):
@@ -105,7 +96,7 @@ class OrderItem(Base):
         CHAR(36), ForeignKey("inventory_items.item_id"), nullable=False
     )
     final_quantity: Mapped[Decimal] = mapped_column(DECIMAL(10, 3), nullable=False)
-    # 확정 시점 단가 — 미설정이면 단가·소계 모두 NULL (01_basic_design.md §3.7.4)
+    # 담기 결과의 재료 단위당 단가 — 계산하지 못하면 단가·소계 모두 NULL (01_basic_design.md §3.8.1)
     unit_price: Mapped[Decimal | None] = mapped_column(DECIMAL(12, 3), nullable=True)
     subtotal: Mapped[int | None] = mapped_column(Integer, nullable=True)
     receipt_status: Mapped[ReceiptStatus] = mapped_column(

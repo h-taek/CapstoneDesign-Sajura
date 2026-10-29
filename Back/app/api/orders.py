@@ -1,4 +1,4 @@
-"""/api/orders — 추천발주 조회 + 발주 확정·내역 (02_implementation_design.md §3.7)."""
+"""/api/orders — 추천발주 + 쿠팡 담기(발주 확정)·발주 내역 (02_implementation_design.md §3.7)."""
 
 from __future__ import annotations
 
@@ -9,25 +9,25 @@ from fastapi import APIRouter, Depends, Query, Response, status
 from app.api.deps import CurrentUserDep, SessionDep, require_business_access
 from app.api.inventory import lot_dto
 from app.models.coupang import CoupangProduct
-from app.models.order import Order
 from app.schemas.forecast import AIRecommendResponse
 from app.schemas.inventory import LotCreateRequest, LotResponse
 from app.schemas.orders import (
     ApprovalLogItem,
     ApprovalLogResponse,
-    AutomationResultRequest,
-    AutomationResultResponse,
-    MatchRequest,
-    MatchResponse,
-    OrderApproveRequest,
-    OrderApproveResponse,
+    AutomateFinishRequest,
+    AutomateFinishResponse,
+    AutomateStartRequest,
+    AutomateStartResponse,
+    AutomateStepAction,
+    AutomateStepDone,
+    AutomateStepRequest,
     OrderCoupangProduct,
     OrderDetailItem,
     OrderDetailResponse,
     OrderListResponse,
     OrderSummary,
 )
-from app.services.automation_service import AutomationService, search_required, utcnow
+from app.services.automation_service import AutomationService
 from app.services.order_service import OrderService
 from app.services.store_service import StoreService
 
@@ -40,33 +40,10 @@ async def _store_id(session, user_id: str) -> str:
     return (await StoreService(session).get_store(user_id)).store_id
 
 
-def _approve_dto(order: Order) -> OrderApproveResponse:
-    return OrderApproveResponse(
-        order_id=order.order_id,
-        approved_at=order.approved_at,
-        total_estimated_cost=order.total_estimated_cost,
-        status=order.status.value,
-    )
-
-
 @router.get("/recommend", response_model=AIRecommendResponse)
 async def get_recommendations(session: SessionDep, current: CurrentUserDep) -> AIRecommendResponse:
     store_id = await _store_id(session, current.user_id)
     return AIRecommendResponse(**await OrderService(session).recommend(store_id=store_id))
-
-
-@router.post("/approve", response_model=OrderApproveResponse, status_code=status.HTTP_201_CREATED)
-async def approve_order(
-    payload: OrderApproveRequest, session: SessionDep, current: CurrentUserDep
-) -> OrderApproveResponse:
-    store_id = await _store_id(session, current.user_id)
-    order = await OrderService(session).approve_order(
-        store_id=store_id,
-        recommendation_id=payload.recommendation_id,
-        items=payload.items,
-        note=payload.note,
-    )
-    return _approve_dto(order)
 
 
 @router.get("", response_model=OrderListResponse)
@@ -79,7 +56,15 @@ async def list_orders(
     store_id = await _store_id(session, current.user_id)
     rows, total = await OrderService(session).list_orders(store_id=store_id, page=page, size=size)
     return OrderListResponse(
-        items=[OrderSummary(**_approve_dto(o).model_dump(), item_count=count) for o, count in rows],
+        items=[
+            OrderSummary(
+                order_id=o.order_id,
+                approved_at=o.approved_at,
+                total_estimated_cost=o.total_estimated_cost,
+                item_count=count,
+            )
+            for o, count in rows
+        ],
         total=total,
         page=page,
         size=size,
@@ -95,12 +80,10 @@ async def get_order(
     service = OrderService(session)
     order = await service.get_order(store_id=store_id, order_id=order_id)
     items = await service.get_order_items(order_id=order_id)
-    lines = await AutomationService(session).lines(order_id=order_id)
-    now = utcnow()
+    products = await service.linked_products(item_ids=[i.item_id for i, _, _ in items])
     return OrderDetailResponse(
         order_id=order.order_id,
         approved_at=order.approved_at,
-        status=order.status.value,
         total_estimated_cost=order.total_estimated_cost,
         note=order.note,
         items=[
@@ -113,10 +96,7 @@ async def get_order(
                 unit_price=float(i.unit_price) if i.unit_price is not None else None,
                 subtotal=i.subtotal,
                 receipt_status=i.receipt_status.value,
-                coupang_search_required=search_required(
-                    lines[i.item_id].item, lines[i.item_id].product, now
-                ),
-                coupang_product=_coupang_product(lines[i.item_id].product),
+                coupang_product=_coupang_product(products.get(i.item_id)),
             )
             for i, name, unit in items
         ],
@@ -127,38 +107,48 @@ def _coupang_product(product: CoupangProduct | None) -> OrderCoupangProduct | No
     if product is None:
         return None
     return OrderCoupangProduct(
+        item_id=product.item_id,
         product_id=product.product_id,
-        vendor_item_id=product.vendor_item_id,
         product_name=product.product_name,
+        option_name=product.option_name,
         rocket_fresh=product.rocket_fresh,
     )
 
 
-@router.post("/{order_id}/automate/match", response_model=MatchResponse)
-async def automate_match(
-    order_id: str, payload: MatchRequest, session: SessionDep, current: CurrentUserDep
-) -> MatchResponse:
-    """확장이 수집한 검색 결과로 담을 상품을 고른다 (03_be.md §2.4)."""
+@router.post("/automate/start", response_model=AutomateStartResponse)
+async def automate_start(
+    payload: AutomateStartRequest, session: SessionDep, current: CurrentUserDep
+) -> AutomateStartResponse:
+    """[쿠팡 담기] — 담기를 시작한다. 발주는 아직 저장하지 않는다."""
     store_id = await _store_id(session, current.user_id)
-    return await AutomationService(session).match(
-        store_id=store_id, order_id=order_id, req=payload
+    return await AutomationService(session).start(
+        store_id=store_id,
+        recommendation_id=payload.recommendation_id,
+        items=payload.items,
+        note=payload.note,
+        logged_in=payload.coupang_logged_in,
     )
 
 
-@router.post("/{order_id}/automate/result", response_model=AutomationResultResponse)
-async def automate_result(
-    order_id: str, payload: AutomationResultRequest, session: SessionDep, current: CurrentUserDep
-) -> AutomationResultResponse:
-    """확장의 담기 결과 — 공용 쿠팡 상품·재료 연결·발주 상태를 갱신한다."""
+@router.post(
+    "/automate/{run_id}/step", response_model=AutomateStepAction | AutomateStepDone
+)
+async def automate_step(
+    run_id: str, payload: AutomateStepRequest, session: SessionDep, current: CurrentUserDep
+) -> AutomateStepAction | AutomateStepDone:
+    """담기 에이전트 한 걸음 (03_be.md §2.4)."""
     store_id = await _store_id(session, current.user_id)
-    order, guide = await AutomationService(session).record_result(
-        store_id=store_id, order_id=order_id, req=payload
-    )
-    return AutomationResultResponse(
-        order_id=order.order_id,
-        status=order.status.value,
-        automated_at=order.automated_at,
-        manual_guide_url=guide,
+    return await AutomationService(session).step(store_id=store_id, run_id=run_id, req=payload)
+
+
+@router.post("/automate/{run_id}/finish", response_model=AutomateFinishResponse)
+async def automate_finish(
+    run_id: str, payload: AutomateFinishRequest, session: SessionDep, current: CurrentUserDep
+) -> AutomateFinishResponse:
+    """쿠팡 담기 마침 — 담긴 품목으로 발주를 확정한다."""
+    store_id = await _store_id(session, current.user_id)
+    return await AutomationService(session).finish(
+        store_id=store_id, run_id=run_id, non_wow_prices=payload.non_wow_prices
     )
 
 

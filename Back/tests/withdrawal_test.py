@@ -26,6 +26,7 @@ from app.models.user import User
 from app.services.account_purge_service import AccountPurgeService
 from app.services.auth_service import AuthService
 from app.services.notification_service import NotificationService
+from tests.automation_test import place_order
 from tests.conftest import make_test_email
 from tests.sales_test import _create_menu, _csv_bytes, _register_verified_user
 
@@ -122,12 +123,7 @@ async def test_purge_deletes_expired_accounts_with_store_data(
         headers=auth,
     )
     assert r.status_code == 200, r.text
-    r = await client.post(
-        "/api/orders/approve",
-        json={"items": [{"item_id": item_id, "final_quantity": 1}]},
-        headers=auth,
-    )
-    assert r.status_code == 201, r.text
+    await place_order(client, auth, {item_id: 1})
 
     user_id = await _user_id(email)
     cert = tmp_path / "business_cert" / "cert.pdf"

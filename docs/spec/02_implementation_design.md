@@ -1786,7 +1786,7 @@ Authorization: Bearer <access_token>
   "total_estimated_cost": 84000,
   "manual_guide_url": null,           // 실패 품목이 있으면 쿠팡 첫 화면 https://www.coupang.com/ — 검색 결과 주소를 직접 열면 차단될 수 있다
   "items": [
-    { "item_id": "uuid", "status": "ADDED", "reason": null }   // ADDED | CHECK_NEEDED | FAILED. 담기 결과가 없는 품목은 FAILED이고 발주에 넣지 않는다
+    { "item_id": "uuid", "status": "ADDED", "reason": null }   // ADDED | CHECK_NEEDED | FAILED. 담기 결과가 없는 품목은 FAILED이고 발주에 넣지 않는다. reason은 FAILED 품목의 finish_item 사유(진행 상태에만 두고 DB에 저장하지 않음), 없으면 null
   ]
 }
 // 404 NOT_FOUND: 진행 중 담기가 없음(만료 포함)

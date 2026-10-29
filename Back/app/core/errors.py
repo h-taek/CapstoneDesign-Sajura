@@ -61,17 +61,3 @@ def auth_password_not_allowed() -> DomainError:
 
 def validation_error(message: str, detail: Any = None) -> DomainError:
     return DomainError(status_code=400, error_code="VALIDATION_ERROR", message=message, detail=detail)
-
-
-def order_llm_quota_exceeded() -> DomainError:
-    return DomainError(
-        status_code=429, error_code="ORDER_LLM_QUOTA_EXCEEDED",
-        message="자동 담기 상품 선택 횟수를 넘었습니다. 쿠팡에서 직접 담아 주세요.",
-    )
-
-
-def order_llm_guard_rejected(reason: str) -> DomainError:
-    return DomainError(
-        status_code=422, error_code="ORDER_LLM_GUARD_REJECTED",
-        message="보안 검사에서 요청이 거부되었습니다.", detail={"reason": reason},
-    )
