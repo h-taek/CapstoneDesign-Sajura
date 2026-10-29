@@ -331,7 +331,7 @@ sequenceDiagram
             에이전트-->>사주라서버: 다음 동작 또는 대화 끝
             사주라서버->>DB: 요소 목록의 상품 카드로 공용 쿠팡 상품 저장·갱신
             opt 품목 끝
-                사주라서버->>DB: 재료 연결·포장 수량 갱신
+                사주라서버->>DB: 재료 연결 갱신
             end
             사주라서버-->>사주라UI: 다음 동작 또는 대화 끝
             사주라UI->>확장: 다음 동작
@@ -1196,14 +1196,17 @@ Authorization: Bearer <access_token>
   "nearest_expiry_date": "2026-08-06",
   "needs_check": false,
   "coupang_product": {
-    "product_name": "○○ 원두 1kg",
+    "item_id": "10000000001",
+    "product_id": "1000001",
+    "product_name": "○○ 원두",
+    "option_name": "1kg, 1개",     // 없으면 null
     "sale_price": 28000,           // 판매가(원). 비었으면 null
-    "content_quantity": 1000.0,    // 상품 1개 용량. 모르면 null
+    "content_quantity": 1000.0,    // 상품 1개 용량(g·ml·개). 모르면 null
     "content_unit": "g",
+    "unit_price": 28.0,            // 공용 단가(용량 단위 1당 원). 대조를 통과하지 못했으면 null
     "updated_at": "2026-05-06T10:05:00Z"
   },
-  "pack_quantity": null,         // 상품 1개에 든 재료 수량(재료 단위). LLM 판정 또는 점주 입력
-  "unit_price": 28.0,            // 재료 단위당 원. 계산할 수 없으면 null
+  "unit_price": 28.0,            // 재료 단위당 원. 미설정이면 null
   "created_at": "2026-05-06T00:00:00Z",
   "updated_at": "2026-05-06T00:00:00Z"
 }
@@ -1211,15 +1214,12 @@ Authorization: Bearer <access_token>
 
 #### PATCH /api/inventory/{item_id}
 
-> `pack_quantity`는 매장 재고 품목에만 저장하고 공용 쿠팡 상품에 쓰지 않는다 (`01_basic_design.md` §3.3.1).
-
 ```json
 // Request (변경할 필드만)
 {
   "low_stock_threshold": 800.0,
   "lead_time_days": 3,
-  "safety_stock": 1200.0,
-  "pack_quantity": 1000.0        // > 0. 연결된 쿠팡 상품이 없으면 400 VALIDATION_ERROR
+  "safety_stock": 1200.0
 }
 // Response 200: GET /api/inventory/{item_id} 와 동일 구조
 ```
@@ -1714,9 +1714,10 @@ Authorization: Bearer <access_token>
       "subtotal": 84000,           // 미설정이었으면 null
       "receipt_status": "PENDING", // PENDING(입고 대기) | RECEIVED(입고 완료) | SKIPPED(입고 안 함)
       "coupang_product": {               // 재료에 연결된 공용 쿠팡 상품. 없으면 null
-        "product_id": "7335597976",
-        "vendor_item_id": "87234561234",
-        "product_name": "○○ 원두 1kg",
+        "item_id": "10000000001",
+        "product_id": "1000001",
+        "product_name": "○○ 원두",
+        "option_name": "1kg, 1개",
         "rocket_fresh": false
       }
     }
@@ -1781,7 +1782,7 @@ Authorization: Bearer <access_token>
   "url": "https://www.coupang.com/np/search?q=…",
   "elements": [
     { "ref": "12", "role": "link", "text": "곰곰 무항생제 신선한 대란, 30구, 1개", "depth": 3,
-      "product_id": "1271064981", "vendor_item_id": "70272921582" },   // 검색 결과 화면은 카드 링크, 상품 페이지는 상품명 요소에 붙는다
+      "product_id": "1271064981", "item_id": "…", "vendor_item_id": "70272921582" },   // 검색 결과 화면은 카드 링크, 상품 페이지는 상품명 요소에 붙는다
     { "ref": "13", "role": "text", "text": "8,390원", "depth": 4 },
     { "ref": "14", "role": "image", "text": "logo_fresh_medium.png", "depth": 4 }   // 글자 없는 그림은 파일 이름
   ]
@@ -1791,9 +1792,9 @@ Authorization: Bearer <access_token>
 
 // Response 200 — 둘 중 하나. 03_be.md §2.4.4의 도구
 { "action": { "tool": "click", "args": { "ref": "12" } } }
-{ "done": { "tool": "finish_item", "args": { "status": "ADDED", "product_id": "1271064981", "vendor_item_id": "70272921582",
-            "quantity": 1, "pack_quantity": null, "reason": "무항생제 대란 30구" } } }
+{ "done": { "tool": "finish_item", "args": { "status": "ADDED", "item_id": "…", "quantity": 1, "reason": "무항생제 대란 30구" } } }
 // 상품 고유 ID가 붙은 요소의 아래 깊이 요소들을 그 상품의 값으로 보고, 공용 쿠팡 상품을 저장·갱신한다 (01_basic_design.md §3.3.1, 04_fe.md §12.5)
+// finish_item의 item_id가 이 품목 대화에서 받은 화면에 나온 상품이면 재고 품목을 연결한다. LLM이 답한 값은 저장하지 않는다 (01_basic_design.md §3.8.1)
 // 400 VALIDATION_ERROR: 진행 중 담기의 대상이 아님, 형식 오류, 15만 자 초과
 // 422 ORDER_LLM_GUARD_REJECTED: "detail": { "reason": "…" }
 // 429 ORDER_LLM_QUOTA_EXCEEDED
@@ -2340,15 +2341,14 @@ CREATE TABLE inventory_items (
     safety_stock        DECIMAL(10,3)   NULL COMMENT '추천발주 안전재고 수량. NULL이면 기본값 0 사용',
     deducted_until      DATETIME        NOT NULL COMMENT '차감 기준 시각(sold_at과 같은 매장 현지 시각). 이 시각보다 뒤에 팔린 판매만 차감. 등록 시각으로 시작',
     needs_check         TINYINT(1)      NOT NULL DEFAULT 0 COMMENT '재고 확인 필요 (01_basic_design.md §3.3.3)',
-    coupang_product_id  CHAR(36)        NULL COMMENT '연결된 공용 쿠팡 상품 (01_basic_design.md §3.3.1)',
+    coupang_item_id     VARCHAR(20)     NULL COMMENT '연결된 공용 쿠팡 상품 itemId (01_basic_design.md §3.3.1)',
     coupang_linked_at   DATETIME        NULL COMMENT '검색으로 고른 상품을 연결한 시각. 자동 담기 검색 주기 기준 (01_basic_design.md §3.8.1)',
-    pack_quantity       DECIMAL(10,3)   NULL COMMENT '연결 상품 1개에 든 재료 수량(재료 단위). LLM 판정 또는 점주 입력',
     created_at          DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at          DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     PRIMARY KEY (item_id),
     KEY idx_inventory_items_store_id (store_id),
     CONSTRAINT fk_inventory_items_store FOREIGN KEY (store_id) REFERENCES stores (store_id) ON DELETE CASCADE,
-    CONSTRAINT fk_inventory_items_coupang_product FOREIGN KEY (coupang_product_id) REFERENCES coupang_products (coupang_product_id)
+    CONSTRAINT fk_inventory_items_coupang_product FOREIGN KEY (coupang_item_id) REFERENCES coupang_products (item_id)
 );
 ```
 
@@ -2423,21 +2423,22 @@ CREATE TABLE disposal_logs (
 
 #### 4.3.12 coupang_products
 
-> 매장 공용 쿠팡 상품 (`01_basic_design.md` §3.3.1). 사주라 확장이 담기에 성공한 상품의 값만 들어온다. 매장 정보와 점주 입력은 담지 않는다.
+> 매장 공용 쿠팡 상품 (`01_basic_design.md` §3.3.1). 쿠팡 옵션(`itemId`) 하나당 한 행이다. 쿠팡 자동 담기 중 서버가 받은 화면의 상품 값만 들어온다. 매장 정보와 LLM이 답한 값은 담지 않는다.
 
 ```sql
 CREATE TABLE coupang_products (
-    coupang_product_id  CHAR(36)        NOT NULL,
-    product_id          VARCHAR(20)     NOT NULL COMMENT '쿠팡 productId',
-    vendor_item_id      VARCHAR(20)     NOT NULL COMMENT '쿠팡 vendorItemId',
-    product_name        VARCHAR(300)    NOT NULL,
+    item_id             VARCHAR(20)     NOT NULL COMMENT '쿠팡 itemId',
+    product_id          VARCHAR(20)     NOT NULL COMMENT '쿠팡 productId. 상품 페이지 주소용',
+    vendor_item_id      VARCHAR(20)     NOT NULL COMMENT '마지막으로 본 쿠팡 vendorItemId',
+    product_name        VARCHAR(300)    NOT NULL COMMENT '상품명 원문의 첫 쉼표 앞. 쉼표가 없으면 전체',
+    option_name         VARCHAR(200)    NULL COMMENT '상품명 원문의 첫 쉼표 뒤. 쉼표가 없으면 NULL',
     sale_price          INT             NULL COMMENT '판매가(원). 조건 없이 누구나 받는 표시 가격. 와우 할인 상품으로만 관찰되면 NULL',
-    content_quantity    DECIMAL(10,3)   NULL COMMENT '상품 1개 용량. 쿠팡 단위가격 표시에서 계산. 모르면 NULL',
-    content_unit        VARCHAR(10)     NULL COMMENT '용량 단위 (g·ml·개·구 등)',
     rocket_fresh        TINYINT(1)      NOT NULL DEFAULT 0 COMMENT '로켓프레시 상품 여부. 비로그인 담기 불가',
-    updated_at          DATETIME        NOT NULL COMMENT '확장이 마지막으로 값을 보낸 시각',
-    PRIMARY KEY (coupang_product_id),
-    UNIQUE KEY uq_coupang_products_item (product_id, vendor_item_id)
+    content_quantity    DECIMAL(12,3)   NULL COMMENT '상품 1개 용량. 상품명·옵션 이름에서 계산. 계산하지 못하면 NULL',
+    content_unit        VARCHAR(4)      NULL COMMENT '용량 단위 g·ml·개',
+    unit_price          DECIMAL(12,4)   NULL COMMENT '공용 단가(용량 단위 1당 원). 쿠팡 단위가격 표시와 2% 이내일 때만 저장',
+    updated_at          DATETIME        NOT NULL COMMENT '마지막으로 값을 갱신한 시각',
+    PRIMARY KEY (item_id)
 );
 ```
 
@@ -2665,12 +2666,12 @@ CREATE TABLE push_subscriptions (
 
 ```sql
 CREATE TABLE coupang_price_candidates (
-    coupang_product_id  CHAR(36)        NOT NULL,
+    item_id             VARCHAR(20)     NOT NULL COMMENT '쿠팡 itemId',
     store_id            CHAR(36)        NOT NULL COMMENT '후보를 보낸 매장',
     sale_price          INT             NOT NULL COMMENT '보낸 판매가(원)',
     received_at         DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    PRIMARY KEY (coupang_product_id, store_id),
-    CONSTRAINT fk_price_candidates_product FOREIGN KEY (coupang_product_id) REFERENCES coupang_products (coupang_product_id) ON DELETE CASCADE,
+    PRIMARY KEY (item_id, store_id),
+    CONSTRAINT fk_price_candidates_product FOREIGN KEY (item_id) REFERENCES coupang_products (item_id) ON DELETE CASCADE,
     CONSTRAINT fk_price_candidates_store FOREIGN KEY (store_id) REFERENCES stores (store_id) ON DELETE CASCADE
 );
 ```
