@@ -1774,8 +1774,14 @@ Authorization: Bearer <access_token>
 // Request
 {
   "target": "uuid",                   // 품목 item_id 또는 "cart_check". start의 대상만
-  "result": null                      // 새 대화면 null. 아니면 직전 동작의 실행 결과 (04_fe.md §12.4)
+  "result": null,                     // 새 대화면 null. 아니면 직전 동작의 실행 결과 (04_fe.md §12.4)
+  "non_wow_prices": []                // 확장이 뒤에서 받은 와우 할인 카드의 비회원 가격 (04_fe.md §12.5). 없으면 빈 배열
 }
+
+// non_wow_prices 원소
+{ "item_id": "…", "non_wow_price": 9900, "display_price": 9600, "unit_price_text": "100g당 1,200원" }
+// display_price·unit_price_text는 그 카드의 화면 값(용량 대조용, 01_basic_design.md §3.3.1)
+// 그 담기에서 와우 할인 카드로 받은 itemId만 쓰고 나머지는 버린다. 에이전트 서버로 보내지 않는다
 
 // result — 요소 목록 (read_elements의 결과). 개인정보는 확장이 ---로 가린 뒤 보낸다
 {
@@ -1784,7 +1790,7 @@ Authorization: Bearer <access_token>
   "elements": [
     { "ref": "12", "role": "link", "text": "곰곰 무항생제 신선한 대란, 30구, 1개", "depth": 3,
       "product_id": "1271064981", "item_id": "…", "vendor_item_id": "70272921582" },   // 검색 결과 화면은 카드 링크, 상품 페이지는 상품명 요소에 붙는다
-    { "ref": "13", "role": "text", "text": "8,390원", "depth": 4 },
+    { "ref": "13", "role": "text", "text": "8,390원", "depth": 4 },   // 상품 페이지의 상품명 요소에는 non_wow_price(페이지 데이터의 nonWowMemberPrice)도 붙는다
     { "ref": "14", "role": "image", "text": "logo_fresh_medium.png", "depth": 4 }   // 글자 없는 그림은 파일 이름
   ]
 }
@@ -1796,7 +1802,8 @@ Authorization: Bearer <access_token>
 { "action": { "tool": "click", "args": { "ref": "12" } } }
 { "done": { "tool": "finish_item", "args": { "reason": null } } }
 // 동작 결과에 담기 결과(cart_added)가 있으면 에이전트 서버를 부르지 않고 그 품목 대화를 끝낸다 — { "done": { "tool": "finish_item", "args": { "reason": null } } }
-// 상품 고유 ID가 붙은 요소의 아래 깊이 요소들을 그 상품의 값으로 보고, 공용 쿠팡 상품을 저장·갱신한다 (01_basic_design.md §3.3.1, 04_fe.md §12.5)
+// 상품 고유 ID가 붙은 요소의 아래 깊이 요소들을 그 상품의 값으로 보고, 매장 가격과 공용 쿠팡 상품을 저장·갱신한다 (01_basic_design.md §3.3.1, 04_fe.md §12.5)
+// non_wow_prices는 에이전트 서버 응답과 관계없이 진행 중 담기의 step이면 매장 가격에 반영한다
 // 담기 결과(cart_added)를 받으면 그 상품에 재고 품목을 연결하고, 발주 품목의 단가·소계를 저장한다(01_basic_design.md §3.8.1). 그 품목 대화에 담기 결과가 있으면 성공이다. LLM이 답한 값은 저장하지 않는다 (01_basic_design.md §3.8.1)
 // 400 VALIDATION_ERROR: 진행 중 담기의 대상이 아님, 형식 오류, 15만 자 초과
 // 422 ORDER_LLM_GUARD_REJECTED: "detail": { "reason": "…" }
@@ -1808,7 +1815,8 @@ Authorization: Bearer <access_token>
 #### POST /api/orders/{order_id}/automate/finish
 
 ```json
-// Request 없음
+// Request
+{ "non_wow_prices": [] }              // step과 같다. 마지막 걸음 뒤에 받은 값
 // Response 200
 {
   "order_id": "uuid",
