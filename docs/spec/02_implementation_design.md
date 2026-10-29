@@ -77,8 +77,8 @@
 | 2. 데이터 적재 | 주점 POS 데이터 CSV 업로드 → 메뉴·레시피 등록 → 초기 재고 입력 | 업로드 파싱 성공 건수, 이상치 감지 결과 |
 | 3. 배치 실행 | n8n 워크플로우 수동 트리거 → AI Server 예측·추천발주 생성 → DB 저장 | pipeline_jobs 상태 DONE 전환, forecast_results 생성 확인 |
 | 4. 수요예측 확인 | 메뉴별 1~3일 예상 수요 조회 → 예측 근거 확인 → 신뢰도 배지 확인 | 예측 근거 표시(`05_ai.md` §8), 신뢰도 낮음 배지 동작 |
-| 5. 추천발주 승인 | 품목별 권장 수량·예상 소진 시점 확인 → 수량 수정 → 발주 확정 | 수정 이력 저장 (order_approval_logs), 발주 확정 처리 |
-| 6. 쿠팡 자동화 | 사주라 확장이 쿠팡 장바구니에 품목 자동 담기 → 결과 화면 표시 | 성공 품목·실패 품목 분리 표시, 수동 처리 안내 |
+| 5. 추천발주 승인 | 품목별 권장 수량·예상 소진 시점 확인 → 수량 수정 → [쿠팡 담기] | 수정 이력 저장 (order_approval_logs) |
+| 6. 쿠팡 자동화 | 사주라 확장이 쿠팡 장바구니에 품목 자동 담기 → 담긴 품목으로 발주 확정 → 결과 화면 표시 | 담긴 품목만 발주 저장, 성공 품목·실패 품목 분리 표시, 수동 처리 안내 |
 
 ### 1.7 성공 기준
 
@@ -285,9 +285,9 @@ sequenceDiagram
     end
 ```
 
-### 2.4 발주 확정 및 쿠팡 자동화 시퀀스
+### 2.4 쿠팡 담기와 발주 확정 시퀀스
 
-> 발주 확정과 쿠팡 자동화는 별도 엔드포인트로 분리된다(§3.7).
+> [쿠팡 담기]를 누르면 담기를 시작하고, 담기를 마칠 때 담긴 품목으로 발주를 확정한다(`01_basic_design.md` §3.7.4, §3.7).
 > 브라우저 조작은 사주라 확장이 점주 브라우저에서 수행한다 — 구조: `04_fe.md` §12.
 
 ```mermaid
@@ -312,21 +312,16 @@ sequenceDiagram
         사용자->>사주라UI: 수량 수정 또는 품목 제외 (화면에서만, 서버에 저장하지 않음)
     end
 
-    사용자->>사주라UI: 발주 확정 버튼 클릭
-    사주라UI->>사주라서버: POST /api/orders/approve
-    사주라서버->>DB: 발주 내역 저장 (orders)
-    사주라서버-->>사주라UI: 발주 확정 완료
-
-    사용자->>사주라UI: 쿠팡 자동 담기 요청
+    사용자->>사주라UI: [쿠팡 담기] 클릭 (확장이 없으면 비활성)
     사주라UI->>확장: 쿠팡 작업 탭 열기·로그인 여부 확인 (externally_connectable)
-    사주라UI->>사주라서버: POST /api/orders/{order_id}/automate/start
-    사주라서버-->>사주라UI: 대상 품목 목록
+    사주라UI->>사주라서버: POST /api/orders/automate/start (추천안·품목·수량·메모)
+    사주라서버-->>사주라UI: run_id·대상 품목 목록
 
     loop 품목마다, 마지막에 장바구니 검수
         loop 대화가 끝날 때까지
-            사주라UI->>사주라서버: POST /api/orders/{order_id}/automate/step (직전 실행 결과)
+            사주라UI->>사주라서버: POST /api/orders/automate/{run_id}/step (직전 실행 결과)
             alt 동작 결과에 담기 결과(cart_added)
-                사주라서버->>DB: 재료 연결·발주 품목 단가 갱신
+                사주라서버->>DB: 재료 연결 (품목 단가·소계는 진행 상태에 보관)
                 사주라서버-->>사주라UI: 대화 끝 (에이전트 서버를 부르지 않음)
             else
                 사주라서버->>에이전트: POST /agent/step
@@ -341,8 +336,8 @@ sequenceDiagram
         end
     end
 
-    사주라UI->>사주라서버: POST /api/orders/{order_id}/automate/finish
-    사주라서버->>DB: orders.status = AUTOMATED (실패 품목이 있으면 MANUAL_REQUIRED)
+    사주라UI->>사주라서버: POST /api/orders/automate/{run_id}/finish
+    사주라서버->>DB: 담긴 품목으로 orders·order_items·order_approval_logs 저장 (담긴 품목이 없으면 저장하지 않음)
     사주라서버-->>사주라UI: 품목별 결과
     사주라UI-->>사용자: 결과 화면 + 쿠팡 결제 안내 (실패 품목은 수동 처리 안내)
 ```
@@ -1522,14 +1517,13 @@ Authorization: Bearer <access_token>
 | `GET` | `/api/forecast` | 수요예측 결과 조회 (매장 일 매출 D+1~D+3) |
 | `POST` | `/api/forecast/run` | 수요예측 수동 실행 (저장된 예측이 없을 때) |
 | `GET` | `/api/orders/recommend` | 추천발주 목록 조회 |
-| `POST` | `/api/orders/approve` | 발주 확정 |
 | `GET` | `/api/orders` | 발주 내역 목록 조회 |
 | `GET` | `/api/orders/{order_id}` | 발주 내역 상세 조회 |
 | `POST` | `/api/orders/items/{order_item_id}/receive` | 발주 품목 입고 처리 (로트 생성) |
 | `POST` | `/api/orders/items/{order_item_id}/skip` | 발주 품목 입고 안 함 |
-| `POST` | `/api/orders/{order_id}/automate/start` | 쿠팡 자동 담기 시작 |
-| `POST` | `/api/orders/{order_id}/automate/step` | 담기 에이전트 한 걸음 |
-| `POST` | `/api/orders/{order_id}/automate/finish` | 쿠팡 자동 담기 마침 — 발주 상태 갱신 |
+| `POST` | `/api/orders/automate/start` | 쿠팡 담기 시작 |
+| `POST` | `/api/orders/automate/{run_id}/step` | 담기 에이전트 한 걸음 |
+| `POST` | `/api/orders/automate/{run_id}/finish` | 쿠팡 담기 마침 — 담긴 품목으로 발주 확정 |
 | `GET` | `/api/orders/{order_id}/approval-log` | 발주 수정 이력 조회 |
 
 #### GET /api/forecast
@@ -1586,7 +1580,7 @@ Authorization: Bearer <access_token>
 
 > BE가 저장된 예측(§4.3.14·§4.3.15)과 그 시점의 레시피·재고·입고 예정으로 `01_basic_design.md` §3.7.2 산식을 계산한다. AI Server를 호출하지 않는다.
 > 대상일은 판매 이력 마지막 영업일 기준 D+1~D+3이고, 그 날짜의 저장된 예측을 쓴다. 신뢰도는 대상일 중 하나라도 낮으면 낮음이고 사유는 가장 이른 날짜의 것이다. 결과는 참고치이며 예측 신뢰도 배지를 동반한다 — 배지 없이 단독 노출 금지 (`05_ai.md` §8).
-> 요청마다 `order_recommendations`·`order_recommendation_items`에 저장한다. 이때 같은 매장·같은 날짜의 추천안 중 발주에 연결되지 않은 것은 대체한다. `recommendation_id`는 `POST /api/orders/approve`가 추천안을 지목하는 키다.
+> 요청마다 `order_recommendations`·`order_recommendation_items`에 저장한다. 이때 같은 매장·같은 날짜의 추천안 중 발주에 연결되지 않은 것은 대체한다. `recommendation_id`는 `POST /api/orders/automate/start`가 추천안을 지목하는 키다.
 
 ```json
 // Response 200
@@ -1626,52 +1620,6 @@ Authorization: Bearer <access_token>
 
 기본값 대체 여부는 BE가 판단한다.
 
-#### POST /api/orders/approve
-
-> 발주와 수정 이력(`order_approval_logs`)은 한 트랜잭션으로 저장한다 (`03_be.md` §5).
-
-```json
-// Request
-{
-  "recommendation_id": "uuid",     // 확정 대상 추천안. 추천안 없이 발주하면 null
-  "items": [
-    {
-      "item_id": "uuid",
-      "final_quantity": 3000.0     // > 0
-    }
-  ],
-  "note": "이번 주 행사로 원두 줄임" // 선택, 500자 이하
-}
-
-// Response 201
-{
-  "order_id": "uuid",
-  "approved_at": "2026-05-06T10:00:00Z",
-  "total_estimated_cost": 0,          // 확정 때는 단가가 비어 있어 0. 담기 결과로 소계가 저장되면 다시 합한다
-  "status": "APPROVED"
-}
-// 404 NOT_FOUND: 매장에 없는 재료 또는 추천안
-// 400 VALIDATION_ERROR: items 비어 있음, 같은 item_id 중복, final_quantity ≤ 0
-// 409 STATE_CONFLICT: 이미 발주를 확정한 추천안 — 추천안 하나에 발주는 하나다
-```
-
-| 산출 값 | 규칙 |
-|---|---|
-| `unit_price` | 확정 때 null. 담기 결과를 받을 때 담은 상품 페이지 표시 가격으로 계산한 재료 단가 (`01_basic_design.md` §3.8.1). 계산하지 못하면 null |
-| `subtotal` | `round(final_quantity × unit_price)`. `unit_price`가 null이면 null |
-| `total_estimated_cost` | null이 아닌 `subtotal` 합계. 소계가 저장될 때마다 다시 합한다 |
-| 입고 상태 | 모든 품목 `PENDING`(입고 대기) |
-
-`recommendation_id`가 있으면 수정 이력을 품목별로 남긴다.
-
-| 대상 품목 | `recommended_quantity` | `final_quantity` |
-|---|---|---|
-| 추천안에 있고 발주에 포함 | 추천안 값 | 확정 수량 |
-| 추천안에 있고 발주에서 제외 | 추천안 값 | 0 |
-| 추천안에 없고 발주에 추가 | 0 | 확정 수량 |
-
-`was_modified`는 `final_quantity ≠ recommended_quantity`이다.
-
 #### GET /api/orders
 
 ```json
@@ -1683,7 +1631,6 @@ Authorization: Bearer <access_token>
       "order_id": "uuid",
       "approved_at": "2026-05-06T10:00:00Z",
       "total_estimated_cost": 84000,
-      "status": "APPROVED",  // APPROVED | AUTOMATED | MANUAL_REQUIRED
       "item_count": 3
     }
   ],
@@ -1701,7 +1648,6 @@ Authorization: Bearer <access_token>
 {
   "order_id": "uuid",
   "approved_at": "2026-05-06T10:00:00Z",
-  "status": "AUTOMATED",
   "total_estimated_cost": 84000,
   "note": "이번 주 행사로 원두 줄임",
   "items": [
@@ -1711,8 +1657,8 @@ Authorization: Bearer <access_token>
       "item_name": "원두",
       "final_quantity": 3000.0,
       "unit": "g",
-      "unit_price": 28.0,          // 담기 전이거나 계산하지 못했으면 null
-      "subtotal": 84000,           // 담기 전이거나 계산하지 못했으면 null
+      "unit_price": 28.0,          // 담기 결과로 계산하지 못했으면 null
+      "subtotal": 84000,           // 담기 결과로 계산하지 못했으면 null
       "receipt_status": "PENDING", // PENDING(입고 대기) | RECEIVED(입고 완료) | SKIPPED(입고 안 함)
       "coupang_product": {               // 재료에 연결된 공용 쿠팡 상품. 없으면 null
         "item_id": "10000000001",
@@ -1752,23 +1698,36 @@ Authorization: Bearer <access_token>
 // 409 STATE_CONFLICT: PENDING이 아닌 품목
 ```
 
-#### POST /api/orders/{order_id}/automate/start
+#### POST /api/orders/automate/start
 
-> 브라우저 조작은 사주라 확장이, 다음 동작 판단은 담기 에이전트 서버(`03_be.md` §2.4)가 한다. 흐름: `04_fe.md` §12.3.
+> [쿠팡 담기]로 담기를 시작한다. 이때는 발주를 저장하지 않는다. 품목·수량·메모와 담기 진행 상태는 Redis `coupang_run:{run_id}`에 둔다(`03_be.md` §12). 브라우저 조작은 사주라 확장이, 다음 동작 판단은 담기 에이전트 서버(`03_be.md` §2.4)가 한다. 흐름: `04_fe.md` §12.3.
 
 ```json
 // Request
-{ "coupang_logged_in": false }        // 확장이 확인한 쿠팡 로그인 여부. 품목 첫 지시에 쓴다 (01_basic_design.md §3.8.1)
+{
+  "recommendation_id": "uuid",     // 대상 추천안. 추천안 없이 발주하면 null
+  "items": [
+    {
+      "item_id": "uuid",
+      "final_quantity": 3000.0     // > 0
+    }
+  ],
+  "note": "이번 주 행사로 원두 줄임", // 선택, 500자 이하
+  "coupang_logged_in": false        // 확장이 확인한 쿠팡 로그인 여부. 품목 첫 지시에 쓴다 (01_basic_design.md §3.8.1)
+}
 
 // Response 200 — 품목 대상을 이 순서로 진행한 뒤 "cart_check"를 진행한다
 {
+  "run_id": "uuid",
   "targets": [{ "item_id": "uuid", "item_name": "계란" }]
 }
-// 다시 부르면 그 발주의 진행 중 담기를 새로 시작한다
-// 404 NOT_FOUND: 매장에 없는 발주
+// 부를 때마다 새 담기를 시작한다
+// 404 NOT_FOUND: 매장에 없는 재료 또는 추천안
+// 400 VALIDATION_ERROR: items 비어 있음, 같은 item_id 중복, final_quantity ≤ 0
+// 409 STATE_CONFLICT: 이미 발주를 확정한 추천안 — 추천안 하나에 발주는 하나다
 ```
 
-#### POST /api/orders/{order_id}/automate/step
+#### POST /api/orders/automate/{run_id}/step
 
 ```json
 // Request
@@ -1812,23 +1771,45 @@ Authorization: Bearer <access_token>
 // 오류면 확장은 그 대상을 실패로 두고 다음 대상으로 넘어간다 (04_fe.md §12.7)
 ```
 
-#### POST /api/orders/{order_id}/automate/finish
+#### POST /api/orders/automate/{run_id}/finish
+
+> 담긴 품목(`ADDED`·`CHECK_NEEDED`)으로 발주를 확정한다. 발주·발주 품목·수정 이력(`order_approval_logs`)은 한 트랜잭션으로 저장한다 (`03_be.md` §5). 담긴 품목이 없으면 발주를 만들지 않는다.
 
 ```json
 // Request
 { "non_wow_prices": [] }              // step과 같다. 마지막 걸음 뒤에 받은 값
 // Response 200
 {
-  "order_id": "uuid",
-  "status": "AUTOMATED",              // 실패 품목이 하나라도 있으면 MANUAL_REQUIRED
-  "automated_at": "2026-05-06T10:05:00Z",
-  "manual_guide_url": null,           // MANUAL_REQUIRED 시 쿠팡 첫 화면 https://www.coupang.com/ — 검색 결과 주소를 직접 열면 차단될 수 있다
+  "order_id": "uuid",                 // 담긴 품목이 없으면 null
+  "approved_at": "2026-05-06T10:05:00Z",
+  "total_estimated_cost": 84000,
+  "manual_guide_url": null,           // 실패 품목이 있으면 쿠팡 첫 화면 https://www.coupang.com/ — 검색 결과 주소를 직접 열면 차단될 수 있다
   "items": [
-    { "item_id": "uuid", "status": "ADDED", "reason": null }   // ADDED | CHECK_NEEDED | FAILED. 담기 결과가 없는 품목은 FAILED
+    { "item_id": "uuid", "status": "ADDED", "reason": null }   // ADDED | CHECK_NEEDED | FAILED. 담기 결과가 없는 품목은 FAILED이고 발주에 넣지 않는다
   ]
 }
-// 404 NOT_FOUND: 매장에 없는 발주 · 409 STATE_CONFLICT: 진행 중 담기가 없음
+// 404 NOT_FOUND: 진행 중 담기가 없음(만료 포함)
+// 409 STATE_CONFLICT: 그 추천안으로 이미 확정한 발주가 있음
 ```
+
+| 산출 값 | 규칙 |
+|---|---|
+| `approved_at` | 발주를 확정한 시각(finish 시각) |
+| 발주 품목 | 담긴 품목만. `final_quantity`는 start에서 받은 확정 수량 |
+| `unit_price` | 담기 결과의 담은 상품 페이지 표시 가격으로 계산한 재료 단가 (`01_basic_design.md` §3.8.1). 계산하지 못하면 null |
+| `subtotal` | `round(final_quantity × unit_price)`. `unit_price`가 null이면 null |
+| `total_estimated_cost` | null이 아닌 `subtotal` 합계 |
+| 입고 상태 | 모든 품목 `PENDING`(입고 대기) |
+
+`recommendation_id`가 있으면 수정 이력을 품목별로 남긴다. 담지 못한 품목도 점주가 낸 확정 수량으로 남긴다.
+
+| 대상 품목 | `recommended_quantity` | `final_quantity` |
+|---|---|---|
+| 추천안에 있고 담기 요청에 포함 | 추천안 값 | 확정 수량 |
+| 추천안에 있고 담기 요청에서 제외 | 추천안 값 | 0 |
+| 추천안에 없고 담기 요청에 추가 | 0 | 확정 수량 |
+
+`was_modified`는 `final_quantity ≠ recommended_quantity`이다.
 
 #### GET /api/orders/{order_id}/approval-log
 
@@ -2555,11 +2536,9 @@ CREATE TABLE orders (
     order_id                CHAR(36)        NOT NULL,
     store_id                CHAR(36)        NOT NULL,
     recommendation_id       CHAR(36)        NULL COMMENT '수동 발주 시 NULL 허용',
-    status                  ENUM('APPROVED','AUTOMATED','MANUAL_REQUIRED') NOT NULL DEFAULT 'APPROVED',
     total_estimated_cost    INT             NOT NULL,
     note                    VARCHAR(500)    NULL,
-    approved_at             DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    automated_at            DATETIME        NULL,
+    approved_at             DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '쿠팡 담기를 마쳐 발주를 확정한 시각',
     PRIMARY KEY (order_id),
     UNIQUE KEY uq_orders_recommendation_id (recommendation_id),
     KEY idx_orders_store_approved_at (store_id, approved_at),
@@ -2576,7 +2555,7 @@ CREATE TABLE order_items (
     order_id        CHAR(36)        NOT NULL,
     item_id         CHAR(36)        NOT NULL,
     final_quantity  DECIMAL(10,3)   NOT NULL,
-    unit_price      DECIMAL(12,3)   NULL COMMENT '담기 결과를 받을 때의 재료 단위당 단가(원). 담기 전이거나 계산하지 못하면 NULL',
+    unit_price      DECIMAL(12,3)   NULL COMMENT '담기 결과의 재료 단위당 단가(원). 계산하지 못하면 NULL',
     subtotal        INT             NULL COMMENT 'round(final_quantity × unit_price). unit_price가 NULL이면 NULL',
     receipt_status  ENUM('PENDING','RECEIVED','SKIPPED') NOT NULL DEFAULT 'PENDING',
     lot_id          CHAR(36)        NULL COMMENT '입고 처리로 만든 로트',
@@ -2892,12 +2871,10 @@ n8n 야간 배치 (또는 수동 실행으로 매장 하나)
 → 저장된 예측 + 레시피 + 재고 + 입고 예정으로 계산
 → order_recommendations + order_recommendation_items 저장
 
-점주 발주 확정
-→ orders + order_items 생성
+점주 [쿠팡 담기]
+→ 사주라 확장 쿠팡 자동 담기
+→ 담긴 품목으로 orders + order_items 생성
 → order_approval_logs 기록 (추천값 vs 최종값)
-
-사주라 확장 쿠팡 자동화
-→ orders.status 업데이트 (AUTOMATED 또는 MANUAL_REQUIRED)
 
 판매 발생
 → inventory_lots.remaining_quantity FIFO 차감
