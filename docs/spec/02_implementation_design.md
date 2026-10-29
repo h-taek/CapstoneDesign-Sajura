@@ -51,7 +51,6 @@
 - 다중 업종 지원 — 카페·치킨집 등 주점 외 업종 확장
 - 데이터 내보내기·삭제 — GDPR 대응. 마이페이지에서 `GET /api/data/export`(CSV 다운로드), `DELETE /api/data`(전체 데이터 삭제)
 - 테스트 커버리지 80% — BE branch coverage 목표
-- 쿠팡 가격 이상값 반복 매장 처리 — 저장값과 20% 이상 다른 판매가(`01_basic_design.md` §3.3.1)를 3회 이상 보낸 매장의 수집 차단 또는 경고
 
 3단계
 
@@ -326,17 +325,19 @@ sequenceDiagram
     loop 품목마다, 마지막에 장바구니 검수
         loop 대화가 끝날 때까지
             사주라UI->>사주라서버: POST /api/orders/{order_id}/automate/step (직전 실행 결과)
-            사주라서버->>에이전트: POST /agent/step
-            에이전트->>에이전트: 오남용 방지 규칙 → 보안 분류기 → LLM (03_be.md §2.4)
-            에이전트-->>사주라서버: 다음 동작 또는 대화 끝
-            사주라서버->>DB: 요소 목록의 상품 카드로 공용 쿠팡 상품 저장·갱신
-            opt 동작 결과에 담기 결과(cart_added)
+            alt 동작 결과에 담기 결과(cart_added)
                 사주라서버->>DB: 재료 연결 갱신
+                사주라서버-->>사주라UI: 대화 끝 (에이전트 서버를 부르지 않음)
+            else
+                사주라서버->>에이전트: POST /agent/step
+                에이전트->>에이전트: 오남용 방지 규칙 → 보안 분류기 → LLM (03_be.md §2.4)
+                에이전트-->>사주라서버: 다음 동작 또는 대화 끝
+                사주라서버->>DB: 요소 목록의 상품 카드로 매장 가격·공용 쿠팡 상품 저장·갱신
+                사주라서버-->>사주라UI: 다음 동작 또는 대화 끝
+                사주라UI->>확장: 다음 동작
+                확장->>쿠팡: 요소 목록 읽기·클릭·입력·스크롤
+                확장-->>사주라UI: 실행 결과
             end
-            사주라서버-->>사주라UI: 다음 동작 또는 대화 끝
-            사주라UI->>확장: 다음 동작
-            확장->>쿠팡: 요소 목록 읽기·클릭·입력·스크롤
-            확장-->>사주라UI: 실행 결과
         end
     end
 
@@ -1794,6 +1795,7 @@ Authorization: Bearer <access_token>
 // Response 200 — 둘 중 하나. 03_be.md §2.4.4의 도구
 { "action": { "tool": "click", "args": { "ref": "12" } } }
 { "done": { "tool": "finish_item", "args": { "reason": null } } }
+// 동작 결과에 담기 결과(cart_added)가 있으면 에이전트 서버를 부르지 않고 그 품목 대화를 끝낸다 — { "done": { "tool": "finish_item", "args": { "reason": null } } }
 // 상품 고유 ID가 붙은 요소의 아래 깊이 요소들을 그 상품의 값으로 보고, 공용 쿠팡 상품을 저장·갱신한다 (01_basic_design.md §3.3.1, 04_fe.md §12.5)
 // 담기 결과(cart_added)를 받으면 그 상품에 재고 품목을 연결한다. 그 품목 대화에 담기 결과가 있으면 성공이다. LLM이 답한 값은 저장하지 않는다 (01_basic_design.md §3.8.1)
 // 400 VALIDATION_ERROR: 진행 중 담기의 대상이 아님, 형식 오류, 15만 자 초과
@@ -2433,11 +2435,11 @@ CREATE TABLE coupang_products (
     vendor_item_id      VARCHAR(20)     NOT NULL COMMENT '마지막으로 본 쿠팡 vendorItemId',
     product_name        VARCHAR(300)    NOT NULL COMMENT '상품명 원문의 첫 쉼표 앞. 쉼표가 없으면 전체',
     option_name         VARCHAR(200)    NULL COMMENT '상품명 원문의 첫 쉼표 뒤. 쉼표가 없으면 NULL',
-    sale_price          INT             NULL COMMENT '판매가(원). 조건 없이 누구나 받는 표시 가격. 와우 할인 상품으로만 관찰되면 NULL',
+    sale_price          INT             NULL COMMENT '판매가(원). 매장 가격 다수결 (01_basic_design.md §3.3.1). 매장 가격을 받은 적 없으면 NULL',
     rocket_fresh        TINYINT(1)      NOT NULL DEFAULT 0 COMMENT '로켓프레시 상품 여부. 비로그인 담기 불가',
     content_quantity    DECIMAL(12,3)   NULL COMMENT '상품 1개 용량. 상품명·옵션 이름에서 계산. 계산하지 못하면 NULL',
     content_unit        VARCHAR(4)      NULL COMMENT '용량 단위 g·ml·개',
-    unit_price          DECIMAL(12,4)   NULL COMMENT '공용 단가(용량 단위 1당 원). 쿠팡 단위가격 표시와 2% 이내일 때만 저장',
+    unit_price          DECIMAL(12,4)   NULL COMMENT '공용 단가(용량 단위 1당 원). 판매가를 보낸 매장 가격 중 가장 최근 것의 단가',
     updated_at          DATETIME        NOT NULL COMMENT '마지막으로 값을 갱신한 시각',
     PRIMARY KEY (item_id)
 );
@@ -2661,19 +2663,20 @@ CREATE TABLE push_subscriptions (
 
 > VAPID 표준 Web Push 구독 정보. Push Service가 410(Gone) 응답 시 endpoint 만료 → 본 행 삭제.
 
-#### 4.3.24 coupang_price_candidates
+#### 4.3.24 coupang_store_prices
 
-> 공용 쿠팡 상품과 판매가가 20% 이상 다른 값을 확인 전까지 보관한다 (`01_basic_design.md` §3.3.1).
+> 매장 가격. 매장마다 마지막으로 본 옵션의 판매가와 단가다. 공용 쿠팡 상품의 판매가·단가를 매장 다수결로 정하는 데 쓰고, 이틀마다 자정(한국 시각)에 모두 지운다 (`01_basic_design.md` §3.3.1).
 
 ```sql
-CREATE TABLE coupang_price_candidates (
+CREATE TABLE coupang_store_prices (
     item_id             VARCHAR(20)     NOT NULL COMMENT '쿠팡 itemId',
-    store_id            CHAR(36)        NOT NULL COMMENT '후보를 보낸 매장',
-    sale_price          INT             NOT NULL COMMENT '보낸 판매가(원)',
-    received_at         DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    store_id            CHAR(36)        NOT NULL COMMENT '관측한 매장',
+    sale_price          INT             NOT NULL COMMENT '그 관측의 표시 가격(원). 와우 회원 할인 관측은 넣지 않는다',
+    unit_price          DECIMAL(12,4)   NULL COMMENT '그 관측의 단가(용량 단위 1당 원). 단위가격 대조를 통과하지 못했으면 NULL',
+    received_at         DATETIME        NOT NULL COMMENT '마지막으로 관측한 시각. 같은 값이어도 갱신',
     PRIMARY KEY (item_id, store_id),
-    CONSTRAINT fk_price_candidates_product FOREIGN KEY (item_id) REFERENCES coupang_products (item_id) ON DELETE CASCADE,
-    CONSTRAINT fk_price_candidates_store FOREIGN KEY (store_id) REFERENCES stores (store_id) ON DELETE CASCADE
+    CONSTRAINT fk_store_prices_product FOREIGN KEY (item_id) REFERENCES coupang_products (item_id) ON DELETE CASCADE,
+    CONSTRAINT fk_store_prices_store FOREIGN KEY (store_id) REFERENCES stores (store_id) ON DELETE CASCADE
 );
 ```
 
@@ -2754,7 +2757,7 @@ n8n은 운영 데이터 원본을 삭제하지 않는다. n8n의 쓰기 대상�
 | 인증 | `users`, `refresh_tokens` |
 | 매장/POS | `stores`, `pos_connections` |
 | 메뉴/레시피 | `menus`, `recipes`, `recipe_ingredients` |
-| 재고 | `inventory_items`, `inventory_lots`, `inventory_adjustment_logs`, `disposal_logs`, `coupang_products`, `coupang_price_candidates` |
+| 재고 | `inventory_items`, `inventory_lots`, `inventory_adjustment_logs`, `disposal_logs`, `coupang_products`, `coupang_store_prices` |
 | 판매 | `sale_records` |
 | 수요예측 | `forecast_results`, `forecast_menu_items` |
 | 발주 | `order_recommendations`, `order_recommendation_items`, `orders`, `order_items`, `order_approval_logs` |
@@ -2800,8 +2803,8 @@ erDiagram
     inventory_lots ||--o{ disposal_logs : "1:N"
     inventory_lots ||--o{ inventory_adjustment_logs : "1:N"
     coupang_products ||--o{ inventory_items : "1:N"
-    coupang_products ||--o{ coupang_price_candidates : "1:N"
-    stores ||--o{ coupang_price_candidates : "1:N"
+    coupang_products ||--o{ coupang_store_prices : "1:N"
+    stores ||--o{ coupang_store_prices : "1:N"
     stores }o..o{ weather_observations : "asos_stn_id (FK 아님)"
     order_recommendations ||--o{ order_recommendation_items : "1:N"
     order_recommendations ||--o{ orders : "1:N"
@@ -2848,8 +2851,8 @@ inventory_lots (1) ── (N) disposal_logs
 inventory_lots (1) ── (N) inventory_adjustment_logs
 
 coupang_products (1) ── (N) inventory_items
-coupang_products (1) ── (N) coupang_price_candidates
-stores (1) ── (N) coupang_price_candidates
+coupang_products (1) ── (N) coupang_store_prices
+stores (1) ── (N) coupang_store_prices
 
 order_recommendations (1) ── (N) order_recommendation_items
 order_recommendation_items (N) ── (1) inventory_items
