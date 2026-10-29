@@ -324,6 +324,7 @@ async def test_step_accepts_only_started_targets(
     # 장바구니 검수는 새 대화
     assert (await step(client, auth, run_id, "cart_check")).status_code == 200
     assert fake_agent.steps[2]["conversation_id"] != first["conversation_id"]
+    assert [s["kind"] for s in fake_agent.steps] == ["item", "item", "cart_check"]
 
 
 @pytest.mark.asyncio

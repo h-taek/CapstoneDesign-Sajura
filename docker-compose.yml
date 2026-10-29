@@ -106,6 +106,28 @@ services:
       timeout: 5s
       retries: 10
 
+  agent:
+    build:
+      context: .
+      dockerfile: docker/agent/Dockerfile
+    container_name: sajura-agent
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      REDIS_HOST: redis
+    # 포트를 열지 않는다 — BE만 내부 네트워크로 부른다 (03_be.md §2.4.5)
+    extra_hosts:
+      - "host.docker.internal:host-gateway"   # 호스트의 분류기 Ollama (03_be.md §2.4.3)
+    depends_on:
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://localhost:8000/health').status==200 else 1)\""]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+
   ai:
     build:
       context: .

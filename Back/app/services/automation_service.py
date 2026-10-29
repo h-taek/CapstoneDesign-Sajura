@@ -370,6 +370,7 @@ class AutomationService:
         try:
             answer = await agent.step(
                 conversation_id=conversation["id"],
+                kind="cart_check" if req.target == CART_CHECK else "item",
                 store_id=store_id,
                 order_id=run_id,
                 instruction=instruction,

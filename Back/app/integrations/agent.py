@@ -50,16 +50,18 @@ async def _post(path: str, payload: dict[str, Any]) -> dict[str, Any]:
 async def step(
     *,
     conversation_id: str,
+    kind: str,
     store_id: str,
     order_id: str,
     instruction: str | None,
     result: dict[str, Any] | None,
 ) -> dict[str, Any]:
-    """한 걸음 — {"action": …} 또는 {"done": …}."""
+    """한 걸음 — {"action": …} 또는 {"done": …}. kind는 대화 종류(item | cart_check)."""
     return await _post(
         "/agent/step",
         {
             "conversation_id": conversation_id,
+            "kind": kind,
             "store_id": store_id,
             "order_id": order_id,
             "instruction": instruction,
