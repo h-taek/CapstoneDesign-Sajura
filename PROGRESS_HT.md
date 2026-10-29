@@ -8,6 +8,13 @@
 
 ## 1. 개발 이력
 
+### 쿠팡 자동 담기 — 확장과 실제 쿠팡 담기 실측 (plan 08 §3) — bcb5fc6~fee0e43 (2026-10-29)
+
+- `Extension/`(MV3, TypeScript + Vite, Vitest) — 요소 목록(취소선 deletion, 별 모양 별점 → '별점 4.5', 그림은 배지 파일 이름·아이콘 클래스 이름, 사진·내장 그림 제외), 상품 고유 ID는 카드 링크와 상품 페이지 제목에만(가격 영역은 제목 아래로), 개인정보 가리기(머리말 이름·'마이쿠팡' 설명 글은 위치, 전화·이메일·주소는 모양), 클릭 전 스크롤·링크 안 글자는 그 링크를 누름·담기 완료 감지 → `cart_added`, 작업 탭의 alert·confirm 가로채기(확인 창은 취소), 탭 명령 15초 제한, 와우 카드 비회원 가격 대기열. 개발용 고정 ID `cbplmciiejdjhhogkjhehfhdipocmdkf`
+- 실측으로 고친 것 — 에이전트 서버 15만 자는 LLM에 넣는 글로 잼(JSON은 칸 이름 반복으로 상품 페이지 15만 4천 자), 분류기 지시문에 장바구니 검수 지시, 고른 상품 페이지에서 다시 검색하지 않게 지시문 보강, `vendorItemId`는 선택 값(연결 상품 주소는 `?itemId=`까지 — 판매자는 쿠팡의 대표 판매자, `coupang_products.vendor_item_id` NULL 허용·관측에 있을 때만 갱신, `0017` 고쳐 씀). 사용자 결정: 15만 자 측정 기준 ①, 주소에 `vendorItemId` 넣지 않음, `vendorItemId` 선택 값 ②
+- 보안 분류기 — 켠 담기 대화에서 정상 승인·지시문 422. qwen 대 Prompt Guard 2 86M 비교(`scripts/llm_eval/guard_compare.py`, 공개 사본 md5 일치) — 정상 오판 없음, 은근한 주장은 둘 다 놓침(research 17 §14)
+- 검증: 확장 Vitest 49/49·typecheck·build, 에이전트 pytest 26/26, BE pytest 163/163. 실제 쿠팡(비로그인, 개발자 모드 확장, PWA 탭 시험 스크립트)에서 양파·계란 담기 → 장바구니 검수 OK → 발주 확정까지 감(research 16 §6.13). 카드 링크 수정 뒤의 단가 계산은 쿠팡 차단으로 아직 못 봄
+
 ### 쿠팡 자동 담기 — 담기 에이전트 서버 (plan 08 §2) — 3f8cad0 (2026-10-29)
 
 - `Agent/`(FastAPI·Redis), compose 서비스 `agent`(포트 미공개, 호스트 Ollama용 `host.docker.internal`)
