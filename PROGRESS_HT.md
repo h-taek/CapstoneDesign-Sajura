@@ -8,6 +8,16 @@
 
 ## 1. 개발 이력
 
+### 쿠팡 자동 담기 — BE 구현 (plan 08 §1) — 466f60a~2f33e81 (2026-10-29)
+
+- spec 빈칸 닫기(466f60a) — 요소 목록의 취소선 가격은 종류 `deletion`, 서버가 상품 값을 읽는 법(표시 가격 = 취소선이 아닌 첫 'N원', 할인 표시·단위가격·`logo_fresh` 그림), BE의 에이전트 서버 주소 `AGENT_BASE_URL`(연결 실패·시간 초과는 503 `ORDER_LLM_UNAVAILABLE`), finish 품목 `reason` 뜻. 사용자 결정: 취소선 구분은 확장이 표시(①), 단위가격 바로 앞·최소 금액 안 기각
+- `0017` 고쳐 쓰기 — `coupang_products`(`itemId` 키)·`coupang_store_prices`, `inventory_items.coupang_item_id`, `pack_quantity`·`orders.status`·`automated_at` 삭제. dev DB는 옛 이미지로 `0016` 내린 뒤 새 이미지로 올림
+- `coupang_pricing` — 상품명 첫 쉼표 나누기, 용량(옵션 이름 → 상품명 기준 용량 하나 × 옵션 개수, g·ml·개), 단위가격 2% 대조, 와우 할인 비회원 가격, 다수결, 재료 단위 환산
+- `AutomationService` — `coupang_run:{run_id}` 진행 상태, 첫 지시(연결 상품 3일·로켓프레시 비로그인 검색), `/agent/step` 중계(오류 그대로), 200 걸음만 상품 카드 저장(upsert + `FOR UPDATE`, itemId 순), `non_wow_prices`는 와우 카드 itemId만, `cart_added`면 에이전트 미호출·연결·품목 단가, finish에서 담긴 품목만 발주 저장. ARQ 매장 가격 삭제 00:00(날짜 순번 짝수인 날)
+- 추천발주 예상 단가 — 연결 상품 단가, 없으면 공용 단가 낮은 순 50개 → `/agent/filter`(동시 호출) → 최저, `price_filter:*` 이틀. 에이전트 호출은 추천안 트랜잭션 앞에서 한다
+- `approve`·`match`·`result`·BE `LLMClient`·LLM 설정 삭제. 테스트는 conftest 가짜 에이전트(autouse), 발주 생성은 start → step → finish 경로(`place_order`)
+- 검증: `0017` upgrade·downgrade 왕복, BE 컨테이너 pytest 162/162. FE는 아직 `approve`를 부른다(openapi 재생성 전)
+
 ### 쿠팡 자동 담기 — 공용 쿠팡 상품·가격 규칙과 발주 확정 재설계 (2026-10-29)
 
 - 공용 쿠팡 상품(cf369da~cbfcfb3) — `itemId` 한 행, 상품명·옵션 이름 나누기, 용량은 옵션 이름 → 상품명 계산, 단가는 쿠팡 단위가격 2% 대조 통과 시만. 담기 성공·담은 상품은 확장의 `cart_added`로만. 분류기 모델 `qwen3.6:35b-a3b`로 고정(spec 미확정 절 삭제)
