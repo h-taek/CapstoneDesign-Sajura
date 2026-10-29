@@ -142,6 +142,15 @@ describe("상품 페이지", () => {
     });
   });
 
+  it("상품 번호는 카드 링크에만 — 같은 상품을 가리키는 '상품평'·'전체' 링크와 글자 링크는 아니다", () => {
+    const linked = elements.filter((e) => e.item_id);
+    expect(linked.map((e) => [e.role, e.text, e.item_id])).toEqual([
+      ["heading", "국내산 울팜 아삭 달달 단단한 창녕 양파, 1개, 양파(중) 1kg", "28626905951"],
+      ["link", "국내산 햇양파, 3kg, 1개", "5555"], // 사진이 있는 추천 상품 카드
+    ]);
+    expect(elements).toContainEqual(expect.objectContaining({ role: "link", text: "전체" }));
+  });
+
   it("수량 버튼·담기 버튼", () => {
     const buttons = elements.filter((e) => e.role === "button").map((e) => e.text);
     expect(buttons).toEqual(expect.arrayContaining(["수량빼기", "수량더하기", "장바구니 담기"]));

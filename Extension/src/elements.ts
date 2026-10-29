@@ -166,6 +166,11 @@ function describe(el: Element): { role: string; text: string } | null {
   return null;
 }
 
+/** 상품 카드 링크인가 — 상품명 칸이나 설명 글이 있는 상품 사진을 감싼다. */
+function isCardLink(a: Element): boolean {
+  return a.querySelector('[class*="productName"], img[alt]:not([alt=""])') !== null;
+}
+
 /** 검색 결과 카드 링크의 상품명 — 상품명 칸, 없으면 사진 설명 글. */
 function cardName(a: Element): string {
   const name = a.querySelector('[class*="productName"]');
@@ -231,7 +236,8 @@ export function buildElements(doc: Document, url: string): Snapshot {
 
     if (el.localName === "a" && el.hasAttribute("href")) {
       const ids = productIds(el.getAttribute("href") ?? "", url);
-      if (ids) {
+      // 상품 번호는 카드 링크에만 — '86 개 상품평'·'전체' 같은 링크가 상품명을 덮어쓰지 않게
+      if (ids && isCardLink(el) && ids.item_id !== product?.ids.item_id) {
         const name = cardName(el);
         const i = emit(el, "link", name, depth, withoutNull(ids));
         cardLinks.set(i, new URL(el.getAttribute("href") ?? "", url).href);
