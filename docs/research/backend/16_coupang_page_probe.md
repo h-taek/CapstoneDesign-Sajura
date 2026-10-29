@@ -203,5 +203,8 @@
 - 가격 영역 요소 클래스: 취소선 `original-price-amount`, 비회원 가격 `sales-price-amount`와 이름표 `sales-price-title`('쿠팡판매가'), 최종 가격 `final-price-amount`와 이름표 `final-price-title`('와우할인'·'할인').
 - 로그인 상태의 상품 페이지 화면에는 '쿠팡판매가' 줄이 없었다. 페이지 데이터의 `nonWowMemberPrice.price`는 같은 상품의 비로그인 표시 가격(§6.9)과 같았다.
 - 와우 할인이 없는 상품은 `nonWowMemberPrice.price`가 화면의 최종 가격과 같았다.
-- 로그인 상태의 검색 결과 카드는 '와우할인', 취소선 가격, 할인율, 와우 가격, 단위가격만 보였다(귤탐 감귤 검색 36개 중 와우 표시 카드 8개). 검색 결과 화면의 HTML에는 `nonWowMemberPrice` 이름의 값이 없었다. 다른 이름으로 비회원 가격이 들어 있는지는 확인하지 않았다.
+- 로그인 상태의 검색 결과 카드는 '와우할인', 취소선 가격, 할인율, 와우 가격, 단위가격만 보였다(귤탐 감귤 검색 36개 중 와우 표시 카드 8개). 검색 결과 화면의 HTML에는 `nonWowMemberPrice` 이름의 값이 없었다.
+- 로그인 상태 검색 결과 화면('귤탐 감귤', 36개)의 데이터를 따로 봤다.
+  - 상품 목록 구조화 데이터(`application/ld+json`, 34개)의 `offers.price`는 카드에 보이는 가격과 같았다. 와우 표시 카드는 와우 가격이다(귤탐 감귤 2kg(로열과) 12900).
+  - 귤탐 감귤 2kg(로열과) `itemId`가 나오는 16곳 앞뒤 2,500자의 가격 관련 칸은 `amount` 20900·12900·645, `price` 12900, `discountRateDescription` '와우할인', `wowOnlyInstantDiscountRate` 38, `showWowDiscount` false, `abGroupOfSrpWowPriceParity` "B" 등이었다. 비회원 가격 13900은 없었다.
 - 와우 회원이 아닌 로그인 계정은 확인하지 않았다.
