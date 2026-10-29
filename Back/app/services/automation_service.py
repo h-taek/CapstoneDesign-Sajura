@@ -166,7 +166,7 @@ def item_instruction(
         assert product is not None
         url = PRODUCT_URL.format(product_id=product.product_id, item_id=product.item_id)
         body = (
-            f"연결된 상품 페이지 {url} 의 상품을 담는다. 그 상품을 담지 못하면 쿠팡 검색창에 "
+            f"연결된 상품 페이지 {url} 를 열어 그 상품을 담는다. 담지 못하면 쿠팡 검색창에 "
             f"'{item.name}'을 그대로 넣어 검색하고 아래 기준으로 골라 담는다.\n{rules}"
         )
         return f"{head}\n\n{body}\n\n{ADD_RULES}", product.item_id
