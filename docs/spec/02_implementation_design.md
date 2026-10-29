@@ -330,7 +330,7 @@ sequenceDiagram
             에이전트->>에이전트: 오남용 방지 규칙 → 보안 분류기 → LLM (03_be.md §2.4)
             에이전트-->>사주라서버: 다음 동작 또는 대화 끝
             사주라서버->>DB: 요소 목록의 상품 카드로 공용 쿠팡 상품 저장·갱신
-            opt 품목 끝
+            opt 동작 결과에 담기 결과(cart_added)
                 사주라서버->>DB: 재료 연결 갱신
             end
             사주라서버-->>사주라UI: 다음 동작 또는 대화 끝
@@ -1788,13 +1788,14 @@ Authorization: Bearer <access_token>
   ]
 }
 // result — 동작 결과 (click·type_text·scroll의 결과)
-{ "kind": "action", "ok": true, "page_changed": true, "message": null }   // 실패면 ok false, message "요소 없음" 등
+{ "kind": "action", "ok": true, "page_changed": true, "message": null,   // 실패면 ok false, message "요소 없음" 등
+  "cart_added": null }   // 클릭 뒤 상품 페이지에 담기 완료 표시가 나타나면 { "item_id": "…", "product_id": "…", "vendor_item_id": "…" } (04_fe.md §12.4)
 
 // Response 200 — 둘 중 하나. 03_be.md §2.4.4의 도구
 { "action": { "tool": "click", "args": { "ref": "12" } } }
-{ "done": { "tool": "finish_item", "args": { "status": "ADDED", "item_id": "…", "quantity": 1, "reason": "무항생제 대란 30구" } } }
+{ "done": { "tool": "finish_item", "args": { "reason": null } } }
 // 상품 고유 ID가 붙은 요소의 아래 깊이 요소들을 그 상품의 값으로 보고, 공용 쿠팡 상품을 저장·갱신한다 (01_basic_design.md §3.3.1, 04_fe.md §12.5)
-// finish_item의 item_id가 이 품목 대화에서 받은 화면에 나온 상품이면 재고 품목을 연결한다. LLM이 답한 값은 저장하지 않는다 (01_basic_design.md §3.8.1)
+// 담기 결과(cart_added)를 받으면 그 상품에 재고 품목을 연결한다. 그 품목 대화에 담기 결과가 있으면 성공이다. LLM이 답한 값은 저장하지 않는다 (01_basic_design.md §3.8.1)
 // 400 VALIDATION_ERROR: 진행 중 담기의 대상이 아님, 형식 오류, 15만 자 초과
 // 422 ORDER_LLM_GUARD_REJECTED: "detail": { "reason": "…" }
 // 429 ORDER_LLM_QUOTA_EXCEEDED
@@ -1813,7 +1814,7 @@ Authorization: Bearer <access_token>
   "automated_at": "2026-05-06T10:05:00Z",
   "manual_guide_url": null,           // MANUAL_REQUIRED 시 쿠팡 첫 화면 https://www.coupang.com/ — 검색 결과 주소를 직접 열면 차단될 수 있다
   "items": [
-    { "item_id": "uuid", "status": "ADDED", "reason": null }   // ADDED | CHECK_NEEDED | FAILED. 대화를 마치지 못한 품목은 FAILED
+    { "item_id": "uuid", "status": "ADDED", "reason": null }   // ADDED | CHECK_NEEDED | FAILED. 담기 결과가 없는 품목은 FAILED
   ]
 }
 // 404 NOT_FOUND: 매장에 없는 발주 · 409 STATE_CONFLICT: 진행 중 담기가 없음
