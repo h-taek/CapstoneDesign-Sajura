@@ -12,7 +12,7 @@
 | 2. 설계 (기능·API·DB·백엔드·프론트·AI) | `docs/spec/` 전체 | 완료 |
 | 3. 리서치 | `docs/research/` (backend·frontend·ai) | 완료 |
 | 4. 구현 계획 | `docs/plan/` | 완료 |
-| 5. 구현 | Phase 2·3·4·5·6·7·8(n8n 예측 배치, 날씨 미연결)·11·12·알림 BE 구현됨 / Phase 10(쿠팡 자동 담기)은 공용 상품·단가 계산 BE만, 담기 에이전트 구조로 재설계 후 재착수 | 진행 중 |
+| 5. 구현 | Phase 2·3·4·5·6·7·8(n8n 예측 배치·날씨)·11·12·알림 BE·대시보드 BE 구현됨 / Phase 10(쿠팡 자동 담기)은 BE 1차 구조(match·result)만 있고, spec·plan은 담기 에이전트 구조와 [쿠팡 담기] 발주 확정으로 다시 써서 구현 재착수 전 | 진행 중 |
 | 6. 테스트 & 배포 | Phase 13 — 자체 운영 서버(Mac mini) SSH 배포 | 예정 |
 
 > Phase 5·9·11은 코드가 존재하나 `docs/plan/`의 마일스톤 대조는 아직 하지 않았다.
@@ -34,14 +34,14 @@
 | 식자재 단가 | 단가 출처는 매장 공용 쿠팡 상품 테이블 하나 — 쿠팡 옵션(`itemId`) 하나당 한 행, `productId`·마지막 `vendorItemId`·상품명(첫 쉼표 앞)·옵션 이름(첫 쉼표 뒤)·판매가·로켓프레시·용량·공용 단가. 매장 정보·LLM 답한 값은 넣지 않는다. 담기 중 화면에 나온 상품 전부로 갱신(갱신 주체 BE). 판매가는 비회원 가격 — 와우 할인이 아니면 표시 가격, 와우 할인이면 상품 페이지 데이터 `nonWowMemberPrice`(검색 결과 와우 카드는 확장이 카드 링크를 뒤에서 받아 읽음, 취소선 가격은 비회원 가격이 아니라 기각). 용량은 옵션 이름(없으면 상품명)의 기준 용량 × 옵션 이름 개수로 매번 계산(못 하면 비움). 관측 단가는 단위가격 표시와 2% 대조를 통과할 때만(못 하면 그 관측 단가 비움). 판매가·공용 단가는 매장 가격(매장당 한 행, 같은 값도 덮어씀) 다수결 — 가장 많은 매장, 동수면 최근, 이틀마다 매장 가격 초기화(20% 가격 후보·다른 매장 확인·14일 만료는 매장 1곳이면 영영 반영 안 돼 폐기). 재고 품목 단가 = 연결 상품 공용 단가를 재료 단위로(g↔kg·ml↔L·개만, 안 되면 미설정). 추천발주 예상 단가 = 연결 상품 단가, 없으면 공용 상품에서 재료명으로 찾아 LLM이 같은 식자재만 거른 행의 최저(거른 결과 이틀 보관). 발주 품목 단가 = 담기 결과의 결제 전 최종 가격 ÷ 용량. 점주는 단가를 입력·수정하지 않고, 입고 구매 금액은 단가를 바꾸지 않는다. 쿠팡 Open API·서버 크롤링·봇 우회 미사용. KAMIS는 홈 시세 참고만 (2026-10-29) | `01_basic_design.md` §3.3.1·§3.7.1, `research/backend/15_coupang_price_validation.md`·`16_coupang_page_probe.md` §6 |
 | 재고 차감 | 판매는 품목별 '차감 기준 시각'(마지막으로 차감한 판매 시각, 시작값은 품목 등록 시각) 이후 것만 FIFO 차감. 소비기한 없는 로트는 뒤에 입고일 순. 로트 금액은 구매 총액으로 저장 (2026-10-19) | `01_basic_design.md` §3.3.3 |
 | 예측 저장 구조 | `forecast_results`(매장 일 매출·P10/P90·근거) + `forecast_menu_items`(메뉴 분해) 2테이블. 구 메뉴별 단일 테이블 폐기 (2026-09-13) | `02_implementation_design.md` §4.3.14·§4.3.15 |
-| 배치 시각 | ARQ 소비기한 점검 01:30 / n8n 예측 배치 02:00 / ARQ 탈퇴 계정 파기 03:00 — 같은 호스트라 분산 (2026-10-03 파기 추가) | `01_basic_design.md` §3.3.6·§3.11.1, `01_basic_design.md` §5.2.1 |
+| 배치 시각 | ARQ 쿠팡 매장 가격 삭제 이틀마다 00:00 / ARQ 소비기한 점검 01:30 / n8n 예측 배치 02:00 / ARQ 탈퇴 계정 파기 03:00 — 같은 호스트라 분산 (2026-10-03 파기 추가, 2026-10-29 매장 가격 삭제 추가) | `01_basic_design.md` §3.3.1·§3.3.6·§3.11.1·§5.2.1 |
 | 웹 프레임워크 | FastAPI + Pydantic v2 + orjson | `03_be.md` §1 |
 | 앱 서버 | Gunicorn + uvicorn.workers, 로컬 개발·운영 공통 (워커 4, --max-requests 1000, --preload). 로컬 개발도 운영과 같은 compose·이미지로 띄운다 (2026-10-25 dev Uvicorn 단독 폐기) | `03_be.md` §1·§15.2 |
 | 리버스 프록시 | Caddy v2 (TLS 1.3 강제, FE dist를 caddy 이미지에 COPY) | `research/backend/03_reverse_proxy.md` |
 | 데이터 계층 | SQLAlchemy 2.x async + aiomysql + PyMySQL(Alembic) + pandas + numpy + datetime+zoneinfo | `03_be.md` §1 |
 | 인증·암호화 | Authlib + python-jose + passlib[bcrypt] + cryptography(AES-256-GCM) | `03_be.md` §7·§10 |
 | OAuth 콜백 응답 | 302 Redirect to FE root + Set-Cookie refresh_token (Access Token 본문/URL 미노출, FE 첫 진입에서 `POST /api/auth/refresh`로 동기) | `02_implementation_design.md` §3.2, `02_implementation_design.md` §2.2 |
-| 외부 연동 | httpx + tenacity + aiobreaker + BeautifulSoup4(lxml) + Playwright(Chromium 단일) | `03_be.md` §1 |
+| 외부 연동 | httpx + tenacity + aiobreaker. 쿠팡 서버 크롤링(BeautifulSoup4·Playwright)은 폐기 — 쿠팡은 사주라 확장이 점주 브라우저에서 다룬다 | `03_be.md` §1 |
 | 알림 | 점주 알림은 인앱 + Web Push(pywebpush, `notifications` 테이블). 이메일(fastapi-mail)은 탈퇴 파기 증빙만. Slack은 운영자 모니터링 전용 (2026-10-28 갱신) | `03_be.md` §4, `02_implementation_design.md` §4.3.22~§4.3.23 |
 | 인앱 알림 폴링 | 5분 고정 (코드 상수, 사용자 설정 미노출) + 수동 새로고침 권장 — BE rate limit 보호 | `04_fe.md`, `research/frontend/06_pwa_push.md` |
 | 캐시·관측 | Redis + redis-py(async) + structlog + asgi-correlation-id + Sentry(BE+FE 동일 release `git-<sha>`, PII scrubbing, traces 5%) | `03_be.md` §1, `03_be.md` §14.4 |
@@ -49,7 +49,7 @@
 | 알림 발송 규칙 | 한 건의 단위 — 소비기한은 품목·조건, 재고 부족은 품목, 이상치는 업로드 한 번, 예측 완료는 매장. 소비기한은 D-3·D-1·초과 첫날에 한 번씩(초과를 매일 반복하지 않음), 같은 날 재실행은 건너뜀. 알림 설정 4묶음(소비기한 임박·재고 부족·예측 완료·이상치), 끈 묶음은 인앱·푸시 모두 만들지 않음 (2026-10-28) | `01_basic_design.md` §3.3.6·§3.12, `02_implementation_design.md` §3.10 |
 | 알림 송출 단일 경로 | BE `NotificationService.create_and_push`만 사용. n8n은 BE API 트리거만, DB `notifications` 직접 INSERT 금지 | `02_implementation_design.md` §4.5 n8n_user 권한 |
 | 테스트·품질 | pytest + pytest-asyncio + pytest-cov + factory_boy + Faker + testcontainers + respx + ruff + mypy + bandit + pip-audit + pre-commit | `research/backend/09_testing_quality.md` |
-| 배포 | uv + Docker + Docker Compose(V2) 6서비스 + Buildx 멀티아키 + GitHub Actions + Trivy | `research/backend/10_deployment.md` |
+| 배포 | uv + Docker + Docker Compose(V2) 7서비스(be·agent·arq-worker·mysql·redis·n8n·caddy, AI Server와 분류기 모델 서버는 compose 밖) + Buildx 멀티아키 + GitHub Actions + Trivy (2026-10-28 담기 에이전트 서버 추가) | `03_be.md` §15.1, `research/backend/10_deployment.md` |
 | ID·시간·전화 | UUIDv4 + datetime+zoneinfo + phonenumbers NATIONAL 형식 | `02_implementation_design.md` §4.3.3 stores |
 | Frontend 스택 | React 19 + Vite 6 + TS strict + React Router v7 + Zustand 5(auth 메모리·prefs persist 분리) + TanStack Query v5 + ky 1.x(401 단일 refresh 인터셉터) + openapi-typescript + Tailwind v4 + shadcn/ui + RHF + zod + Recharts + vite-plugin-pwa(injectManifest) + @sentry/react | `04_fe.md` |
 | Git 브랜치 전략 | GitHub flow — 장수 브랜치는 `main` 하나. 짧은 작업 브랜치(`feat/`·`fix/`·`docs/`·`chore/`) → main PR, 머지 후 자동 삭제. 담당자(h-taek)는 직접 푸시 또는 PR, 그 외 PR 필수. 구 장수 브랜치 `dev`·`be`·`fe`·`ai` 폐기 (2026-10-03) | `README.md` §5 |
@@ -68,7 +68,7 @@
 | AI 초기 모델 확정 (38차) | 주 모델 = **LightGBM 비율 타깃 하이브리드**(타깃 log1p(일 매출)−log1p(7영업일 평균) — 수준은 이동평균·편차만 학습, keep 20열, Optuna 튜닝) + 보조 baseline **MA-7**(fallback·drift 감시). 순정 GBM·SARIMA·XGBoost·CatBoost는 MA-7도 못 이겨 기각 — 하이브리드만 유의미 우위(봉인 test sMAPE 30%·MA-7 대비 -19.6%). 평가 지표 **MAE(주)+sMAPE(보고), MAPE 제외**(소액일 왜곡 정정), 운영 목표 naive-요일 skill ≥+15%·MA-7 우위 유지(drift 경보선). **AI 산출 범위 확정(담당자): 매출 예측(+고도화)까지가 AI 책임** — 메뉴별 수요는 매장별 믹스 상이로 공통 분해 모델 없음(접근은 Phase 7), 재료 리스트업은 점주 관리(자동 산출 아님). 제품 spec의 "메뉴별 수요·추천발주" 표현 정리는 담당자 검토 항목 | `05_ai.md` §3·§2·§4·§6 + `AI/notebooks/04_baselines.ipynb`·`05_model_selection.ipynb` (ai 브랜치) |
 | AI 모델 ② 메뉴 분해 확정 (39차) | 산출 구조 = **2모델**(담당자 정정 — "공통 모델 없음"은 매장 간 통일 모델 부재의 뜻, 매장별 분해 유지): 모델 ① 매출 예측(V1-t) + **모델 ② 매장별 메뉴 비중 분해 = 최근 28영업일 합산 수량 비중(S1)** — 요일 조건부는 검증 5 fold 전패로 기각(요일은 총량의 문제). recommend는 **계약 v2(A안 단일 호출)**: 서버 내부 ①×②→점주 레시피(BOM) 전개→재고·리드타임 발주 참고치 + 신뢰도 배지 전파. 재료 리스트업(레시피 등록)은 점주 관리 유지 | `05_ai.md` §3·§2 + `02_implementation_design.md` §3.8 + `AI/notebooks/11_menu_decomposition.ipynb`·`AI/app/model/decompose.py`·`AI/app/api/orders.py` (ai 브랜치) |
 | AI 학습 데이터 확대 방향 (38차 후속) | **파일럿 5~7월 신규 매출분 부재 확인(담당자)** — 전향적 검증 불가. 모델링 트릭에 의한 유효 표본 확대는 **멀티 호라이즌 풀링(학습 행 3배) 실험 기각**(사전 등록 규칙 — D+1 +2.6%p 악화·개강 fold 붕괴)으로 종결, 부수 진단에서 **서빙의 h=1 단일 모델 재사용 전략이 h별 개별 모델보다 우위**로 확인(서빙 무변경 확정, MA-7 대비 D+1 -10.2/D+2 -4.1/D+3 -1.4%). 남은 확대 레버 = 실데이터: ① 2025-04 이전 과거분 소급(점주 문의) ② 유사 매장 확보 시 통합 학습. **외부 검증은 Kaggle Recruit로 완료(사전 기준 충족 — 814곳 승률 92.6%·중앙값 −10.1%, SHORT_HISTORY 60일 임계 실증)**; KADX 영수증별 POS는 접근 권한 없음 확정, 행정동 집계류 공공데이터는 부적합 판정 | `05_ai.md` §3·§6 + `AI/notebooks/06_enhancement.ipynb` §6·`10_recruit_validation.ipynb` (ai 브랜치) |
-| 발주 저장 구조 | spec 5테이블(`order_recommendations`·`order_recommendation_items`·`orders`·`order_items`·`order_approval_logs`) 사용, `purchase_orders` JSON 스냅샷 폐기. 확정 요청은 `recommendation_id`로 추천안을 지목하고, 추천안 없는 발주는 `null` (2026-10-03). 추천안 하나에 발주 하나 — 재확정 409. 확정 단가는 서버가 정하고 미설정이면 단가·소계 null (2026-10-28) | `02_implementation_design.md` §3.7 |
+| 발주 저장 구조 | spec 5테이블(`order_recommendations`·`order_recommendation_items`·`orders`·`order_items`·`order_approval_logs`) 사용, `purchase_orders` JSON 스냅샷 폐기. 담기 시작 요청(`automate/start`)이 `recommendation_id`로 추천안을 지목하고, 추천안 없는 발주는 `null` (2026-10-03). 추천안 하나에 발주 하나 — 재확정 409. 발주는 [쿠팡 담기]를 마칠 때 담긴 품목으로만 저장하고, 발주 품목 단가는 담기 결과의 결제 전 최종 가격 (2026-10-29) | `02_implementation_design.md` §3.7 |
 | 발주 입고 처리 | 발주 품목마다 입고 대기 → 입고 완료(로트 생성)·입고 안 함. 품목당 1회 처리, 덜 온 양은 추적 안 함. 입고 예정량 = 입고 대기 수량 합계로 추천량에서만 뺀다(소진 예상일은 현재고 기준) (2026-10-28) | `01_basic_design.md` §3.7.2·§3.7.5 |
 | 발주 추천 단일화 | 발주 추천은 수요예측 기반 추천 하나만 둔다. 재고 부족 기준 기반 임계값 추천(`GET /api/inventory/reorder-suggestions`)은 폐기. 저장된 예측이 없으면 대체 추천 없이 수동 실행을 안내 (2026-10-25, 안내 2026-10-28) | `01_basic_design.md` §3.7, `04_fe.md` §4.9 |
 | 매출 집계 API | 기간별 매출은 `GET /api/sales/trends` 하나로 조회(일·주·월, 매장 전체 또는 메뉴별, 빈 구간 0). 인기 메뉴는 `GET /api/sales/top-menus`, 요약은 `GET /api/sales/summary`(누계·이번 달·오늘, 마지막 판매 시각 기준) (2026-10-25) | `02_implementation_design.md` §3.6 |
@@ -80,7 +80,7 @@
 | 메뉴 관리 화면 | 레시피 관리를 메뉴 관리(`/menus`)로 바꿔 판매가·레시피를 한 화면에서 받는다. 단가 관리 화면은 폐지 — 재료 단가는 발주 추천에서 보인다 (2026-10-28) | `04_fe.md` §4.5 |
 | AI 서버 수정 범위 | AI 팀원 담당은 예측 모델·학습까지. AI 서버의 API·스키마 코드는 BE 담당이 직접 고친다 (2026-10-28) | — |
 | 예측 배치 책임 분리 | n8n은 모델 예측만 — 입력 조회·외부 데이터·AI 예측(매출 + 대상일별 메뉴 수량)·예측 저장·실행 기록·Slack. 추천발주는 산식이라 BE가 점주 요청 시 저장된 예측과 그 시점 재고로 계산(AI `/ai/orders/recommend` 폐지). 수동 실행은 BE가 n8n 웹훅으로 매장 하나 실행, 예측 완료 알림은 n8n → BE 내부 API (2026-10-28) | `01_basic_design.md` §3.7.2·§3.11.1, `05_ai.md` §2 |
-| 추천 수정안 저장 폐지 | 확정 전 수정값은 서버에 저장하지 않는다 — 확정 버튼이 저장 시점. `PATCH /api/orders/recommend`·`adjusted_quantity` 삭제. 화면을 나가도 남기려면 FE 브라우저 저장소 (2026-10-28) | `01_basic_design.md` §3.7.4 |
+| 추천 수정안 저장 폐지 | 확정 전 수정값은 서버에 저장하지 않는다 — [쿠팡 담기]를 마칠 때가 저장 시점(2026-10-29). `PATCH /api/orders/recommend`·`adjusted_quantity` 삭제. 화면을 나가도 남기려면 FE 브라우저 저장소 (2026-10-28) | `01_basic_design.md` §3.7.4 |
 | 대시보드 API | 대시보드 전용 API는 날짜별 예측 매출 vs 실제 매출(`GET /api/dashboard/forecast-vs-actual`) 하나. 매출 추이·메뉴 비중은 판매 집계 API를 쓴다. 요약(`GET /api/dashboard`)·폐기 현황(`/waste`)·대시보드 캐시 삭제 (2026-10-28) | `02_implementation_design.md` §3.9 |
 | 날씨 입력 | 날씨는 매장 위치 기준 — 어제까지 기상청 ASOS 일자료(최근접 관측소), 오늘 이후 단기예보(매장 격자). 위치는 주소 저장 시 BE가 Google Geocoding으로 계산해 `stores`에 둔다. 관측 날씨는 n8n이 관측소·날짜 단위로 `weather_observations`에 쌓고 없는 날짜만 받는다(예보는 저장 안 함). 위치 없음·호출 실패는 날씨 없이 예측 (2026-10-28) | `01_basic_design.md` §3.11.1, `02_implementation_design.md` §4.3.3·§4.3.25 |
 | 매출 CSV 재업로드 dedup 정책 (2026-08-17) | `UNIQUE(store_id, source, external_sale_id)`는 MySQL에서 NULL끼리 서로 다르게 취급되어, 영수증번호 컬럼 없이(FE 기본값) 업로드한 CSV는 재업로드 시 DB 레벨 중복 방지가 전혀 동작하지 않는다 — 실사례로 소주 8,984개가 98,824개(11배)로 중복 적재. `external_sale_id`가 NULL이면 `(menu_id, sold_at)` 합성 식별자를 만들어 같은 UNIQUE 제약 경로를 타도록 애플리케이션 레벨에서 정규화(스키마 변경 없음) | `Back/app/services/sale_service.py` `_insert_chunk` |
