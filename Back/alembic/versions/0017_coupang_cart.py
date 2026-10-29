@@ -30,7 +30,7 @@ def upgrade() -> None:
         CREATE TABLE coupang_products (
             item_id             VARCHAR(20)     NOT NULL COMMENT '쿠팡 itemId',
             product_id          VARCHAR(20)     NOT NULL COMMENT '쿠팡 productId. 상품 페이지 주소용',
-            vendor_item_id      VARCHAR(20)     NOT NULL COMMENT '마지막으로 본 쿠팡 vendorItemId',
+            vendor_item_id      VARCHAR(20)     NULL COMMENT '마지막으로 본 쿠팡 vendorItemId. 관측에 없으면 그대로',
             product_name        VARCHAR(300)    NOT NULL COMMENT '상품명 원문의 첫 쉼표 앞. 쉼표가 없으면 전체',
             option_name         VARCHAR(200)    NULL COMMENT '상품명 원문의 첫 쉼표 뒤. 쉼표가 없으면 NULL',
             sale_price          INT             NULL COMMENT '판매가(원). 매장 가격 다수결. 매장 가격을 받은 적 없으면 NULL',

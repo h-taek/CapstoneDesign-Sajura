@@ -18,7 +18,7 @@ class CoupangProduct(Base):
 
     item_id: Mapped[str] = mapped_column(String(20), primary_key=True)
     product_id: Mapped[str] = mapped_column(String(20), nullable=False)
-    vendor_item_id: Mapped[str] = mapped_column(String(20), nullable=False)
+    vendor_item_id: Mapped[str | None] = mapped_column(String(20), nullable=True)
     product_name: Mapped[str] = mapped_column(String(300), nullable=False)
     option_name: Mapped[str | None] = mapped_column(String(200), nullable=True)
     sale_price: Mapped[int | None] = mapped_column(Integer, nullable=True)

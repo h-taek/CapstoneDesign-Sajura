@@ -124,7 +124,7 @@ class CartAdded(BaseModel):
 
     item_id: str = Field(pattern=_DIGITS)
     product_id: str = Field(pattern=_DIGITS)
-    vendor_item_id: str = Field(pattern=_DIGITS)
+    vendor_item_id: str | None = Field(default=None, pattern=_DIGITS)  # 없을 수 있다
     price: int = Field(gt=0)  # 그 상품 페이지의 표시 가격(원)
 
 

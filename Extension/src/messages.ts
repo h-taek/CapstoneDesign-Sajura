@@ -24,7 +24,7 @@ export interface ElementsResult {
 export interface CartAdded {
   item_id: string;
   product_id: string;
-  vendor_item_id: string;
+  vendor_item_id: string | null; // 주소에 없으면 null
   price: number;
 }
 

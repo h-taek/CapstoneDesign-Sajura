@@ -127,10 +127,19 @@ describe("상품 페이지", () => {
     });
   });
 
-  it("주소에 vendorItemId가 없으면 페이지 데이터에서 읽는다", () => {
+  it("연결 상품 주소처럼 vendorItemId가 없으면 비운 채로 담기 결과를 만든다", () => {
+    // 판매자는 쿠팡이 고른다 — 페이지 데이터에서 판매 건 번호를 찾지 않는다 (03_be.md §2.4.1)
     const linked = "https://www.coupang.com/vp/products/8783459207?itemId=28626905951";
-    const head = buildElements(load("product"), linked).elements.find((e) => e.role === "heading");
-    expect(head?.vendor_item_id).toBe("92548976689");
+    const { elements: els } = buildElements(load("product"), linked);
+    const head = els.find((e) => e.role === "heading");
+    expect(head).toMatchObject({ product_id: "8783459207", item_id: "28626905951" });
+    expect(head).not.toHaveProperty("vendor_item_id");
+    expect(pageProduct(els)).toEqual({
+      product_id: "8783459207",
+      item_id: "28626905951",
+      vendor_item_id: null,
+      price: 4910,
+    });
   });
 
   it("수량 버튼·담기 버튼", () => {

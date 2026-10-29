@@ -16,7 +16,7 @@ from datetime import UTC, date, datetime, timedelta
 from decimal import ROUND_HALF_UP, Decimal
 from typing import Any
 
-from sqlalchemy import delete, select
+from sqlalchemy import delete, func, select
 from sqlalchemy.dialects.mysql import insert as mysql_insert
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -81,7 +81,7 @@ class Card:
 
     item_id: str
     product_id: str
-    vendor_item_id: str
+    vendor_item_id: str | None  # 판매 건. 연결 상품 주소로 연 상품 페이지처럼 없을 수 있다
     product_name: str
     display_price: int | None
     discount_label: str | None
@@ -109,7 +109,7 @@ def read_cards(elements: list[PageElement]) -> list[Card]:
     """
     cards: dict[str, Card] = {}
     for i, el in enumerate(elements):
-        if not (el.item_id and el.product_id and el.vendor_item_id) or el.item_id in cards:
+        if not (el.item_id and el.product_id) or el.item_id in cards:
             continue
         name = el.text.strip()
         if not name:
@@ -510,11 +510,12 @@ class AutomationService:
                 "updated_at": now,
             }
             stmt = mysql_insert(CoupangProduct).values(**values)
-            await self.session.execute(
-                stmt.on_duplicate_key_update(
-                    {k: stmt.inserted[k] for k in values if k != "item_id"}
-                )
+            update = {k: stmt.inserted[k] for k in values if k != "item_id"}
+            # 판매 건은 관측에 있을 때만 바꾼다 — 없다고 앞서 본 값을 지우지 않는다
+            update["vendor_item_id"] = func.coalesce(
+                stmt.inserted.vendor_item_id, CoupangProduct.vendor_item_id
             )
+            await self.session.execute(stmt.on_duplicate_key_update(update))
             if cp.is_wow(card.discount_label) and card.non_wow_price is None:
                 wow.add(card.item_id)  # 확장이 뒤에서 받은 비회원 가격이 다음 걸음에 온다
                 continue

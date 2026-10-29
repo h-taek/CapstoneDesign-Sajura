@@ -1748,7 +1748,7 @@ Authorization: Bearer <access_token>
   "url": "https://www.coupang.com/np/search?q=…",
   "elements": [
     { "ref": "12", "role": "link", "text": "곰곰 무항생제 신선한 대란, 30구, 1개", "depth": 3,
-      "product_id": "1271064981", "item_id": "…", "vendor_item_id": "70272921582" },   // 검색 결과 화면은 카드 링크, 상품 페이지는 상품명 요소에 붙는다
+      "product_id": "1271064981", "item_id": "…", "vendor_item_id": "70272921582" },   // 검색 결과 화면은 카드 링크, 상품 페이지는 상품명 요소에 붙는다. vendor_item_id는 주소에 없으면 뺀다
     { "ref": "13", "role": "deletion", "text": "11,900원", "depth": 4 },   // 취소선 가격
     { "ref": "14", "role": "text", "text": "8,390원", "depth": 4 },   // 상품 페이지의 상품명 요소에는 non_wow_price(페이지 데이터의 nonWowMemberPrice)도 붙는다
     { "ref": "15", "role": "image", "text": "logo_fresh_medium.png", "depth": 4 }   // 글자 없는 그림은 파일 이름
@@ -1756,7 +1756,7 @@ Authorization: Bearer <access_token>
 }
 // result — 동작 결과 (click·type_text·scroll의 결과)
 { "kind": "action", "ok": true, "page_changed": true, "message": null,   // 실패면 ok false, message "요소 없음" 등
-  "cart_added": null }   // 클릭 뒤 상품 페이지에 담기 완료 표시가 나타나면 { "item_id": "…", "product_id": "…", "vendor_item_id": "…", "price": 12900 } — price는 그 상품 페이지의 표시 가격(원) (04_fe.md §12.4)
+  "cart_added": null }   // 클릭 뒤 상품 페이지에 담기 완료 표시가 나타나면 { "item_id": "…", "product_id": "…", "vendor_item_id": "…", "price": 12900 } — price는 그 상품 페이지의 표시 가격(원), vendor_item_id는 주소에 없으면 null (04_fe.md §12.4)
 
 // Response 200 — 둘 중 하나. 03_be.md §2.4.4의 도구
 { "action": { "tool": "click", "args": { "ref": "12" } } }
@@ -2422,7 +2422,7 @@ CREATE TABLE disposal_logs (
 CREATE TABLE coupang_products (
     item_id             VARCHAR(20)     NOT NULL COMMENT '쿠팡 itemId',
     product_id          VARCHAR(20)     NOT NULL COMMENT '쿠팡 productId. 상품 페이지 주소용',
-    vendor_item_id      VARCHAR(20)     NOT NULL COMMENT '마지막으로 본 쿠팡 vendorItemId',
+    vendor_item_id      VARCHAR(20)     NULL COMMENT '마지막으로 본 쿠팡 vendorItemId. 관측에 없으면 그대로',
     product_name        VARCHAR(300)    NOT NULL COMMENT '상품명 원문의 첫 쉼표 앞. 쉼표가 없으면 전체',
     option_name         VARCHAR(200)    NULL COMMENT '상품명 원문의 첫 쉼표 뒤. 쉼표가 없으면 NULL',
     sale_price          INT             NULL COMMENT '판매가(원). 매장 가격 다수결 (01_basic_design.md §3.3.1). 매장 가격을 받은 적 없으면 NULL',

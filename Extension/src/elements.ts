@@ -18,7 +18,7 @@ const UNIT_PRICE = /^\(?\s*([\d.,]+)\s*([^\d\s]+?)\s*당\s*([\d,]+)\s*원\s*\)?$
 export interface ProductIds {
   product_id: string;
   item_id: string;
-  vendor_item_id: string;
+  vendor_item_id: string | null; // 판매 건. 주소에 있을 때만 — 연결 상품 주소에는 없다
 }
 
 /** 와우 할인 카드 — 확장이 링크를 뒤에서 받아 비회원 가격을 읽는다 (§12.5). */
@@ -36,10 +36,7 @@ export interface Snapshot {
 }
 
 /** 쿠팡 상품 페이지 주소의 상품 고유 ID. vendorItemId가 주소에 없으면 null로 둔다. */
-export function productIds(
-  href: string,
-  base: string,
-): (Omit<ProductIds, "vendor_item_id"> & { vendor_item_id: string | null }) | null {
+export function productIds(href: string, base: string): ProductIds | null {
   let u: URL;
   try {
     u = new URL(href, base);
@@ -73,6 +70,10 @@ export function priceOf(text: string): number | null {
 }
 
 export const isUnitPriceText = (text: string): boolean => UNIT_PRICE.test(text.trim());
+
+/** 요소에는 값이 있는 ID만 붙인다 — 없는 vendorItemId는 칸을 뺀다. */
+const withoutNull = (ids: ProductIds) =>
+  Object.fromEntries(Object.entries(ids).filter(([, v]) => v !== null));
 
 const clip = (text: string): string => text.replace(/\s+/g, " ").trim().slice(0, TEXT_MAX);
 
@@ -187,25 +188,16 @@ interface ProductPage {
   nonWow: number | null;
 }
 
-/** 상품 페이지면 제목·가격 영역·상품 고유 ID. vendorItemId는 주소, 없으면 페이지 데이터에서. */
+/** 상품 페이지면 제목·가격 영역·상품 고유 ID(주소에서). */
 function productPage(doc: Document, url: string): ProductPage | null {
   const ids = productIds(url, url);
   const title = doc.querySelector("h1.product-title") ?? doc.querySelector("h1");
   if (!ids || !title) return null;
-  const html = doc.documentElement.innerHTML;
-  // 연결 상품 주소(/vp/products/{productId}?itemId=…)에는 vendorItemId가 없다. 페이지 데이터의
-  // 상품 주소에서 같은 itemId에 붙은 값을 찾는다 (research/backend/16 §6.12)
-  const vendor =
-    ids.vendor_item_id ??
-    html.match(new RegExp(`itemId=${ids.item_id}&(?:amp;)?vendorItemId=(\\d{1,20})`))?.[1] ??
-    html.match(new RegExp(`items/${ids.item_id}/vendoritems/(\\d{1,20})`))?.[1] ??
-    null;
-  if (!vendor) return null;
   return {
     title,
     priceBox: doc.querySelector(".price-container"),
-    ids: { ...ids, vendor_item_id: vendor },
-    nonWow: parseNonWowPrice(html),
+    ids,
+    nonWow: parseNonWowPrice(doc.documentElement.innerHTML),
   };
 }
 
@@ -230,7 +222,7 @@ export function buildElements(doc: Document, url: string): Snapshot {
 
     if (product && el === product.title) {
       emit(el, "heading", ownText(el) || clip(el.textContent ?? ""), depth, {
-        ...product.ids,
+        ...withoutNull(product.ids),
         ...(product.nonWow ? { non_wow_price: product.nonWow } : {}),
       });
       if (product.priceBox) walk(product.priceBox, depth + 1, false, null, true);
@@ -239,9 +231,9 @@ export function buildElements(doc: Document, url: string): Snapshot {
 
     if (el.localName === "a" && el.hasAttribute("href")) {
       const ids = productIds(el.getAttribute("href") ?? "", url);
-      if (ids?.vendor_item_id) {
+      if (ids) {
         const name = cardName(el);
-        const i = emit(el, "link", name, depth, ids);
+        const i = emit(el, "link", name, depth, withoutNull(ids));
         cardLinks.set(i, new URL(el.getAttribute("href") ?? "", url).href);
         for (const c of el.children) walk(c, depth + 1, masked, name);
         return;
@@ -305,7 +297,7 @@ function wowCards(elements: PageElement[], cardLinks: Map<number, string>): WowC
 
 /** 상품 페이지 요소 목록의 상품 — 제목의 상품 고유 ID와 그 아래 첫 표시 가격 (담기 결과용). */
 export function pageProduct(elements: PageElement[]): (ProductIds & { price: number }) | null {
-  const i = elements.findIndex((e) => e.role === "heading" && e.item_id && e.vendor_item_id);
+  const i = elements.findIndex((e) => e.role === "heading" && e.item_id && e.product_id);
   if (i < 0) return null;
   const head = elements[i];
   let price: number | null = null;
@@ -313,11 +305,11 @@ export function pageProduct(elements: PageElement[]): (ProductIds & { price: num
     if (c.depth <= head.depth) break;
     if (c.role !== "deletion" && (price = priceOf(c.text)) !== null) break;
   }
-  if (price === null || !head.product_id || !head.item_id || !head.vendor_item_id) return null;
+  if (price === null || !head.product_id || !head.item_id) return null;
   return {
     product_id: head.product_id,
     item_id: head.item_id,
-    vendor_item_id: head.vendor_item_id,
+    vendor_item_id: head.vendor_item_id ?? null,
     price,
   };
 }

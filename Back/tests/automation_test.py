@@ -508,6 +508,30 @@ async def test_cart_added_ends_item_and_links(client: AsyncClient, fake_agent: F
 
 
 @pytest.mark.asyncio
+async def test_vendor_item_id_is_optional(client: AsyncClient) -> None:
+    # 연결 상품 주소로 연 상품 페이지에는 판매 건 번호가 없다 — 판매자는 쿠팡이 고른다 (03_be.md §2.4.1)
+    auth, _, ids = await _store(client, {"양파": "g"})
+    run_id = await start(client, auth, {ids["양파"]: 3000})
+    seen, fresh = coupang_id(), coupang_id()
+    await step(client, auth, run_id, ids["양파"])
+    await step(client, auth, run_id, ids["양파"], elements(card(seen, name="양파, 1kg")))
+    without = [card(seen, name="양파, 1kg"), card(fresh, name="햇양파, 3kg")]
+    for c in without:
+        del c[0]["vendor_item_id"]
+    r = await step(client, auth, run_id, ids["양파"], elements(*without))
+    assert r.status_code == 200, r.text
+    assert (await _product(seen)).vendor_item_id == seen  # 관측에 없다고 앞서 본 값을 지우지 않는다
+    f = await _product(fresh)
+    assert (f.vendor_item_id, f.product_name) == (None, "햇양파")
+
+    added = cart(fresh, 5800)
+    added["cart_added"]["vendor_item_id"] = None
+    r = await step(client, auth, run_id, ids["양파"], added)
+    assert r.json() == DONE, r.text
+    assert (await _item(ids["양파"])).coupang_item_id == fresh
+
+
+@pytest.mark.asyncio
 async def test_linked_at_kept_only_for_linked_product(client: AsyncClient) -> None:
     auth, _, ids = await _store(client, {"삼겹살": "g", "목살": "g", "양파": "g"})
     pork = await _link(ids["삼겹살"], linked_ago=timedelta(days=1))
