@@ -2679,7 +2679,7 @@ CREATE TABLE push_subscriptions (
 CREATE TABLE coupang_store_prices (
     item_id             VARCHAR(20)     NOT NULL COMMENT '쿠팡 itemId',
     store_id            CHAR(36)        NOT NULL COMMENT '관측한 매장',
-    sale_price          INT             NOT NULL COMMENT '그 관측의 표시 가격(원). 와우 회원 할인 관측은 넣지 않는다',
+    sale_price          INT             NOT NULL COMMENT '그 관측의 판매가(원). 비회원 가격 (01_basic_design.md §3.3.1)',
     unit_price          DECIMAL(12,4)   NULL COMMENT '그 관측의 단가(용량 단위 1당 원). 단위가격 대조를 통과하지 못했으면 NULL',
     received_at         DATETIME        NOT NULL COMMENT '마지막으로 관측한 시각. 같은 값이어도 갱신',
     PRIMARY KEY (item_id, store_id),
