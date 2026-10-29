@@ -127,8 +127,12 @@ function iconName(el: Element): string | null {
   return null;
 }
 
-/** 요소 하나의 종류와 글자. 담지 않을 요소면 null. */
-function describe(el: Element): { role: string; text: string } | null {
+/**
+ * 요소 하나의 종류와 글자. 담지 않을 요소면 null.
+ * name: 글자가 그림 파일 이름·아이콘 클래스 이름이다 — 화면 글이 아니라 모양 가리기를 하지 않는다
+ * ('…@2x.png'는 이메일, 16진수 이름 속 숫자는 전화번호 모양이다).
+ */
+function describe(el: Element): { role: string; text: string; name?: true } | null {
   const tag = el.localName;
   if (el instanceof HTMLInputElement) {
     if (el.type === "checkbox" || el.type === "radio") {
@@ -146,7 +150,7 @@ function describe(el: Element): { role: string; text: string } | null {
     // 글자 없는 그림은 배지 파일 이름만. 사진(jpg·webp)과 파일 이름 없는 내장 그림(data:)은 뺀다
     const src = el.getAttribute("src") ?? "";
     const name = src.startsWith("data:") ? "" : fileName(src);
-    return name && !PHOTO.test(name) ? { role: "image", text: name } : null;
+    return name && !PHOTO.test(name) ? { role: "image", text: name, name: true } : null;
   }
   const label = clip(el.getAttribute("aria-label") ?? "");
   const own = ownText(el);
@@ -161,7 +165,7 @@ function describe(el: Element): { role: string; text: string } | null {
   }
   if (el.children.length === 0) {
     const icon = iconName(el);
-    if (icon) return { role: "image", text: icon };
+    if (icon) return { role: "image", text: icon, name: true };
   }
   return null;
 }
@@ -258,7 +262,7 @@ export function buildElements(doc: Document, url: string): Snapshot {
       for (const c of el.children) walk(c, depth, masked, dup);
       return;
     }
-    let text = maskShapes(info.text);
+    let text = info.name ? info.text : maskShapes(info.text);
     let maskChildren = masked;
     if (masked || isMyCoupangLabel(text)) text = MASK;
     else if (zone?.contains(el) && /님$/.test(text)) {

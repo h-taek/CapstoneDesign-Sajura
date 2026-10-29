@@ -2,7 +2,7 @@
 
 import { buildElements } from "../src/elements";
 import { maskShapes } from "../src/privacy";
-import { CART_URL, PRODUCT_URL, load } from "./helpers";
+import { CART_URL, PRODUCT_URL, SEARCH_URL, load } from "./helpers";
 
 describe("위치로 찾는 이름", () => {
   const { elements } = buildElements(load("cart"), CART_URL);
@@ -38,6 +38,20 @@ describe("모양으로 찾는 전화번호·이메일·주소", () => {
     for (const t of ["4,910원", "(100g당 491원)", "양파(중) 10kg × 1개", "92548976689", "( 9,057 )"]) {
       expect(maskShapes(t)).toBe(t);
     }
+  });
+
+  it("그림 파일 이름은 가리지 않는다 — '@2x.png'는 이메일, 16진수 속 숫자는 전화번호 모양이다", () => {
+    const doc = load("search");
+    doc.body.insertAdjacentHTML(
+      "beforeend",
+      `<img src="https://img1a.coupangcdn.com/image/coupang/search/search_assets_160912@2x.png">
+       <img src="https://image.coupangcdn.com/image/bd0101234567c28c36cd488fa0875c0cee56.png">
+       <img src="https://image.coupangcdn.com/x.png" alt="문의 010-1234-5678">`,
+    );
+    const texts = buildElements(doc, SEARCH_URL).elements.map((e) => e.text);
+    expect(texts).toContain("search_assets_160912@2x.png");
+    expect(texts).toContain("bd0101234567c28c36cd488fa0875c0cee56.png");
+    expect(texts).toContain("문의 ---"); // 그림 설명 글은 화면 글이라 가린다
   });
 
   it("글 속 일부만 가린다 — 주소는 글 전체", () => {
