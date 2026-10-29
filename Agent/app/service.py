@@ -127,16 +127,15 @@ async def step(req: StepRequest) -> dict[str, Any]:
         conv = json.loads(raw)
         if req.result is None:
             raise errors.validation_error("직전 실행 결과가 필요합니다.")
-        size = len(json.dumps(req.result.model_dump(mode="json"), ensure_ascii=False))
-        if size > RESULT_MAX_CHARS:
+        is_screen = isinstance(req.result, ElementsResult)
+        new_input = render_elements(req.result) if is_screen else render_action(req.result)
+        # 크기는 LLM에 넣는 글로 잰다 — 막을 것은 LLM 비용이다
+        if len(new_input) > RESULT_MAX_CHARS:
             raise errors.validation_error("실행 결과가 너무 큽니다.")
-        if isinstance(req.result, ElementsResult):
-            new_input = render_elements(req.result)
+        if is_screen:
             if conv["screen"] is not None:
                 conv["messages"][conv["screen"]]["content"] = PREVIOUS_SCREEN
             conv["screen"] = len(conv["messages"])
-        else:
-            new_input = render_action(req.result)
         conv["messages"].append(
             {"role": "tool", "tool_call_id": conv["pending"], "content": new_input}
         )

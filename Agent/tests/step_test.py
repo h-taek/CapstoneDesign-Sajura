@@ -115,6 +115,14 @@ async def test_result_over_150k_chars_is_400(
     assert await redis.get(f"agent:calls:conv:{CONV}") == b"1"  # 크기 초과는 세지 않는다
 
 
+async def test_size_is_llm_input_not_json(client: AsyncClient, fake_llm: FakeLLM) -> None:
+    # 실측 상품 페이지(요소 2,409개) — JSON은 15만 4천 자, LLM에 넣는 글은 6만 9천 자였다
+    await start(client)
+    result = elements(*(["가" * 20] * 2500))
+    r = await step(client, result=result)
+    assert r.status_code == 200, r.text
+
+
 async def test_41st_call_in_conversation_is_429(client: AsyncClient, fake_llm: FakeLLM) -> None:
     await start(client)
     for _ in range(39):

@@ -158,3 +158,18 @@ describe("장바구니", () => {
     expect(elements.some((e) => e.item_id)).toBe(false);
   });
 });
+
+it("글자 없는 사진과 파일 이름 없는 내장 그림은 담지 않는다 — 배지는 담는다", () => {
+  const doc = new DOMParser().parseFromString(
+    `<body><img alt="" src="https://thumbnail.coupangcdn.com/a/9f8e7d.jpg">
+     <img src="https://image.coupangcdn.com/r/5c4b.webp?q=1">
+     <img src="data:image/gif;base64,R0lGODlhAQABAAAAACw=">
+     <img alt="" src="https://image.coupangcdn.com/badge/logo_fresh_medium.png">
+     <img alt="로켓배송" src="https://image.coupangcdn.com/x.jpg"></body>`,
+    "text/html",
+  );
+  expect(buildElements(doc, SEARCH_URL).elements.map((e) => e.text)).toEqual([
+    "logo_fresh_medium.png",
+    "로켓배송",
+  ]);
+});

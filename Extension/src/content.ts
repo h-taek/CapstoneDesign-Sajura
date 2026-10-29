@@ -1,7 +1,18 @@
 // content script — 쿠팡 탭마다 들어가지만 background가 명령을 보낸 작업 탭에서만 움직인다.
 // 명령은 확장 내부(background)에서만 온다.
 
-import { click, fetchNonWow, loggedIn, readPage, scroll, showNotice, typeText } from "./page";
+import {
+  type ClickResult,
+  claimWorkTab,
+  click,
+  fetchNonWow,
+  loggedIn,
+  readPage,
+  scroll,
+  showNotice,
+  takeDialogs,
+  typeText,
+} from "./page";
 
 export type Command =
   | { cmd: "read" }
@@ -12,17 +23,25 @@ export type Command =
   | { cmd: "fetch"; url: string }
   | { cmd: "notice"; title: string; detail: string | null };
 
+/** 동작 결과에 그사이 뜬 알림 창 글을 붙인다. */
+function withDialogs(r: ClickResult): ClickResult {
+  const notes = takeDialogs();
+  if (!notes.length) return r;
+  return { ...r, message: [r.message, ...notes].filter(Boolean).join(" / ").slice(0, 200) };
+}
+
 async function handle(c: Command): Promise<unknown> {
+  claimWorkTab(document); // 명령을 받은 탭이 작업 탭이다
   switch (c.cmd) {
     case "read":
       return readPage(document, location.href);
     case "click":
-      return click(document, location.href, c.ref);
+      return withDialogs(await click(document, location.href, c.ref));
     case "type":
-      return typeText(c.ref, c.text);
+      return withDialogs(typeText(c.ref, c.text));
     case "scroll":
       scroll(window, c.direction);
-      return { ok: true, message: null, cart_added: null };
+      return withDialogs({ ok: true, message: null, cart_added: null });
     case "login":
       return { logged_in: loggedIn(document) };
     case "fetch":

@@ -1,6 +1,7 @@
 // 쿠팡 탭 안의 동작 (04_fe.md §12.4~§12.7). content.ts가 background의 명령을 받아 부른다.
 // DOM만 다루고 chrome API는 쓰지 않는다 — 저장한 화면으로 시험한다.
 
+import { DIALOG_EVENT, WORK_FLAG } from "./dialogGuard";
 import { type Snapshot, buildElements, pageProduct, parseNonWowPrice } from "./elements";
 import type { CartAdded, ElementsResult } from "./messages";
 import { PRODUCT_URL_PREFIX } from "./messages";
@@ -19,10 +20,32 @@ export interface ClickResult {
 }
 
 let snapshot: Snapshot | null = null;
+const dialogs: string[] = [];
+
+/** 이 탭을 작업 탭으로 표시하고, 페이지 쪽 스크립트가 넘기는 알림·확인 창 글을 모은다. */
+export function claimWorkTab(doc: Document): void {
+  if (doc.documentElement.dataset[WORK_FLAG] === "1") return;
+  doc.documentElement.dataset[WORK_FLAG] = "1";
+  doc.addEventListener(DIALOG_EVENT, (e) => {
+    dialogs.push(String((e as CustomEvent).detail).replace(/\s+/g, " ").slice(0, 200));
+  });
+}
+
+/** 모인 알림 글을 꺼낸다 — 동작 결과의 메시지로 LLM에 넘긴다. */
+export function takeDialogs(): string[] {
+  return dialogs.splice(0);
+}
 
 export function readPage(doc: Document, url: string): ElementsResult & { wowCards: Snapshot["wowCards"] } {
   snapshot = buildElements(doc, url);
-  return { kind: "elements", url: url.slice(0, 2000), elements: snapshot.elements, wowCards: snapshot.wowCards };
+  // 앞선 동작 뒤에 뜬 알림 창은 목록 끝에 '알림' 요소로 붙인다. 번호는 누를 수 없는 이름
+  const alerts = takeDialogs().map((text, i) => ({ ref: `알림${i + 1}`, role: "alert", text, depth: 0 }));
+  return {
+    kind: "elements",
+    url: url.slice(0, 2000),
+    elements: [...snapshot.elements, ...alerts],
+    wowCards: snapshot.wowCards,
+  };
 }
 
 function target(ref: string): Element | null {
@@ -49,8 +72,10 @@ function isCartButton(el: Element): boolean {
 }
 
 export async function click(doc: Document, url: string, ref: string): Promise<ClickResult> {
-  const el = target(ref);
-  if (!el) return { ok: false, message: "요소 없음", cart_added: null };
+  const found = target(ref);
+  if (!found) return { ok: false, message: "요소 없음", cart_added: null };
+  // 링크·버튼 안의 글자를 골랐으면 그 링크·버튼을 누른다 — 카드 안 '할인' 글자는 눌러도 열리지 않았다
+  const el = found.closest("button, a[href], [role=button]") ?? found;
   // 링크는 새 탭으로 열리지 않게 한다
   el.closest("a")?.removeAttribute("target");
   // 화면 밖 버튼은 눌러도 담기가 되지 않았다(research/backend/16 §6.12) — 먼저 화면 안으로
@@ -62,6 +87,7 @@ export async function click(doc: Document, url: string, ref: string): Promise<Cl
   if (!waitCart) return { ok: true, message: null, cart_added: null };
   for (let t = 0; t < CART_WAIT_MS; t += POLL_MS) {
     await sleep(POLL_MS);
+    if (dialogs.length) break; // 담기 대신 알림 창이 떴다
     if (cartAddedAppeared(before, pageText(doc))) {
       const product = pageProduct(buildElements(doc, url).elements);
       return { ok: true, message: product ? null : "담은 상품을 읽지 못함", cart_added: product };

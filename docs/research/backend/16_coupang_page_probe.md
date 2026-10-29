@@ -249,3 +249,8 @@ Claude in Chrome 페이지 스크립트로 첫 화면 → 검색창 값 넣기 +
   - 수량은 `input.cart-quantity-input`(값 1) 양옆의 글자 없는 `div` 둘이다. 클래스 `twc-bg-minus-icon`(수량 1이면 `twc-bg-minus-icon-disable`도)·`twc-bg-plus-icon`, 배경 그림은 `data:image/svg+xml` 주소라 파일 이름이 없다. 커서는 `auto`.
   - '삭제' `click()`으로 상품이 빠졌고 확인 창은 없었다.
 - 검색 결과 주소 `/np/search?q=양파`를 직접 열어도 정상 결과가 나왔다.
+- 연결 상품 주소 `/vp/products/9291244801?itemId=27517484558`(`vendorItemId` 없음)를 직접 열면 주소는 그대로이고 그 옵션 페이지가 열렸다. 페이지 데이터에 `/items/{itemId}/vendoritems/` 모양은 없었고, `vp/products/{productId}/vendoritems/{번호}`(itemId 없음)가 4곳, 상품 정보(`application/ld+json`)와 링크에 `itemId={itemId}&vendorItemId={번호}`가 있었다. 같은 페이지 안의 다른 상품 링크(배너·광고)도 `itemId=…&vendorItemId=…` 모양이다.
+- 확장 실측(PWA 시험 스크립트 + 개발자 모드 확장, 비로그인): 상품 페이지 요소 목록이 요소 2,162~2,409개, JSON 13만~15만 자였고 그중 글자는 3만 자 남짓이었다. 리뷰·상품 사진(`jpg`·`webp`, 이름은 해시값) 78개, 배지 `png` 175개. 검색 결과는 요소 약 1,510개, JSON 9만 4천 자.
+- 확장 실측 중 상품 페이지에서 클릭 뒤 쿠팡이 '서버에서 오류가 발생하였습니다' 알림 창(`alert`)을 띄웠고, 창이 떠 있는 동안 탭의 확장 스크립트가 답하지 않았다. 어느 클릭 뒤였는지는 기록하지 못했다.
+- 검색 카드 안의 '할인' 글자 요소를 `click()`하자 화면이 바뀌지 않았고(2회), 같은 카드의 할인율 글자('19 %')를 누르면 상품 페이지가 열렸다.
+- 같은 상품을 `/vp/products/9291244801?itemId=27517484558&vendorItemId=94527358696`으로 직접 열면 주소의 두 값이 그대로 남고, 같은 옵션('…햇양파, 1박스, 5Kg 소', 5,800원 · 100g당 116원)이 열렸다.

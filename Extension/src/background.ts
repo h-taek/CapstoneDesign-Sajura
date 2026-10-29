@@ -18,6 +18,7 @@ const HOME = "https://www.coupang.com/";
 const LOAD_TIMEOUT_MS = 20_000;
 const NAV_GRACE_MS = 1500; // 클릭 뒤 이 안에 화면이 바뀌기 시작하면 바뀐 것으로 본다
 const SETTLE_MS = 800; // 다 뜬 뒤 화면 그리기를 기다린다
+const REPLY_TIMEOUT_MS = 15_000; // 탭 명령 하나의 답 — 클릭 뒤 담기 완료 기다리기(4초)보다 길게
 
 const sleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
 
@@ -57,15 +58,26 @@ async function waitComplete(tabId: number): Promise<void> {
   }
 }
 
+class NoReply extends Error {}
+
+/** 탭이 이 시간 안에 답하지 않으면 실패로 본다 — 알림 창이 떠 있으면 탭 스크립트가 멈춘다. */
+function within<T>(p: Promise<T>, ms: number): Promise<T> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const limit = new Promise<never>((_, rej) => {
+    timer = setTimeout(() => rej(new NoReply("확장 응답 없음 — 쿠팡 탭에 알림 창이 떠 있을 수 있습니다")), ms);
+  });
+  return Promise.race([p, limit]).finally(() => clearTimeout(timer));
+}
+
 /** content script에 명령. 화면이 막 바뀌어 아직 준비되지 않았으면 잠시 뒤 다시 보낸다. */
 async function send<T>(tabId: number, command: Command, retry = true): Promise<T> {
   for (let i = 0; ; i++) {
     try {
-      const reply = await chrome.tabs.sendMessage(tabId, command);
+      const reply = await within(chrome.tabs.sendMessage(tabId, command), REPLY_TIMEOUT_MS);
       if (reply && typeof reply === "object" && "error" in reply) throw new Error(String(reply.error));
       return reply as T;
     } catch (e) {
-      if (!retry || i >= 20) throw e;
+      if (e instanceof NoReply || !retry || i >= 20) throw e;
       await sleep(500);
     }
   }
@@ -117,7 +129,8 @@ async function run(tabId: number, a: Action, q: NonWowQueue): Promise<ElementsRe
       let r: ClickResult;
       try {
         r = await send<ClickResult>(tabId, { cmd: "click", ref: a.args.ref }, false);
-      } catch {
+      } catch (e) {
+        if (e instanceof NoReply) return action({ ok: false, message: e.message, page_changed: false });
         // 클릭으로 화면이 바뀌면 content script가 답하기 전에 사라진다
         r = { ok: true, message: null, cart_added: null };
       }

@@ -6,6 +6,7 @@
   "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAvawR5zlvEvP44S/MmFYzMEd7UoNmma8DeRfvpykuR/ZIqdunde+uTF0FbL6sOKno3SfNfluOw0KBEnhg5rxp3oyxw/bJ/BSx9gunp5WthMwMW0Wojbzc8Rn7VC3wZiWff5q4fSI5Zuy2X9YgjUqjRV669N4qt4J04WSpbJI/mN3ZmeQEzq+ikfK24rbQN6dlCM9eQTssJFnlf/4KkFsQCy47c/TQ3ihqd5uoQ+HfCg+xti8nj4zhYObfwCTep4NMtjZTC0+4zvu5R0382n3hXafjhSrRZ7NK6xX6iD8QPFP1YoQt25OxLJvZnq3x5YSbDdfjq1qKnzPKnQtg2n4oGwIDAQAB",
   "background": { "service_worker": "background.js", "type": "module" },
   "content_scripts": [
+    { "matches": ["*://*.coupang.com/*"], "js": ["dialog.js"], "run_at": "document_start", "world": "MAIN" },
     { "matches": ["*://*.coupang.com/*"], "js": ["content.js"], "run_at": "document_idle" }
   ],
   "host_permissions": ["*://*.coupang.com/*"],

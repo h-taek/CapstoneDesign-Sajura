@@ -54,7 +54,9 @@ CART_CHECK = "cart_check"
 SEARCH_INTERVAL = timedelta(days=3)  # 연결 시각부터 이 기간이 지나면 검색해 고른다
 RUN_TTL_SECONDS = 60 * 60
 MANUAL_GUIDE_URL = "https://www.coupang.com/"
-PRODUCT_URL = "https://www.coupang.com/vp/products/{product_id}?itemId={item_id}"
+PRODUCT_URL = (
+    "https://www.coupang.com/vp/products/{product_id}?itemId={item_id}&vendorItemId={vendor_item_id}"
+)
 
 _DISCOUNT_LABELS = {"할인", "쿠폰할인", "와우할인", "와우쿠폰할인"}
 _FRESH_IMAGE = "logo_fresh"
@@ -164,7 +166,11 @@ def item_instruction(
     )
     if linked:
         assert product is not None
-        url = PRODUCT_URL.format(product_id=product.product_id, item_id=product.item_id)
+        url = PRODUCT_URL.format(
+            product_id=product.product_id,
+            item_id=product.item_id,
+            vendor_item_id=product.vendor_item_id,
+        )
         body = (
             f"연결된 상품 페이지 {url} 를 열어 그 상품을 담는다. 담지 못하면 쿠팡 검색창에 "
             f"'{item.name}'을 그대로 넣어 검색하고 아래 기준으로 골라 담는다.\n{rules}"

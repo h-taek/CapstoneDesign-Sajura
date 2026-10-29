@@ -344,7 +344,7 @@ async def test_first_instruction_linked_or_search(
         assert (await step(client, auth, run_id, item_id)).status_code == 200
     linked, old, rocket, unlinked = (s["instruction"] for s in fake_agent.steps)
     assert linked.startswith("품목: 삼겹살 (재료 단위 g), 발주 수량 1000g")
-    assert f"/vp/products/{fresh}?itemId={fresh}" in linked
+    assert f"/vp/products/{fresh}?itemId={fresh}&vendorItemId={fresh}" in linked
     assert "'삼겹살'을 그대로 넣어 검색" in linked  # 담지 못하면 검색
     for searched, name in ((old, "목살"), (rocket, "계란"), (unlinked, "양파")):
         assert "/vp/products/" not in searched

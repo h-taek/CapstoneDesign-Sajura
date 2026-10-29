@@ -10,6 +10,7 @@ import { MASK, headerNameZone, isMyCoupangLabel, maskShapes } from "./privacy";
 const SKIP = new Set(["script", "style", "noscript", "template", "iframe", "head", "link", "meta", "svg"]);
 const TEXT_MAX = 300;
 const DIGITS = /^\d{1,20}$/;
+const PHOTO = /\.(jpe?g|webp)$/i;
 const DISCOUNT_LABELS = new Set(["할인", "쿠폰할인", "와우할인", "와우쿠폰할인"]);
 // 서버의 쿠팡 단위가격 모양과 같다 — '100g당 2,348원'·'(1구당 430원)'
 const UNIT_PRICE = /^\(?\s*([\d.,]+)\s*([^\d\s]+?)\s*당\s*([\d,]+)\s*원\s*\)?$/;
@@ -139,7 +140,12 @@ function describe(el: Element): { role: string; text: string } | null {
     return { role: "select", text: clip(el.selectedOptions[0]?.textContent ?? "") };
   }
   if (el instanceof HTMLImageElement) {
-    return { role: "image", text: clip(el.alt) || fileName(el.getAttribute("src") ?? "") };
+    const alt = clip(el.alt);
+    if (alt) return { role: "image", text: alt };
+    // 글자 없는 그림은 배지 파일 이름만. 사진(jpg·webp)과 파일 이름 없는 내장 그림(data:)은 뺀다
+    const src = el.getAttribute("src") ?? "";
+    const name = src.startsWith("data:") ? "" : fileName(src);
+    return name && !PHOTO.test(name) ? { role: "image", text: name } : null;
   }
   const label = clip(el.getAttribute("aria-label") ?? "");
   const own = ownText(el);
@@ -187,8 +193,11 @@ function productPage(doc: Document, url: string): ProductPage | null {
   const title = doc.querySelector("h1.product-title") ?? doc.querySelector("h1");
   if (!ids || !title) return null;
   const html = doc.documentElement.innerHTML;
+  // 연결 상품 주소(/vp/products/{productId}?itemId=…)에는 vendorItemId가 없다. 페이지 데이터의
+  // 상품 주소에서 같은 itemId에 붙은 값을 찾는다 (research/backend/16 §6.12)
   const vendor =
     ids.vendor_item_id ??
+    html.match(new RegExp(`itemId=${ids.item_id}&(?:amp;)?vendorItemId=(\\d{1,20})`))?.[1] ??
     html.match(new RegExp(`items/${ids.item_id}/vendoritems/(\\d{1,20})`))?.[1] ??
     null;
   if (!vendor) return null;
