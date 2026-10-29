@@ -8,7 +8,7 @@
 
 1. 정리 — `automate/match`·`automate/result`, 행 번호 프롬프트·답 검사, 같은 입력 재사용, `LLMClient`·분류기 호출과 LLM·분류기 설정을 BE에서 뺀다. 발주 상세의 `coupang_search_required`를 뺀다.
 2. `POST /api/orders/{id}/automate/start` — 발주 확인, `coupang_run:{order_id}`(로그인 여부·대상별 대화 ID·품목 결과) 새로 만들기, 대상 목록.
-3. `POST /api/orders/{id}/automate/step` — 대상 확인(400), 새 대화면 첫 지시 만들기(연결 상품 3일·포장 수량·로켓프레시 비로그인 규칙, 고르는 기준, 장바구니 검수 지시), 에이전트 서버 `/agent/step` 호출(시간 제한 130초) → 오류는 그대로 돌려줌. 200이면 요소 목록의 상품 카드(상품 링크 요소의 아래 깊이 요소)로 공용 상품 저장·갱신, `finish_item`이면 재료 연결·연결 시각·포장 수량, `finish_cart_check`면 품목별 `CHECK_NEEDED` 기록.
+3. `POST /api/orders/{id}/automate/step` — 대상 확인(400), 새 대화면 첫 지시 만들기(연결 상품 3일·포장 수량·로켓프레시 비로그인 규칙, 고르는 기준, 장바구니 검수 지시), 에이전트 서버 `/agent/step` 호출(시간 제한 130초) → 오류는 그대로 돌려줌. 200이면 요소 목록에서 상품 고유 ID가 붙은 요소의 아래 깊이 요소로 공용 상품 저장·갱신, `finish_item`이면 재료 연결·연결 시각·포장 수량, `finish_cart_check`면 품목별 `CHECK_NEEDED` 기록.
 4. `POST /api/orders/{id}/automate/finish` — 끝나지 않은 품목은 `FAILED`, `orders.status`·`automated_at`·`manual_guide_url`, 품목별 결과, 진행 상태 삭제.
 
 검증: `automation_test.py`(에이전트 서버는 가짜 — start 뒤가 아닌 step 400, 첫 지시의 연결 상품·검색 분기, 오류 그대로 전달, 200일 때만 카드 갱신, 카드 묶음 읽기(상품명·표시 가격·할인 표시·단위가격·로켓프레시 파일 이름), `finish_item` 연결·포장 수량 null, 검수 `CHECK_NEEDED`, finish의 AUTOMATED·MANUAL_REQUIRED·미완료 FAILED), 기존 `coupang_pricing_test.py`, BE 전체 pytest.
@@ -30,7 +30,7 @@
 
 1. `manifest.json` — `host_permissions`는 `*://*.coupang.com/*`만, `externally_connectable.matches`는 PWA 도메인(dev `http://localhost:5173/*`). 개발용 고정 확장 ID(`key`)와 PWA 환경변수 `VITE_EXTENSION_ID`.
 2. 작업 탭 — 담기 시작 때 쿠팡 첫 화면 탭 하나를 열고 그 탭에서만 동작. 로그인 확인(머리글 '로그아웃' 링크, `research/backend/16` §5).
-3. 요소 목록 — 화면 전체, 요소마다 번호·종류·글자·깊이, 상품 링크의 `productId`·`vendorItemId`, 글자 없는 그림은 파일 이름, 누를 수 있는 글자 요소 포함. 번호 → 요소 대응표는 그 화면에서만.
+3. 요소 목록 — 화면 전체, 요소마다 번호·종류·글자·깊이, 상품 고유 ID(검색 결과 화면은 카드 링크 주소에서, 상품 페이지는 페이지 주소에서 읽어 상품명 요소에 붙이고 가격 요소를 그 아래에), 글자 없는 그림은 파일 이름, 누를 수 있는 글자 요소 포함. 번호 → 요소 대응표는 그 화면에서만.
 4. 개인정보 가리기 — 머리글 이름 표시·'마이쿠팡' 링크 설명 글, 전화번호·이메일·주소 모양을 `---`로.
 5. 동작 — 클릭(링크면 `target` 지움), 입력(값 설정 + `input`·`change`), 스크롤. 화면이 바뀌면 다 뜰 때까지 기다리고 `page_changed`. 없는 번호면 '요소 없음'.
 

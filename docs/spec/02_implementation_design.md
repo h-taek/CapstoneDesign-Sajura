@@ -1781,7 +1781,7 @@ Authorization: Bearer <access_token>
   "url": "https://www.coupang.com/np/search?q=…",
   "elements": [
     { "ref": "12", "role": "link", "text": "곰곰 무항생제 신선한 대란, 30구, 1개", "depth": 3,
-      "product_id": "1271064981", "vendor_item_id": "70272921582" },   // 상품 링크만
+      "product_id": "1271064981", "vendor_item_id": "70272921582" },   // 검색 결과 화면은 카드 링크, 상품 페이지는 상품명 요소에 붙는다
     { "ref": "13", "role": "text", "text": "8,390원", "depth": 4 },
     { "ref": "14", "role": "image", "text": "logo_fresh_medium.png", "depth": 4 }   // 글자 없는 그림은 파일 이름
   ]
@@ -1793,7 +1793,7 @@ Authorization: Bearer <access_token>
 { "action": { "tool": "click", "args": { "ref": "12" } } }
 { "done": { "tool": "finish_item", "args": { "status": "ADDED", "product_id": "1271064981", "vendor_item_id": "70272921582",
             "quantity": 1, "pack_quantity": null, "reason": "무항생제 대란 30구" } } }
-// 상품 링크 요소의 아래 깊이 요소들을 그 상품 카드로 보고, 공용 쿠팡 상품을 저장·갱신한다 (01_basic_design.md §3.3.1, 04_fe.md §12.5)
+// 상품 고유 ID가 붙은 요소의 아래 깊이 요소들을 그 상품의 값으로 보고, 공용 쿠팡 상품을 저장·갱신한다 (01_basic_design.md §3.3.1, 04_fe.md §12.5)
 // 400 VALIDATION_ERROR: 진행 중 담기의 대상이 아님, 형식 오류, 15만 자 초과
 // 422 ORDER_LLM_GUARD_REJECTED: "detail": { "reason": "…" }
 // 429 ORDER_LLM_QUOTA_EXCEEDED
