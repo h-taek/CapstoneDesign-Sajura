@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>시작 화면 — 사주라 목업 v2</title>
+<script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4.0.17"></script>
+<script src="mockup.js" defer></script>
+</head>
+<!-- 시작 화면. 대시보드(02_frame.html)와 같은 배경을 쓰고, '지금 시작하기'를 누르면 구체가 퍼지며 배경이 가라앉은 뒤 대시보드로 넘어간다.
+     실제 흐름은 로그인·회원가입을 거치지만, 목업은 전환 연출을 보려고 대시보드로 바로 간다 -->
+<body data-page="intro" data-mood="hero">
+<div data-backdrop></div>
+
+<header class="intro-copy fixed inset-x-4 top-4 z-30 flex items-center justify-between lg:inset-x-8 lg:top-6">
+  <span class="flex items-center gap-2">
+    <span class="flex size-9 items-center justify-center rounded-xl bg-ink text-sm font-black text-white">S</span>
+    <span class="text-xl font-extrabold tracking-tight text-ink">사주라</span>
+  </span>
+  <a href="#" data-go-dashboard class="glass flex h-11 items-center rounded-full px-5 text-[0.95rem] font-semibold text-ink">로그인</a>
+</header>
+
+<main class="flex min-h-dvh flex-col items-center justify-center gap-8 px-6 pt-20 pb-12 text-center">
+  <div class="orb" aria-hidden="true"></div>
+  <div class="intro-copy flex max-w-[760px] flex-col items-center gap-5">
+    <span class="glass inline-flex items-center gap-1.5 rounded-full px-4 py-1.5 text-sm font-semibold text-ink-2">
+      <span data-icon="sparkles" class="size-4"></span> 외식업 사장님을 위한 AI 발주 도우미
+    </span>
+    <h1 class="text-[2.1rem] leading-tight font-extrabold tracking-tight text-ink lg:text-[3.4rem]">
+      내일 뭘 얼마나 시킬지,<br>사주라가 먼저 알려드려요
+    </h1>
+    <p class="max-w-[560px] text-[1.05rem] leading-relaxed text-ink-2 lg:text-lg">
+      매출 기록으로 앞으로 3일 매출을 예측하고, 레시피와 재고를 계산해 재료별 발주량을 추천합니다. 주문은 사장님이 보고 확정하세요.
+    </p>
+    <div class="mt-2 flex flex-wrap items-center justify-center gap-3">
+      <a href="#" data-go-dashboard class="inline-flex h-14 items-center gap-2 rounded-full bg-ink px-7 text-lg font-bold text-white">
+        지금 시작하기 <span data-icon="arrowRight" class="size-5"></span>
+      </a>
+    </div>
+  </div>
+</main>
+</body>
+</html>
