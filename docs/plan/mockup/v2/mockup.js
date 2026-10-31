@@ -347,7 +347,6 @@ body[data-mood="hero"] .bd-veil { opacity: 0; }
 .shop-light.out { animation: shop-out 0.9s ease 0.1s both; }
 @keyframes shop-out { to { opacity: 0; } }
 .going-shop main, .going-shop header { transition: opacity 0.3s ease; opacity: 0; }
-.going-shop .bd-day .d-town { transition: transform 0.85s cubic-bezier(0.7, 0, 0.2, 1); }
 .arrive-shop main > * { animation: en-up 0.7s cubic-bezier(0.2, 0.8, 0.2, 1) 0.3s both; }
 
 /* 아침이 밝기(로그인 → 홈) — 폼이 사라지고 시계가 지금 시각까지 빨리 돈다 */
@@ -699,7 +698,26 @@ function startDay() {
   } else {
     const [h, m] = mode.split(":").map(Number);
     DAY.redraw = () => drawDay(h * 60 + m);
-    DAY.redraw();
+    // 가게로 들어가기로 왔으면 빛이 걷히는 동안 누른 시각에서 이 화면의 시각까지 앞으로만 흐른다(달·해가 거꾸로 가지 않게)
+    const q = new URLSearchParams(location.search);
+    const from = Number(q.get("from"));
+    if (q.get("enter") === "shop" && q.has("from") && from >= 0 && !matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      let to = h * 60 + m;
+      while (to < from) to += 1440;
+      const run = ++DAY.run;
+      let t0 = 0;
+      const step = (ts) => {
+        if (run !== DAY.run) return;
+        t0 ||= ts;
+        const p = Math.min(1, (ts - t0) / 1100);
+        drawDay(from + (to - from) * (1 - (1 - p) ** 3));
+        if (p < 1) requestAnimationFrame(step);
+      };
+      drawDay(from);
+      requestAnimationFrame(step);
+    } else {
+      DAY.redraw();
+    }
     addEventListener("resize", () => drawDay(DAY.mf));
   }
 }
@@ -718,27 +736,23 @@ addEventListener("pageshow", (e) => {
   DAY.run++;
   for (const el of document.querySelectorAll(".shop-light, .morning-clock")) el.remove();
   document.body.classList.remove("going-shop", "leaving");
-  const town = document.querySelector(".bd-day .d-town");
-  if (town) town.style.transform = "";
   DAY.redraw();
 });
 
 // 가게로 들어가기 — 창문 가운데서 창문 색 빛이 두 겹 원으로 퍼진 뒤 넘어간다.
-// 다음 화면은 ?enter=shop&glow=색으로 같은 색 빛이 걷히며 나타난다
+// 다음 화면은 ?enter=shop&glow=색&from=분으로 같은 색 빛이 걷히고, 그동안 하늘이 누른 시각에서 그 화면의 시각으로 흐른다
 function goShop(url) {
   const u = new URL(url, location.href);
   const glow = DAY.win.map((v) => v.toString(16).padStart(2, "0")).join("");
   u.searchParams.set("enter", "shop");
   u.searchParams.set("glow", glow);
+  u.searchParams.set("from", String(Math.round(DAY.mf) % 1440));
   const win = document.querySelector(".bd-day .d-win");
   if (!win || matchMedia("(prefers-reduced-motion: reduce)").matches) {
     location.href = u.href;
     return;
   }
   const r = win.getBoundingClientRect();
-  const town = document.querySelector(".bd-day .d-town");
-  const tr = town.getBoundingClientRect();
-  town.style.transformOrigin = `${r.left + r.width / 2 - tr.left}px ${r.top + r.height / 2 - tr.top}px`;
   // 원 — 창문 가운데에서 창문을 덮는 크기로 시작해 화면 가장 먼 모서리까지 퍼진다
   const cx = r.left + r.width / 2;
   const cy = r.top + r.height / 2;
@@ -762,7 +776,6 @@ function goShop(url) {
         el.style.transition = `clip-path 0.8s cubic-bezier(0.7, 0, 0.2, 1) ${el.dataset.delay}s`;
         el.style.clipPath = `circle(${far}px at ${cx}px ${cy}px)`;
       }
-      town.style.transform = "scale(4)";
     }),
   );
   setTimeout(() => {
@@ -1022,6 +1035,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const u = new URL(location.href);
     u.searchParams.delete("enter");
     u.searchParams.delete("glow");
+    u.searchParams.delete("from");
     history.replaceState(null, "", u);
   }
   for (const el of document.querySelectorAll("[data-icon]")) {
