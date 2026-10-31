@@ -861,7 +861,10 @@ function renderShell(el) {
   const open = el.dataset.layout === "open";
   const topNav = WEB_NAV.map((n) => {
     const on = n.key === active;
-    return `<a href="${href(n.key)}" ${on ? 'aria-current="page"' : ""} class="rounded-full px-4 py-2 text-sm font-semibold whitespace-nowrap transition-colors ${on ? "bg-white/90 text-ink shadow-sm" : "text-ink-2 hover:bg-white/40"}">${n.label}</a>`;
+    // 지금 화면은 아이콘 + 이름, 나머지는 아이콘만(이름은 마우스오버)
+    return on
+      ? `<a href="${href(n.key)}" aria-current="page" class="flex h-10 items-center gap-2 rounded-full bg-white/90 pr-4 pl-3 text-sm font-semibold whitespace-nowrap text-ink shadow-sm">${icon(n.icon, "size-5", 2.4)}${n.label}</a>`
+      : `<a href="${href(n.key)}" aria-label="${n.label}" title="${n.label}" class="flex size-10 items-center justify-center rounded-full text-ink-2 transition-colors hover:bg-white/40 hover:text-ink">${icon(n.icon, "size-5")}</a>`;
   }).join("");
 
   // 열린 배치의 웹 상단 — 한 막대가 아니라 판을 나눈다. 왼쪽 'Sajura' 글자(판 없음), 가운데 메뉴 알약 유리, 오른쪽 알림·설정·계정이 각자 유리 판.
