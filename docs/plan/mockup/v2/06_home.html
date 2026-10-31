@@ -25,7 +25,11 @@
         <div class="rounded-xl glass-card"></div>
         <div class="rounded-xl glass-card"></div>
       </section>
-      <section class="min-h-40 rounded-2xl glass-card"></section>
+      <!-- 그래프 — 최근 7일 매출(실선) + 오늘 예상(점선). 제목은 임시 문구 -->
+      <section class="flex min-h-40 flex-col rounded-2xl p-4 glass-card">
+        <h2 class="text-base font-bold text-ink">Test</h2>
+        <div data-chart="area" data-forecast="1" data-labels="10/13,10/14,10/15,10/16,10/17,10/18,10/19,오늘" data-values="1120000,980000,1240000,1310000,1680000,1920000,1284000,1080000" data-metric="revenue" class="mt-2 h-44 w-full lg:h-auto lg:min-h-0 lg:flex-1"></div>
+      </section>
     </div>
     <!-- 아래 줄 1:2 — 위 줄 3칸 격자에 세로선을 맞춘다 -->
     <div class="grid grid-cols-1 gap-4 lg:grid-cols-3">

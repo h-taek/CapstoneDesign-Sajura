@@ -946,7 +946,7 @@ function renderShell(el) {
 }
 
 // RevenueBarChart(components/dashboard/revenue-chart.tsx) 모양
-// <div data-chart="bar|area|dashed-line" data-labels="10/1,10/2,…" data-values="…" data-metric="revenue|sales_count" style="height:240px">
+// <div data-chart="bar|area|dashed-line" data-labels="10/1,10/2,…" data-values="…" data-metric="revenue|sales_count" [data-forecast="N"(area만)] style="height:240px">
 const CHART = { brand: "#6b4eff", grid: "#eef0f3", tick: "#6b7280", line: "#e3e6eb" };
 
 function renderChart(el) {
@@ -991,8 +991,15 @@ function renderChart(el) {
   } else if (el.dataset.chart === "area") {
     const gid = `g${Math.random().toString(36).slice(2, 7)}`;
     body += `<defs><linearGradient id="${gid}" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="${CHART.brand}" stop-opacity=".22"/><stop offset="1" stop-color="${CHART.brand}" stop-opacity="0"/></linearGradient></defs>`;
-    body += `<path d="M${pts[0]} L${pts.join(" L")} L${x(values.length - 1)},${H - B} L${x(0)},${H - B}Z" fill="url(#${gid})"/>`;
-    body += `<polyline points="${pts.join(" ")}" fill="none" stroke="${CHART.brand}" stroke-width="2.5"/>`;
+    // data-forecast="N" — 마지막 N개 값은 예측. 실제까지는 실선·면적, 예측은 마지막 실제 값에서 점선으로 잇고 속 빈 점을 찍는다
+    const n = values.length - Number(el.dataset.forecast ?? 0);
+    const real = pts.slice(0, n);
+    body += `<path d="M${real[0]} L${real.join(" L")} L${x(n - 1)},${H - B} L${x(0)},${H - B}Z" fill="url(#${gid})"/>`;
+    body += `<polyline points="${real.join(" ")}" fill="none" stroke="${CHART.brand}" stroke-width="2.5"/>`;
+    if (n < values.length) {
+      body += `<polyline points="${pts.slice(n - 1).join(" ")}" fill="none" stroke="${CHART.brand}" stroke-width="2.5" stroke-dasharray="6 4"/>`;
+      body += values.slice(n).map((v, i) => `<circle cx="${x(n + i)}" cy="${y(v)}" r="4.5" fill="#fff" stroke="${CHART.brand}" stroke-width="2.5"/>`).join("");
+    }
   } else {
     body += `<polyline points="${pts.join(" ")}" fill="none" stroke="${CHART.brand}" stroke-width="2.5" stroke-dasharray="6 4"/>`;
     body += values.map((v, i) => `<circle cx="${x(i)}" cy="${y(v)}" r="4" fill="${CHART.brand}"/>`).join("");
