@@ -264,7 +264,7 @@ sequenceDiagram
         n8n->>DB: forecast_results·forecast_menu_items 저장 (UPSERT)
         n8n->>DB: pipeline_jobs DONE 업데이트
     and 점주 조회 흐름
-        사용자->>사주라UI: 수요예측 화면 진입
+        사용자->>사주라UI: 매출 예측 화면 진입
         사주라UI->>사주라서버: GET /api/forecast?menu_id=...
         사주라서버->>DB: 저장된 예측 결과 조회
         DB-->>사주라서버: 결과 반환
@@ -1541,7 +1541,7 @@ Authorization: Bearer <access_token>
 // 404 FORECAST_NOT_FOUND: 저장된 예측 없음 (POST /api/forecast/run 안내)
 ```
 
-> 대상일별 메뉴 예상 수량(`forecast_menu_items`)은 각 `predictions[]`의 `menu_forecast`(`menu_id`·`menu_name`·`expected_quantity`, 내림차순)로 함께 반환한다. 수요예측 화면의 일자 탭·메뉴별 카드(`04_fe.md` §4.8)는 그 값을 쓴다.
+> 대상일별 메뉴 예상 수량(`forecast_menu_items`)은 각 `predictions[]`의 `menu_forecast`(`menu_id`·`menu_name`·`expected_quantity`, 내림차순)로 함께 반환한다. 매출 예측 화면의 메뉴별 예상 판매(`04_fe.md` §4.4)는 그 값을 쓴다.
 
 #### POST /api/forecast/run
 
