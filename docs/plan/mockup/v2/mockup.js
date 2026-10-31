@@ -639,12 +639,11 @@ function drawDay(mf) {
   bd.querySelector(".d-stars").style.opacity = s.stars;
   bd.querySelector(".d-veil").style.opacity = calm ? 0.25 + (1 - s.fg) * 0.55 : 0;
   // 달·해 — 같은 호를 같은 방향(오른쪽 → 왼쪽)으로 넘어간다. 왼쪽 글 칸을 피해 뜨는 쪽을 오른쪽에 둔다.
-  // 앱 폭에서는 위쪽 띠 안에서만 움직인다
   const narrow = innerWidth < 860;
   const arc = (el, f) => {
     const p = Math.min(1, Math.max(0, f));
     let y = 84 - 70 * Math.sin(Math.PI * p);
-    if (narrow) y = 6 + (y - 6) * 0.35;
+    if (narrow) y = 4 + (y - 6) * 0.12; // 앱 폭은 글과 겹치지 않게 오른쪽 위 구석(약 4~13vh)에서만
     el.style.left = `${92 - 84 * p}vw`;
     el.style.top = `${y}vh`;
     el.style.opacity = f > 0 && f < 1 ? Math.min(1, p / 0.06, (1 - p) / 0.06) * (narrow ? 0.5 : 1) : 0;
