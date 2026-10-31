@@ -1134,6 +1134,7 @@ Authorization: Bearer <access_token>
 | `DELETE` | `/api/inventory/{item_id}` | 재고 품목 삭제 |
 | `POST` | `/api/inventory/{item_id}/lots` | 입고 등록 (로트 추가) |
 | `GET` | `/api/inventory/{item_id}/lots` | 로트 목록 조회 |
+| `GET` | `/api/inventory/price-trends` | 재고 품목 단가 추세 |
 | `PATCH` | `/api/inventory/{item_id}/lots/{lot_id}` | 로트 수량/소비기한 수정 |
 | `POST` | `/api/inventory/{item_id}/dispose` | 폐기 처리 |
 
@@ -1153,6 +1154,31 @@ Authorization: Bearer <access_token>
 | `total_quantity` | 품목 로트의 `remaining_quantity` 합계 |
 | `nearest_expiry_date` | 잔여 수량이 남은 로트 중 가장 이른 소비기한. 없으면 null |
 | `needs_check` | 재고 확인 필요 (`01_basic_design.md` §3.3.3) |
+
+#### GET /api/inventory/price-trends
+
+> 매장 재고 품목의 단가 추세(`01_basic_design.md` §3.3.1). 기간 안에 값이 하나라도 있는 품목만 담는다. 변화율 계산·정렬·고르기는 FE가 한다(`04_fe.md` §4.3).
+
+```json
+// Query: ?days=30 (선택, 기본 30, 1~365). 기간은 오늘(한국 시각)과 그 앞 days일, 양 끝 포함
+// points: 기간의 모든 날짜를 오름차순으로 채운다. unit_price는 그날 재료 단위당 원, 값이 없으면 null
+// Response 200
+{
+  "start_date": "2026-09-20",
+  "end_date": "2026-10-20",
+  "items": [
+    {
+      "item_id": "uuid",
+      "name": "모짜렐라 치즈",
+      "unit": "kg",
+      "points": [
+        { "date": "2026-09-20", "unit_price": 14800.0 },
+        { "date": "2026-09-21", "unit_price": 14800.0 }
+      ]
+    }
+  ]
+}
+```
 
 #### POST /api/inventory
 
@@ -2664,6 +2690,38 @@ CREATE TABLE weather_observations (
 );
 ```
 
+#### 4.3.26 coupang_price_history
+
+> 공용 단가 이력. 옵션마다 하루 한 행이고 그날 마지막으로 정한 공용 단가다. 지우지 않는다 (`01_basic_design.md` §3.3.1).
+
+```sql
+CREATE TABLE coupang_price_history (
+    item_id             VARCHAR(20)     NOT NULL COMMENT '쿠팡 itemId',
+    price_date          DATE            NOT NULL COMMENT '공용 단가를 정한 날짜(한국 시각)',
+    unit_price          DECIMAL(12,4)   NOT NULL COMMENT '그날 마지막으로 정한 공용 단가(용량 단위 1당 원)',
+    updated_at          DATETIME        NOT NULL COMMENT '그날 마지막으로 덮어쓴 시각',
+    PRIMARY KEY (item_id, price_date),
+    CONSTRAINT fk_price_history_product FOREIGN KEY (item_id) REFERENCES coupang_products (item_id) ON DELETE CASCADE
+);
+```
+
+#### 4.3.27 inventory_coupang_links
+
+> 재고 품목의 쿠팡 상품 연결 이력. 연결이 바뀔 때마다(처음 연결 포함) 한 행을 남긴다. 한 행의 상품은 다음 행의 `linked_at` 전까지 연결돼 있던 상품이다. 지우지 않는다 (`01_basic_design.md` §3.3.1).
+
+```sql
+CREATE TABLE inventory_coupang_links (
+    link_id             CHAR(36)        NOT NULL,
+    item_id             CHAR(36)        NOT NULL COMMENT '매장 재고 품목',
+    coupang_item_id     VARCHAR(20)     NOT NULL COMMENT '연결한 공용 쿠팡 상품 itemId',
+    linked_at           DATETIME        NOT NULL COMMENT '연결한 시각',
+    PRIMARY KEY (link_id),
+    KEY idx_inventory_coupang_links_item (item_id, linked_at),
+    CONSTRAINT fk_coupang_links_item FOREIGN KEY (item_id) REFERENCES inventory_items (item_id) ON DELETE CASCADE,
+    CONSTRAINT fk_coupang_links_product FOREIGN KEY (coupang_item_id) REFERENCES coupang_products (item_id)
+);
+```
+
 ### 4.4 인덱스 설계 요약
 
 | 테이블 | 인덱스 | 목적 |
@@ -2681,6 +2739,8 @@ CREATE TABLE weather_observations (
 | `notifications` | `(user_id, is_read, created_at)` | 점주 미읽음 알림 목록 조회 |
 | `push_subscriptions` | `endpoint` UNIQUE | 브라우저 구독 endpoint 중복 방지 |
 | `weather_observations` | `(asos_stn_id, obs_date)` PK | 관측소·날짜당 한 행, 받은 날짜 확인 |
+| `coupang_price_history` | `(item_id, price_date)` PK | 옵션·날짜당 한 행, 기간 단가 조회 |
+| `inventory_coupang_links` | `(item_id, linked_at)` | 재고 품목의 날짜별 연결 상품 조회 |
 
 ### 4.5 DB 계정 분리 정책
 
@@ -2723,7 +2783,7 @@ n8n은 운영 데이터 원본을 삭제하지 않는다. n8n의 쓰기 대상�
 | 인증 | `users`, `refresh_tokens` |
 | 매장/POS | `stores`, `pos_connections` |
 | 메뉴/레시피 | `menus`, `recipes`, `recipe_ingredients` |
-| 재고 | `inventory_items`, `inventory_lots`, `inventory_adjustment_logs`, `disposal_logs`, `coupang_products`, `coupang_store_prices` |
+| 재고 | `inventory_items`, `inventory_lots`, `inventory_adjustment_logs`, `disposal_logs`, `coupang_products`, `coupang_store_prices`, `coupang_price_history`, `inventory_coupang_links` |
 | 판매 | `sale_records` |
 | 수요예측 | `forecast_results`, `forecast_menu_items` |
 | 발주 | `order_recommendations`, `order_recommendation_items`, `orders`, `order_items`, `order_approval_logs` |
@@ -2731,7 +2791,7 @@ n8n은 운영 데이터 원본을 삭제하지 않는다. n8n의 쓰기 대상�
 | 알림 | `notifications`, `push_subscriptions` |
 | 외부 데이터 | `weather_observations` |
 
-총 25개 테이블
+총 27개 테이블
 
 ### 4.8 ERD 다이어그램
 
@@ -2771,6 +2831,9 @@ erDiagram
     coupang_products ||--o{ inventory_items : "1:N"
     coupang_products ||--o{ coupang_store_prices : "1:N"
     stores ||--o{ coupang_store_prices : "1:N"
+    coupang_products ||--o{ coupang_price_history : "1:N"
+    inventory_items ||--o{ inventory_coupang_links : "1:N"
+    coupang_products ||--o{ inventory_coupang_links : "1:N"
     stores }o..o{ weather_observations : "asos_stn_id (FK 아님)"
     order_recommendations ||--o{ order_recommendation_items : "1:N"
     order_recommendations ||--o{ orders : "1:N"
@@ -2819,6 +2882,9 @@ inventory_lots (1) ── (N) inventory_adjustment_logs
 coupang_products (1) ── (N) inventory_items
 coupang_products (1) ── (N) coupang_store_prices
 stores (1) ── (N) coupang_store_prices
+coupang_products (1) ── (N) coupang_price_history
+inventory_items (1) ── (N) inventory_coupang_links
+coupang_products (1) ── (N) inventory_coupang_links
 
 order_recommendations (1) ── (N) order_recommendation_items
 order_recommendation_items (N) ── (1) inventory_items
