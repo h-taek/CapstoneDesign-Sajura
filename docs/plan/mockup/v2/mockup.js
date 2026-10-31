@@ -976,7 +976,7 @@ function renderShell(el) {
 }
 
 // RevenueBarChart(components/dashboard/revenue-chart.tsx) 모양
-// <div data-chart="bar|area|dashed-line" data-labels="10/1,10/2,…" data-values="…" data-metric="revenue|sales_count" [data-forecast="N"(bar·area)] [data-font="축 글자 px"] style="height:240px">
+// <div data-chart="bar|area|dashed-line" data-labels="10/1,10/2,…" data-values="…" data-metric="revenue|sales_count" [data-forecast="N"(bar·area)] [data-font="축 글자 px"] [data-ref="기준선 값"] [data-smooth(area 곡선)] style="height:240px">
 const CHART = { brand: "#6b4eff", grid: "#eef0f3", tick: "#6b7280", line: "#e3e6eb" };
 
 function renderChart(el) {
@@ -987,7 +987,9 @@ function renderChart(el) {
   const W = el.clientWidth || 600;
   const H = el.clientHeight || 240;
   const B = el.dataset.font != null ? Number(el.dataset.font) + 10 : 26; // 가로축 글자 띠. 글자 크기를 준 그래프는 글자에 맞춰 좁게
-  const max = Math.max(...values) * 1.15 || 1;
+  // data-ref="값" — 기준선(예: 평소 매출)을 점선으로 긋는다. 눈금 최대값에 함께 넣는다
+  const ref = el.dataset.ref != null ? Number(el.dataset.ref) : null;
+  const max = Math.max(...values, ref ?? 0) * 1.15 || 1;
   const fmt = (v) => (isRevenue ? `${Math.round(v / 10000)}만` : String(Math.round(v)));
   // 세로축 숫자 형식은 PR(만 단위) 그대로 두고, 칸 폭만 가장 긴 숫자에 맞춘다
   const fs = Number(el.dataset.font ?? 13); // 축 글자 크기(data-font, 기본 13px)
@@ -1000,11 +1002,12 @@ function renderChart(el) {
     ? (i) => L + 6 + bw / 2 + ((W - R - bw - L - 6) / (values.length - 1)) * i
     : (i) => L + ((W - L - R) / values.length) * (i + 0.5);
   const y = (v) => 8 + (H - B - 8) * (1 - v / max);
+  // 가로 눈금선은 긋지 않는다 — 세로축 숫자와 아래 기준선(축)만 둔다
   const ticks = [0, 0.25, 0.5, 0.75, 1].map((t) => max * t);
   let body = ticks
     .map(
       (t) =>
-        `<line x1="${L}" x2="${W - R}" y1="${y(t)}" y2="${y(t)}" stroke="${CHART.grid}"/><text x="${L - 6}" y="${y(t) + 4}" text-anchor="end" font-size="${fs}" fill="${CHART.tick}">${fmt(t)}</text>`,
+        `<text x="${L - 6}" y="${y(t) + 4}" text-anchor="end" font-size="${fs}" fill="${CHART.tick}">${fmt(t)}</text>`,
     )
     .join("");
   body += `<line x1="${L}" x2="${W - R}" y1="${H - B}" y2="${H - B}" stroke="${CHART.line}"/>`;
@@ -1022,6 +1025,7 @@ function renderChart(el) {
     )
     .join("");
   const pts = values.map((v, i) => `${x(i)},${y(v)}`);
+  if (ref != null) body += `<line x1="${L}" x2="${W - R}" y1="${y(ref)}" y2="${y(ref)}" stroke="${CHART.tick}" stroke-opacity=".7" stroke-width="1.5" stroke-dasharray="6 5"/>`;
   if (el.dataset.chart === "bar") {
     // data-forecast="N" — 마지막 N개 막대는 예측: 옅은 보라 + 점선 테두리
     const n = values.length - Number(el.dataset.forecast ?? 0);
@@ -1039,10 +1043,21 @@ function renderChart(el) {
     // data-forecast="N" — 마지막 N개 값은 예측. 실제까지는 실선·면적, 예측은 마지막 실제 값에서 점선으로 잇고 속 빈 점을 찍는다
     const n = values.length - Number(el.dataset.forecast ?? 0);
     const real = pts.slice(0, n);
-    body += `<path d="M${real[0]} L${real.join(" L")} L${x(n - 1)},${H - B} L${x(0)},${H - B}Z" fill="url(#${gid})"/>`;
-    body += `<polyline points="${real.join(" ")}" fill="none" stroke="${CHART.brand}" stroke-width="2.5"/>`;
+    // data-smooth — 꺾은선 대신 점을 지나는 매끈한 곡선(Catmull-Rom → 3차 베지어)
+    const line = (ps) => {
+      if (el.dataset.smooth == null || ps.length < 3) return `M${ps.join(" L")}`;
+      const p = ps.map((q) => q.split(",").map(Number));
+      let d = `M${p[0]}`;
+      for (let i = 0; i < p.length - 1; i++) {
+        const [a, b, c, e] = [p[i - 1] ?? p[i], p[i], p[i + 1], p[i + 2] ?? p[i + 1]];
+        d += ` C${b[0] + (c[0] - a[0]) / 6},${b[1] + (c[1] - a[1]) / 6} ${c[0] - (e[0] - b[0]) / 6},${c[1] - (e[1] - b[1]) / 6} ${c}`;
+      }
+      return d;
+    };
+    body += `<path d="${line(real)} L${x(n - 1)},${H - B} L${x(0)},${H - B}Z" fill="url(#${gid})"/>`;
+    body += `<path d="${line(real)}" fill="none" stroke="${CHART.brand}" stroke-width="2.5"/>`;
     if (n < values.length) {
-      body += `<polyline points="${pts.slice(n - 1).join(" ")}" fill="none" stroke="${CHART.brand}" stroke-width="2.5" stroke-dasharray="6 4"/>`;
+      body += `<path d="${line(pts.slice(n - 1))}" fill="none" stroke="${CHART.brand}" stroke-width="2.5" stroke-dasharray="6 4"/>`;
       body += values.slice(n).map((v, i) => `<circle cx="${x(n + i)}" cy="${y(v)}" r="4.5" fill="#fff" stroke="${CHART.brand}" stroke-width="2.5"/>`).join("");
     }
   } else {
