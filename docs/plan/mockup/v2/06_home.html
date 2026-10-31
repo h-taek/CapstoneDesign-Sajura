@@ -130,12 +130,8 @@
          조각 색은 포인트 보라 한 색의 농담, 정체는 옆 범례의 이름·비율이 나른다. 가운데는 그날 예상 판매 합계 -->
     <section class="flex flex-col rounded-2xl p-5 glass-card lg:col-span-4">
       <h2 class="text-base font-bold text-ink">오늘 많이 나갈 메뉴</h2>
-      <div data-when="default pos guide" class="mt-3 flex flex-1 items-center gap-5">
-        <div class="relative size-32 shrink-0">
-          <svg viewBox="0 0 132 132" class="size-full -rotate-90"><circle cx="66" cy="66" r="52" fill="none" stroke="#6b4eff" stroke-opacity="1" stroke-width="14" stroke-dasharray="75.9 326.7" stroke-dashoffset="0.0"/><circle cx="66" cy="66" r="52" fill="none" stroke="#6b4eff" stroke-opacity="0.72" stroke-width="14" stroke-dasharray="66.1 326.7" stroke-dashoffset="-78.4"/><circle cx="66" cy="66" r="52" fill="none" stroke="#6b4eff" stroke-opacity="0.52" stroke-width="14" stroke-dasharray="53.0 326.7" stroke-dashoffset="-147.0"/><circle cx="66" cy="66" r="52" fill="none" stroke="#6b4eff" stroke-opacity="0.36" stroke-width="14" stroke-dasharray="40.0 326.7" stroke-dashoffset="-202.6"/><circle cx="66" cy="66" r="52" fill="none" stroke="#6b4eff" stroke-opacity="0.24" stroke-width="14" stroke-dasharray="26.9 326.7" stroke-dashoffset="-245.0"/><circle cx="66" cy="66" r="52" fill="none" class="stroke-ink-4" stroke-opacity=".5" stroke-width="14" stroke-dasharray="49.8 326.7" stroke-dashoffset="-274.4"/></svg>
-          <p class="absolute inset-0 flex flex-col items-center justify-center"><span class="tabular text-xl leading-none font-bold text-ink">90개</span><span class="mt-1 text-xs text-ink-3">예상 판매</span></p>
-        </div>
-        <ul class="min-w-0 flex-1 space-y-1.5 text-sm">
+      <div data-when="default pos guide" class="mt-3 flex flex-1 items-center gap-4">
+        <ul class="w-40 shrink-0 space-y-1.5 text-sm">
             <li class="flex items-center gap-2"><span class="size-2.5 shrink-0 rounded-sm bg-brand" style="opacity:1"></span><span class="min-w-0 flex-1 truncate font-semibold text-ink">불새우 루꼴라 화덕피자</span><span class="tabular text-ink-2">24%</span></li>
             <li class="flex items-center gap-2"><span class="size-2.5 shrink-0 rounded-sm bg-brand" style="opacity:0.72"></span><span class="min-w-0 flex-1 truncate font-semibold text-ink">페페로니 듬뿍 화덕피자</span><span class="tabular text-ink-2">21%</span></li>
             <li class="flex items-center gap-2"><span class="size-2.5 shrink-0 rounded-sm bg-brand" style="opacity:0.52"></span><span class="min-w-0 flex-1 truncate font-semibold text-ink">마르게리타 화덕피자</span><span class="tabular text-ink-2">17%</span></li>
@@ -143,6 +139,10 @@
             <li class="flex items-center gap-2"><span class="size-2.5 shrink-0 rounded-sm bg-brand" style="opacity:0.24"></span><span class="min-w-0 flex-1 truncate font-semibold text-ink">루꼴라 샐러드</span><span class="tabular text-ink-2">9%</span></li>
             <li class="flex items-center gap-2"><span class="size-2.5 shrink-0 rounded-sm bg-ink-4/50"></span><span class="min-w-0 flex-1 truncate text-ink-3">그 외</span><span class="tabular text-ink-2">16%</span></li>
         </ul>
+        <div class="relative mx-auto size-40 shrink-0">
+          <svg viewBox="0 0 132 132" class="size-full -rotate-90"><circle cx="66" cy="66" r="52" fill="none" stroke="#6b4eff" stroke-opacity="1" stroke-width="20" stroke-dasharray="75.9 326.7" stroke-dashoffset="0.0"/><circle cx="66" cy="66" r="52" fill="none" stroke="#6b4eff" stroke-opacity="0.72" stroke-width="20" stroke-dasharray="66.1 326.7" stroke-dashoffset="-78.4"/><circle cx="66" cy="66" r="52" fill="none" stroke="#6b4eff" stroke-opacity="0.52" stroke-width="20" stroke-dasharray="53.0 326.7" stroke-dashoffset="-147.0"/><circle cx="66" cy="66" r="52" fill="none" stroke="#6b4eff" stroke-opacity="0.36" stroke-width="20" stroke-dasharray="40.0 326.7" stroke-dashoffset="-202.6"/><circle cx="66" cy="66" r="52" fill="none" stroke="#6b4eff" stroke-opacity="0.24" stroke-width="20" stroke-dasharray="26.9 326.7" stroke-dashoffset="-245.0"/><circle cx="66" cy="66" r="52" fill="none" class="stroke-ink-4" stroke-opacity=".5" stroke-width="20" stroke-dasharray="49.8 326.7" stroke-dashoffset="-274.4"/></svg>
+          <p class="absolute inset-0 flex flex-col items-center justify-center"><span class="tabular text-2xl leading-none font-bold text-ink">90개</span><span class="mt-1 text-xs text-ink-3">예상 판매</span></p>
+        </div>
       </div>
       <p data-when="aifail" class="mt-4 text-sm text-ink-3">오늘 예측을 불러오지 못했어요</p>
       <p data-when="empty" class="mt-4 text-sm text-ink-3">예측이 나오면 보여 드려요</p>
