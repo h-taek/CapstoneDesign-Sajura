@@ -10,130 +10,130 @@
 <!-- 원본: Front/src/routes/register.tsx, components/ui/button.tsx·field.tsx. v2는 AuthHeroPanel(왼쪽 설명 글)을 빼고, 레퍼런스(daglo 회원가입)처럼 한 화면에 칸 하나씩 단계로 나눈다 -->
 <body data-page="register" data-states="1 약관:terms,2 이메일:email,3 이름:name,4 비밀번호:password,약관 미동의:terms-error,이메일 오류:email-error,비밀번호 오류:pw-error">
 <div data-backdrop></div>
-<!-- v2 — 카드 없이 밤하늘 위에 바로. 레퍼런스(daglo 회원가입)처럼 한 화면에 한 가지씩(약관 → 이메일 → 이름 → 비밀번호), 위에 4칸 진행 막대.
+<!-- v2 — 카드 없이 밤하늘 위에 바로. 레퍼런스(daglo 회원가입)처럼 한 화면에 한 가지씩(약관 → 이메일 → 이름 → 비밀번호), 위에 4칸 진행 막대. 진행 막대와 제목은 단계와 상관없이 같은 높이(위에서 13vh)에 둔다.
      '계속'은 다음 단계 상태로 넘긴다. 약관 미동의는 부제 자리에 오류 문구를 보여 높이를 그대로 둔다. 하늘 위라 브랜드 보라 대신 밝은 보라(#b3a4ff)를 강조색으로 쓴다 -->
 <p class="fixed top-6 left-6 z-10 text-[1.75rem] leading-none font-extrabold tracking-tight text-[#b3a4ff] sm:top-8 sm:left-10">Sajura</p>
-<main class="grid min-h-dvh place-items-center px-5 pt-14 pb-[29vh] text-center text-white">
-  <section class="w-full max-w-[400px]">
+<main class="min-h-dvh px-5 pt-[13vh] pb-10 text-center text-white">
+  <section class="mx-auto w-full max-w-[400px]">
     <div data-when="terms">
       <div class="flex justify-center gap-2" aria-label="1 / 4 단계"><span class="h-1 w-9 rounded-full bg-[#b3a4ff]"></span><span class="h-1 w-9 rounded-full bg-white/20"></span><span class="h-1 w-9 rounded-full bg-white/20"></span><span class="h-1 w-9 rounded-full bg-white/20"></span></div>
-      <h1 class="mt-7 text-[1.75rem] font-extrabold tracking-tight">이용약관 및 정책</h1>
+      <h1 class="mt-9 text-[1.75rem] font-extrabold tracking-tight">이용약관 및 정책</h1>
       <p class="mt-2 text-base text-white/75">사주라 서비스 약관을 확인해 주세요</p>
-      <form class="mt-6 space-y-2.5 text-left" novalidate>
-        <label class="flex items-center gap-3 border-b border-white/20 pb-3 text-base font-bold text-white">
+      <form class="mt-8 space-y-3 text-left" novalidate>
+        <label class="flex items-center gap-3 border-b border-white/20 pb-4 text-base font-bold text-white">
           <input type="checkbox" id="t-all-a" class="mt-0.5 size-5 shrink-0 rounded accent-[#b3a4ff] !mt-0">모두 동의합니다
         </label>
-        <div class="pt-1.5">
-        <label class="flex items-start gap-3 py-1.5">
+        <div class="pt-2.5">
+        <label class="flex items-start gap-3 py-2.5">
           <input type="checkbox" id="t-age-a" class="mt-0.5 size-5 shrink-0 rounded accent-[#b3a4ff]">
           <span class="flex-1 text-[0.95rem] text-white/90"><b class="font-semibold text-[#b3a4ff]">[필수]</b> 만 14세 이상입니다</span>
           
         </label>
-        <label class="flex items-start gap-3 py-1.5">
+        <label class="flex items-start gap-3 py-2.5">
           <input type="checkbox" id="t-service-a" class="mt-0.5 size-5 shrink-0 rounded accent-[#b3a4ff]">
           <span class="flex-1 text-[0.95rem] text-white/90"><b class="font-semibold text-[#b3a4ff]">[필수]</b> 이용약관 동의</span>
           <span data-icon="chevronRight" class="size-5 shrink-0 text-white/70"></span>
         </label>
-        <label class="flex items-start gap-3 py-1.5">
+        <label class="flex items-start gap-3 py-2.5">
           <input type="checkbox" id="t-privacy-a" class="mt-0.5 size-5 shrink-0 rounded accent-[#b3a4ff]">
           <span class="flex-1 text-[0.95rem] text-white/90"><b class="font-semibold text-[#b3a4ff]">[필수]</b> 개인정보 수집·이용 동의</span>
           <span data-icon="chevronRight" class="size-5 shrink-0 text-white/70"></span>
         </label>
-        <label class="flex items-start gap-3 py-1.5">
+        <label class="flex items-start gap-3 py-2.5">
           <input type="checkbox" id="t-notice-a" class="mt-0.5 size-5 shrink-0 rounded accent-[#b3a4ff]">
           <span class="flex-1 text-[0.95rem] text-white/90"><b class="font-semibold text-white/75">[선택]</b> 이벤트·혜택 알림 수신
-            <span class="mt-1 block text-sm leading-relaxed text-white/75">새 기능과 이벤트 소식을 알림으로 받아요.</span></span>
+            <span class="mt-1 block text-sm leading-relaxed text-white/90">새 기능과 이벤트 소식을 알림으로 받아요.</span></span>
           
         </label>
         </div>
-        <button type="button" data-set-state="email" class="mt-4 inline-flex h-[52px] w-full items-center justify-center rounded-xl bg-brand px-5 text-lg font-bold text-white transition-colors hover:bg-brand-strong">계속</button>
+        <button type="button" data-set-state="email" class="mt-6 inline-flex h-[52px] w-full items-center justify-center rounded-xl bg-brand px-5 text-lg font-bold text-white transition-colors hover:bg-brand-strong">계속</button>
       </form>
     </div>
     <div data-when="terms-error">
       <div class="flex justify-center gap-2" aria-label="1 / 4 단계"><span class="h-1 w-9 rounded-full bg-[#b3a4ff]"></span><span class="h-1 w-9 rounded-full bg-white/20"></span><span class="h-1 w-9 rounded-full bg-white/20"></span><span class="h-1 w-9 rounded-full bg-white/20"></span></div>
-      <h1 class="mt-7 text-[1.75rem] font-extrabold tracking-tight">이용약관 및 정책</h1>
+      <h1 class="mt-9 text-[1.75rem] font-extrabold tracking-tight">이용약관 및 정책</h1>
       <p class="mt-2 text-base font-semibold text-[#ffd6d6]" role="alert">필수 약관에 모두 동의해 주세요</p>
-      <form class="mt-6 space-y-2.5 text-left" novalidate>
-        <label class="flex items-center gap-3 border-b border-white/20 pb-3 text-base font-bold text-white">
+      <form class="mt-8 space-y-3 text-left" novalidate>
+        <label class="flex items-center gap-3 border-b border-white/20 pb-4 text-base font-bold text-white">
           <input type="checkbox" id="t-all-b" class="mt-0.5 size-5 shrink-0 rounded accent-[#b3a4ff] !mt-0">모두 동의합니다
         </label>
-        <div class="pt-1.5">
-        <label class="flex items-start gap-3 py-1.5">
+        <div class="pt-2.5">
+        <label class="flex items-start gap-3 py-2.5">
           <input type="checkbox" id="t-age-b" class="mt-0.5 size-5 shrink-0 rounded accent-[#b3a4ff]">
           <span class="flex-1 text-[0.95rem] text-white/90"><b class="font-semibold text-[#b3a4ff]">[필수]</b> 만 14세 이상입니다</span>
           
         </label>
-        <label class="flex items-start gap-3 py-1.5">
+        <label class="flex items-start gap-3 py-2.5">
           <input type="checkbox" id="t-service-b" checked class="mt-0.5 size-5 shrink-0 rounded accent-[#b3a4ff]">
           <span class="flex-1 text-[0.95rem] text-white/90"><b class="font-semibold text-[#b3a4ff]">[필수]</b> 이용약관 동의</span>
           <span data-icon="chevronRight" class="size-5 shrink-0 text-white/70"></span>
         </label>
-        <label class="flex items-start gap-3 py-1.5">
+        <label class="flex items-start gap-3 py-2.5">
           <input type="checkbox" id="t-privacy-b" class="mt-0.5 size-5 shrink-0 rounded accent-[#b3a4ff]">
           <span class="flex-1 text-[0.95rem] text-white/90"><b class="font-semibold text-[#b3a4ff]">[필수]</b> 개인정보 수집·이용 동의</span>
           <span data-icon="chevronRight" class="size-5 shrink-0 text-white/70"></span>
         </label>
-        <label class="flex items-start gap-3 py-1.5">
+        <label class="flex items-start gap-3 py-2.5">
           <input type="checkbox" id="t-notice-b" class="mt-0.5 size-5 shrink-0 rounded accent-[#b3a4ff]">
           <span class="flex-1 text-[0.95rem] text-white/90"><b class="font-semibold text-white/75">[선택]</b> 이벤트·혜택 알림 수신
-            <span class="mt-1 block text-sm leading-relaxed text-white/75">새 기능과 이벤트 소식을 알림으로 받아요.</span></span>
+            <span class="mt-1 block text-sm leading-relaxed text-white/90">새 기능과 이벤트 소식을 알림으로 받아요.</span></span>
           
         </label>
         </div>
-        <button type="button" class="mt-4 inline-flex h-[52px] w-full items-center justify-center rounded-xl bg-brand px-5 text-lg font-bold text-white transition-colors hover:bg-brand-strong">계속</button>
+        <button type="button" class="mt-6 inline-flex h-[52px] w-full items-center justify-center rounded-xl bg-brand px-5 text-lg font-bold text-white transition-colors hover:bg-brand-strong">계속</button>
       </form>
     </div>
     <div data-when="email">
       <div class="flex justify-center gap-2" aria-label="2 / 4 단계"><span class="h-1 w-9 rounded-full bg-white/20"></span><span class="h-1 w-9 rounded-full bg-[#b3a4ff]"></span><span class="h-1 w-9 rounded-full bg-white/20"></span><span class="h-1 w-9 rounded-full bg-white/20"></span></div>
-      <h1 class="mt-7 text-[1.75rem] font-extrabold tracking-tight">반가워요!</h1>
+      <h1 class="mt-9 text-[1.75rem] font-extrabold tracking-tight">반가워요!</h1>
       <p class="mt-2 text-base text-white/75">이메일 주소를 입력해 주세요</p>
-      <form class="mt-6 space-y-2.5 text-left" novalidate>
+      <form class="mt-8 space-y-3 text-left" novalidate>
         <input id="email" type="email" autocomplete="email" aria-label="이메일" placeholder="이메일" class="h-[52px] w-full rounded-xl border border-white/15 bg-[#0d0a26]/45 px-4 text-base text-white placeholder:text-white/70 backdrop-blur-md focus:border-[#b3a4ff] focus:ring-4 focus:ring-[#b3a4ff]/25 focus:outline-none">
-        <button type="button" data-set-state="name" class="mt-4 inline-flex h-[52px] w-full items-center justify-center rounded-xl bg-brand px-5 text-lg font-bold text-white transition-colors hover:bg-brand-strong">계속</button>
+        <button type="button" data-set-state="name" class="mt-6 inline-flex h-[52px] w-full items-center justify-center rounded-xl bg-brand px-5 text-lg font-bold text-white transition-colors hover:bg-brand-strong">계속</button>
       </form>
     </div>
     <div data-when="email-error">
       <div class="flex justify-center gap-2" aria-label="2 / 4 단계"><span class="h-1 w-9 rounded-full bg-white/20"></span><span class="h-1 w-9 rounded-full bg-[#b3a4ff]"></span><span class="h-1 w-9 rounded-full bg-white/20"></span><span class="h-1 w-9 rounded-full bg-white/20"></span></div>
-      <h1 class="mt-7 text-[1.75rem] font-extrabold tracking-tight">반가워요!</h1>
+      <h1 class="mt-9 text-[1.75rem] font-extrabold tracking-tight">반가워요!</h1>
       <p class="mt-2 text-base text-white/75">이메일 주소를 입력해 주세요</p>
-      <form class="mt-6 space-y-2.5 text-left" novalidate>
+      <form class="mt-8 space-y-3 text-left" novalidate>
         <input id="email-e" type="email" autocomplete="email" aria-label="이메일" placeholder="이메일" value="owner@sajura.kr" class="h-[52px] w-full rounded-xl border border-white/15 bg-[#0d0a26]/45 px-4 text-base text-white placeholder:text-white/70 backdrop-blur-md focus:border-[#b3a4ff] focus:ring-4 focus:ring-[#b3a4ff]/25 focus:outline-none">
         <p class="px-1 text-sm text-[#ffd6d6]" role="alert">이미 가입된 이메일입니다.</p>
-        <button type="button" class="mt-4 inline-flex h-[52px] w-full items-center justify-center rounded-xl bg-brand px-5 text-lg font-bold text-white transition-colors hover:bg-brand-strong">계속</button>
+        <button type="button" class="mt-6 inline-flex h-[52px] w-full items-center justify-center rounded-xl bg-brand px-5 text-lg font-bold text-white transition-colors hover:bg-brand-strong">계속</button>
       </form>
     </div>
     <div data-when="name">
       <div class="flex justify-center gap-2" aria-label="3 / 4 단계"><span class="h-1 w-9 rounded-full bg-white/20"></span><span class="h-1 w-9 rounded-full bg-white/20"></span><span class="h-1 w-9 rounded-full bg-[#b3a4ff]"></span><span class="h-1 w-9 rounded-full bg-white/20"></span></div>
-      <h1 class="mt-7 text-[1.75rem] font-extrabold tracking-tight">이름을 알려 주세요</h1>
+      <h1 class="mt-9 text-[1.75rem] font-extrabold tracking-tight">이름을 알려 주세요</h1>
       <p class="mt-2 text-base text-white/75">사장님 이름을 입력해 주세요</p>
-      <form class="mt-6 space-y-2.5 text-left" novalidate>
+      <form class="mt-8 space-y-3 text-left" novalidate>
         <input id="name" autocomplete="name" aria-label="이름" placeholder="이름" class="h-[52px] w-full rounded-xl border border-white/15 bg-[#0d0a26]/45 px-4 text-base text-white placeholder:text-white/70 backdrop-blur-md focus:border-[#b3a4ff] focus:ring-4 focus:ring-[#b3a4ff]/25 focus:outline-none">
-        <button type="button" data-set-state="password" class="mt-4 inline-flex h-[52px] w-full items-center justify-center rounded-xl bg-brand px-5 text-lg font-bold text-white transition-colors hover:bg-brand-strong">계속</button>
+        <button type="button" data-set-state="password" class="mt-6 inline-flex h-[52px] w-full items-center justify-center rounded-xl bg-brand px-5 text-lg font-bold text-white transition-colors hover:bg-brand-strong">계속</button>
       </form>
     </div>
     <div data-when="password">
       <div class="flex justify-center gap-2" aria-label="4 / 4 단계"><span class="h-1 w-9 rounded-full bg-white/20"></span><span class="h-1 w-9 rounded-full bg-white/20"></span><span class="h-1 w-9 rounded-full bg-white/20"></span><span class="h-1 w-9 rounded-full bg-[#b3a4ff]"></span></div>
-      <h1 class="mt-7 text-[1.75rem] font-extrabold tracking-tight">비밀번호를 만들어 주세요</h1>
+      <h1 class="mt-9 text-[1.75rem] font-extrabold tracking-tight">비밀번호를 만들어 주세요</h1>
       <p class="mt-2 text-base text-white/75">8자 이상으로 입력해 주세요</p>
-      <form class="mt-6 space-y-2.5 text-left" novalidate>
+      <form class="mt-8 space-y-3 text-left" novalidate>
         <input id="password" type="password" autocomplete="new-password" aria-label="비밀번호" placeholder="비밀번호" class="h-[52px] w-full rounded-xl border border-white/15 bg-[#0d0a26]/45 px-4 text-base text-white placeholder:text-white/70 backdrop-blur-md focus:border-[#b3a4ff] focus:ring-4 focus:ring-[#b3a4ff]/25 focus:outline-none">
         <input id="password_confirm" type="password" autocomplete="new-password" aria-label="비밀번호 확인" placeholder="비밀번호 확인" class="h-[52px] w-full rounded-xl border border-white/15 bg-[#0d0a26]/45 px-4 text-base text-white placeholder:text-white/70 backdrop-blur-md focus:border-[#b3a4ff] focus:ring-4 focus:ring-[#b3a4ff]/25 focus:outline-none">
-        <button type="submit" data-go="02_login.html?state=registered" class="mt-4 inline-flex h-[52px] w-full items-center justify-center rounded-xl bg-brand px-5 text-lg font-bold text-white transition-colors hover:bg-brand-strong">가입하기</button>
+        <button type="submit" data-go="02_login.html?state=registered" class="mt-6 inline-flex h-[52px] w-full items-center justify-center rounded-xl bg-brand px-5 text-lg font-bold text-white transition-colors hover:bg-brand-strong">가입하기</button>
       </form>
     </div>
     <div data-when="pw-error">
       <div class="flex justify-center gap-2" aria-label="4 / 4 단계"><span class="h-1 w-9 rounded-full bg-white/20"></span><span class="h-1 w-9 rounded-full bg-white/20"></span><span class="h-1 w-9 rounded-full bg-white/20"></span><span class="h-1 w-9 rounded-full bg-[#b3a4ff]"></span></div>
-      <h1 class="mt-7 text-[1.75rem] font-extrabold tracking-tight">비밀번호를 만들어 주세요</h1>
+      <h1 class="mt-9 text-[1.75rem] font-extrabold tracking-tight">비밀번호를 만들어 주세요</h1>
       <p class="mt-2 text-base text-white/75">8자 이상으로 입력해 주세요</p>
-      <form class="mt-6 space-y-2.5 text-left" novalidate>
+      <form class="mt-8 space-y-3 text-left" novalidate>
         <input id="password-e" type="password" autocomplete="new-password" aria-label="비밀번호" placeholder="비밀번호" value="password1234" class="h-[52px] w-full rounded-xl border border-white/15 bg-[#0d0a26]/45 px-4 text-base text-white placeholder:text-white/70 backdrop-blur-md focus:border-[#b3a4ff] focus:ring-4 focus:ring-[#b3a4ff]/25 focus:outline-none">
         <input id="password_confirm-e" type="password" autocomplete="new-password" aria-label="비밀번호 확인" placeholder="비밀번호 확인" value="password12" class="h-[52px] w-full rounded-xl border border-white/15 bg-[#0d0a26]/45 px-4 text-base text-white placeholder:text-white/70 backdrop-blur-md focus:border-[#b3a4ff] focus:ring-4 focus:ring-[#b3a4ff]/25 focus:outline-none">
         <p class="px-1 text-sm text-[#ffd6d6]" role="alert">비밀번호가 일치하지 않습니다.</p>
-        <button type="button" class="mt-4 inline-flex h-[52px] w-full items-center justify-center rounded-xl bg-brand px-5 text-lg font-bold text-white transition-colors hover:bg-brand-strong">가입하기</button>
+        <button type="button" class="mt-6 inline-flex h-[52px] w-full items-center justify-center rounded-xl bg-brand px-5 text-lg font-bold text-white transition-colors hover:bg-brand-strong">가입하기</button>
       </form>
     </div>
 
-    <p class="mt-6 text-[0.95rem] text-white">이미 계정이 있으신가요? <a href="02_login.html" class="font-bold text-white hover:underline">로그인</a></p>
+    <p class="mt-8"><span class="inline-block rounded-full bg-[#0d0a26]/45 px-4 py-2 text-[0.95rem] text-white backdrop-blur-md">이미 계정이 있으신가요? <a href="02_login.html" class="font-bold text-white hover:underline">로그인</a></span></p>
   </section>
 </main>
 </body>
