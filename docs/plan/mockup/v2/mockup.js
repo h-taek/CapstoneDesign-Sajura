@@ -32,7 +32,7 @@ const NOTIS = [
   { title: "소비기한 D-1 임박", body: "리코타 치즈가 내일 만료돼요.", at: "06:00", dot: "bg-danger", to: "inventory" },
   { title: "재고 부족", body: "루꼴라 재고를 확인해 주세요.", at: "어제 22:41", dot: "bg-warn", to: "inventory" },
   { title: "이상치 감지", body: "10월 19일 매출에서 이상치 2건이 나왔어요.", at: "어제 22:40", dot: "bg-warn", to: "upload" },
-  { title: "예측 완료", body: "오늘 예상 매출이 나왔어요.", at: "02:10", read: true, to: "forecast" },
+  { title: "예측 완료", body: "오늘 예상 매출과 발주 추천이 나왔어요.", at: "02:10", read: true, to: "orders" },
 ];
 
 // 디자인 토큰 — Front/src/index.css(@theme·base·utility)와 같은 내용. Tailwind 브라우저 빌드가 읽는다.
