@@ -570,7 +570,7 @@ const dayMix = (a, b, t) => dayHex(a).map((v, i) => Math.round(v + (dayHex(b)[i]
 const dayRgb = (c, alpha) => `rgb(${c.join(" ")}${alpha === undefined ? "" : ` / ${alpha}`})`;
 const dayLerp = (a, b, t) => a + (b - a) * t;
 const dayClock = (mf) => {
-  const m = Math.round(mf) % 1440;
+  const m = ((Math.round(mf) % 1440) + 1440) % 1440;
   return `${String(Math.floor(m / 60)).padStart(2, "0")}:${String(m % 60).padStart(2, "0")}`;
 };
 // run — 나가는 연출 번호. 뒤로 가기로 돌아오면 올려서, 멈춰 있던 연출의 반복·타이머가 이어서 돌지 않게 한다
@@ -701,7 +701,7 @@ function startDay() {
     // 가게로 들어가기로 왔으면 시작 화면에서 흐르던 하늘을 이어받아 빛이 걷히는 동안 끝까지 흐른다
     const q = new URLSearchParams(location.search);
     const [from, to, p] = ["from", "to", "p"].map((k) => Number(q.get(k)));
-    if (q.get("enter") === "shop" && q.has("to") && to > from && p < 1 && !matchMedia("(prefers-reduced-motion: reduce)").matches) {
+    if (q.get("enter") === "shop" && q.has("to") && to !== from && p < 1 && !matchMedia("(prefers-reduced-motion: reduce)").matches) {
       flowSky(from, to, p, 1, SHOP_ARRIVE_MS, ++DAY.run);
     } else {
       DAY.redraw();
@@ -753,7 +753,7 @@ addEventListener("pageshow", (e) => {
 
 // 가게로 들어가기 — 창문 가운데서 창문 색 빛이 두 겹 원으로 퍼진 뒤 넘어간다.
 // 하늘은 빛과 함께 누른 시각에서 21:30으로 흐르기 시작하고, 다음 화면은 ?enter=shop&glow=색&from=분&to=분&p=진행률로
-// 같은 색 빛이 걷히는 동안 그 흐름을 이어받는다(시간은 앞으로만 — 달·해가 거꾸로 가지 않게)
+// 같은 색 빛이 걷히는 동안 그 흐름을 이어받는다. 앞뒤 중 가까운 쪽으로 흐른다(뒤로 가면 달·해도 거꾸로 움직인다)
 function goShop(url) {
   const u = new URL(url, location.href);
   const glow = DAY.win.map((v) => v.toString(16).padStart(2, "0")).join("");
@@ -761,7 +761,8 @@ function goShop(url) {
   u.searchParams.set("glow", glow);
   const from = Math.round(DAY.mf) % 1440;
   let to = SHOP_SKY;
-  while (to < from) to += 1440;
+  while (to - from > 720) to -= 1440;
+  while (from - to > 720) to += 1440;
   u.searchParams.set("from", String(from));
   u.searchParams.set("to", String(to));
   const win = document.querySelector(".bd-day .d-win");
@@ -787,7 +788,7 @@ function goShop(url) {
   });
   document.body.classList.add("going-shop");
   const run = ++DAY.run;
-  if (to > from) flowSky(from, to, 0, SHOP_SPLIT, SHOP_LEAVE_MS, run);
+  if (to !== from) flowSky(from, to, 0, SHOP_SPLIT, SHOP_LEAVE_MS, run);
   requestAnimationFrame(() =>
     requestAnimationFrame(() => {
       for (const el of rings) {
