@@ -7,129 +7,19 @@
 <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4.0.17"></script>
 <script src="mockup.js" defer></script>
 </head>
-<!-- v2 홈 — 아침에 여는 화면. 오늘 할 일 → 오늘 예상 매출·많이 나갈 메뉴 → 확인할 재료. 매출 기록(그래프·누적)은 07 매출 예측에서 본다.
-     보는 날은 2026-10-20(화) 아침, 마지막 판매 10-19. 예상 매출은 07, 발주 품목은 09, 재료 상태는 08 목업 값과 같다.
-     알림 기록은 상단 바 종 아이콘, 매출 올리기·밤사이 계산 상태는 웹 하단 알약(공용 틀) -->
-<body data-page="home" data-states="발주 필요:default,신뢰도 낮음:low,할 일 없음:clear,추천 실패:ai-fail,매출 데이터 없음:empty,설치 안내:guide">
+<!-- v2 홈 — 배치 잡는 중. 웹은 위 3열·아래 2열 카드가 패널 높이를 채운다(내용은 아직 비움). 앱은 세로로 쌓는다 -->
+<body data-page="home" data-states="기본:default">
 <div data-shell="home">
-  <div class="space-y-4">
-    <!-- 머리글 — 웹은 두 줄 높이(68px)를 지켜 왼쪽 메뉴 윗변이 첫 블록 윗선에 맞는다 -->
-    <header class="flex items-end justify-between gap-3">
-      <div class="space-y-1">
-        <h1 class="text-xl font-bold tracking-tight text-ink lg:text-[1.75rem]">10월 20일 화요일</h1>
-        <p data-when="default low clear ai-fail guide" class="text-[0.95rem] text-ink-3">10월 19일 판매까지 반영했어요</p>
-        <p data-when="empty" class="text-[0.95rem] text-ink-3">아직 올린 매출이 없어요</p>
-      </div>
-      <a href="11_sales-upload.html" class="inline-flex h-10 shrink-0 items-center gap-1.5 rounded-full bg-ink px-4 text-sm font-semibold text-white lg:hidden"><span data-icon="upload" class="size-4"></span>매출 올리기</a>
-    </header>
-
-    <!-- 오늘 할 일 — 추천 수량 > 0인 재료가 있으면 발주, 없으면 '없어요', 추천을 못 불러오면 '확인 못 함'(없어요로 떨어지지 않는다) -->
-    <a data-when="default low guide" href="09_orders.html" class="group flex flex-col gap-3 rounded-2xl bg-brand px-5 py-4 text-white shadow-pop sm:flex-row sm:items-center">
-      <div class="min-w-0 flex-1">
-        <p class="flex items-center gap-2 text-sm font-medium text-white/80">오늘 할 일<span data-when="low" class="rounded-full bg-white/20 px-2 py-0.5 text-xs font-semibold text-white">신뢰도 낮음</span></p>
-        <p class="text-lg font-bold lg:text-xl">발주할 재료가 4개 있어요</p>
-        <p class="mt-0.5 text-sm text-white/85 lg:truncate">모짜렐라 치즈 3,200g · 피자 도우 60개 · 토마토 소스 1,500g · 바질 0.35kg</p>
-      </div>
-      <span class="inline-flex h-11 shrink-0 items-center justify-center gap-1.5 rounded-xl bg-white px-5 text-base font-bold text-brand-strong group-hover:bg-brand-soft">발주하러 가기<span data-icon="arrowRight" class="size-5"></span></span>
-    </a>
-    <div data-when="clear" class="flex items-center gap-3 rounded-2xl px-5 py-4 glass-card">
-      <span data-icon="checkCircle2" class="size-6 shrink-0 text-ok"></span>
-      <p class="text-base font-semibold text-ink lg:text-lg">오늘은 발주할 재료가 없어요</p>
+  <div class="grid gap-4 lg:h-full lg:grid-rows-2">
+    <div class="grid grid-cols-1 gap-4 lg:grid-cols-3">
+      <section class="min-h-40 rounded-2xl glass-card"></section>
+      <section class="min-h-40 rounded-2xl glass-card"></section>
+      <section class="min-h-40 rounded-2xl glass-card"></section>
     </div>
-    <div data-when="ai-fail" class="flex flex-col gap-3 rounded-2xl px-5 py-4 glass-card sm:flex-row sm:items-center">
-      <div class="flex min-w-0 flex-1 items-center gap-3">
-        <span data-icon="alertTriangle" class="size-6 shrink-0 text-warn"></span>
-        <p class="text-base font-semibold text-ink lg:text-lg">발주 추천을 확인하지 못했어요</p>
-      </div>
-      <button type="button" data-set-state="default" class="inline-flex h-11 shrink-0 items-center justify-center rounded-xl px-5 text-base font-semibold text-ink-2 glass-card hover:bg-white/60">다시 불러오기</button>
+    <div class="grid grid-cols-1 gap-4 lg:grid-cols-2">
+      <section class="min-h-40 rounded-2xl glass-card"></section>
+      <section class="min-h-40 rounded-2xl glass-card"></section>
     </div>
-    <a data-when="empty" href="11_sales-upload.html" class="group flex flex-col gap-3 rounded-2xl bg-brand px-5 py-4 text-white shadow-pop sm:flex-row sm:items-center">
-      <div class="min-w-0 flex-1">
-        <p class="text-sm font-medium text-white/80">오늘 할 일</p>
-        <p class="text-lg font-bold lg:text-xl">매출을 올리면 다음 날 아침부터 발주를 추천해요</p>
-      </div>
-      <span class="inline-flex h-11 shrink-0 items-center justify-center gap-1.5 rounded-xl bg-white px-5 text-base font-bold text-brand-strong group-hover:bg-brand-soft">매출 올리기<span data-icon="arrowRight" class="size-5"></span></span>
-    </a>
-
-    <div class="grid grid-cols-1 gap-4 lg:grid-cols-[1.35fr_1fr]">
-      <!-- 오늘 예상 매출(GET /api/forecast 10-20) + 어제 매출(GET /api/sales/summary) + 많이 나갈 메뉴(menu_forecast 상위 3) -->
-      <section class="rounded-2xl p-5 glass-card">
-        <div class="flex items-center justify-between gap-3">
-          <h2 class="flex items-center gap-2 text-base font-bold text-ink">오늘 예상 매출<span data-when="low" class="rounded-full bg-warn-soft px-2 py-0.5 text-xs font-semibold text-warn">신뢰도 낮음</span></h2>
-          <a href="07_forecast.html" class="inline-flex shrink-0 items-center gap-0.5 text-sm font-semibold text-brand hover:text-brand-strong">자세히<span data-icon="chevronRight" class="size-4"></span></a>
-        </div>
-        <div data-when="default low clear guide">
-          <div class="mt-2 flex flex-wrap items-baseline gap-x-3 gap-y-1">
-            <p class="tabular text-[2rem] leading-none font-bold tracking-tight text-ink">108만원</p>
-            <p class="tabular text-sm text-ink-3">86만 ~ 130만원</p>
-          </div>
-          <p data-when="default clear guide" class="mt-2 text-[0.95rem] text-ink-2">화요일이라 평소보다 조금 낮아요</p>
-          <p data-when="low" class="mt-2 text-[0.95rem] text-ink-2">판매 기록이 짧아 실제와 차이가 클 수 있어요</p>
-          <p class="mt-1 text-sm text-ink-3">어제 <b class="tabular font-semibold text-ink-2">128만원</b> · 68건</p>
-
-          <h3 class="mt-4 border-t border-line-soft pt-3 text-sm font-semibold text-ink-3">많이 나갈 메뉴</h3>
-          <ol class="mt-1 divide-y divide-line-soft">
-            <li class="flex items-center gap-3 py-2"><span class="w-4 text-sm font-bold text-brand">1</span><span class="min-w-0 flex-1 truncate text-[0.95rem] font-semibold text-ink">불새우 루꼴라 화덕피자</span><span class="tabular text-[0.95rem] text-ink-2">약 22개</span></li>
-            <li class="flex items-center gap-3 py-2"><span class="w-4 text-sm font-bold text-brand">2</span><span class="min-w-0 flex-1 truncate text-[0.95rem] font-semibold text-ink">페페로니 듬뿍 화덕피자</span><span class="tabular text-[0.95rem] text-ink-2">약 19개</span></li>
-            <li class="flex items-center gap-3 py-2"><span class="w-4 text-sm font-bold text-brand">3</span><span class="min-w-0 flex-1 truncate text-[0.95rem] font-semibold text-ink">마르게리타 화덕피자</span><span class="tabular text-[0.95rem] text-ink-2">약 15개</span></li>
-          </ol>
-        </div>
-        <div data-when="ai-fail" class="mt-3 text-[0.95rem] text-ink-3">
-          예상 매출을 불러오지 못했어요.
-          <p class="mt-1 text-sm">어제 <b class="tabular font-semibold text-ink-2">128만원</b> · 68건</p>
-        </div>
-        <p data-when="empty" class="mt-3 text-[0.95rem] text-ink-3">첫 매출을 올린 다음 날 아침부터 보여 드려요.</p>
-      </section>
-
-      <!-- 확인할 재료 — 정상이 아닌 재료만, 급한 것부터(긴급 → 경고). 판정은 FE(GET /api/inventory) -->
-      <section class="rounded-2xl p-5 glass-card">
-        <div class="flex items-center justify-between gap-3">
-          <h2 class="text-base font-bold text-ink">확인할 재료<span data-when="default low ai-fail guide" class="ml-1.5 text-brand">5</span></h2>
-          <a href="08_inventory.html" class="inline-flex shrink-0 items-center gap-0.5 text-sm font-semibold text-brand hover:text-brand-strong">재고 전체<span data-icon="chevronRight" class="size-4"></span></a>
-        </div>
-        <ul data-when="default low ai-fail guide" class="mt-1 divide-y divide-line-soft">
-          <li><a href="08_inventory.html" class="flex items-center gap-3 py-2.5"><span class="min-w-0 flex-1 truncate text-[0.95rem] font-semibold text-ink">리코타 치즈</span><span class="tabular text-sm text-ink-3">500g</span><span class="text-right text-sm font-semibold lg:w-[6.5rem] text-danger">소비기한 D-1</span></a></li>
-          <li><a href="08_inventory.html" class="flex items-center gap-3 py-2.5"><span class="min-w-0 flex-1 truncate text-[0.95rem] font-semibold text-ink">루꼴라</span><span class="tabular text-sm text-ink-3">0g</span><span class="text-right text-sm font-semibold lg:w-[6.5rem] text-warn">재고 확인 필요</span></a></li>
-          <li><a href="08_inventory.html" class="flex items-center gap-3 py-2.5"><span class="min-w-0 flex-1 truncate text-[0.95rem] font-semibold text-ink">바질</span><span class="tabular text-sm text-ink-3">0g</span><span class="text-right text-sm font-semibold lg:w-[6.5rem] text-warn">재고 없음</span></a></li>
-          <li><a href="08_inventory.html" class="flex items-center gap-3 py-2.5"><span class="min-w-0 flex-1 truncate text-[0.95rem] font-semibold text-ink">모짜렐라 치즈</span><span class="tabular text-sm text-ink-3">4,250g</span><span class="text-right text-sm font-semibold lg:w-[6.5rem] text-warn">소비기한 D-3</span></a></li>
-          <li><a href="08_inventory.html" class="flex items-center gap-3 py-2.5"><span class="min-w-0 flex-1 truncate text-[0.95rem] font-semibold text-ink">페퍼로니</span><span class="tabular text-sm text-ink-3">380g</span><span class="text-right text-sm font-semibold lg:w-[6.5rem] text-warn">재고 부족</span></a></li>
-        </ul>
-        <p data-when="clear" class="mt-3 flex items-center gap-2 text-[0.95rem] text-ink-3"><span data-icon="checkCircle2" class="size-5 text-ok"></span>모든 재료가 넉넉해요</p>
-        <!-- POS 연동 미완료도 여기 경고로 뜬다(홈 버튼으로 두지 않는다) -->
-        <ul data-when="empty" class="mt-1 divide-y divide-line-soft">
-          <li><a href="13_settings-pos.html" class="flex items-center gap-3 py-2.5"><span class="min-w-0 flex-1 truncate text-[0.95rem] font-semibold text-ink">POS 연동이 안 됐어요</span><span class="inline-flex items-center gap-0.5 text-sm font-semibold text-warn">연동하기<span data-icon="chevronRight" class="size-4"></span></span></a></li>
-        </ul>
-      </section>
-    </div>
-
-    <!-- 설치 안내 — 앱 폭(lg 미만)에서만, 닫을 수 있다. 아이폰은 '설치 방법 보기'(안내 시트) -->
-    <div id="install-banner" data-when="default low guide" class="relative flex items-center gap-3 rounded-2xl px-4 py-3 pr-12 glass-card lg:hidden">
-      <span class="flex size-10 shrink-0 items-center justify-center rounded-xl bg-brand text-lg font-black text-white">사</span>
-      <div class="min-w-0 flex-1">
-        <p class="text-[0.95rem] leading-snug font-bold text-ink">홈 화면에 사주라 추가</p>
-        <button type="button" data-set-state="guide" class="text-sm font-semibold text-brand">설치 방법 보기</button>
-      </div>
-      <button type="button" data-toggle="#install-banner" aria-label="설치 안내 닫기" class="absolute top-1/2 right-2 flex size-10 -translate-y-1/2 items-center justify-center rounded-full text-ink-3 hover:bg-white/60">
-        <span data-icon="x" class="size-5"></span>
-      </button>
-    </div>
-  </div>
-</div>
-
-<!-- InstallGuideSheet(아이폰) — 하단 시트(데스크톱은 가운데 창) -->
-<div data-when="guide" class="fixed inset-0 z-50 flex items-end justify-center bg-ink/40 sm:items-center">
-  <div role="dialog" aria-modal="true" aria-labelledby="install-guide-title" class="w-full max-w-md rounded-t-3xl px-6 pt-6 pb-6 sm:rounded-3xl glass-strong">
-    <div class="mb-5 flex items-center justify-between">
-      <h2 id="install-guide-title" class="text-xl font-bold text-ink">홈 화면에 추가하는 방법</h2>
-      <button type="button" data-set-state="default" aria-label="닫기" class="flex size-10 items-center justify-center rounded-full text-ink-3 hover:bg-subtle"><span data-icon="x" class="size-6"></span></button>
-    </div>
-    <p class="mb-4 rounded-xl bg-warn-soft px-4 py-3 text-[0.95rem] text-warn">아이폰은 <strong>사파리(Safari)</strong>에서 열어야 추가할 수 있어요.</p>
-    <ol class="space-y-4">
-      <li class="flex items-center gap-4"><span class="flex size-12 shrink-0 items-center justify-center rounded-2xl bg-brand-soft text-brand"><span data-icon="share" class="size-6"></span></span><p class="text-base leading-snug text-ink"><strong class="mr-1 text-brand">1.</strong>화면 아래(아이패드는 위)의 공유 버튼을 누르세요.</p></li>
-      <li class="flex items-center gap-4"><span class="flex size-12 shrink-0 items-center justify-center rounded-2xl bg-brand-soft text-brand"><span data-icon="plusSquare" class="size-6"></span></span><p class="text-base leading-snug text-ink"><strong class="mr-1 text-brand">2.</strong>목록을 내려 '홈 화면에 추가'를 누르세요.</p></li>
-      <li class="flex items-center gap-4"><span class="flex size-12 shrink-0 items-center justify-center rounded-2xl bg-brand-soft text-brand"><span data-icon="smartphone" class="size-6"></span></span><p class="text-base leading-snug text-ink"><strong class="mr-1 text-brand">3.</strong>오른쪽 위 '추가'를 누르면 홈 화면에 사주라가 생겨요.</p></li>
-    </ol>
-    <button type="button" data-set-state="default" class="mt-6 inline-flex h-14 w-full shrink-0 items-center justify-center gap-2 rounded-2xl bg-brand px-6 text-lg font-semibold whitespace-nowrap text-white transition-colors hover:bg-brand-strong">확인했어요</button>
   </div>
 </div>
 </body>
