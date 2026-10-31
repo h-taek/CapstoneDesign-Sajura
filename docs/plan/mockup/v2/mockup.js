@@ -87,7 +87,7 @@ const THEME_CSS = `
   box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.6), inset 0 -1px 0 rgb(255 255 255 / 0.15),
     0 10px 28px -14px rgb(0 0 0 / 0.18);
 }
-/* 떠 있는 판 유리 — 상단 바·왼쪽 메뉴·하단 알약·앱 탭 막대. 본문 패널(glass)과 구분되게 남보라 기운을 살짝 얹어 한 단계 어둡게 */
+/* 떠 있는 판 유리 — 상단 바·왼쪽 메뉴·앱 탭 막대. 본문 패널(glass)과 구분되게 남보라 기운을 살짝 얹어 한 단계 어둡게 */
 @utility glass-bar {
   background: rgb(46 32 120 / 0.1);
   -webkit-backdrop-filter: blur(20px) saturate(160%);
@@ -196,7 +196,7 @@ function icon(name, cls = "size-5", strokeWidth = 2) {
 }
 
 // 유리 셸 — <div data-shell="활성키" data-title="패널 제목" data-back="뒤로 갈 목업 파일">본문</div>
-// 웹(lg 이상): 상단 바 + 왼쪽 알약 메뉴 + 본문 패널 + 하단 시계 알약(시계·밤사이 계산 상태·매출 올리기)
+// 웹(lg 이상): 상단 바(매출 올리기·알림·설정·계정) + 왼쪽 알약 메뉴 + 본문 패널
 // 앱(lg 미만): 상단 바 + 본문 패널 + 하단 알약 탭
 const WEB_NAV = [
   { key: "home", label: "홈", icon: "home" },
@@ -892,6 +892,7 @@ function renderShell(el) {
     </div>
 
     <div class="flex items-center gap-1 lg:gap-2">
+      <a href="${href("upload")}" class="hidden h-10 items-center gap-1.5 rounded-full bg-ink px-4 text-sm font-semibold text-white lg:inline-flex">${icon("upload", "size-4")} 매출 올리기</a>
       <!-- 알림 — 지나간 알림 기록은 홈 본문이 아니라 여기서 연다(홈 '확인할 재료'는 지금 상태) -->
       <button type="button" data-toggle="#noti-pop" aria-expanded="false" aria-label="알림, 안 읽음 3개" class="relative flex size-10 items-center justify-center rounded-full text-ink-2 hover:bg-white/40">
         ${icon("bell")}<span class="absolute top-2 right-2 size-2 rounded-full bg-danger ring-2 ring-white"></span>
@@ -926,21 +927,11 @@ function renderShell(el) {
   <!-- 메뉴 폭(58px)의 절반이 패널 왼쪽 가장자리(3rem)에 걸친다. 윗변은 제목 줄 아랫선(패널 위 5.25rem + 안쪽 여백 1.25rem + 제목 줄 68px) -->
   <nav aria-label="주 메뉴" style="--d:0.1s" class="en en-left glass-bar fixed top-[calc(6.5rem+68px)] left-[calc(3rem-29px)] z-30 hidden flex-col items-center gap-2 rounded-full p-1.5 lg:flex">${sideNav}</nav>
 
-  <!-- 본문 패널 — 안에서 따로 스크롤하지 않고 패널째 화면과 함께 스크롤된다. 상단 바·왼쪽 메뉴·하단 알약·탭 막대는 제자리에 떠 있다.
+  <!-- 본문 패널 — 안에서 따로 스크롤하지 않고 패널째 화면과 함께 스크롤된다. 상단 바·왼쪽 메뉴·앱 탭 막대는 제자리에 떠 있다.
        내용이 짧아도 화면 높이만큼은 채운다. 바깥 그림자는 두지 않는다(안쪽 반사광만) -->
   <main style="--d:0.15s; box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.6), inset 0 -1px 0 rgb(255 255 255 / 0.15)" class="en glass relative z-20 mx-3 mt-[4.75rem] mb-[5.75rem] min-h-[calc(100dvh-10.5rem)] rounded-[1.75rem] px-3 py-5 lg:mt-[5.25rem] lg:mr-4 lg:mb-12 lg:ml-12 lg:min-h-[calc(100dvh-8.25rem)] lg:pr-5 lg:pl-[calc(29px+1.25rem)] lg:py-5">
     ${content}
   </main>
-
-  <!-- 웹 하단 알약 — 시작 화면의 시계 알약을 이어 '사주라의 하루' 시계 + 밤사이 계산 상태(GET /api/pipeline/status) + 매출 올리기.
-       높이(54px)의 절반이 패널 아래 가장자리(3rem)에 걸치고, 가로는 패널 가운데 -->
-  <div style="--d:0.25s" class="en glass-bar fixed bottom-[calc(3rem-27px)] left-[calc(50%+1rem)] z-30 hidden -translate-x-1/2 items-center gap-3 rounded-full p-1.5 lg:flex">
-    <a href="${href("home")}" aria-label="홈" class="flex size-10 items-center justify-center rounded-full bg-brand text-sm font-black text-white">사</a>
-    <p class="flex items-baseline gap-2 text-sm font-semibold whitespace-nowrap text-ink-2">사주라의 하루<b data-sky-clock class="text-lg font-bold tracking-wide text-ink tabular">--:--</b></p>
-    <span class="h-5 w-px bg-ink/15" aria-hidden="true"></span>
-    <p class="inline-flex items-center gap-1.5 text-sm whitespace-nowrap text-ink-2">${icon("checkCircle2", "size-4 text-ok")}02:10 예측 완료</p>
-    <a href="${href("upload")}" class="inline-flex h-10 items-center gap-1.5 rounded-full bg-ink px-4 text-sm font-semibold whitespace-nowrap text-white">${icon("upload", "size-4")} 매출 올리기</a>
-  </div>
 
   <nav aria-label="하단 메뉴" style="--d:0.25s" class="en glass-bar pb-safe fixed inset-x-3 bottom-3 z-30 rounded-full p-1.5 lg:hidden">
     <ul class="grid grid-cols-5 gap-1">${tabs}</ul>
