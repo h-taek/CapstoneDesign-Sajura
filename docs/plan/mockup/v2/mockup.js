@@ -184,6 +184,7 @@ const ICON_PATHS = {
   plus: '<path d="M5 12h14"/><path d="M12 5v14"/>',
   plusSquare: '<rect width="18" height="18" x="3" y="3" rx="2"/><path d="M8 12h8"/><path d="M12 8v8"/>',
   receipt: '<path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1Z"/><path d="M16 8h-6a2 2 0 1 0 0 4h4a2 2 0 1 1 0 4H8"/><path d="M12 17.5v-11"/>',
+  search: '<circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>',
   settings: '<path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/>',
   share: '<path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" x2="12" y1="2" y2="15"/>',
   shieldCheck: '<path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/><path d="m9 12 2 2 4-4"/>',
@@ -1227,6 +1228,106 @@ function renderAppFrame(pageKey) {
   renderToolbar(pageKey, [], new URLSearchParams(location.search).get("state"), true);
 }
 
+// 날짜칸 — 웹 폭(lg 이상)은 직접 만든 유리 달력, 앱 폭은 휴대폰 기본 날짜 선택(브라우저 달력은 모양을 입힐 수 없다).
+// 원래 input[type=date]는 값을 들고 앱 폭에서만 보이고, 웹 폭에서는 같은 모양의 버튼이 대신 보인다. 오늘은 body[data-today](없으면 2026-10-19)
+const WEEKDAYS = ["일", "월", "화", "수", "목", "금", "토"];
+function fmtDate(v) {
+  if (!v) return "";
+  const [y, m, d] = v.split("-");
+  return `${y}. ${m}. ${d}.`;
+}
+let datePop = null;
+function closeDatePop() {
+  datePop?.remove();
+  datePop = null;
+}
+function openDatePop(input, btn) {
+  closeDatePop();
+  const today = document.body.dataset.today ?? "2026-10-19";
+  const base = input.value || today;
+  let [y, m] = base.split("-").map(Number);
+  const optional = (input.closest("label")?.textContent ?? "").includes("선택");
+  const pop = document.createElement("div");
+  pop.setAttribute("role", "dialog");
+  pop.setAttribute("aria-label", "날짜 고르기");
+  pop.className = "glass-card fixed z-[60] w-72 rounded-2xl p-3";
+  pop.style.boxShadow = "inset 0 1px 0 rgb(255 255 255 / 0.7), 0 24px 60px -24px rgb(40 20 120 / 0.35)";
+  const draw = () => {
+    const first = new Date(y, m - 1, 1).getDay();
+    const days = new Date(y, m, 0).getDate();
+    const pad = (n) => String(n).padStart(2, "0");
+    let cells = "";
+    for (let i = 0; i < first; i++) cells += "<span></span>";
+    for (let d = 1; d <= days; d++) {
+      const v = `${y}-${pad(m)}-${pad(d)}`;
+      const cls = v === input.value ? "bg-brand font-bold text-white" : v === today ? "font-bold text-brand ring-1 ring-brand ring-inset hover:bg-white/50" : "text-ink hover:bg-white/50";
+      cells += `<button type="button" data-day="${v}" class="tabular mx-auto flex size-9 items-center justify-center rounded-full text-sm ${cls}">${d}</button>`;
+    }
+    pop.innerHTML = `<div class="mb-2 flex items-center justify-between">
+        <button type="button" data-month="-1" aria-label="이전 달" class="flex size-9 items-center justify-center rounded-full text-ink-2 hover:bg-white/50">${icon("chevronLeft", "size-5")}</button>
+        <p class="tabular text-[0.95rem] font-bold text-ink">${y}년 ${m}월</p>
+        <button type="button" data-month="1" aria-label="다음 달" class="flex size-9 items-center justify-center rounded-full text-ink-2 hover:bg-white/50">${icon("chevronRight", "size-5")}</button>
+      </div>
+      <div class="grid grid-cols-7 gap-y-1">${WEEKDAYS.map((w) => `<span class="py-1 text-center text-xs font-semibold text-ink-2">${w}</span>`).join("")}${cells}</div>
+      ${optional ? `<div class="mt-2 flex justify-end"><button type="button" data-clear class="rounded-full px-3 py-1.5 text-sm font-semibold text-ink-2 hover:bg-white/50">지우기</button></div>` : ""}`;
+  };
+  draw();
+  pop.addEventListener("click", (e) => {
+    e.stopPropagation();
+    const t = e.target.closest("button");
+    if (!t) return;
+    if (t.dataset.month) {
+      m += Number(t.dataset.month);
+      if (m < 1) { m = 12; y--; }
+      if (m > 12) { m = 1; y++; }
+      draw();
+      return;
+    }
+    if (t.dataset.day != null || t.dataset.clear != null) {
+      input.value = t.dataset.day ?? "";
+      btn.querySelector("[data-date-text]").textContent = fmtDate(input.value) || "날짜 선택";
+      btn.querySelector("[data-date-text]").classList.toggle("text-ink-2", !input.value);
+      closeDatePop();
+      btn.focus();
+    }
+  });
+  // 새 클래스는 Tailwind가 다음 그리기에서 만든다 — 그 뒤에 높이를 재서 칸 아래(자리가 없으면 위)에 둔다
+  pop.style.visibility = "hidden";
+  document.body.appendChild(pop);
+  datePop = pop;
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    const r = btn.getBoundingClientRect();
+    const below = innerHeight - r.bottom > pop.offsetHeight + 12;
+    // 본문 오른쪽 끝을 넘으면 날짜칸 오른쪽 끝에 맞춘다
+    const edge = (document.querySelector("main") ?? document.body).getBoundingClientRect().right;
+    pop.style.left = `${r.left + pop.offsetWidth > edge ? r.right - pop.offsetWidth : r.left}px`;
+    pop.style.top = below ? `${r.bottom + 6}px` : `${Math.max(12, r.top - pop.offsetHeight - 6)}px`;
+    pop.style.visibility = "";
+  }));
+}
+function initDatePickers() {
+  for (const input of document.querySelectorAll('input[type="date"]')) {
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.setAttribute("aria-haspopup", "dialog");
+    btn.className = `${input.className} hidden items-center justify-between gap-2 text-left lg:flex`;
+    btn.innerHTML = `<span data-date-text class="tabular truncate${input.value ? "" : " text-ink-2"}">${fmtDate(input.value) || "날짜 선택"}</span>${icon("calendarDays", "size-4 shrink-0 text-ink-2")}`;
+    input.classList.add("lg:hidden");
+    input.after(btn);
+    btn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      if (datePop && datePop.dataset.for === btn.dataset.id) return closeDatePop();
+      openDatePop(input, btn);
+      btn.dataset.id ||= String(Math.random());
+      datePop.dataset.for = btn.dataset.id;
+    });
+  }
+  document.addEventListener("click", closeDatePop);
+  document.addEventListener("keydown", (e) => e.key === "Escape" && closeDatePop());
+  document.addEventListener("scroll", closeDatePop, true);
+  addEventListener("resize", closeDatePop);
+}
+
 document.addEventListener("DOMContentLoaded", () => {
   const pageKey = document.body.dataset.page;
   const params = new URLSearchParams(location.search);
@@ -1280,6 +1381,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const svg = icon(el.dataset.icon, el.getAttribute("class") ?? "size-5", el.dataset.stroke ?? 2);
     el.outerHTML = el.dataset.when ? svg.replace("<svg ", `<svg data-when="${el.dataset.when}" `) : svg;
   }
+  initDatePickers();
 
   const rawStates = document.body.dataset.states;
   const states = parseStates(rawStates);

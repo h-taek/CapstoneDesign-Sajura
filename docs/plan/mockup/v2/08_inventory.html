@@ -6,646 +6,469 @@
 <title>재고관리 — 사주라 목업 v2</title>
 <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4.0.17"></script>
 <script src="mockup.js" defer></script>
+<style>
+  /* 고른 재료 카드 — 상세 판이 열린 동안 포인트 색 테두리 */
+  body:is([data-state="lots"], [data-state="addlot"], [data-state="edit"]) [data-card="arugula"],
+  body:is([data-state="mozz"], [data-state="dispose"]) [data-card="mozz"] {
+    outline: 2px solid var(--color-brand); outline-offset: -2px;
+  }
+  /* 카드 열 수 — 5열(1280px 이상) → 4열(768px 이상) → 2열. 웹에서 상세 판이 열리면 카드 크기는 그대로 두고
+     앞 3열(1024~1279px는 2열)만 남겨 다시 줄 세우고, 판은 나머지 두 칸 자리에 놓인다 */
+  @media (min-width: 64rem) {
+    .inv-wrap:has(> aside:not([hidden])) > .inv-list { grid-column: span 2 / span 2; }
+    .inv-wrap:has(> aside:not([hidden])) .inv-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  }
+  @media (min-width: 80rem) {
+    .inv-wrap:has(> aside:not([hidden])) > .inv-list { grid-column: span 3 / span 3; }
+    .inv-wrap:has(> aside:not([hidden])) .inv-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  }
+</style>
 </head>
-<!-- 원본: Front/src/routes/inventory.tsx, components/ui/card.tsx(Card·PageHeader·Segmented), components/ui/button.tsx, components/ui/field.tsx(FormField·Input), components/inventory/alert-badge.tsx, components/inventory/stock-status.ts -->
-<!-- 오늘은 2026-10-19로 본다. 정렬은 기본값(소비기한 빠른순)으로 풀어 쓴다 — 소비기한 없는 재료는 맨 뒤, 같으면 이름순 -->
-<!-- 숨은 상태 mozz는 모짜렐라 치즈 행을 펼친 모습이다(폐기 상태의 진입점) -->
-<body data-page="inventory" data-states="목록:default,확인 필요:alert,재료 추가:form,로트 펼침:lots,입고 입력:addlot,로트 수정:edit,로트 폐기:dispose,빈 목록:empty,불러오는 중:loading">
+<!-- 원본: Front/src/routes/inventory.tsx, components/inventory/*. v2 재설계 — 재료마다 카드 하나, 누르면 상세 판(웹은 오른쪽 열, 앱은 전체 화면) -->
+<!-- 오늘은 2026-10-19로 본다. 정렬은 기본값(소비기한 빠른순)으로 풀어 쓴다 — 소비기한 없는 재료는 맨 뒤, 같으면 이름순.
+     카드는 재료명·총 수량·가장 이른 소비기한(D-n). 경고는 배지 없이 해당 글씨만 빨갛게(소비기한 오늘+3일 이내, 수량 needs_check 또는 ≤ 재주문 임계값).
+     상세 판은 입고 대기(pending_orders) · 로트(입고 등록·수정·폐기) · 쿠팡 상품과 30일 단가(GET /api/inventory/price-trends) · 재료 설정(PATCH /api/inventory/{item_id})·삭제 -->
+<body data-page="inventory" data-states="목록:default,2쪽:page2,확인 필요:alert,검색:search,검색 결과 없음:nosearch,재료 추가:form,상세(루꼴라):lots,입고 등록:addlot,로트 수정:edit,상세(모짜렐라):mozz,로트 폐기:dispose,빈 목록:empty,불러오는 중:loading">
 <div data-shell="inventory" data-layout="open">
-  <div class="space-y-6 lg:space-y-8">
-    <!-- PageHeader — 앱은 상단바가 제목을 보여 주므로 제목을 숨긴다 -->
-    <header class="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
-      <div class="space-y-1">
-        <h1 class="hidden text-[1.75rem] font-bold tracking-tight text-ink lg:block">재고 현황</h1>
-        <p class="text-[0.95rem] text-ink-2">재료를 누르면 입고·수정·폐기를 할 수 있어요.</p>
+  <header class="mb-5 hidden lg:block">
+    <h1 class="text-[1.75rem] font-bold tracking-tight text-ink">재고 현황</h1>
+  </header>
+
+  <!-- 1줄: 검색(왼쪽) · 보기·정렬(오른쪽), 2줄: 재료 추가. 앱은 검색이 한 줄을 다 쓰고 보기·정렬이 그 아래 한 줄.
+       검색은 받아 둔 목록을 FE가 거른다 — 재료명에 검색어가 든 재료만(띄어쓰기·대소문자 무시, 초성 검색 없음). 보기·정렬과 함께 적용되고,
+       검색어를 바꾸면 1쪽으로 돌아간다. 결과가 없으면 격자 자리에 안내 한 줄 -->
+  <div class="mb-3 flex flex-wrap items-center gap-3">
+    <label class="relative block w-full lg:w-96">
+      <span class="sr-only">재료 검색</span>
+      <span data-icon="search" class="pointer-events-none absolute top-1/2 z-10 left-3.5 size-5 -translate-y-1/2 text-ink-2"></span>
+      <input type="search" data-when="default page2 alert form lots addlot edit mozz dispose empty loading" placeholder="재료 검색" class="h-11 w-full rounded-full pr-5 pl-11 text-[0.95rem] text-ink placeholder:text-ink-2 glass-card focus:ring-4 focus:ring-brand-soft focus:outline-none">
+      <input type="search" data-when="search" value="치즈" class="h-11 w-full rounded-full pr-5 pl-11 text-[0.95rem] text-ink placeholder:text-ink-2 glass-card focus:ring-4 focus:ring-brand-soft focus:outline-none">
+      <input type="search" data-when="nosearch" value="연어" class="h-11 w-full rounded-full pr-5 pl-11 text-[0.95rem] text-ink placeholder:text-ink-2 glass-card focus:ring-4 focus:ring-brand-soft focus:outline-none">
+    </label>
+    <div class="flex w-full items-center justify-between gap-2 lg:ml-auto lg:w-auto lg:justify-end">
+      <div role="tablist" aria-label="재고 보기" data-when="default form lots addlot edit mozz dispose page2 search nosearch" class="inline-flex shrink-0 rounded-full p-1 glass-card">
+        <button type="button" role="tab" aria-selected="true" data-set-state="default" class="rounded-full px-3.5 py-1.5 whitespace-nowrap lg:px-5 text-sm font-semibold bg-brand-soft text-brand">전체 32</button>
+        <button type="button" role="tab" aria-selected="false" data-set-state="alert" class="rounded-full px-3.5 py-1.5 whitespace-nowrap lg:px-5 text-sm font-semibold text-ink-2 hover:text-ink">확인 필요 5</button>
       </div>
-      <div class="flex flex-wrap gap-2">
-        <button type="button" data-set-state="form" class="inline-flex shrink-0 items-center justify-center gap-2 font-semibold whitespace-nowrap transition-colors disabled:cursor-not-allowed bg-brand text-white hover:bg-brand-strong disabled:bg-ink-4 h-12 px-6 text-base rounded-xl w-full sm:w-auto">
-          <span data-icon="plus" class="size-5"></span> 재료 추가
-        </button>
+      <div role="tablist" aria-label="재고 보기" data-when="alert" class="inline-flex shrink-0 rounded-full p-1 glass-card">
+        <button type="button" role="tab" aria-selected="false" data-set-state="default" class="rounded-full px-3.5 py-1.5 whitespace-nowrap lg:px-5 text-sm font-semibold text-ink-2 hover:text-ink">전체 32</button>
+        <button type="button" role="tab" aria-selected="true" data-set-state="alert" class="rounded-full px-3.5 py-1.5 whitespace-nowrap lg:px-5 text-sm font-semibold bg-brand-soft text-brand">확인 필요 5</button>
       </div>
-    </header>
-
-    <!-- 새 재료 등록 — 저장을 누른 뒤 구매 금액 검증 오류가 난 모습 -->
-    <div data-when="form" class="rounded-2xl p-5 lg:p-6 glass-card">
-      <form class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <p class="text-lg font-bold text-ink sm:col-span-2 lg:col-span-4">새 재료 등록</p>
-        <div class="flex flex-col gap-1.5">
-          <label for="name" class="text-[0.95rem] font-semibold text-ink-2">재료명</label>
-          <input id="name" value="올리브 오일" class="h-12 w-full rounded-xl border border-line bg-white/70 px-4 text-base text-ink placeholder:text-ink-4 focus:border-brand focus:outline-none focus:ring-4 focus:ring-brand-soft disabled:bg-subtle disabled:text-ink-3">
-        </div>
-        <div class="flex flex-col gap-1.5">
-          <label for="unit" class="text-[0.95rem] font-semibold text-ink-2">단위 (kg, 개, L 등)</label>
-          <input id="unit" value="L" class="h-12 w-full rounded-xl border border-line bg-white/70 px-4 text-base text-ink placeholder:text-ink-4 focus:border-brand focus:outline-none focus:ring-4 focus:ring-brand-soft disabled:bg-subtle disabled:text-ink-3">
-        </div>
-        <div class="flex flex-col gap-1.5">
-          <label for="quantity" class="text-[0.95rem] font-semibold text-ink-2">현재 수량</label>
-          <input id="quantity" type="number" step="any" inputmode="decimal" value="5" class="h-12 w-full rounded-xl border border-line bg-white/70 px-4 text-base text-ink placeholder:text-ink-4 focus:border-brand focus:outline-none focus:ring-4 focus:ring-brand-soft disabled:bg-subtle disabled:text-ink-3">
-        </div>
-        <div class="flex flex-col gap-1.5">
-          <label for="purchase_price" class="text-[0.95rem] font-semibold text-ink-2">구매 금액 (원)</label>
-          <input id="purchase_price" type="number" inputmode="numeric" value="" class="h-12 w-full rounded-xl border border-line bg-white/70 px-4 text-base text-ink placeholder:text-ink-4 focus:border-brand focus:outline-none focus:ring-4 focus:ring-brand-soft disabled:bg-subtle disabled:text-ink-3">
-          <!-- 오류가 있으면 힌트("현재 수량 전체의 금액") 대신 오류를 보인다 -->
-          <p class="text-sm text-danger" role="alert">수량이 있으면 구매 금액을 입력하세요.</p>
-        </div>
-        <div class="flex flex-col gap-1.5">
-          <label for="low_stock_threshold" class="text-[0.95rem] font-semibold text-ink-2">재주문 임계값</label>
-          <input id="low_stock_threshold" type="number" step="any" inputmode="decimal" value="1" class="h-12 w-full rounded-xl border border-line bg-white/70 px-4 text-base text-ink placeholder:text-ink-4 focus:border-brand focus:outline-none focus:ring-4 focus:ring-brand-soft disabled:bg-subtle disabled:text-ink-3">
-          <p class="text-sm text-ink-3">이 수량 이하면 부족으로 표시</p>
-        </div>
-        <div class="flex flex-col gap-1.5">
-          <label for="expiry_date" class="text-[0.95rem] font-semibold text-ink-2">소비기한 (선택)</label>
-          <input id="expiry_date" type="date" value="2027-04-30" class="h-12 w-full rounded-xl border border-line bg-white/70 px-4 text-base text-ink placeholder:text-ink-4 focus:border-brand focus:outline-none focus:ring-4 focus:ring-brand-soft disabled:bg-subtle disabled:text-ink-3">
-        </div>
-        <div class="flex flex-col gap-1.5">
-          <label for="safety_stock" class="text-[0.95rem] font-semibold text-ink-2">안전재고 (선택)</label>
-          <input id="safety_stock" type="number" step="any" inputmode="decimal" class="h-12 w-full rounded-xl border border-line bg-white/70 px-4 text-base text-ink placeholder:text-ink-4 focus:border-brand focus:outline-none focus:ring-4 focus:ring-brand-soft disabled:bg-subtle disabled:text-ink-3">
-        </div>
-        <div class="flex flex-col gap-1.5">
-          <label for="lead_time_days" class="text-[0.95rem] font-semibold text-ink-2">리드타임(일, 선택)</label>
-          <input id="lead_time_days" type="number" inputmode="numeric" value="2" class="h-12 w-full rounded-xl border border-line bg-white/70 px-4 text-base text-ink placeholder:text-ink-4 focus:border-brand focus:outline-none focus:ring-4 focus:ring-brand-soft disabled:bg-subtle disabled:text-ink-3">
-        </div>
-        <div class="flex flex-col-reverse gap-2 sm:col-span-2 sm:flex-row sm:justify-end lg:col-span-4">
-          <button type="button" data-set-state="default" class="inline-flex shrink-0 items-center justify-center gap-2 font-semibold whitespace-nowrap transition-colors disabled:cursor-not-allowed text-ink-2 hover:bg-subtle hover:border-ink-4 disabled:opacity-60 h-12 px-6 text-base rounded-xl glass-card">취소</button>
-          <button type="submit" data-set-state="default" class="inline-flex shrink-0 items-center justify-center gap-2 font-semibold whitespace-nowrap transition-colors disabled:cursor-not-allowed bg-brand text-white hover:bg-brand-strong disabled:bg-ink-4 h-12 px-6 text-base rounded-xl">저장</button>
-        </div>
-      </form>
-    </div>
-
-    <div class="flex flex-wrap items-center justify-between gap-3">
-      <!-- Segmented — 전체 / 확인 필요(정상이 아닌 재료) -->
-      <div role="tablist" aria-label="재고 보기" data-when="default form lots addlot edit mozz dispose" class="inline-flex rounded-xl p-1 glass-card">
-        <button type="button" role="tab" aria-selected="true" data-set-state="default" class="rounded-lg px-3.5 py-1.5 text-sm font-semibold transition-colors bg-brand-soft text-brand">전체 7</button>
-        <button type="button" role="tab" aria-selected="false" data-set-state="alert" class="rounded-lg px-3.5 py-1.5 text-sm font-semibold transition-colors text-ink-3 hover:text-ink-2">확인 필요 5</button>
+      <div role="tablist" aria-label="재고 보기" data-when="empty loading" class="inline-flex shrink-0 rounded-full p-1 glass-card">
+        <button type="button" role="tab" aria-selected="true" class="rounded-full px-3.5 py-1.5 whitespace-nowrap lg:px-5 text-sm font-semibold bg-brand-soft text-brand">전체 0</button>
+        <button type="button" role="tab" aria-selected="false" class="rounded-full px-3.5 py-1.5 whitespace-nowrap lg:px-5 text-sm font-semibold text-ink-2">확인 필요 0</button>
       </div>
-      <div role="tablist" aria-label="재고 보기" data-when="alert" class="inline-flex rounded-xl p-1 glass-card">
-        <button type="button" role="tab" aria-selected="false" data-set-state="default" class="rounded-lg px-3.5 py-1.5 text-sm font-semibold transition-colors text-ink-3 hover:text-ink-2">전체 7</button>
-        <button type="button" role="tab" aria-selected="true" data-set-state="alert" class="rounded-lg px-3.5 py-1.5 text-sm font-semibold transition-colors bg-brand-soft text-brand">확인 필요 5</button>
-      </div>
-      <!-- 목록이 비었거나 불러오는 중이면 items가 []라 둘 다 0이다 -->
-      <div role="tablist" aria-label="재고 보기" data-when="empty loading" class="inline-flex rounded-xl p-1 glass-card">
-        <button type="button" role="tab" aria-selected="true" class="rounded-lg px-3.5 py-1.5 text-sm font-semibold transition-colors bg-brand-soft text-brand">전체 0</button>
-        <button type="button" role="tab" aria-selected="false" class="rounded-lg px-3.5 py-1.5 text-sm font-semibold transition-colors text-ink-3 hover:text-ink-2">확인 필요 0</button>
-      </div>
-      <!-- 앱 정렬 선택. PR 동작 그대로: 내림차순 옵션 없음 -->
-      <label class="flex items-center gap-2 text-sm font-semibold text-ink-2 lg:hidden">
-        정렬
-        <select aria-label="재고 정렬" class="h-11 rounded-xl border border-line bg-white/70 px-3 text-base font-semibold text-ink">
-          <option value="expiry:asc" selected>소비기한 빠른순</option>
-          <option value="status:asc">급한 것부터</option>
-          <option value="name:asc">이름순</option>
-          <option value="quantity:asc">수량 적은순</option>
-        </select>
-      </label>
-    </div>
-
-    <div class="rounded-2xl overflow-hidden glass-card">
-      <!-- 웹 머리글 — 누르면 정렬, 같은 머리글을 다시 누르면 방향이 바뀐다. 현재 소비기한 오름차순 -->
-      <div class="hidden lg:grid-cols-[minmax(0,1.5fr)_1fr_1.3fr_1fr_1fr_3rem] gap-4 bg-subtle px-5 py-3 text-sm font-semibold text-ink-3 lg:grid">
-        <span><button type="button" aria-pressed="false" title="재료 기준으로 정렬" class="inline-flex items-center gap-1 hover:text-ink-2">재료</button></span>
-        <span><button type="button" aria-pressed="false" title="총 수량 기준으로 정렬" class="inline-flex items-center gap-1 hover:text-ink-2">총 수량</button></span>
-        <span><button type="button" aria-pressed="true" title="소비기한 기준으로 정렬" class="inline-flex items-center gap-1 text-brand">소비기한<span data-icon="arrowUp" class="size-3.5"></span></button></span>
-        <span>재주문 임계값</span>
-        <span>안전재고</span>
-        <span></span>
-      </div>
-
-      <p data-when="loading" class="px-5 py-8 text-center text-ink-3">불러오는 중…</p>
-      <p data-when="empty" class="px-5 py-8 text-center text-ink-3">등록된 재료가 없습니다. "재료 추가"로 시작하세요.</p>
-
-      <ul data-when="default alert form lots addlot edit mozz dispose" class="divide-y divide-line-soft">
-        <!-- 리코타 치즈 — 소비기한 D-3 이내(D-1) -->
-        <li data-when="default alert form lots addlot edit mozz dispose">
-          <div class="flex items-start gap-3 px-4 py-4 lg:grid lg:grid-cols-[minmax(0,1.5fr)_1fr_1.3fr_1fr_1fr_3rem] lg:items-center lg:gap-4 lg:px-5">
-            <button type="button" aria-expanded="false" data-toggle="#inv-rico, #inv-rico-closed, #inv-rico-open" class="flex min-w-0 flex-1 items-start gap-2 text-left lg:items-center">
-              <span id="inv-rico-closed" class="mt-1 shrink-0 lg:mt-0"><span data-icon="chevronRight" class="size-5 text-ink-4"></span></span>
-              <span id="inv-rico-open" hidden class="mt-1 shrink-0 lg:mt-0"><span data-icon="chevronDown" class="size-5 text-brand"></span></span>
-              <span class="min-w-0">
-                <span class="block truncate text-[1.05rem] font-bold text-ink">리코타 치즈</span>
-                <span class="mt-0.5 block text-sm text-ink-3 lg:hidden">기준 500g · 기한 <span class="text-danger">2026-10-20 (D-1)</span></span>
-              </span>
-            </button>
-            <div class="flex shrink-0 flex-col items-end gap-1.5 lg:contents">
-              <span class="tabular text-lg font-bold lg:text-base lg:font-semibold text-ink">1,200 g</span>
-              <span class="hidden text-danger lg:block">2026-10-20 (D-1)</span>
-              <span class="hidden text-ink-2 lg:block">500 g</span>
-              <span class="hidden text-ink-2 lg:block">—</span>
-            </div>
-            <button type="button" aria-label="삭제" class="flex size-10 shrink-0 items-center justify-center rounded-lg text-ink-4 hover:bg-danger-soft hover:text-danger lg:justify-self-end"><span data-icon="trash2" class="size-5"></span></button>
-          </div>
-          <!-- LotPanel — 행을 누르면 열고 닫는다(data-toggle) -->
-          <div id="inv-rico" hidden class="border-t border-line-soft bg-subtle px-4 py-4 lg:px-5">
-            <div class="space-y-4">
-              <form class="flex flex-wrap items-end gap-3 rounded-xl p-4 glass-card">
-                <label class="space-y-1 text-sm font-semibold text-ink-2">입고 수량 (g)<input type="number" step="any" value="" class="h-11 rounded-xl border border-line bg-white/70 px-3 text-base text-ink focus:border-brand focus:ring-4 focus:ring-brand-soft focus:outline-none block w-28"></label>
-                <label class="space-y-1 text-sm font-semibold text-ink-2">입고일<input type="date" value="2026-10-19" class="h-11 rounded-xl border border-line bg-white/70 px-3 text-base text-ink focus:border-brand focus:ring-4 focus:ring-brand-soft focus:outline-none block"></label>
-                <label class="space-y-1 text-sm font-semibold text-ink-2">소비기한 (선택)<input type="date" value="" class="h-11 rounded-xl border border-line bg-white/70 px-3 text-base text-ink focus:border-brand focus:ring-4 focus:ring-brand-soft focus:outline-none block"></label>
-                <label class="space-y-1 text-sm font-semibold text-ink-2">구매 금액 (원)<input type="number" value="" class="h-11 rounded-xl border border-line bg-white/70 px-3 text-base text-ink focus:border-brand focus:ring-4 focus:ring-brand-soft focus:outline-none block w-32"></label>
-                <button type="submit" disabled class="inline-flex shrink-0 items-center justify-center gap-2 font-semibold whitespace-nowrap transition-colors disabled:cursor-not-allowed bg-brand text-white hover:bg-brand-strong disabled:bg-ink-4 h-12 px-6 text-base rounded-xl">입고 등록</button>
-              </form>
-              <div class="overflow-x-auto rounded-xl glass-card">
-                <table class="w-full min-w-[560px] text-left text-[0.95rem]">
-                  <thead class="bg-subtle text-sm text-ink-3">
-                    <tr>
-                      <th class="px-4 py-2.5 font-semibold">입고일</th>
-                      <th class="px-4 py-2.5 font-semibold">소비기한</th>
-                      <th class="px-4 py-2.5 font-semibold">입고 수량</th>
-                      <th class="px-4 py-2.5 font-semibold">잔여 수량</th>
-                      <th class="px-4 py-2.5 font-semibold">구매 금액</th>
-                      <th class="px-4 py-2.5"></th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <tr class="border-t border-line-soft">
-                      <td class="px-4 py-3">2026-10-13</td>
-                      <td class="px-4 py-3">2026-10-20</td>
-                      <td class="px-4 py-3">1,000 g</td>
-                      <td class="px-4 py-3 font-medium">700 g</td>
-                      <td class="px-4 py-3">18,000원</td>
-                      <td class="px-4 py-3 text-right">
-                        <button type="button" class="mr-1 rounded-lg px-3 py-2 text-sm font-semibold text-brand hover:bg-brand-soft">수정</button>
-                        <button type="button" class="rounded-lg px-3 py-2 text-sm font-semibold text-danger hover:bg-danger-soft">폐기</button>
-                      </td>
-                    </tr>
-                    <tr class="border-t border-line-soft">
-                      <td class="px-4 py-3">2026-10-18</td>
-                      <td class="px-4 py-3">2026-10-27</td>
-                      <td class="px-4 py-3">500 g</td>
-                      <td class="px-4 py-3 font-medium">500 g</td>
-                      <td class="px-4 py-3">9,000원</td>
-                      <td class="px-4 py-3 text-right">
-                        <button type="button" class="mr-1 rounded-lg px-3 py-2 text-sm font-semibold text-brand hover:bg-brand-soft">수정</button>
-                        <button type="button" class="rounded-lg px-3 py-2 text-sm font-semibold text-danger hover:bg-danger-soft">폐기</button>
-                      </td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          </div>
-        </li>
-
-        <!-- 모짜렐라 치즈 — 소비기한 D-3 이내(D-3). mozz·dispose 상태에서 펼친다 -->
-        <li data-when="default alert form lots addlot edit mozz dispose">
-          <div class="flex items-start gap-3 px-4 py-4 lg:grid lg:grid-cols-[minmax(0,1.5fr)_1fr_1.3fr_1fr_1fr_3rem] lg:items-center lg:gap-4 lg:px-5">
-            <button type="button" data-set-state="mozz" aria-expanded="false" class="flex min-w-0 flex-1 items-start gap-2 text-left lg:items-center">
-              <span data-icon="chevronRight" data-when="default alert form lots addlot edit" class="mt-1 size-5 shrink-0 text-ink-4 lg:mt-0"></span>
-              <span data-icon="chevronDown" data-when="mozz dispose" class="mt-1 size-5 shrink-0 text-brand lg:mt-0"></span>
-              <span class="min-w-0">
-                <span class="block truncate text-[1.05rem] font-bold text-ink">모짜렐라 치즈</span>
-                <span class="mt-0.5 block text-sm text-ink-3 lg:hidden">기준 2,000g · 기한 <span class="text-danger">2026-10-22 (D-3)</span></span>
-              </span>
-            </button>
-            <div class="flex shrink-0 flex-col items-end gap-1.5 lg:contents">
-              <span class="tabular text-lg font-bold lg:text-base lg:font-semibold text-ink">4,250 g</span>
-              <span class="hidden text-danger lg:block">2026-10-22 (D-3)</span>
-              <span class="hidden text-ink-2 lg:block">2,000 g</span>
-              <span class="hidden text-ink-2 lg:block">1,000 g</span>
-            </div>
-            <button type="button" aria-label="삭제" class="flex size-10 shrink-0 items-center justify-center rounded-lg text-ink-4 hover:bg-danger-soft hover:text-danger lg:justify-self-end"><span data-icon="trash2" class="size-5"></span></button>
-          </div>
-          <!-- LotPanel — 확인 필요 표시가 없는 재료라 안내 문구가 없다 -->
-          <div data-when="mozz dispose" class="border-t border-line-soft bg-subtle px-4 py-4 lg:px-5">
-            <div class="space-y-4">
-              <!-- 입고 대기 — 입고 처리 안 된 확정 발주. 수량·금액은 확정안 값, 입고일은 오늘, 소비기한은 빈칸 -->
-              <form class="space-y-3 rounded-xl border-brand p-4 glass-card">
-                <p class="text-[0.95rem] font-semibold text-ink">10월 16일 확정 발주 <span class="font-normal text-ink-3">· 3,000 g · 48,000원</span></p>
-                <div class="flex flex-wrap items-end gap-3">
-                  <label class="space-y-1 text-sm font-semibold text-ink-2">입고 수량 (g)<input type="number" step="any" value="3000" class="h-11 rounded-xl border border-line bg-white/70 px-3 text-base text-ink focus:border-brand focus:ring-4 focus:ring-brand-soft focus:outline-none block w-28"></label>
-                  <label class="space-y-1 text-sm font-semibold text-ink-2">입고일<input type="date" value="2026-10-19" class="h-11 rounded-xl border border-line bg-white/70 px-3 text-base text-ink focus:border-brand focus:ring-4 focus:ring-brand-soft focus:outline-none block"></label>
-                  <label class="space-y-1 text-sm font-semibold text-ink-2">소비기한 (선택)<input type="date" value="" class="h-11 rounded-xl border border-line bg-white/70 px-3 text-base text-ink focus:border-brand focus:ring-4 focus:ring-brand-soft focus:outline-none block"></label>
-                  <label class="space-y-1 text-sm font-semibold text-ink-2">구매 금액 (원)<input type="number" value="48000" class="h-11 rounded-xl border border-line bg-white/70 px-3 text-base text-ink focus:border-brand focus:ring-4 focus:ring-brand-soft focus:outline-none block w-32"></label>
-                  <button type="submit" class="inline-flex shrink-0 items-center justify-center gap-2 font-semibold whitespace-nowrap transition-colors disabled:cursor-not-allowed h-12 px-6 text-base rounded-xl bg-brand text-white hover:bg-brand-strong">입고 처리</button>
-                  <button type="button" class="inline-flex shrink-0 items-center justify-center gap-2 font-semibold whitespace-nowrap transition-colors disabled:cursor-not-allowed h-12 px-6 text-base rounded-xl text-ink-2 hover:bg-subtle glass-card">입고 안 함</button>
-                </div>
-              </form>
-              <form class="flex flex-wrap items-end gap-3 rounded-xl p-4 glass-card">
-                <label class="space-y-1 text-sm font-semibold text-ink-2">입고 수량 (g)<input type="number" step="any" value="" class="h-11 rounded-xl border border-line bg-white/70 px-3 text-base text-ink focus:border-brand focus:ring-4 focus:ring-brand-soft focus:outline-none block w-28"></label>
-                <label class="space-y-1 text-sm font-semibold text-ink-2">입고일<input type="date" value="2026-10-19" class="h-11 rounded-xl border border-line bg-white/70 px-3 text-base text-ink focus:border-brand focus:ring-4 focus:ring-brand-soft focus:outline-none block"></label>
-                <label class="space-y-1 text-sm font-semibold text-ink-2">소비기한 (선택)<input type="date" value="" class="h-11 rounded-xl border border-line bg-white/70 px-3 text-base text-ink focus:border-brand focus:ring-4 focus:ring-brand-soft focus:outline-none block"></label>
-                <label class="space-y-1 text-sm font-semibold text-ink-2">구매 금액 (원)<input type="number" value="" class="h-11 rounded-xl border border-line bg-white/70 px-3 text-base text-ink focus:border-brand focus:ring-4 focus:ring-brand-soft focus:outline-none block w-32"></label>
-                <button type="submit" disabled class="inline-flex shrink-0 items-center justify-center gap-2 font-semibold whitespace-nowrap transition-colors disabled:cursor-not-allowed bg-brand text-white hover:bg-brand-strong disabled:bg-ink-4 h-12 px-6 text-base rounded-xl">입고 등록</button>
-              </form>
-              <div class="overflow-x-auto rounded-xl glass-card">
-                <table class="w-full min-w-[560px] text-left text-[0.95rem]">
-                  <thead class="bg-subtle text-sm text-ink-3">
-                    <tr>
-                      <th class="px-4 py-2.5 font-semibold">입고일</th>
-                      <th class="px-4 py-2.5 font-semibold">소비기한</th>
-                      <th class="px-4 py-2.5 font-semibold">입고 수량</th>
-                      <th class="px-4 py-2.5 font-semibold">잔여 수량</th>
-                      <th class="px-4 py-2.5 font-semibold">구매 금액</th>
-                      <th class="px-4 py-2.5"></th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <tr class="border-t border-line-soft">
-                      <td class="px-4 py-3">2026-10-12</td>
-                      <td class="px-4 py-3">2026-10-22</td>
-                      <td class="px-4 py-3">2,000 g</td>
-                      <td class="px-4 py-3 font-medium">1,250 g</td>
-                      <td class="px-4 py-3">32,000원</td>
-                      <td class="px-4 py-3 text-right">
-                        <button type="button" class="mr-1 rounded-lg px-3 py-2 text-sm font-semibold text-brand hover:bg-brand-soft">수정</button>
-                        <button type="button" data-set-state="dispose" class="rounded-lg px-3 py-2 text-sm font-semibold text-danger hover:bg-danger-soft">폐기</button>
-                      </td>
-                    </tr>
-                    <!-- DisposeForm — 250g 입력, 사유는 비워 둔 모습 -->
-                    <tr data-when="dispose">
-                      <td colspan="6" class="px-4 pb-4">
-                        <form class="flex flex-wrap items-end gap-3 rounded-xl bg-subtle p-4">
-                          <label class="space-y-1 text-sm font-semibold text-ink-2">폐기 수량 (g, 최대 1,250)<input type="number" step="any" value="250" class="h-11 rounded-xl border border-line bg-white/70 px-3 text-base text-ink focus:border-brand focus:ring-4 focus:ring-brand-soft focus:outline-none block w-28"></label>
-                          <label class="space-y-1 text-sm font-semibold text-ink-2">폐기 사유 (선택)<input maxlength="255" placeholder="소비기한 만료" class="h-11 rounded-xl border border-line bg-white/70 px-3 text-base text-ink focus:border-brand focus:ring-4 focus:ring-brand-soft focus:outline-none block w-48"></label>
-                          <button type="submit" data-set-state="mozz" class="inline-flex shrink-0 items-center justify-center gap-2 font-semibold whitespace-nowrap transition-colors disabled:cursor-not-allowed bg-danger text-white hover:bg-red-700 disabled:bg-red-300 h-12 px-6 text-base rounded-xl">폐기</button>
-                        </form>
-                      </td>
-                    </tr>
-                    <tr class="border-t border-line-soft">
-                      <td class="px-4 py-3">2026-10-17</td>
-                      <td class="px-4 py-3">2026-11-02</td>
-                      <td class="px-4 py-3">3,000 g</td>
-                      <td class="px-4 py-3 font-medium">3,000 g</td>
-                      <td class="px-4 py-3">48,000원</td>
-                      <td class="px-4 py-3 text-right">
-                        <button type="button" class="mr-1 rounded-lg px-3 py-2 text-sm font-semibold text-brand hover:bg-brand-soft">수정</button>
-                        <button type="button" class="rounded-lg px-3 py-2 text-sm font-semibold text-danger hover:bg-danger-soft">폐기</button>
-                      </td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          </div>
-        </li>
-
-        <!-- 피자 도우 — 정상 -->
-        <li data-when="default form lots addlot edit mozz dispose">
-          <div class="flex items-start gap-3 px-4 py-4 lg:grid lg:grid-cols-[minmax(0,1.5fr)_1fr_1.3fr_1fr_1fr_3rem] lg:items-center lg:gap-4 lg:px-5">
-            <button type="button" aria-expanded="false" data-toggle="#inv-dough, #inv-dough-closed, #inv-dough-open" class="flex min-w-0 flex-1 items-start gap-2 text-left lg:items-center">
-              <span id="inv-dough-closed" class="mt-1 shrink-0 lg:mt-0"><span data-icon="chevronRight" class="size-5 text-ink-4"></span></span>
-              <span id="inv-dough-open" hidden class="mt-1 shrink-0 lg:mt-0"><span data-icon="chevronDown" class="size-5 text-brand"></span></span>
-              <span class="min-w-0">
-                <span class="block truncate text-[1.05rem] font-bold text-ink">피자 도우</span>
-                <span class="mt-0.5 block text-sm text-ink-3 lg:hidden">기준 40개 · 기한 2026-10-25 (D-6)</span>
-              </span>
-            </button>
-            <div class="flex shrink-0 flex-col items-end gap-1.5 lg:contents">
-              <span class="tabular text-lg font-bold lg:text-base lg:font-semibold text-ink">96 개</span>
-              <span class="hidden text-ink-2 lg:block">2026-10-25 (D-6)</span>
-              <span class="hidden text-ink-2 lg:block">40 개</span>
-              <span class="hidden text-ink-2 lg:block">20 개</span>
-            </div>
-            <button type="button" aria-label="삭제" class="flex size-10 shrink-0 items-center justify-center rounded-lg text-ink-4 hover:bg-danger-soft hover:text-danger lg:justify-self-end"><span data-icon="trash2" class="size-5"></span></button>
-          </div>
-          <!-- LotPanel — 행을 누르면 열고 닫는다(data-toggle) -->
-          <div id="inv-dough" hidden class="border-t border-line-soft bg-subtle px-4 py-4 lg:px-5">
-            <div class="space-y-4">
-              <!-- 입고 대기 — 입고 처리 안 된 확정 발주. 수량·금액은 확정안 값, 입고일은 오늘, 소비기한은 빈칸 -->
-              <form class="space-y-3 rounded-xl border-brand p-4 glass-card">
-                <p class="text-[0.95rem] font-semibold text-ink">10월 16일 확정 발주 <span class="font-normal text-ink-3">· 50 개 · 25,000원</span></p>
-                <div class="flex flex-wrap items-end gap-3">
-                  <label class="space-y-1 text-sm font-semibold text-ink-2">입고 수량 (개)<input type="number" step="any" value="50" class="h-11 rounded-xl border border-line bg-white/70 px-3 text-base text-ink focus:border-brand focus:ring-4 focus:ring-brand-soft focus:outline-none block w-28"></label>
-                  <label class="space-y-1 text-sm font-semibold text-ink-2">입고일<input type="date" value="2026-10-19" class="h-11 rounded-xl border border-line bg-white/70 px-3 text-base text-ink focus:border-brand focus:ring-4 focus:ring-brand-soft focus:outline-none block"></label>
-                  <label class="space-y-1 text-sm font-semibold text-ink-2">소비기한 (선택)<input type="date" value="" class="h-11 rounded-xl border border-line bg-white/70 px-3 text-base text-ink focus:border-brand focus:ring-4 focus:ring-brand-soft focus:outline-none block"></label>
-                  <label class="space-y-1 text-sm font-semibold text-ink-2">구매 금액 (원)<input type="number" value="25000" class="h-11 rounded-xl border border-line bg-white/70 px-3 text-base text-ink focus:border-brand focus:ring-4 focus:ring-brand-soft focus:outline-none block w-32"></label>
-                  <button type="submit" class="inline-flex shrink-0 items-center justify-center gap-2 font-semibold whitespace-nowrap transition-colors disabled:cursor-not-allowed h-12 px-6 text-base rounded-xl bg-brand text-white hover:bg-brand-strong">입고 처리</button>
-                  <button type="button" class="inline-flex shrink-0 items-center justify-center gap-2 font-semibold whitespace-nowrap transition-colors disabled:cursor-not-allowed h-12 px-6 text-base rounded-xl text-ink-2 hover:bg-subtle glass-card">입고 안 함</button>
-                </div>
-              </form>
-              <form class="flex flex-wrap items-end gap-3 rounded-xl p-4 glass-card">
-                <label class="space-y-1 text-sm font-semibold text-ink-2">입고 수량 (개)<input type="number" step="any" value="" class="h-11 rounded-xl border border-line bg-white/70 px-3 text-base text-ink focus:border-brand focus:ring-4 focus:ring-brand-soft focus:outline-none block w-28"></label>
-                <label class="space-y-1 text-sm font-semibold text-ink-2">입고일<input type="date" value="2026-10-19" class="h-11 rounded-xl border border-line bg-white/70 px-3 text-base text-ink focus:border-brand focus:ring-4 focus:ring-brand-soft focus:outline-none block"></label>
-                <label class="space-y-1 text-sm font-semibold text-ink-2">소비기한 (선택)<input type="date" value="" class="h-11 rounded-xl border border-line bg-white/70 px-3 text-base text-ink focus:border-brand focus:ring-4 focus:ring-brand-soft focus:outline-none block"></label>
-                <label class="space-y-1 text-sm font-semibold text-ink-2">구매 금액 (원)<input type="number" value="" class="h-11 rounded-xl border border-line bg-white/70 px-3 text-base text-ink focus:border-brand focus:ring-4 focus:ring-brand-soft focus:outline-none block w-32"></label>
-                <button type="submit" disabled class="inline-flex shrink-0 items-center justify-center gap-2 font-semibold whitespace-nowrap transition-colors disabled:cursor-not-allowed bg-brand text-white hover:bg-brand-strong disabled:bg-ink-4 h-12 px-6 text-base rounded-xl">입고 등록</button>
-              </form>
-              <div class="overflow-x-auto rounded-xl glass-card">
-                <table class="w-full min-w-[560px] text-left text-[0.95rem]">
-                  <thead class="bg-subtle text-sm text-ink-3">
-                    <tr>
-                      <th class="px-4 py-2.5 font-semibold">입고일</th>
-                      <th class="px-4 py-2.5 font-semibold">소비기한</th>
-                      <th class="px-4 py-2.5 font-semibold">입고 수량</th>
-                      <th class="px-4 py-2.5 font-semibold">잔여 수량</th>
-                      <th class="px-4 py-2.5 font-semibold">구매 금액</th>
-                      <th class="px-4 py-2.5"></th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <tr class="border-t border-line-soft">
-                      <td class="px-4 py-3">2026-10-15</td>
-                      <td class="px-4 py-3">2026-10-25</td>
-                      <td class="px-4 py-3">60 개</td>
-                      <td class="px-4 py-3 font-medium">36 개</td>
-                      <td class="px-4 py-3">30,000원</td>
-                      <td class="px-4 py-3 text-right">
-                        <button type="button" class="mr-1 rounded-lg px-3 py-2 text-sm font-semibold text-brand hover:bg-brand-soft">수정</button>
-                        <button type="button" class="rounded-lg px-3 py-2 text-sm font-semibold text-danger hover:bg-danger-soft">폐기</button>
-                      </td>
-                    </tr>
-                    <tr class="border-t border-line-soft">
-                      <td class="px-4 py-3">2026-10-18</td>
-                      <td class="px-4 py-3">2026-10-28</td>
-                      <td class="px-4 py-3">60 개</td>
-                      <td class="px-4 py-3 font-medium">60 개</td>
-                      <td class="px-4 py-3">30,000원</td>
-                      <td class="px-4 py-3 text-right">
-                        <button type="button" class="mr-1 rounded-lg px-3 py-2 text-sm font-semibold text-brand hover:bg-brand-soft">수정</button>
-                        <button type="button" class="rounded-lg px-3 py-2 text-sm font-semibold text-danger hover:bg-danger-soft">폐기</button>
-                      </td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          </div>
-        </li>
-
-        <!-- 페퍼로니 — 재고 부족 -->
-        <li data-when="default alert form lots addlot edit mozz dispose">
-          <div class="flex items-start gap-3 px-4 py-4 lg:grid lg:grid-cols-[minmax(0,1.5fr)_1fr_1.3fr_1fr_1fr_3rem] lg:items-center lg:gap-4 lg:px-5">
-            <button type="button" aria-expanded="false" data-toggle="#inv-pepperoni, #inv-pepperoni-closed, #inv-pepperoni-open" class="flex min-w-0 flex-1 items-start gap-2 text-left lg:items-center">
-              <span id="inv-pepperoni-closed" class="mt-1 shrink-0 lg:mt-0"><span data-icon="chevronRight" class="size-5 text-ink-4"></span></span>
-              <span id="inv-pepperoni-open" hidden class="mt-1 shrink-0 lg:mt-0"><span data-icon="chevronDown" class="size-5 text-brand"></span></span>
-              <span class="min-w-0">
-                <span class="block truncate text-[1.05rem] font-bold text-ink">페퍼로니</span>
-                <span class="mt-0.5 block text-sm text-ink-3 lg:hidden">기준 500g · 기한 2026-11-30 (D-42)</span>
-              </span>
-            </button>
-            <div class="flex shrink-0 flex-col items-end gap-1.5 lg:contents">
-              <span class="tabular text-lg font-bold lg:text-base lg:font-semibold text-danger">380 g</span>
-              <span class="hidden text-ink-2 lg:block">2026-11-30 (D-42)</span>
-              <span class="hidden text-ink-2 lg:block">500 g</span>
-              <span class="hidden text-ink-2 lg:block">—</span>
-            </div>
-            <button type="button" aria-label="삭제" class="flex size-10 shrink-0 items-center justify-center rounded-lg text-ink-4 hover:bg-danger-soft hover:text-danger lg:justify-self-end"><span data-icon="trash2" class="size-5"></span></button>
-          </div>
-          <!-- LotPanel — 행을 누르면 열고 닫는다(data-toggle) -->
-          <div id="inv-pepperoni" hidden class="border-t border-line-soft bg-subtle px-4 py-4 lg:px-5">
-            <div class="space-y-4">
-              <form class="flex flex-wrap items-end gap-3 rounded-xl p-4 glass-card">
-                <label class="space-y-1 text-sm font-semibold text-ink-2">입고 수량 (g)<input type="number" step="any" value="" class="h-11 rounded-xl border border-line bg-white/70 px-3 text-base text-ink focus:border-brand focus:ring-4 focus:ring-brand-soft focus:outline-none block w-28"></label>
-                <label class="space-y-1 text-sm font-semibold text-ink-2">입고일<input type="date" value="2026-10-19" class="h-11 rounded-xl border border-line bg-white/70 px-3 text-base text-ink focus:border-brand focus:ring-4 focus:ring-brand-soft focus:outline-none block"></label>
-                <label class="space-y-1 text-sm font-semibold text-ink-2">소비기한 (선택)<input type="date" value="" class="h-11 rounded-xl border border-line bg-white/70 px-3 text-base text-ink focus:border-brand focus:ring-4 focus:ring-brand-soft focus:outline-none block"></label>
-                <label class="space-y-1 text-sm font-semibold text-ink-2">구매 금액 (원)<input type="number" value="" class="h-11 rounded-xl border border-line bg-white/70 px-3 text-base text-ink focus:border-brand focus:ring-4 focus:ring-brand-soft focus:outline-none block w-32"></label>
-                <button type="submit" disabled class="inline-flex shrink-0 items-center justify-center gap-2 font-semibold whitespace-nowrap transition-colors disabled:cursor-not-allowed bg-brand text-white hover:bg-brand-strong disabled:bg-ink-4 h-12 px-6 text-base rounded-xl">입고 등록</button>
-              </form>
-              <div class="overflow-x-auto rounded-xl glass-card">
-                <table class="w-full min-w-[560px] text-left text-[0.95rem]">
-                  <thead class="bg-subtle text-sm text-ink-3">
-                    <tr>
-                      <th class="px-4 py-2.5 font-semibold">입고일</th>
-                      <th class="px-4 py-2.5 font-semibold">소비기한</th>
-                      <th class="px-4 py-2.5 font-semibold">입고 수량</th>
-                      <th class="px-4 py-2.5 font-semibold">잔여 수량</th>
-                      <th class="px-4 py-2.5 font-semibold">구매 금액</th>
-                      <th class="px-4 py-2.5"></th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <tr class="border-t border-line-soft">
-                      <td class="px-4 py-3">2026-10-01</td>
-                      <td class="px-4 py-3">2026-11-30</td>
-                      <td class="px-4 py-3">1,000 g</td>
-                      <td class="px-4 py-3 font-medium">380 g</td>
-                      <td class="px-4 py-3">25,000원</td>
-                      <td class="px-4 py-3 text-right">
-                        <button type="button" class="mr-1 rounded-lg px-3 py-2 text-sm font-semibold text-brand hover:bg-brand-soft">수정</button>
-                        <button type="button" class="rounded-lg px-3 py-2 text-sm font-semibold text-danger hover:bg-danger-soft">폐기</button>
-                      </td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          </div>
-        </li>
-
-        <!-- 토마토 소스 — 정상 -->
-        <li data-when="default form lots addlot edit mozz dispose">
-          <div class="flex items-start gap-3 px-4 py-4 lg:grid lg:grid-cols-[minmax(0,1.5fr)_1fr_1.3fr_1fr_1fr_3rem] lg:items-center lg:gap-4 lg:px-5">
-            <button type="button" aria-expanded="false" data-toggle="#inv-tomato, #inv-tomato-closed, #inv-tomato-open" class="flex min-w-0 flex-1 items-start gap-2 text-left lg:items-center">
-              <span id="inv-tomato-closed" class="mt-1 shrink-0 lg:mt-0"><span data-icon="chevronRight" class="size-5 text-ink-4"></span></span>
-              <span id="inv-tomato-open" hidden class="mt-1 shrink-0 lg:mt-0"><span data-icon="chevronDown" class="size-5 text-brand"></span></span>
-              <span class="min-w-0">
-                <span class="block truncate text-[1.05rem] font-bold text-ink">토마토 소스</span>
-                <span class="mt-0.5 block text-sm text-ink-3 lg:hidden">기준 3,000g · 기한 2026-12-15 (D-57)</span>
-              </span>
-            </button>
-            <div class="flex shrink-0 flex-col items-end gap-1.5 lg:contents">
-              <span class="tabular text-lg font-bold lg:text-base lg:font-semibold text-ink">7,800 g</span>
-              <span class="hidden text-ink-2 lg:block">2026-12-15 (D-57)</span>
-              <span class="hidden text-ink-2 lg:block">3,000 g</span>
-              <span class="hidden text-ink-2 lg:block">1,500 g</span>
-            </div>
-            <button type="button" aria-label="삭제" class="flex size-10 shrink-0 items-center justify-center rounded-lg text-ink-4 hover:bg-danger-soft hover:text-danger lg:justify-self-end"><span data-icon="trash2" class="size-5"></span></button>
-          </div>
-          <!-- LotPanel — 행을 누르면 열고 닫는다(data-toggle) -->
-          <div id="inv-tomato" hidden class="border-t border-line-soft bg-subtle px-4 py-4 lg:px-5">
-            <div class="space-y-4">
-              <form class="flex flex-wrap items-end gap-3 rounded-xl p-4 glass-card">
-                <label class="space-y-1 text-sm font-semibold text-ink-2">입고 수량 (g)<input type="number" step="any" value="" class="h-11 rounded-xl border border-line bg-white/70 px-3 text-base text-ink focus:border-brand focus:ring-4 focus:ring-brand-soft focus:outline-none block w-28"></label>
-                <label class="space-y-1 text-sm font-semibold text-ink-2">입고일<input type="date" value="2026-10-19" class="h-11 rounded-xl border border-line bg-white/70 px-3 text-base text-ink focus:border-brand focus:ring-4 focus:ring-brand-soft focus:outline-none block"></label>
-                <label class="space-y-1 text-sm font-semibold text-ink-2">소비기한 (선택)<input type="date" value="" class="h-11 rounded-xl border border-line bg-white/70 px-3 text-base text-ink focus:border-brand focus:ring-4 focus:ring-brand-soft focus:outline-none block"></label>
-                <label class="space-y-1 text-sm font-semibold text-ink-2">구매 금액 (원)<input type="number" value="" class="h-11 rounded-xl border border-line bg-white/70 px-3 text-base text-ink focus:border-brand focus:ring-4 focus:ring-brand-soft focus:outline-none block w-32"></label>
-                <button type="submit" disabled class="inline-flex shrink-0 items-center justify-center gap-2 font-semibold whitespace-nowrap transition-colors disabled:cursor-not-allowed bg-brand text-white hover:bg-brand-strong disabled:bg-ink-4 h-12 px-6 text-base rounded-xl">입고 등록</button>
-              </form>
-              <div class="overflow-x-auto rounded-xl glass-card">
-                <table class="w-full min-w-[560px] text-left text-[0.95rem]">
-                  <thead class="bg-subtle text-sm text-ink-3">
-                    <tr>
-                      <th class="px-4 py-2.5 font-semibold">입고일</th>
-                      <th class="px-4 py-2.5 font-semibold">소비기한</th>
-                      <th class="px-4 py-2.5 font-semibold">입고 수량</th>
-                      <th class="px-4 py-2.5 font-semibold">잔여 수량</th>
-                      <th class="px-4 py-2.5 font-semibold">구매 금액</th>
-                      <th class="px-4 py-2.5"></th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <tr class="border-t border-line-soft">
-                      <td class="px-4 py-3">2026-10-05</td>
-                      <td class="px-4 py-3">2026-12-15</td>
-                      <td class="px-4 py-3">5,000 g</td>
-                      <td class="px-4 py-3 font-medium">2,800 g</td>
-                      <td class="px-4 py-3">20,000원</td>
-                      <td class="px-4 py-3 text-right">
-                        <button type="button" class="mr-1 rounded-lg px-3 py-2 text-sm font-semibold text-brand hover:bg-brand-soft">수정</button>
-                        <button type="button" class="rounded-lg px-3 py-2 text-sm font-semibold text-danger hover:bg-danger-soft">폐기</button>
-                      </td>
-                    </tr>
-                    <tr class="border-t border-line-soft">
-                      <td class="px-4 py-3">2026-10-16</td>
-                      <td class="px-4 py-3">2027-01-10</td>
-                      <td class="px-4 py-3">5,000 g</td>
-                      <td class="px-4 py-3 font-medium">5,000 g</td>
-                      <td class="px-4 py-3">20,000원</td>
-                      <td class="px-4 py-3 text-right">
-                        <button type="button" class="mr-1 rounded-lg px-3 py-2 text-sm font-semibold text-brand hover:bg-brand-soft">수정</button>
-                        <button type="button" class="rounded-lg px-3 py-2 text-sm font-semibold text-danger hover:bg-danger-soft">폐기</button>
-                      </td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          </div>
-        </li>
-
-        <!-- 루꼴라 — 재고 확인 필요(needs_check). lots·addlot·edit 상태에서 펼친다 -->
-        <li data-when="default alert form lots addlot edit mozz dispose">
-          <div class="flex items-start gap-3 px-4 py-4 lg:grid lg:grid-cols-[minmax(0,1.5fr)_1fr_1.3fr_1fr_1fr_3rem] lg:items-center lg:gap-4 lg:px-5">
-            <button type="button" data-set-state="lots" aria-expanded="false" class="flex min-w-0 flex-1 items-start gap-2 text-left lg:items-center">
-              <span data-icon="chevronRight" data-when="default alert form mozz dispose" class="mt-1 size-5 shrink-0 text-ink-4 lg:mt-0"></span>
-              <span data-icon="chevronDown" data-when="lots addlot edit" class="mt-1 size-5 shrink-0 text-brand lg:mt-0"></span>
-              <span class="min-w-0">
-                <span class="block truncate text-[1.05rem] font-bold text-ink">루꼴라</span>
-                <span class="mt-0.5 block text-sm text-ink-3 lg:hidden">기준 200g</span>
-              </span>
-            </button>
-            <div class="flex shrink-0 flex-col items-end gap-1.5 lg:contents">
-              <span class="tabular text-lg font-bold lg:text-base lg:font-semibold text-danger">0 g</span>
-              <span class="hidden text-ink-2 lg:block">—</span>
-              <span class="hidden text-ink-2 lg:block">200 g</span>
-              <span class="hidden text-ink-2 lg:block">100 g</span>
-            </div>
-            <button type="button" aria-label="삭제" class="flex size-10 shrink-0 items-center justify-center rounded-lg text-ink-4 hover:bg-danger-soft hover:text-danger lg:justify-self-end"><span data-icon="trash2" class="size-5"></span></button>
-          </div>
-          <div data-when="lots addlot edit" class="border-t border-line-soft bg-subtle px-4 py-4 lg:px-5">
-            <div class="space-y-4">
-              <!-- 입고 대기 — 입고 처리 안 된 확정 발주. 수량·금액은 확정안 값, 입고일은 오늘, 소비기한은 빈칸 -->
-              <form class="space-y-3 rounded-xl border-brand p-4 glass-card">
-                <p class="text-[0.95rem] font-semibold text-ink">10월 16일 확정 발주 <span class="font-normal text-ink-3">· 1,000 g · 30,000원</span></p>
-                <div class="flex flex-wrap items-end gap-3">
-                  <label class="space-y-1 text-sm font-semibold text-ink-2">입고 수량 (g)<input type="number" step="any" value="1000" class="h-11 rounded-xl border border-line bg-white/70 px-3 text-base text-ink focus:border-brand focus:ring-4 focus:ring-brand-soft focus:outline-none block w-28"></label>
-                  <label class="space-y-1 text-sm font-semibold text-ink-2">입고일<input type="date" value="2026-10-19" class="h-11 rounded-xl border border-line bg-white/70 px-3 text-base text-ink focus:border-brand focus:ring-4 focus:ring-brand-soft focus:outline-none block"></label>
-                  <label class="space-y-1 text-sm font-semibold text-ink-2">소비기한 (선택)<input type="date" value="" class="h-11 rounded-xl border border-line bg-white/70 px-3 text-base text-ink focus:border-brand focus:ring-4 focus:ring-brand-soft focus:outline-none block"></label>
-                  <label class="space-y-1 text-sm font-semibold text-ink-2">구매 금액 (원)<input type="number" value="30000" class="h-11 rounded-xl border border-line bg-white/70 px-3 text-base text-ink focus:border-brand focus:ring-4 focus:ring-brand-soft focus:outline-none block w-32"></label>
-                  <button type="submit" class="inline-flex shrink-0 items-center justify-center gap-2 font-semibold whitespace-nowrap transition-colors disabled:cursor-not-allowed h-12 px-6 text-base rounded-xl bg-brand text-white hover:bg-brand-strong">입고 처리</button>
-                  <button type="button" class="inline-flex shrink-0 items-center justify-center gap-2 font-semibold whitespace-nowrap transition-colors disabled:cursor-not-allowed h-12 px-6 text-base rounded-xl text-ink-2 hover:bg-subtle glass-card">입고 안 함</button>
-                </div>
-              </form>
-              <p class="rounded-xl bg-danger-soft px-4 py-3 text-[0.95rem] font-medium text-danger">기록상 재고 없이 판매가 차감됐습니다. 입고를 등록하거나 실사 조정으로 수량을 맞추세요.</p>
-              <!-- AddLotForm — 입고일만 오늘로 채워져 있고 나머지가 비어 있으면 등록 버튼이 꺼진다 -->
-              <form data-when="lots edit" class="flex flex-wrap items-end gap-3 rounded-xl p-4 glass-card">
-                <label class="space-y-1 text-sm font-semibold text-ink-2">입고 수량 (g)<input type="number" step="any" value="" class="h-11 rounded-xl border border-line bg-white/70 px-3 text-base text-ink focus:border-brand focus:ring-4 focus:ring-brand-soft focus:outline-none block w-28"></label>
-                <label class="space-y-1 text-sm font-semibold text-ink-2">입고일<input type="date" value="2026-10-19" class="h-11 rounded-xl border border-line bg-white/70 px-3 text-base text-ink focus:border-brand focus:ring-4 focus:ring-brand-soft focus:outline-none block"></label>
-                <label class="space-y-1 text-sm font-semibold text-ink-2">소비기한 (선택)<input type="date" value="" class="h-11 rounded-xl border border-line bg-white/70 px-3 text-base text-ink focus:border-brand focus:ring-4 focus:ring-brand-soft focus:outline-none block"></label>
-                <label class="space-y-1 text-sm font-semibold text-ink-2">구매 금액 (원)<input type="number" value="" class="h-11 rounded-xl border border-line bg-white/70 px-3 text-base text-ink focus:border-brand focus:ring-4 focus:ring-brand-soft focus:outline-none block w-32"></label>
-                <button type="submit" disabled class="inline-flex shrink-0 items-center justify-center gap-2 font-semibold whitespace-nowrap transition-colors disabled:cursor-not-allowed bg-brand text-white hover:bg-brand-strong disabled:bg-ink-4 h-12 px-6 text-base rounded-xl">입고 등록</button>
-              </form>
-              <!-- 수량·구매 금액을 채우면 등록 버튼이 켜진다 -->
-              <form data-when="addlot" class="flex flex-wrap items-end gap-3 rounded-xl p-4 glass-card">
-                <label class="space-y-1 text-sm font-semibold text-ink-2">입고 수량 (g)<input type="number" step="any" value="1000" class="h-11 rounded-xl border border-line bg-white/70 px-3 text-base text-ink focus:border-brand focus:ring-4 focus:ring-brand-soft focus:outline-none block w-28"></label>
-                <label class="space-y-1 text-sm font-semibold text-ink-2">입고일<input type="date" value="2026-10-19" class="h-11 rounded-xl border border-line bg-white/70 px-3 text-base text-ink focus:border-brand focus:ring-4 focus:ring-brand-soft focus:outline-none block"></label>
-                <label class="space-y-1 text-sm font-semibold text-ink-2">소비기한 (선택)<input type="date" value="2026-10-24" class="h-11 rounded-xl border border-line bg-white/70 px-3 text-base text-ink focus:border-brand focus:ring-4 focus:ring-brand-soft focus:outline-none block"></label>
-                <label class="space-y-1 text-sm font-semibold text-ink-2">구매 금액 (원)<input type="number" value="18000" class="h-11 rounded-xl border border-line bg-white/70 px-3 text-base text-ink focus:border-brand focus:ring-4 focus:ring-brand-soft focus:outline-none block w-32"></label>
-                <button type="submit" data-set-state="lots" class="inline-flex shrink-0 items-center justify-center gap-2 font-semibold whitespace-nowrap transition-colors disabled:cursor-not-allowed bg-brand text-white hover:bg-brand-strong disabled:bg-ink-4 h-12 px-6 text-base rounded-xl">입고 등록</button>
-              </form>
-              <div class="overflow-x-auto rounded-xl glass-card">
-                <table class="w-full min-w-[560px] text-left text-[0.95rem]">
-                  <thead class="bg-subtle text-sm text-ink-3">
-                    <tr>
-                      <th class="px-4 py-2.5 font-semibold">입고일</th>
-                      <th class="px-4 py-2.5 font-semibold">소비기한</th>
-                      <th class="px-4 py-2.5 font-semibold">입고 수량</th>
-                      <th class="px-4 py-2.5 font-semibold">잔여 수량</th>
-                      <th class="px-4 py-2.5 font-semibold">구매 금액</th>
-                      <th class="px-4 py-2.5"></th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <tr class="border-t border-line-soft">
-                      <td class="px-4 py-3">2026-10-14</td>
-                      <td class="px-4 py-3">2026-10-18</td>
-                      <td class="px-4 py-3">1,000 g</td>
-                      <td class="px-4 py-3 font-medium">0 g</td>
-                      <td class="px-4 py-3">18,000원</td>
-                      <td class="px-4 py-3 text-right">
-                        <button type="button" data-set-state="edit" class="mr-1 rounded-lg px-3 py-2 text-sm font-semibold text-brand hover:bg-brand-soft">수정</button>
-                        <!-- 잔여 0인 로트에도 폐기 버튼이 뜬다(PR 그대로). 목업은 모짜렐라 로트로 폐기 상태를 보인다 -->
-                        <button type="button" class="rounded-lg px-3 py-2 text-sm font-semibold text-danger hover:bg-danger-soft">폐기</button>
-                      </td>
-                    </tr>
-                    <!-- EditLotForm — 잔여 수량 기본값은 0, 실사 후 120으로 고친 모습 -->
-                    <tr data-when="edit">
-                      <td colspan="6" class="px-4 pb-4">
-                        <form class="flex flex-wrap items-end gap-3 rounded-xl bg-subtle p-4">
-                          <label class="space-y-1 text-sm font-semibold text-ink-2">잔여 수량 (g)<input type="number" step="any" value="120" class="h-11 rounded-xl border border-line bg-white/70 px-3 text-base text-ink focus:border-brand focus:ring-4 focus:ring-brand-soft focus:outline-none block w-28"></label>
-                          <label class="space-y-1 text-sm font-semibold text-ink-2">소비기한<input type="date" value="2026-10-18" class="h-11 rounded-xl border border-line bg-white/70 px-3 text-base text-ink focus:border-brand focus:ring-4 focus:ring-brand-soft focus:outline-none block"></label>
-                          <label class="space-y-1 text-sm font-semibold text-ink-2">수정 사유
-                            <select class="h-11 rounded-xl border border-line bg-white/70 px-3 text-base text-ink focus:border-brand focus:ring-4 focus:ring-brand-soft focus:outline-none block">
-                              <option value="STOCKTAKE" selected>실사 조정</option>
-                              <option value="EXPIRY_CORRECTION">소비기한 정정</option>
-                              <option value="OTHER">기타</option>
-                            </select>
-                          </label>
-                          <label class="space-y-1 text-sm font-semibold text-ink-2">메모 (선택)<input value="월말 실사" maxlength="255" class="h-11 rounded-xl border border-line bg-white/70 px-3 text-base text-ink focus:border-brand focus:ring-4 focus:ring-brand-soft focus:outline-none block w-48"></label>
-                          <button type="submit" data-set-state="lots" class="inline-flex shrink-0 items-center justify-center gap-2 font-semibold whitespace-nowrap transition-colors disabled:cursor-not-allowed bg-brand text-white hover:bg-brand-strong disabled:bg-ink-4 h-12 px-6 text-base rounded-xl">저장</button>
-                        </form>
-                      </td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          </div>
-        </li>
-
-        <!-- 바질 — 재고 없음 -->
-        <li data-when="default alert form lots addlot edit mozz dispose">
-          <div class="flex items-start gap-3 px-4 py-4 lg:grid lg:grid-cols-[minmax(0,1.5fr)_1fr_1.3fr_1fr_1fr_3rem] lg:items-center lg:gap-4 lg:px-5">
-            <button type="button" aria-expanded="false" data-toggle="#inv-basil, #inv-basil-closed, #inv-basil-open" class="flex min-w-0 flex-1 items-start gap-2 text-left lg:items-center">
-              <span id="inv-basil-closed" class="mt-1 shrink-0 lg:mt-0"><span data-icon="chevronRight" class="size-5 text-ink-4"></span></span>
-              <span id="inv-basil-open" hidden class="mt-1 shrink-0 lg:mt-0"><span data-icon="chevronDown" class="size-5 text-brand"></span></span>
-              <span class="min-w-0">
-                <span class="block truncate text-[1.05rem] font-bold text-ink">바질</span>
-                <span class="mt-0.5 block text-sm text-ink-3 lg:hidden">기준 50g</span>
-              </span>
-            </button>
-            <div class="flex shrink-0 flex-col items-end gap-1.5 lg:contents">
-              <span class="tabular text-lg font-bold lg:text-base lg:font-semibold text-danger">0 g</span>
-              <span class="hidden text-ink-2 lg:block">—</span>
-              <span class="hidden text-ink-2 lg:block">50 g</span>
-              <span class="hidden text-ink-2 lg:block">—</span>
-            </div>
-            <button type="button" aria-label="삭제" class="flex size-10 shrink-0 items-center justify-center rounded-lg text-ink-4 hover:bg-danger-soft hover:text-danger lg:justify-self-end"><span data-icon="trash2" class="size-5"></span></button>
-          </div>
-          <!-- LotPanel — 행을 누르면 열고 닫는다(data-toggle) -->
-          <div id="inv-basil" hidden class="border-t border-line-soft bg-subtle px-4 py-4 lg:px-5">
-            <div class="space-y-4">
-              <form class="flex flex-wrap items-end gap-3 rounded-xl p-4 glass-card">
-                <label class="space-y-1 text-sm font-semibold text-ink-2">입고 수량 (g)<input type="number" step="any" value="" class="h-11 rounded-xl border border-line bg-white/70 px-3 text-base text-ink focus:border-brand focus:ring-4 focus:ring-brand-soft focus:outline-none block w-28"></label>
-                <label class="space-y-1 text-sm font-semibold text-ink-2">입고일<input type="date" value="2026-10-19" class="h-11 rounded-xl border border-line bg-white/70 px-3 text-base text-ink focus:border-brand focus:ring-4 focus:ring-brand-soft focus:outline-none block"></label>
-                <label class="space-y-1 text-sm font-semibold text-ink-2">소비기한 (선택)<input type="date" value="" class="h-11 rounded-xl border border-line bg-white/70 px-3 text-base text-ink focus:border-brand focus:ring-4 focus:ring-brand-soft focus:outline-none block"></label>
-                <label class="space-y-1 text-sm font-semibold text-ink-2">구매 금액 (원)<input type="number" value="" class="h-11 rounded-xl border border-line bg-white/70 px-3 text-base text-ink focus:border-brand focus:ring-4 focus:ring-brand-soft focus:outline-none block w-32"></label>
-                <button type="submit" disabled class="inline-flex shrink-0 items-center justify-center gap-2 font-semibold whitespace-nowrap transition-colors disabled:cursor-not-allowed bg-brand text-white hover:bg-brand-strong disabled:bg-ink-4 h-12 px-6 text-base rounded-xl">입고 등록</button>
-              </form>
-              <div class="overflow-x-auto rounded-xl glass-card">
-                <table class="w-full min-w-[560px] text-left text-[0.95rem]">
-                  <thead class="bg-subtle text-sm text-ink-3">
-                    <tr>
-                      <th class="px-4 py-2.5 font-semibold">입고일</th>
-                      <th class="px-4 py-2.5 font-semibold">소비기한</th>
-                      <th class="px-4 py-2.5 font-semibold">입고 수량</th>
-                      <th class="px-4 py-2.5 font-semibold">잔여 수량</th>
-                      <th class="px-4 py-2.5 font-semibold">구매 금액</th>
-                      <th class="px-4 py-2.5"></th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <tr>
-                      <td colspan="6" class="px-4 py-4 text-center text-ink-3">로트가 없습니다. 입고를 등록하세요.</td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          </div>
-        </li>
-      </ul>
+      <select aria-label="재고 정렬" class="h-11 rounded-full border border-white/50 bg-white/50 pr-3 pl-5 text-sm font-semibold text-ink">
+        <option selected>소비기한 빠른순</option>
+        <option>소비기한 늦은순</option>
+        <option>이름순</option>
+        <option>이름 역순</option>
+        <option>수량 적은순</option>
+        <option>수량 많은순</option>
+      </select>
     </div>
   </div>
+  <div class="mb-4">
+    <button type="button" data-set-state="form" class="inline-flex h-11 items-center gap-1.5 rounded-full bg-brand px-7 text-[0.95rem] font-semibold text-white hover:bg-brand-strong"><span data-icon="plus" class="size-5"></span>재료 추가</button>
+  </div>
+
+  <!-- 웹은 카드 격자 5열. 상세 판이 열리면 카드는 앞 3열로 다시 줄 서고(크기 그대로), 판은 4·5열 두 칸 자리에 격자 끝까지 내려온다(넘치면 판 안 스크롤).
+       앱은 상세 판이 화면 전체를 덮고, 상단 바·하단 탭은 그 위에 남는다 -->
+  <div class="inv-wrap lg:grid lg:grid-cols-4 lg:gap-x-2 xl:grid-cols-5">
+    <div class="inv-list min-w-0 lg:col-span-4 xl:col-span-5">
+      <p data-when="loading" class="rounded-2xl px-5 py-10 text-center text-ink-2 glass-card">불러오는 중…</p>
+      <p data-when="nosearch" class="px-5 py-10 text-center text-ink-2">'연어'가 들어간 재료가 없어요</p>
+      <div data-when="empty" class="rounded-2xl px-5 py-10 text-center glass-card">
+        <p class="text-lg font-bold text-ink">등록된 재료가 없어요</p>
+        <p class="mt-1 text-sm text-ink-2">'재료 추가'로 시작하세요.</p>
+      </div>
+
+      <!-- 한 쪽에 최대 25개(웹 5열 × 5줄). 넘으면 아래 쪽 이동. 열 수는 5 → 4 → 2(위 style), 상세 판이 열리면 앞 3열(1024~1279px는 2열)만 남고 판이 나머지 두 칸 자리에 놓인다, 앱은 2열.
+           카드는 가로 4 : 세로 3. 목업에서 상세 내용이 있는 카드는 모짜렐라 치즈(1쪽)·루꼴라(2쪽)뿐이다 -->
+      <ul data-when="default alert form lots addlot edit mozz dispose page2 search" class="inv-grid grid grid-cols-2 gap-x-2 gap-y-3 md:grid-cols-4 lg:gap-y-4 xl:grid-cols-5">
+        <li data-when="search default form mozz dispose alert"><button type="button" class="flex aspect-[4/3] w-full flex-col justify-between rounded-2xl p-4 text-left glass-card hover:bg-white/50">
+          <span class="truncate text-[0.95rem] font-bold text-ink">리코타 치즈</span>
+          <span><span class="tabular block text-[1.75rem] leading-none font-bold tracking-tight text-ink">1,200<span class="ml-1 text-sm font-semibold text-ink-2">g</span></span><span class="tabular mt-2 block text-sm text-danger">D-1 · 10월 20일</span></span>
+        </button></li>
+        <li data-when="search default form mozz dispose alert"><button type="button" data-card="mozz" data-set-state="mozz" class="flex aspect-[4/3] w-full flex-col justify-between rounded-2xl p-4 text-left glass-card hover:bg-white/50">
+          <span class="truncate text-[0.95rem] font-bold text-ink">모짜렐라 치즈</span>
+          <span><span class="tabular block text-[1.75rem] leading-none font-bold tracking-tight text-ink">4,250<span class="ml-1 text-sm font-semibold text-ink-2">g</span></span><span class="tabular mt-2 block text-sm text-danger">D-3 · 10월 22일</span></span>
+        </button></li>
+        <li data-when="default form mozz dispose"><button type="button" class="flex aspect-[4/3] w-full flex-col justify-between rounded-2xl p-4 text-left glass-card hover:bg-white/50">
+          <span class="truncate text-[0.95rem] font-bold text-ink">바지락</span>
+          <span><span class="tabular block text-[1.75rem] leading-none font-bold tracking-tight text-ink">2,400<span class="ml-1 text-sm font-semibold text-ink-2">g</span></span><span class="tabular mt-2 block text-sm text-ink-2">D-4 · 10월 23일</span></span>
+        </button></li>
+        <li data-when="default form mozz dispose"><button type="button" class="flex aspect-[4/3] w-full flex-col justify-between rounded-2xl p-4 text-left glass-card hover:bg-white/50">
+          <span class="truncate text-[0.95rem] font-bold text-ink">새우</span>
+          <span><span class="tabular block text-[1.75rem] leading-none font-bold tracking-tight text-ink">1,800<span class="ml-1 text-sm font-semibold text-ink-2">g</span></span><span class="tabular mt-2 block text-sm text-ink-2">D-5 · 10월 24일</span></span>
+        </button></li>
+        <li data-when="default form mozz dispose"><button type="button" class="flex aspect-[4/3] w-full flex-col justify-between rounded-2xl p-4 text-left glass-card hover:bg-white/50">
+          <span class="truncate text-[0.95rem] font-bold text-ink">피자 도우</span>
+          <span><span class="tabular block text-[1.75rem] leading-none font-bold tracking-tight text-ink">96<span class="ml-1 text-sm font-semibold text-ink-2">개</span></span><span class="tabular mt-2 block text-sm text-ink-2">D-6 · 10월 25일</span></span>
+        </button></li>
+        <li data-when="default form mozz dispose"><button type="button" class="flex aspect-[4/3] w-full flex-col justify-between rounded-2xl p-4 text-left glass-card hover:bg-white/50">
+          <span class="truncate text-[0.95rem] font-bold text-ink">양송이버섯</span>
+          <span><span class="tabular block text-[1.75rem] leading-none font-bold tracking-tight text-ink">1,500<span class="ml-1 text-sm font-semibold text-ink-2">g</span></span><span class="tabular mt-2 block text-sm text-ink-2">D-7 · 10월 26일</span></span>
+        </button></li>
+        <li data-when="default form mozz dispose"><button type="button" class="flex aspect-[4/3] w-full flex-col justify-between rounded-2xl p-4 text-left glass-card hover:bg-white/50">
+          <span class="truncate text-[0.95rem] font-bold text-ink">파프리카</span>
+          <span><span class="tabular block text-[1.75rem] leading-none font-bold tracking-tight text-ink">900<span class="ml-1 text-sm font-semibold text-ink-2">g</span></span><span class="tabular mt-2 block text-sm text-ink-2">D-8 · 10월 27일</span></span>
+        </button></li>
+        <li data-when="default form mozz dispose"><button type="button" class="flex aspect-[4/3] w-full flex-col justify-between rounded-2xl p-4 text-left glass-card hover:bg-white/50">
+          <span class="truncate text-[0.95rem] font-bold text-ink">머스크멜론</span>
+          <span><span class="tabular block text-[1.75rem] leading-none font-bold tracking-tight text-ink">4<span class="ml-1 text-sm font-semibold text-ink-2">개</span></span><span class="tabular mt-2 block text-sm text-ink-2">D-9 · 10월 28일</span></span>
+        </button></li>
+        <li data-when="default form mozz dispose"><button type="button" class="flex aspect-[4/3] w-full flex-col justify-between rounded-2xl p-4 text-left glass-card hover:bg-white/50">
+          <span class="truncate text-[0.95rem] font-bold text-ink">양파</span>
+          <span><span class="tabular block text-[1.75rem] leading-none font-bold tracking-tight text-ink">6,000<span class="ml-1 text-sm font-semibold text-ink-2">g</span></span><span class="tabular mt-2 block text-sm text-ink-2">D-12 · 10월 31일</span></span>
+        </button></li>
+        <li data-when="default form mozz dispose"><button type="button" class="flex aspect-[4/3] w-full flex-col justify-between rounded-2xl p-4 text-left glass-card hover:bg-white/50">
+          <span class="truncate text-[0.95rem] font-bold text-ink">감자</span>
+          <span><span class="tabular block text-[1.75rem] leading-none font-bold tracking-tight text-ink">8,000<span class="ml-1 text-sm font-semibold text-ink-2">g</span></span><span class="tabular mt-2 block text-sm text-ink-2">D-14 · 11월 2일</span></span>
+        </button></li>
+        <li data-when="default form mozz dispose"><button type="button" class="flex aspect-[4/3] w-full flex-col justify-between rounded-2xl p-4 text-left glass-card hover:bg-white/50">
+          <span class="truncate text-[0.95rem] font-bold text-ink">베이컨</span>
+          <span><span class="tabular block text-[1.75rem] leading-none font-bold tracking-tight text-ink">2,000<span class="ml-1 text-sm font-semibold text-ink-2">g</span></span><span class="tabular mt-2 block text-sm text-ink-2">D-16 · 11월 4일</span></span>
+        </button></li>
+        <li data-when="default form mozz dispose"><button type="button" class="flex aspect-[4/3] w-full flex-col justify-between rounded-2xl p-4 text-left glass-card hover:bg-white/50">
+          <span class="truncate text-[0.95rem] font-bold text-ink">생크림</span>
+          <span><span class="tabular block text-[1.75rem] leading-none font-bold tracking-tight text-ink">3,000<span class="ml-1 text-sm font-semibold text-ink-2">ml</span></span><span class="tabular mt-2 block text-sm text-ink-2">D-17 · 11월 5일</span></span>
+        </button></li>
+        <li data-when="search default form mozz dispose"><button type="button" class="flex aspect-[4/3] w-full flex-col justify-between rounded-2xl p-4 text-left glass-card hover:bg-white/50">
+          <span class="truncate text-[0.95rem] font-bold text-ink">고르곤졸라 치즈</span>
+          <span><span class="tabular block text-[1.75rem] leading-none font-bold tracking-tight text-ink">800<span class="ml-1 text-sm font-semibold text-ink-2">g</span></span><span class="tabular mt-2 block text-sm text-ink-2">D-20 · 11월 8일</span></span>
+        </button></li>
+        <li data-when="search default form mozz dispose"><button type="button" class="flex aspect-[4/3] w-full flex-col justify-between rounded-2xl p-4 text-left glass-card hover:bg-white/50">
+          <span class="truncate text-[0.95rem] font-bold text-ink">체다 치즈</span>
+          <span><span class="tabular block text-[1.75rem] leading-none font-bold tracking-tight text-ink">1,500<span class="ml-1 text-sm font-semibold text-ink-2">g</span></span><span class="tabular mt-2 block text-sm text-ink-2">D-22 · 11월 10일</span></span>
+        </button></li>
+        <li data-when="default form mozz dispose"><button type="button" class="flex aspect-[4/3] w-full flex-col justify-between rounded-2xl p-4 text-left glass-card hover:bg-white/50">
+          <span class="truncate text-[0.95rem] font-bold text-ink">하몽</span>
+          <span><span class="tabular block text-[1.75rem] leading-none font-bold tracking-tight text-ink">600<span class="ml-1 text-sm font-semibold text-ink-2">g</span></span><span class="tabular mt-2 block text-sm text-ink-2">D-25 · 11월 13일</span></span>
+        </button></li>
+        <li data-when="default form mozz dispose"><button type="button" class="flex aspect-[4/3] w-full flex-col justify-between rounded-2xl p-4 text-left glass-card hover:bg-white/50">
+          <span class="truncate text-[0.95rem] font-bold text-ink">마늘</span>
+          <span><span class="tabular block text-[1.75rem] leading-none font-bold tracking-tight text-ink">1,200<span class="ml-1 text-sm font-semibold text-ink-2">g</span></span><span class="tabular mt-2 block text-sm text-ink-2">D-28 · 11월 16일</span></span>
+        </button></li>
+        <li data-when="default form mozz dispose"><button type="button" class="flex aspect-[4/3] w-full flex-col justify-between rounded-2xl p-4 text-left glass-card hover:bg-white/50">
+          <span class="truncate text-[0.95rem] font-bold text-ink">소시지</span>
+          <span><span class="tabular block text-[1.75rem] leading-none font-bold tracking-tight text-ink">2,500<span class="ml-1 text-sm font-semibold text-ink-2">g</span></span><span class="tabular mt-2 block text-sm text-ink-2">D-30 · 11월 18일</span></span>
+        </button></li>
+        <li data-when="search default form mozz dispose"><button type="button" class="flex aspect-[4/3] w-full flex-col justify-between rounded-2xl p-4 text-left glass-card hover:bg-white/50">
+          <span class="truncate text-[0.95rem] font-bold text-ink">파마산 치즈</span>
+          <span><span class="tabular block text-[1.75rem] leading-none font-bold tracking-tight text-ink">1,000<span class="ml-1 text-sm font-semibold text-ink-2">g</span></span><span class="tabular mt-2 block text-sm text-ink-2">D-35 · 11월 23일</span></span>
+        </button></li>
+        <li data-when="default form mozz dispose alert"><button type="button" class="flex aspect-[4/3] w-full flex-col justify-between rounded-2xl p-4 text-left glass-card hover:bg-white/50">
+          <span class="truncate text-[0.95rem] font-bold text-ink">페퍼로니</span>
+          <span><span class="tabular block text-[1.75rem] leading-none font-bold tracking-tight text-danger">380<span class="ml-1 text-sm font-semibold">g</span></span><span class="tabular mt-2 block text-sm text-ink-2">D-42 · 11월 30일</span></span>
+        </button></li>
+        <li data-when="default form mozz dispose"><button type="button" class="flex aspect-[4/3] w-full flex-col justify-between rounded-2xl p-4 text-left glass-card hover:bg-white/50">
+          <span class="truncate text-[0.95rem] font-bold text-ink">토마토 소스</span>
+          <span><span class="tabular block text-[1.75rem] leading-none font-bold tracking-tight text-ink">7,800<span class="ml-1 text-sm font-semibold text-ink-2">g</span></span><span class="tabular mt-2 block text-sm text-ink-2">D-57 · 12월 15일</span></span>
+        </button></li>
+        <li data-when="default form mozz dispose"><button type="button" class="flex aspect-[4/3] w-full flex-col justify-between rounded-2xl p-4 text-left glass-card hover:bg-white/50">
+          <span class="truncate text-[0.95rem] font-bold text-ink">블랙올리브</span>
+          <span><span class="tabular block text-[1.75rem] leading-none font-bold tracking-tight text-ink">2,000<span class="ml-1 text-sm font-semibold text-ink-2">g</span></span><span class="tabular mt-2 block text-sm text-ink-2">D-90 · 1월 17일</span></span>
+        </button></li>
+        <li data-when="default form mozz dispose"><button type="button" class="flex aspect-[4/3] w-full flex-col justify-between rounded-2xl p-4 text-left glass-card hover:bg-white/50">
+          <span class="truncate text-[0.95rem] font-bold text-ink">할라피뇨</span>
+          <span><span class="tabular block text-[1.75rem] leading-none font-bold tracking-tight text-ink">1,500<span class="ml-1 text-sm font-semibold text-ink-2">g</span></span><span class="tabular mt-2 block text-sm text-ink-2">D-120 · 2월 16일</span></span>
+        </button></li>
+        <li data-when="default form mozz dispose"><button type="button" class="flex aspect-[4/3] w-full flex-col justify-between rounded-2xl p-4 text-left glass-card hover:bg-white/50">
+          <span class="truncate text-[0.95rem] font-bold text-ink">콜라</span>
+          <span><span class="tabular block text-[1.75rem] leading-none font-bold tracking-tight text-ink">72<span class="ml-1 text-sm font-semibold text-ink-2">개</span></span><span class="tabular mt-2 block text-sm text-ink-2">D-150 · 3월 18일</span></span>
+        </button></li>
+        <li data-when="default form mozz dispose"><button type="button" class="flex aspect-[4/3] w-full flex-col justify-between rounded-2xl p-4 text-left glass-card hover:bg-white/50">
+          <span class="truncate text-[0.95rem] font-bold text-ink">제로콜라</span>
+          <span><span class="tabular block text-[1.75rem] leading-none font-bold tracking-tight text-ink">48<span class="ml-1 text-sm font-semibold text-ink-2">개</span></span><span class="tabular mt-2 block text-sm text-ink-2">D-150 · 3월 18일</span></span>
+        </button></li>
+        <li data-when="default form mozz dispose"><button type="button" class="flex aspect-[4/3] w-full flex-col justify-between rounded-2xl p-4 text-left glass-card hover:bg-white/50">
+          <span class="truncate text-[0.95rem] font-bold text-ink">옥수수 콘</span>
+          <span><span class="tabular block text-[1.75rem] leading-none font-bold tracking-tight text-ink">3,000<span class="ml-1 text-sm font-semibold text-ink-2">g</span></span><span class="tabular mt-2 block text-sm text-ink-2">D-160 · 3월 28일</span></span>
+        </button></li>
+        <li data-when="page2 lots addlot edit"><button type="button" class="flex aspect-[4/3] w-full flex-col justify-between rounded-2xl p-4 text-left glass-card hover:bg-white/50">
+          <span class="truncate text-[0.95rem] font-bold text-ink">피클</span>
+          <span><span class="tabular block text-[1.75rem] leading-none font-bold tracking-tight text-ink">4,000<span class="ml-1 text-sm font-semibold text-ink-2">g</span></span><span class="tabular mt-2 block text-sm text-ink-2">D-180 · 4월 17일</span></span>
+        </button></li>
+        <li data-when="page2 lots addlot edit"><button type="button" class="flex aspect-[4/3] w-full flex-col justify-between rounded-2xl p-4 text-left glass-card hover:bg-white/50">
+          <span class="truncate text-[0.95rem] font-bold text-ink">올리브 오일</span>
+          <span><span class="tabular block text-[1.75rem] leading-none font-bold tracking-tight text-ink">5<span class="ml-1 text-sm font-semibold text-ink-2">L</span></span><span class="tabular mt-2 block text-sm text-ink-2">D-200 · 5월 7일</span></span>
+        </button></li>
+        <li data-when="page2 lots addlot edit"><button type="button" class="flex aspect-[4/3] w-full flex-col justify-between rounded-2xl p-4 text-left glass-card hover:bg-white/50">
+          <span class="truncate text-[0.95rem] font-bold text-ink">핫소스</span>
+          <span><span class="tabular block text-[1.75rem] leading-none font-bold tracking-tight text-ink">1,000<span class="ml-1 text-sm font-semibold text-ink-2">ml</span></span><span class="tabular mt-2 block text-sm text-ink-2">D-300 · 8월 15일</span></span>
+        </button></li>
+        <li data-when="page2 lots addlot edit"><button type="button" class="flex aspect-[4/3] w-full flex-col justify-between rounded-2xl p-4 text-left glass-card hover:bg-white/50">
+          <span class="truncate text-[0.95rem] font-bold text-ink">밀가루</span>
+          <span><span class="tabular block text-[1.75rem] leading-none font-bold tracking-tight text-ink">20<span class="ml-1 text-sm font-semibold text-ink-2">kg</span></span><span class="tabular mt-2 block text-sm text-ink-2">D-330 · 9월 14일</span></span>
+        </button></li>
+        <li data-when="page2 lots addlot edit"><button type="button" class="flex aspect-[4/3] w-full flex-col justify-between rounded-2xl p-4 text-left glass-card hover:bg-white/50">
+          <span class="truncate text-[0.95rem] font-bold text-ink">꿀</span>
+          <span><span class="tabular block text-[1.75rem] leading-none font-bold tracking-tight text-ink">2<span class="ml-1 text-sm font-semibold text-ink-2">kg</span></span><span class="tabular mt-2 block text-sm text-ink-2">D-340 · 9월 24일</span></span>
+        </button></li>
+        <li data-when="page2 lots addlot edit alert"><button type="button" data-card="arugula" data-set-state="lots" class="flex aspect-[4/3] w-full flex-col justify-between rounded-2xl p-4 text-left glass-card hover:bg-white/50">
+          <span class="truncate text-[0.95rem] font-bold text-ink">루꼴라</span>
+          <span><span class="tabular block text-[1.75rem] leading-none font-bold tracking-tight text-danger">0<span class="ml-1 text-sm font-semibold">g</span></span><span class="tabular mt-2 block text-sm text-ink-2">소비기한 —</span></span>
+        </button></li>
+        <li data-when="page2 lots addlot edit alert"><button type="button" class="flex aspect-[4/3] w-full flex-col justify-between rounded-2xl p-4 text-left glass-card hover:bg-white/50">
+          <span class="truncate text-[0.95rem] font-bold text-ink">바질</span>
+          <span><span class="tabular block text-[1.75rem] leading-none font-bold tracking-tight text-danger">0<span class="ml-1 text-sm font-semibold">g</span></span><span class="tabular mt-2 block text-sm text-ink-2">소비기한 —</span></span>
+        </button></li>
+      </ul>
+    </div>
+
+    <!-- 재료 추가 — 저장을 누른 뒤 구매 금액 검증 오류가 난 모습 -->
+    <aside data-when="form" aria-label="새 재료" class="fixed inset-0 z-50 overflow-y-auto px-4 pt-[5.25rem] pb-28 glass-card lg:relative lg:inset-auto lg:z-auto lg:col-span-2 lg:h-0 lg:min-h-full lg:rounded-2xl lg:p-5">
+      <div class="flex items-center gap-2">
+        <button type="button" data-set-state="default" aria-label="목록으로" class="flex size-10 items-center justify-center rounded-full text-ink-2 hover:bg-white/60 lg:hidden"><span data-icon="chevronLeft" class="size-6"></span></button>
+        <h2 class="min-w-0 flex-1 text-xl font-bold text-ink">새 재료</h2>
+        <button type="button" data-set-state="default" aria-label="닫기" class="hidden size-10 items-center justify-center rounded-full text-ink-2 hover:bg-white/60 lg:flex"><span data-icon="x" class="size-5"></span></button>
+      </div>
+      <form class="mt-4 grid grid-cols-2 gap-3">
+        <label class="col-span-2 flex flex-col gap-1 text-sm font-semibold text-ink-2">재료명<input value="올리브 오일" class="h-11 w-full rounded-xl border border-white/80 bg-transparent px-3 text-base font-normal text-ink focus:border-brand focus:ring-4 focus:ring-brand-soft focus:outline-none"></label>
+        <label class="flex flex-col gap-1 text-sm font-semibold text-ink-2">현재 수량<input type="number" step="any" inputmode="decimal" value="5" class="h-11 w-full rounded-xl border border-white/80 bg-transparent px-3 text-base font-normal text-ink focus:border-brand focus:ring-4 focus:ring-brand-soft focus:outline-none"></label>
+        <label class="flex flex-col gap-1 text-sm font-semibold text-ink-2">단위<input value="L" placeholder="kg, 개, L" class="h-11 w-full rounded-xl border border-white/80 bg-transparent px-3 text-base font-normal text-ink placeholder:text-ink-4 focus:border-brand focus:ring-4 focus:ring-brand-soft focus:outline-none"></label>
+        <!-- 오류가 있으면 힌트("현재 수량 전체의 금액") 대신 오류를 보인다 -->
+        <label class="flex flex-col gap-1 text-sm font-semibold text-ink-2">구매 금액 (원)<input type="number" inputmode="numeric" value="" class="h-11 w-full rounded-xl border border-danger bg-transparent px-3 text-base font-normal text-ink focus:border-brand focus:ring-4 focus:ring-brand-soft focus:outline-none"><span class="text-xs font-normal text-danger" role="alert">수량이 있으면 구매 금액을 입력하세요.</span></label>
+        <label class="flex flex-col gap-1 text-sm font-semibold text-ink-2">소비기한 (선택)<input type="date" value="2027-04-30" class="h-11 w-full rounded-xl border border-white/80 bg-transparent px-3 text-base font-normal text-ink focus:border-brand focus:ring-4 focus:ring-brand-soft focus:outline-none"></label>
+        <label class="flex flex-col gap-1 text-sm font-semibold text-ink-2"><span>재주문 임계값 <span title="이 수량 이하면 부족으로 표시" class="inline-flex align-middle text-ink-2"><span data-icon="info" class="size-3.5"></span></span></span><input type="number" step="any" inputmode="decimal" value="1" class="h-11 w-full rounded-xl border border-white/80 bg-transparent px-3 text-base font-normal text-ink focus:border-brand focus:ring-4 focus:ring-brand-soft focus:outline-none"></label>
+        <label class="flex flex-col gap-1 text-sm font-semibold text-ink-2">안전재고 (선택)<input type="number" step="any" inputmode="decimal" class="h-11 w-full rounded-xl border border-white/80 bg-transparent px-3 text-base font-normal text-ink focus:border-brand focus:ring-4 focus:ring-brand-soft focus:outline-none"></label>
+        <label class="flex flex-col gap-1 text-sm font-semibold text-ink-2">리드타임 (일, 선택)<input type="number" inputmode="numeric" value="2" class="h-11 w-full rounded-xl border border-white/80 bg-transparent px-3 text-base font-normal text-ink focus:border-brand focus:ring-4 focus:ring-brand-soft focus:outline-none"></label>
+        <div class="col-span-2 mt-2 flex gap-2">
+          <button type="button" data-set-state="default" class="h-11 flex-1 rounded-xl border border-white/80 text-[0.95rem] font-semibold text-ink-2 hover:bg-white/30">취소</button>
+          <button type="submit" data-set-state="default" class="h-11 flex-1 rounded-xl bg-brand text-[0.95rem] font-semibold text-white hover:bg-brand-strong">저장</button>
+        </div>
+      </form>
+    </aside>
+
+    <!-- 상세 — 루꼴라(needs_check: 기록상 재고 없이 판매 차감). 입고 대기 1건, 로트 1개(잔여 0) -->
+    <aside data-when="lots addlot edit" aria-label="루꼴라 상세" class="fixed inset-0 z-50 overflow-y-auto px-4 pt-[5.25rem] pb-28 glass-card lg:relative lg:inset-auto lg:z-auto lg:col-span-2 lg:h-0 lg:min-h-full lg:rounded-2xl lg:p-5">
+      <div class="flex items-center gap-2">
+        <button type="button" data-set-state="default" aria-label="목록으로" class="flex size-10 items-center justify-center rounded-full text-ink-2 hover:bg-white/60 lg:hidden"><span data-icon="chevronLeft" class="size-6"></span></button>
+        <h2 class="min-w-0 flex-1 truncate text-xl font-bold text-ink">루꼴라</h2>
+        <button type="button" data-set-state="default" aria-label="닫기" class="hidden size-10 items-center justify-center rounded-full text-ink-2 hover:bg-white/60 lg:flex"><span data-icon="x" class="size-5"></span></button>
+      </div>
+      <dl class="mt-3 grid grid-cols-3 gap-2 rounded-xl glass-card p-3">
+        <div><dt class="text-xs text-ink-2">총 수량</dt><dd class="tabular mt-1 text-lg leading-none font-bold text-danger">0 g</dd></div>
+        <div><dt class="text-xs text-ink-2">소비기한</dt><dd class="tabular mt-1 text-lg leading-none font-bold text-ink">—</dd></div>
+        <div><dt class="text-xs text-ink-2">재주문 임계값</dt><dd class="tabular mt-1 text-lg leading-none font-bold text-ink">200 g</dd></div>
+      </dl>
+      <p class="mt-3 rounded-xl bg-danger-soft px-3.5 py-2.5 text-sm font-medium text-danger">기록상 재고 없이 판매가 차감됐어요. 입고를 등록하거나 로트 수정으로 수량을 맞추세요.</p>
+
+      <!-- 입고 대기 — 입고 처리 안 된 확정 발주. 수량·금액은 확정안 값, 입고일은 오늘, 소비기한은 빈칸 -->
+      <section class="mt-6">
+        <h3 class="text-sm font-bold text-ink">입고 대기</h3>
+        <form class="mt-2 rounded-xl glass-card p-3.5">
+          <p class="text-sm font-semibold text-ink">10월 16일 확정 발주 <span class="font-normal text-ink-2">· 1,000 g · 30,000원</span></p>
+          <div class="mt-3 grid grid-cols-2 gap-2.5">
+            <label class="flex flex-col gap-1 text-xs font-semibold text-ink-2">입고 수량 (g)<input type="number" step="any" value="1000" class="h-10 w-full rounded-full border border-white/80 bg-[rgb(46_32_120/0.065)] px-4 text-[0.95rem] font-normal text-ink focus:border-brand focus:outline-none"></label>
+            <label class="flex flex-col gap-1 text-xs font-semibold text-ink-2">구매 금액 (원)<input type="number" value="30000" class="h-10 w-full rounded-full border border-white/80 bg-[rgb(46_32_120/0.065)] px-4 text-[0.95rem] font-normal text-ink focus:border-brand focus:outline-none"></label>
+            <label class="flex flex-col gap-1 text-xs font-semibold text-ink-2">입고일<input type="date" value="2026-10-19" class="h-10 w-full rounded-full border border-white/80 bg-[rgb(46_32_120/0.065)] px-4 text-[0.95rem] font-normal text-ink focus:border-brand focus:outline-none"></label>
+            <label class="flex flex-col gap-1 text-xs font-semibold text-ink-2">소비기한 (선택)<input type="date" value="" class="h-10 w-full rounded-full border border-white/80 bg-[rgb(46_32_120/0.065)] px-4 text-[0.95rem] font-normal text-ink focus:border-brand focus:outline-none"></label>
+          </div>
+          <div class="mt-3 flex gap-2">
+            <button type="button" class="h-10 rounded-lg border border-white/80 px-4 text-sm font-semibold text-ink-2 hover:bg-white/30">입고 안 함</button>
+            <button type="submit" class="h-10 flex-1 rounded-lg bg-brand text-sm font-semibold text-white hover:bg-brand-strong">입고 처리</button>
+          </div>
+        </form>
+      </section>
+
+      <!-- 로트 — 입고일·소비기한·입고 수량·잔여 수량·구매 금액. 입고 등록은 버튼을 눌러 연다(addlot) -->
+      <section class="mt-6">
+        <div class="flex items-center justify-between">
+          <h3 class="text-sm font-bold text-ink">로트<span class="ml-1 font-normal text-ink-2">1</span></h3>
+          <button type="button" data-when="lots edit" data-set-state="addlot" class="inline-flex items-center gap-1 text-sm font-semibold text-brand hover:text-brand-strong"><span data-icon="plus" class="size-4"></span>입고 등록</button>
+        </div>
+        <form data-when="addlot" class="mt-2 rounded-xl glass-card p-3.5">
+          <div class="grid grid-cols-2 gap-2.5">
+            <label class="flex flex-col gap-1 text-xs font-semibold text-ink-2">입고 수량 (g)<input type="number" step="any" value="1000" class="h-10 w-full rounded-lg border border-white/80 bg-transparent px-3 text-[0.95rem] font-normal text-ink focus:border-brand focus:outline-none"></label>
+            <label class="flex flex-col gap-1 text-xs font-semibold text-ink-2">구매 금액 (원)<input type="number" value="18000" class="h-10 w-full rounded-lg border border-white/80 bg-transparent px-3 text-[0.95rem] font-normal text-ink focus:border-brand focus:outline-none"></label>
+            <label class="flex flex-col gap-1 text-xs font-semibold text-ink-2">입고일<input type="date" value="2026-10-19" class="h-10 w-full rounded-lg border border-white/80 bg-transparent px-3 text-[0.95rem] font-normal text-ink focus:border-brand focus:outline-none"></label>
+            <label class="flex flex-col gap-1 text-xs font-semibold text-ink-2">소비기한 (선택)<input type="date" value="2026-10-24" class="h-10 w-full rounded-lg border border-white/80 bg-transparent px-3 text-[0.95rem] font-normal text-ink focus:border-brand focus:outline-none"></label>
+          </div>
+          <div class="mt-3 flex gap-2">
+            <button type="button" data-set-state="lots" class="h-10 rounded-lg border border-white/80 px-4 text-sm font-semibold text-ink-2 hover:bg-white/30">취소</button>
+            <button type="submit" data-set-state="lots" class="h-10 flex-1 rounded-lg bg-brand text-sm font-semibold text-white hover:bg-brand-strong">등록</button>
+          </div>
+        </form>
+        <ul class="mt-2 divide-y divide-white/70 rounded-xl glass-card px-3.5">
+          <li class="py-3">
+            <div class="flex items-start justify-between gap-3">
+              <div class="min-w-0">
+                <p class="tabular text-[0.95rem] font-bold text-ink">0 g<span class="ml-1 text-sm font-medium text-ink-2">/ 1,000 g</span></p>
+                <p class="tabular mt-0.5 text-xs text-ink-2">10월 14일 입고 · 기한 10월 18일 · 18,000원</p>
+              </div>
+              <!-- 잔여 0인 로트는 폐기할 것이 없어 수정만 둔다 -->
+              <button type="button" data-set-state="edit" class="shrink-0 rounded-lg px-2.5 py-1.5 text-sm font-semibold text-brand hover:bg-brand-soft">수정</button>
+            </div>
+            <!-- 로트 수정 — 실사 후 잔여 120으로 고친 모습 -->
+            <form data-when="edit" class="mt-3 grid grid-cols-2 gap-2.5 rounded-lg p-3">
+              <label class="flex flex-col gap-1 text-xs font-semibold text-ink-2">잔여 수량 (g)<input type="number" step="any" value="120" class="h-10 w-full rounded-lg border border-white/80 bg-[rgb(46_32_120/0.065)] px-3 text-[0.95rem] font-normal text-ink focus:border-brand focus:outline-none"></label>
+              <label class="flex flex-col gap-1 text-xs font-semibold text-ink-2">소비기한<input type="date" value="2026-10-18" class="h-10 w-full rounded-lg border border-white/80 bg-[rgb(46_32_120/0.065)] px-3 text-[0.95rem] font-normal text-ink focus:border-brand focus:outline-none"></label>
+              <label class="flex flex-col gap-1 text-xs font-semibold text-ink-2">수정 사유
+                <select class="h-10 w-full rounded-lg border border-white/80 bg-[rgb(46_32_120/0.065)] px-2.5 text-[0.95rem] font-normal text-ink focus:border-brand focus:outline-none">
+                  <option value="STOCKTAKE" selected>실사 조정</option>
+                  <option value="EXPIRY_CORRECTION">소비기한 정정</option>
+                  <option value="OTHER">기타</option>
+                </select>
+              </label>
+              <label class="flex flex-col gap-1 text-xs font-semibold text-ink-2">메모 (선택)<input value="월말 실사" maxlength="255" class="h-10 w-full rounded-lg border border-white/80 bg-[rgb(46_32_120/0.065)] px-3 text-[0.95rem] font-normal text-ink focus:border-brand focus:outline-none"></label>
+              <div class="col-span-2 flex gap-2">
+                <button type="button" data-set-state="lots" class="h-10 rounded-lg border border-white/80 px-4 text-sm font-semibold text-ink-2 hover:bg-white/30">취소</button>
+                <button type="submit" data-set-state="lots" class="h-10 flex-1 rounded-lg bg-brand text-sm font-semibold text-white hover:bg-brand-strong">저장</button>
+              </div>
+            </form>
+          </li>
+        </ul>
+      </section>
+
+      <!-- 쿠팡 상품 — 연결된 공용 상품(coupang_product)과 30일 단가(재료 단위, 홈 단가 추세와 같은 값) -->
+      <section class="mt-6">
+        <h3 class="text-sm font-bold text-ink">쿠팡 상품</h3>
+        <div class="mt-2 rounded-xl glass-card p-3.5">
+          <p class="text-sm leading-snug font-semibold text-ink">국내산 유기농 루꼴라 1kg</p>
+          <p class="mt-0.5 text-xs text-ink-2">1kg × 1개 · 판매가 30,000원</p>
+          <div class="mt-3 flex items-baseline gap-2">
+            <span class="tabular text-lg leading-none font-bold tracking-tight text-ink">30,000<span class="ml-0.5 text-xs font-medium text-ink-2">원/kg</span></span>
+            <span class="tabular inline-flex items-center gap-0.5 text-sm font-bold text-up"><span data-icon="arrowUp" class="size-3"></span>15.4%</span>
+            <span class="text-xs text-ink-2">30일 전 대비</span>
+          </div>
+          <div data-chart="area" data-smooth data-min="auto" data-ylabels="off" data-xlabels="off" data-font="10" data-metric="won" data-labels="9/19,9/25,10/1,10/7,10/13,10/19" data-values="26000,27500,29000,31000,30500,30000" class="mt-2 h-20 w-full"></div>
+        </div>
+      </section>
+
+      <!-- 재료 설정 — 누르면 펼친다. 삭제는 확인 후 -->
+      <section class="mt-6 border-t border-white/70 pt-4">
+        <button type="button" aria-expanded="false" data-toggle="#set-arugula, #set-arugula-closed, #set-arugula-open" class="flex w-full items-center justify-between text-sm font-bold text-ink">
+          재료 설정
+          <span id="set-arugula-closed"><span data-icon="chevronDown" class="size-4 text-ink-2"></span></span>
+          <span id="set-arugula-open" hidden><span data-icon="chevronDown" class="size-4 rotate-180 text-brand"></span></span>
+        </button>
+        <form id="set-arugula" hidden class="mt-3 grid grid-cols-3 gap-2.5">
+          <label class="flex flex-col gap-1 text-xs font-semibold text-ink-2">재주문 임계값 (g)<input type="number" step="any" value="200" class="h-10 w-full rounded-lg border border-white/80 bg-transparent px-3 text-[0.95rem] font-normal text-ink focus:border-brand focus:outline-none"></label>
+          <label class="flex flex-col gap-1 text-xs font-semibold text-ink-2">안전재고 (g)<input type="number" step="any" value="100" class="h-10 w-full rounded-lg border border-white/80 bg-transparent px-3 text-[0.95rem] font-normal text-ink focus:border-brand focus:outline-none"></label>
+          <label class="flex flex-col gap-1 text-xs font-semibold text-ink-2">리드타임 (일)<input type="number" value="2" class="h-10 w-full rounded-lg border border-white/80 bg-transparent px-3 text-[0.95rem] font-normal text-ink focus:border-brand focus:outline-none"></label>
+          <button type="submit" class="col-span-3 h-10 rounded-lg bg-brand text-sm font-semibold text-white hover:bg-brand-strong">저장</button>
+        </form>
+        <button type="button" class="mt-4 inline-flex items-center gap-1.5 text-sm font-semibold text-danger hover:underline"><span data-icon="trash2" class="size-4"></span>재료 삭제</button>
+      </section>
+    </aside>
+
+    <!-- 상세 — 모짜렐라 치즈(소비기한 D-3). 입고 대기 1건, 로트 2개. dispose는 첫 로트 폐기 폼을 연 모습 -->
+    <aside data-when="mozz dispose" aria-label="모짜렐라 치즈 상세" class="fixed inset-0 z-50 overflow-y-auto px-4 pt-[5.25rem] pb-28 glass-card lg:relative lg:inset-auto lg:z-auto lg:col-span-2 lg:h-0 lg:min-h-full lg:rounded-2xl lg:p-5">
+      <div class="flex items-center gap-2">
+        <button type="button" data-set-state="default" aria-label="목록으로" class="flex size-10 items-center justify-center rounded-full text-ink-2 hover:bg-white/60 lg:hidden"><span data-icon="chevronLeft" class="size-6"></span></button>
+        <h2 class="min-w-0 flex-1 truncate text-xl font-bold text-ink">모짜렐라 치즈</h2>
+        <button type="button" data-set-state="default" aria-label="닫기" class="hidden size-10 items-center justify-center rounded-full text-ink-2 hover:bg-white/60 lg:flex"><span data-icon="x" class="size-5"></span></button>
+      </div>
+      <dl class="mt-3 grid grid-cols-3 gap-2 rounded-xl glass-card p-3">
+        <div><dt class="text-xs text-ink-2">총 수량</dt><dd class="tabular mt-1 text-lg leading-none font-bold text-ink">4,250 g</dd></div>
+        <div><dt class="text-xs text-ink-2">소비기한</dt><dd class="tabular mt-1 text-lg leading-none font-bold text-danger">D-3</dd></div>
+        <div><dt class="text-xs text-ink-2">재주문 임계값</dt><dd class="tabular mt-1 text-lg leading-none font-bold text-ink">2,000 g</dd></div>
+      </dl>
+
+      <section class="mt-6">
+        <h3 class="text-sm font-bold text-ink">입고 대기</h3>
+        <form class="mt-2 rounded-xl glass-card p-3.5">
+          <p class="text-sm font-semibold text-ink">10월 16일 확정 발주 <span class="font-normal text-ink-2">· 3,000 g · 48,000원</span></p>
+          <div class="mt-3 grid grid-cols-2 gap-2.5">
+            <label class="flex flex-col gap-1 text-xs font-semibold text-ink-2">입고 수량 (g)<input type="number" step="any" value="3000" class="h-10 w-full rounded-full border border-white/80 bg-[rgb(46_32_120/0.065)] px-4 text-[0.95rem] font-normal text-ink focus:border-brand focus:outline-none"></label>
+            <label class="flex flex-col gap-1 text-xs font-semibold text-ink-2">구매 금액 (원)<input type="number" value="48000" class="h-10 w-full rounded-full border border-white/80 bg-[rgb(46_32_120/0.065)] px-4 text-[0.95rem] font-normal text-ink focus:border-brand focus:outline-none"></label>
+            <label class="flex flex-col gap-1 text-xs font-semibold text-ink-2">입고일<input type="date" value="2026-10-19" class="h-10 w-full rounded-full border border-white/80 bg-[rgb(46_32_120/0.065)] px-4 text-[0.95rem] font-normal text-ink focus:border-brand focus:outline-none"></label>
+            <label class="flex flex-col gap-1 text-xs font-semibold text-ink-2">소비기한 (선택)<input type="date" value="" class="h-10 w-full rounded-full border border-white/80 bg-[rgb(46_32_120/0.065)] px-4 text-[0.95rem] font-normal text-ink focus:border-brand focus:outline-none"></label>
+          </div>
+          <div class="mt-3 flex gap-2">
+            <button type="button" class="h-10 rounded-lg border border-white/80 px-4 text-sm font-semibold text-ink-2 hover:bg-white/30">입고 안 함</button>
+            <button type="submit" class="h-10 flex-1 rounded-lg bg-brand text-sm font-semibold text-white hover:bg-brand-strong">입고 처리</button>
+          </div>
+        </form>
+      </section>
+
+      <section class="mt-6">
+        <div class="flex items-center justify-between">
+          <h3 class="text-sm font-bold text-ink">로트<span class="ml-1 font-normal text-ink-2">2</span></h3>
+          <button type="button" class="inline-flex items-center gap-1 text-sm font-semibold text-brand hover:text-brand-strong"><span data-icon="plus" class="size-4"></span>입고 등록</button>
+        </div>
+        <ul class="mt-2 divide-y divide-white/70 rounded-xl glass-card px-3.5">
+          <li class="py-3">
+            <div class="flex items-start justify-between gap-3">
+              <div class="min-w-0">
+                <p class="tabular text-[0.95rem] font-bold text-ink">1,250 g<span class="ml-1 text-sm font-medium text-ink-2">/ 2,000 g</span></p>
+                <p class="tabular mt-0.5 text-xs text-ink-2">10월 12일 입고 · 기한 <span class="text-danger">10월 22일</span> · 32,000원</p>
+              </div>
+              <div class="flex shrink-0">
+                <button type="button" class="rounded-lg px-2.5 py-1.5 text-sm font-semibold text-brand hover:bg-brand-soft">수정</button>
+                <button type="button" data-set-state="dispose" class="rounded-lg px-2.5 py-1.5 text-sm font-semibold text-danger hover:bg-danger-soft">폐기</button>
+              </div>
+            </div>
+            <!-- 폐기 — 250g 입력, 사유는 비워 둔 모습 -->
+            <form data-when="dispose" class="mt-3 grid grid-cols-2 gap-2.5 rounded-lg p-3">
+              <label class="flex flex-col gap-1 text-xs font-semibold text-ink-2">폐기 수량 (g, 최대 1,250)<input type="number" step="any" value="250" class="h-10 w-full rounded-lg border border-white/80 bg-[rgb(46_32_120/0.065)] px-3 text-[0.95rem] font-normal text-ink focus:border-brand focus:outline-none"></label>
+              <label class="flex flex-col gap-1 text-xs font-semibold text-ink-2">폐기 사유 (선택)<input maxlength="255" placeholder="소비기한 만료" class="h-10 w-full rounded-lg border border-white/80 bg-[rgb(46_32_120/0.065)] px-3 text-[0.95rem] font-normal text-ink placeholder:text-ink-4 focus:border-brand focus:outline-none"></label>
+              <div class="col-span-2 flex gap-2">
+                <button type="button" data-set-state="mozz" class="h-10 rounded-lg border border-white/80 px-4 text-sm font-semibold text-ink-2 hover:bg-white/30">취소</button>
+                <button type="submit" data-set-state="mozz" class="h-10 flex-1 rounded-lg bg-danger text-sm font-semibold text-white hover:opacity-90">폐기</button>
+              </div>
+            </form>
+          </li>
+          <li class="py-3">
+            <div class="flex items-start justify-between gap-3">
+              <div class="min-w-0">
+                <p class="tabular text-[0.95rem] font-bold text-ink">3,000 g<span class="ml-1 text-sm font-medium text-ink-2">/ 3,000 g</span></p>
+                <p class="tabular mt-0.5 text-xs text-ink-2">10월 17일 입고 · 기한 11월 2일 · 48,000원</p>
+              </div>
+              <div class="flex shrink-0">
+                <button type="button" class="rounded-lg px-2.5 py-1.5 text-sm font-semibold text-brand hover:bg-brand-soft">수정</button>
+                <button type="button" class="rounded-lg px-2.5 py-1.5 text-sm font-semibold text-danger hover:bg-danger-soft">폐기</button>
+              </div>
+            </div>
+          </li>
+        </ul>
+      </section>
+
+      <section class="mt-6">
+        <h3 class="text-sm font-bold text-ink">쿠팡 상품</h3>
+        <div class="mt-2 rounded-xl glass-card p-3.5">
+          <p class="text-sm leading-snug font-semibold text-ink">덴마크 모짜렐라 치즈 슈레드 2.5kg</p>
+          <p class="mt-0.5 text-xs text-ink-2">2.5kg × 1개 · 판매가 40,000원</p>
+          <div class="mt-3 flex items-baseline gap-2">
+            <span class="tabular text-lg leading-none font-bold tracking-tight text-ink">16,000<span class="ml-0.5 text-xs font-medium text-ink-2">원/kg</span></span>
+            <span class="tabular inline-flex items-center gap-0.5 text-sm font-bold text-up"><span data-icon="arrowUp" class="size-3"></span>8.1%</span>
+            <span class="text-xs text-ink-2">30일 전 대비</span>
+          </div>
+          <div data-chart="area" data-smooth data-min="auto" data-ylabels="off" data-xlabels="off" data-font="10" data-metric="won" data-labels="9/19,9/25,10/1,10/7,10/13,10/19" data-values="14800,15100,15400,15600,15900,16000" class="mt-2 h-20 w-full"></div>
+        </div>
+      </section>
+
+      <section class="mt-6 border-t border-white/70 pt-4">
+        <button type="button" aria-expanded="false" data-toggle="#set-mozz, #set-mozz-closed, #set-mozz-open" class="flex w-full items-center justify-between text-sm font-bold text-ink">
+          재료 설정
+          <span id="set-mozz-closed"><span data-icon="chevronDown" class="size-4 text-ink-2"></span></span>
+          <span id="set-mozz-open" hidden><span data-icon="chevronDown" class="size-4 rotate-180 text-brand"></span></span>
+        </button>
+        <form id="set-mozz" hidden class="mt-3 grid grid-cols-3 gap-2.5">
+          <label class="flex flex-col gap-1 text-xs font-semibold text-ink-2">재주문 임계값 (g)<input type="number" step="any" value="2000" class="h-10 w-full rounded-lg border border-white/80 bg-transparent px-3 text-[0.95rem] font-normal text-ink focus:border-brand focus:outline-none"></label>
+          <label class="flex flex-col gap-1 text-xs font-semibold text-ink-2">안전재고 (g)<input type="number" step="any" value="1000" class="h-10 w-full rounded-lg border border-white/80 bg-transparent px-3 text-[0.95rem] font-normal text-ink focus:border-brand focus:outline-none"></label>
+          <label class="flex flex-col gap-1 text-xs font-semibold text-ink-2">리드타임 (일)<input type="number" value="2" class="h-10 w-full rounded-lg border border-white/80 bg-transparent px-3 text-[0.95rem] font-normal text-ink focus:border-brand focus:outline-none"></label>
+          <button type="submit" class="col-span-3 h-10 rounded-lg bg-brand text-sm font-semibold text-white hover:bg-brand-strong">저장</button>
+        </form>
+        <button type="button" class="mt-4 inline-flex items-center gap-1.5 text-sm font-semibold text-danger hover:underline"><span data-icon="trash2" class="size-4"></span>재료 삭제</button>
+      </section>
+    </aside>
+  </div>
+  <!-- 쪽 이동 — 상세 판이 열려도 화면 가운데 -->
+  <nav aria-label="쪽 이동" data-when="default form mozz dispose" class="mt-5 flex items-center justify-center gap-1">
+    <button type="button" disabled aria-label="이전 쪽" class="flex size-10 items-center justify-center rounded-full text-ink-4"><span data-icon="chevronLeft" class="size-5"></span></button>
+    <button type="button" aria-current="page" class="size-10 rounded-full bg-brand-soft text-sm font-bold text-brand">1</button>
+    <button type="button" data-set-state="page2" class="size-10 rounded-full text-sm font-semibold text-ink-2 hover:bg-white/50">2</button>
+    <button type="button" data-set-state="page2" aria-label="다음 쪽" class="flex size-10 items-center justify-center rounded-full text-ink-2 hover:bg-white/50"><span data-icon="chevronRight" class="size-5"></span></button>
+  </nav>
+  <nav aria-label="쪽 이동" data-when="page2 lots addlot edit" class="mt-5 flex items-center justify-center gap-1">
+    <button type="button" data-set-state="default" aria-label="이전 쪽" class="flex size-10 items-center justify-center rounded-full text-ink-2 hover:bg-white/50"><span data-icon="chevronLeft" class="size-5"></span></button>
+    <button type="button" data-set-state="default" class="size-10 rounded-full text-sm font-semibold text-ink-2 hover:bg-white/50">1</button>
+    <button type="button" aria-current="page" class="size-10 rounded-full bg-brand-soft text-sm font-bold text-brand">2</button>
+    <button type="button" disabled aria-label="다음 쪽" class="flex size-10 items-center justify-center rounded-full text-ink-4"><span data-icon="chevronRight" class="size-5"></span></button>
+  </nav>
 </div>
 </body>
 </html>
