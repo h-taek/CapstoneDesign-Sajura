@@ -27,6 +27,14 @@ const href = (key) => PAGES[key]?.file ?? "#";
 
 const MOCK_USER = { name: "김사주", store: "사주라 화덕피자 성수점" };
 
+// 상단 바 알림 목록 — 01_basic_design.md §3.12 알림 종류. 보는 날은 2026-10-20 아침
+const NOTIS = [
+  { title: "소비기한 D-1 임박", body: "리코타 치즈가 내일 만료돼요.", at: "06:00", dot: "bg-danger", to: "inventory" },
+  { title: "재고 부족", body: "루꼴라 재고를 확인해 주세요.", at: "어제 22:41", dot: "bg-warn", to: "inventory" },
+  { title: "이상치 감지", body: "10월 19일 매출에서 이상치 2건이 나왔어요.", at: "어제 22:40", dot: "bg-warn", to: "upload" },
+  { title: "예측 완료", body: "오늘 예상 매출이 나왔어요.", at: "02:10", read: true, to: "forecast" },
+];
+
 // 디자인 토큰 — Front/src/index.css(@theme·base·utility)와 같은 내용. Tailwind 브라우저 빌드가 읽는다.
 const THEME_CSS = `
 @theme {
@@ -170,7 +178,7 @@ function icon(name, cls = "size-5", strokeWidth = 2) {
 }
 
 // 유리 셸 — <div data-shell="활성키" data-title="패널 제목" data-back="뒤로 갈 목업 파일">본문</div>
-// 웹(lg 이상): 상단 바 + 왼쪽 알약 메뉴 + 본문 패널 + 하단 알약(넣을 요소 미정)
+// 웹(lg 이상): 상단 바 + 왼쪽 알약 메뉴 + 본문 패널 + 하단 시계 알약(시계·밤사이 계산 상태·매출 올리기)
 // 앱(lg 미만): 상단 바 + 본문 패널 + 하단 알약 탭
 const WEB_NAV = [
   { key: "home", label: "홈", icon: "home" },
@@ -643,7 +651,7 @@ function drawDay(mf) {
     if (narrow) y = 4 + (y - 6) * 0.12; // 앱 폭은 글과 겹치지 않게 오른쪽 위 구석(약 4~13vh)에서만
     el.style.left = `${92 - 84 * p}vw`;
     el.style.top = `${y}vh`;
-    el.style.opacity = f > 0 && f < 1 ? Math.min(1, p / 0.06, (1 - p) / 0.06) * (narrow ? 0.5 : 1) : 0;
+    el.style.opacity = f > 0 && f < 1 ? Math.min(1, p / 0.06, (1 - p) / 0.06) * (narrow ? 0.5 : 1) * (calm ? 0.35 : 1) : 0; // 대시보드는 패널 뒤라 얼룩처럼 비치지 않게 옅게
   };
   arc(bd.querySelector(".d-sun"), ((mf % 1440) - 390) / 780); // 06:30 뜨고 19:30 진다
   arc(bd.querySelector(".d-moon"), (((mf - 1170) % 1440) + 1440) % 1440 / 720); // 19:30 뜨고 07:30 진다
@@ -866,7 +874,10 @@ function renderShell(el) {
     </div>
 
     <div class="flex items-center gap-1 lg:gap-2">
-      <a href="${href("upload")}" class="hidden h-10 items-center gap-1.5 rounded-full bg-ink px-4 text-sm font-semibold text-white lg:inline-flex">${icon("upload", "size-4")} 매출 올리기</a>
+      <!-- 알림 — 지나간 알림 기록은 홈 본문이 아니라 여기서 연다(홈 '확인할 재료'는 지금 상태) -->
+      <button type="button" data-toggle="#noti-pop" aria-expanded="false" aria-label="알림, 안 읽음 3개" class="relative flex size-10 items-center justify-center rounded-full text-ink-2 hover:bg-white/40">
+        ${icon("bell")}<span class="absolute top-2 right-2 size-2 rounded-full bg-danger ring-2 ring-white"></span>
+      </button>
       <a href="${href("settings")}" aria-label="설정" class="hidden size-10 items-center justify-center rounded-full text-ink-2 hover:bg-white/40 lg:flex">${icon("settings")}</a>
       <a href="${href("account")}" aria-label="계정" class="flex items-center gap-2 rounded-full p-1 hover:bg-white/40 lg:pr-3">
         <span class="flex size-9 items-center justify-center rounded-full bg-white/80 text-sm font-bold text-ink">${MOCK_USER.name.slice(0, 1)}</span>
@@ -878,6 +889,22 @@ function renderShell(el) {
     </div>
   </header>
 
+  <!-- 알림 목록(GET /api/notifications) — 긴급 → 경고 → 정보 순, 누르면 해당 화면으로 -->
+  <div id="noti-pop" hidden role="dialog" aria-label="알림" class="glass-strong fixed inset-x-3 top-[4.5rem] z-40 rounded-3xl p-2 lg:top-[4.75rem] lg:right-4 lg:left-auto lg:w-[380px]">
+    <div class="flex items-center justify-between px-3 pt-2 pb-1">
+      <p class="text-base font-bold text-ink">알림</p>
+      <button type="button" class="text-sm font-semibold text-brand hover:text-brand-strong">모두 읽음</button>
+    </div>
+    <ul>${NOTIS.map((n) => `<li><a href="${href(n.to)}" class="flex gap-3 rounded-2xl px-3 py-2.5 hover:bg-white/60">
+      <span class="mt-2 size-2 shrink-0 rounded-full ${n.read ? "" : n.dot}"></span>
+      <span class="min-w-0 flex-1">
+        <span class="flex items-baseline justify-between gap-2"><span class="text-[0.95rem] font-semibold ${n.read ? "text-ink-3" : "text-ink"}">${n.title}</span><span class="shrink-0 text-xs text-ink-3">${n.at}</span></span>
+        <span class="block text-sm text-ink-3">${n.body}</span>
+      </span>
+    </a></li>`).join("")}</ul>
+    <a href="${href("notifications")}" class="mt-1 flex h-10 items-center justify-center rounded-2xl text-sm font-semibold text-ink-2 hover:bg-white/60">알림 설정</a>
+  </div>
+
   <!-- 메뉴 폭(58px)의 절반이 패널 왼쪽 가장자리(3rem)에 걸친다. 윗변은 제목 아래 첫 카드 줄 윗선(패널 위 5.25rem + 안쪽 여백 1.75rem + 제목 줄 68px) -->
   <nav aria-label="주 메뉴" style="--d:0.1s" class="en en-left glass fixed top-[calc(7rem+68px)] left-[calc(3rem-29px)] z-30 hidden flex-col items-center gap-2 rounded-full p-1.5 lg:flex">${sideNav}</nav>
 
@@ -885,9 +912,14 @@ function renderShell(el) {
     ${content}
   </main>
 
-  <!-- 웹 하단 알약 — 넣을 요소 미정. 높이(54px)의 절반이 패널 아래 가장자리(3rem)에 걸치고, 가로는 패널 가운데 -->
-  <div style="--d:0.25s" class="en glass fixed bottom-[calc(3rem-27px)] left-[calc(50%+1rem)] z-30 hidden -translate-x-1/2 items-center gap-1 rounded-full p-1.5 lg:flex">
-    <span class="flex h-10 items-center rounded-full border border-dashed border-ink/25 px-5 text-sm text-ink-3">하단 알약 — 넣을 요소 미정</span>
+  <!-- 웹 하단 알약 — 시작 화면의 시계 알약을 이어 '사주라의 하루' 시계 + 밤사이 계산 상태(GET /api/pipeline/status) + 매출 올리기.
+       높이(54px)의 절반이 패널 아래 가장자리(3rem)에 걸치고, 가로는 패널 가운데 -->
+  <div style="--d:0.25s" class="en glass fixed bottom-[calc(3rem-27px)] left-[calc(50%+1rem)] z-30 hidden -translate-x-1/2 items-center gap-3 rounded-full p-1.5 lg:flex">
+    <a href="${href("home")}" aria-label="홈" class="flex size-10 items-center justify-center rounded-full bg-brand text-sm font-black text-white">사</a>
+    <p class="flex items-baseline gap-2 text-sm font-semibold whitespace-nowrap text-ink-2">사주라의 하루<b data-sky-clock class="text-lg font-bold tracking-wide text-ink tabular">--:--</b></p>
+    <span class="h-5 w-px bg-ink/15" aria-hidden="true"></span>
+    <p class="inline-flex items-center gap-1.5 text-sm whitespace-nowrap text-ink-2">${icon("checkCircle2", "size-4 text-ok")}02:10 예측 완료</p>
+    <a href="${href("upload")}" class="inline-flex h-10 items-center gap-1.5 rounded-full bg-ink px-4 text-sm font-semibold whitespace-nowrap text-white">${icon("upload", "size-4")} 매출 올리기</a>
   </div>
 
   <nav aria-label="하단 메뉴" style="--d:0.25s" class="en glass pb-safe fixed inset-x-3 bottom-3 z-30 rounded-full p-1.5 lg:hidden">
