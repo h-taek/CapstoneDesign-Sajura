@@ -892,7 +892,8 @@ function renderShell(el) {
     </div>
 
     <div class="flex items-center gap-1 lg:gap-2">
-      <a href="${href("upload")}" class="hidden h-10 items-center gap-1.5 rounded-full bg-ink px-4 text-sm font-semibold text-white lg:inline-flex">${icon("upload", "size-4")} 매출 올리기</a>
+      <!-- 매출 올리기 — 웹은 검은 알약, 앱은 아이콘만 -->
+      <a href="${href("upload")}" aria-label="매출 올리기" class="flex size-10 items-center justify-center rounded-full text-ink-2 hover:bg-white/40 lg:w-auto lg:gap-1.5 lg:bg-ink lg:px-4 lg:text-sm lg:font-semibold lg:text-white lg:hover:bg-ink">${icon("upload", "size-5 lg:size-4")}<span class="hidden lg:inline">매출 올리기</span></a>
       <!-- 알림 — 지나간 알림 기록은 홈 본문이 아니라 여기서 연다(홈 '확인할 재료'는 지금 상태) -->
       <button type="button" data-toggle="#noti-pop" aria-expanded="false" aria-label="알림, 안 읽음 3개" class="relative flex size-10 items-center justify-center rounded-full text-ink-2 hover:bg-white/40">
         ${icon("bell")}<span class="absolute top-2 right-2 size-2 rounded-full bg-danger ring-2 ring-white"></span>

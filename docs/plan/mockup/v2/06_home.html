@@ -19,7 +19,7 @@
   <div class="grid gap-4">
     <div class="grid grid-cols-1 gap-4 lg:min-h-[22rem] lg:grid-cols-3">
       <!-- 대표 카드 — 오늘 예상 매출(GET /api/forecast predicted_sales) + 평소 대비(explanation.deviation_vs_baseline, 기준 직전 7영업일 평균 136만원)
-           + 할 일 버튼 + 많이 나갈 메뉴 상위 3개(menu_forecast, 수량 숫자 없이 1위 대비 막대) -->
+           + 버튼(발주하러 가기 · 예측 근거 → 07, spec 01 §3.10) + 많이 나갈 메뉴 상위 3개(menu_forecast, 수량 숫자 없이 1위 대비 막대) -->
       <section class="flex min-h-40 flex-col rounded-2xl px-4 pt-4 pb-2 glass-card">
         <div class="flex items-center justify-between gap-2">
           <p class="text-sm font-medium text-ink-3">오늘 예상 매출</p>
@@ -29,7 +29,7 @@
         <p class="mt-2.5 flex"><span title="평소(직전 7영업일 평균)보다 21% 낮음" class="inline-flex items-center gap-0.5 text-sm font-bold text-down"><span data-icon="arrowDown" class="size-3"></span>21%</span></p>
         <div class="mt-5 grid grid-cols-2 gap-2 lg:mt-auto">
           <a href="09_orders.html" class="inline-flex h-11 items-center justify-center gap-1.5 rounded-full bg-ink text-[0.95rem] font-semibold text-white hover:bg-ink/85">발주하러 가기<span class="text-white/60">4</span></a>
-          <a href="#" class="inline-flex h-11 items-center justify-center gap-1.5 rounded-full bg-white/85 text-[0.95rem] font-semibold text-ink hover:bg-white">Test</a>
+          <a href="07_forecast.html" class="inline-flex h-11 items-center justify-center gap-1.5 rounded-full bg-white/85 text-[0.95rem] font-semibold text-ink hover:bg-white"><span data-icon="sparkles" class="size-4"></span>예측 근거</a>
         </div>
         <div class="-mx-2 mt-4 rounded-xl px-2 pt-2.5 pb-2 glass-card lg:mt-3">
           <p class="px-1 text-sm font-semibold text-ink-2">많이 나갈 메뉴<span class="mx-1.5 text-ink-4">|</span><span class="font-normal text-ink-3">상위 3개</span></p>
@@ -49,14 +49,14 @@
           </ol>
         </div>
       </section>
-      <!-- 숫자 카드 2×2 — 발주할 재료(포인트 색 유리, 누르면 발주) · 내일 예상 매출(GET /api/forecast D+2, 07과 같은 값) · 어제 매출·건수 · 최근 7일 매출(GET /api/sales/trends, 그래프와 같은 7일).
-           '오늘 매출'은 마지막 판매일(어제) 값이라 '어제 매출'로 쓴다. 확인할 재료는 상단 바 알림, 입고 대기는 아래 줄에서 본다 -->
+      <!-- 숫자 카드 2×2 — 어제 예측 정확도(포인트 색 유리, GET /api/dashboard/forecast-vs-actual 어제 예측 121만원 vs 실제 128만원 → 1 − |오차|/실제, 누르면 07) · 내일 예상 매출(D+2, 07과 같은 값) · 어제 매출·건수 · 최근 7일 매출(그래프와 같은 7일).
+           발주 입구는 대표 카드 버튼 하나. 확인할 재료는 상단 바 알림, 입고 대기는 아래 줄에서 본다 -->
       <section class="grid min-h-40 grid-cols-2 grid-rows-2 gap-2 rounded-2xl p-2 glass-card">
-        <a href="09_orders.html" class="group flex flex-col justify-between rounded-xl p-3.5 text-white glass-brand">
-          <p class="flex items-center justify-between text-sm font-medium text-white/85">발주할 재료<span data-icon="arrowRight" class="size-4 transition-transform group-hover:translate-x-0.5"></span></p>
+        <a href="07_forecast.html" class="group flex flex-col justify-between rounded-xl p-3.5 text-white glass-brand">
+          <p class="flex items-center justify-between text-sm font-medium text-white/85">어제 예측 정확도<span data-icon="arrowRight" class="size-4 transition-transform group-hover:translate-x-0.5"></span></p>
           <div>
-            <p class="tabular text-[1.35rem] leading-none font-bold tracking-tight lg:text-[1.65rem]">4개</p>
-            <p class="mt-1.5 truncate text-sm text-white/80">모짜렐라 치즈 외 3개</p>
+            <p class="tabular text-[1.35rem] leading-none font-bold tracking-tight lg:text-[1.65rem]">94%</p>
+            <p class="mt-1.5 truncate text-sm text-white/80">예측 121만원</p>
           </div>
         </a>
         <div class="flex flex-col justify-between rounded-xl p-3.5 glass-card">
