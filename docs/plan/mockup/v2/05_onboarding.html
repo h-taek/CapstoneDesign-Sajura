@@ -1,0 +1,157 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>매장 온보딩 — 사주라 목업 v2</title>
+<script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4.0.17"></script>
+<script src="mockup.js" defer></script>
+</head>
+<!-- 원본: Front/src/routes/onboarding/*.tsx(매장 정보·POS 연동·메뉴 등록·확인). v2는 네 단계를 한 파일에 두고 상태로 넘긴다 -->
+<!-- v2 — 회원가입과 같은 방식. 카드 없이 밤하늘 위에 바로, 'Sajura'는 왼쪽 위, 진행 막대 4칸과 제목은 위에서 13vh 높이에 고정.
+     단계를 넘기면 하늘이 그 단계 시각으로 흐른다(data-sky-steps — 22:40 → 23:10 → 23:40 → 00:10, 밤이 깊어진다. 22:00 하늘은 아래쪽이 분홍빛이라 작은 글이 4.5:1에 못 미쳐 늦췄다).
+     '온보딩 완료'는 로그인과 같은 '아침이 밝기' 전환으로 홈에 들어간다 -->
+<body data-page="onboarding" data-sky="22:40" data-sky-steps="store:22:40,store-error:22:40,pos:23:10,pos-okpos:23:10,menus:23:40,confirm:00:10,confirm-error:00:10" data-states="1 매장 정보:store,2 POS(CSV):pos,2 POS(OKPOS):pos-okpos,3 메뉴:menus,4 확인:confirm,전화번호 오류:store-error,제출 오류:confirm-error">
+<div data-backdrop></div>
+<p class="fixed top-6 left-6 z-10 text-[1.75rem] leading-none font-extrabold tracking-tight text-[#b3a4ff] sm:top-8 sm:left-10">Sajura</p>
+<main class="min-h-dvh px-5 pt-[13vh] pb-10 text-center text-white">
+  <section class="mx-auto w-full max-w-[440px]">
+    <div data-when="store">
+      <div class="flex justify-center gap-2" aria-label="1 / 4 단계"><span class="h-1 w-9 rounded-full bg-[#b3a4ff]"></span><span class="h-1 w-9 rounded-full bg-white/20"></span><span class="h-1 w-9 rounded-full bg-white/20"></span><span class="h-1 w-9 rounded-full bg-white/20"></span></div>
+      <h1 class="mt-9 text-[1.75rem] font-extrabold tracking-tight">매장 정보를 알려 주세요</h1>
+      <p class="mt-2 text-base text-white/75">AI 예측에 쓰는 기본 정보예요</p>
+      <form class="mt-8 space-y-3 text-left" novalidate>
+          <div class="flex flex-col gap-1.5"><label for="store_name-a" class="text-sm font-semibold text-white/90">매장명</label><input id="store_name-a" type="text" value="사주라 화덕피자 성수점" autocomplete="organization" class="h-12 w-full rounded-xl border border-white/15 bg-[#0d0a26]/45 px-4 text-base text-white placeholder:text-white/70 backdrop-blur-md [color-scheme:dark] focus:border-[#b3a4ff] focus:ring-4 focus:ring-[#b3a4ff]/25 focus:outline-none"></div>
+          <div class="flex flex-col gap-1.5"><label for="business_type-a" class="text-sm font-semibold text-white/90">업종</label><select id="business_type-a" class="h-12 w-full rounded-xl border border-white/15 bg-[#0d0a26]/45 px-4 text-base text-white placeholder:text-white/70 backdrop-blur-md [color-scheme:dark] focus:border-[#b3a4ff] focus:ring-4 focus:ring-[#b3a4ff]/25 focus:outline-none pr-8"><option>카페</option><option>한식</option><option selected>양식</option><option>분식</option><option>주점</option><option>기타</option></select></div>
+          <div class="grid grid-cols-2 gap-3">
+            <div class="flex flex-col gap-1.5"><label for="store_size-a" class="text-sm font-semibold text-white/90">매장 규모</label><select id="store_size-a" class="h-12 w-full rounded-xl border border-white/15 bg-[#0d0a26]/45 px-4 text-base text-white placeholder:text-white/70 backdrop-blur-md [color-scheme:dark] focus:border-[#b3a4ff] focus:ring-4 focus:ring-[#b3a4ff]/25 focus:outline-none pr-8"><option>소형 (~10석)</option><option selected>중형 (11~30석)</option><option>대형 (31석~)</option></select></div>
+            <div class="flex flex-col gap-1.5"><label for="operation_type-a" class="text-sm font-semibold text-white/90">운영 형태</label><select id="operation_type-a" class="h-12 w-full rounded-xl border border-white/15 bg-[#0d0a26]/45 px-4 text-base text-white placeholder:text-white/70 backdrop-blur-md [color-scheme:dark] focus:border-[#b3a4ff] focus:ring-4 focus:ring-[#b3a4ff]/25 focus:outline-none pr-8"><option>홀</option><option>배달</option><option selected>홀+배달</option></select></div>
+          </div>
+          <div class="flex flex-col gap-1.5"><label for="address-a" class="text-sm font-semibold text-white/90">주소</label><input id="address-a" type="text" value="서울 성동구 성수이로 00" autocomplete="street-address" class="h-12 w-full rounded-xl border border-white/15 bg-[#0d0a26]/45 px-4 text-base text-white placeholder:text-white/70 backdrop-blur-md [color-scheme:dark] focus:border-[#b3a4ff] focus:ring-4 focus:ring-[#b3a4ff]/25 focus:outline-none"></div>
+          <div class="flex flex-col gap-1.5"><label for="phone-a" class="text-sm font-semibold text-white/90">전화번호</label><input id="phone-a" inputmode="tel" autocomplete="tel" value="02-000-0000" class="h-12 w-full rounded-xl border border-white/15 bg-[#0d0a26]/45 px-4 text-base text-white placeholder:text-white/70 backdrop-blur-md [color-scheme:dark] focus:border-[#b3a4ff] focus:ring-4 focus:ring-[#b3a4ff]/25 focus:outline-none"><p class="px-1 text-sm text-white/85">자동으로 하이픈이 채워져요.</p></div>
+        <div class="flex gap-2 pt-4"><button type="button" data-set-state="pos" class="inline-flex h-[52px] flex-1 items-center justify-center rounded-xl bg-brand px-5 text-lg font-bold text-white transition-colors hover:bg-brand-strong">다음</button></div>
+      </form>
+    </div>
+    <div data-when="store-error">
+      <div class="flex justify-center gap-2" aria-label="1 / 4 단계"><span class="h-1 w-9 rounded-full bg-[#b3a4ff]"></span><span class="h-1 w-9 rounded-full bg-white/20"></span><span class="h-1 w-9 rounded-full bg-white/20"></span><span class="h-1 w-9 rounded-full bg-white/20"></span></div>
+      <h1 class="mt-9 text-[1.75rem] font-extrabold tracking-tight">매장 정보를 알려 주세요</h1>
+      <p class="mt-2 text-base text-white/75">AI 예측에 쓰는 기본 정보예요</p>
+      <form class="mt-8 space-y-3 text-left" novalidate>
+          <div class="flex flex-col gap-1.5"><label for="store_name-b" class="text-sm font-semibold text-white/90">매장명</label><input id="store_name-b" type="text" value="사주라 화덕피자 성수점" autocomplete="organization" class="h-12 w-full rounded-xl border border-white/15 bg-[#0d0a26]/45 px-4 text-base text-white placeholder:text-white/70 backdrop-blur-md [color-scheme:dark] focus:border-[#b3a4ff] focus:ring-4 focus:ring-[#b3a4ff]/25 focus:outline-none"></div>
+          <div class="flex flex-col gap-1.5"><label for="business_type-b" class="text-sm font-semibold text-white/90">업종</label><select id="business_type-b" class="h-12 w-full rounded-xl border border-white/15 bg-[#0d0a26]/45 px-4 text-base text-white placeholder:text-white/70 backdrop-blur-md [color-scheme:dark] focus:border-[#b3a4ff] focus:ring-4 focus:ring-[#b3a4ff]/25 focus:outline-none pr-8"><option>카페</option><option>한식</option><option selected>양식</option><option>분식</option><option>주점</option><option>기타</option></select></div>
+          <div class="grid grid-cols-2 gap-3">
+            <div class="flex flex-col gap-1.5"><label for="store_size-b" class="text-sm font-semibold text-white/90">매장 규모</label><select id="store_size-b" class="h-12 w-full rounded-xl border border-white/15 bg-[#0d0a26]/45 px-4 text-base text-white placeholder:text-white/70 backdrop-blur-md [color-scheme:dark] focus:border-[#b3a4ff] focus:ring-4 focus:ring-[#b3a4ff]/25 focus:outline-none pr-8"><option>소형 (~10석)</option><option selected>중형 (11~30석)</option><option>대형 (31석~)</option></select></div>
+            <div class="flex flex-col gap-1.5"><label for="operation_type-b" class="text-sm font-semibold text-white/90">운영 형태</label><select id="operation_type-b" class="h-12 w-full rounded-xl border border-white/15 bg-[#0d0a26]/45 px-4 text-base text-white placeholder:text-white/70 backdrop-blur-md [color-scheme:dark] focus:border-[#b3a4ff] focus:ring-4 focus:ring-[#b3a4ff]/25 focus:outline-none pr-8"><option>홀</option><option>배달</option><option selected>홀+배달</option></select></div>
+          </div>
+          <div class="flex flex-col gap-1.5"><label for="address-b" class="text-sm font-semibold text-white/90">주소</label><input id="address-b" type="text" value="서울 성동구 성수이로 00" autocomplete="street-address" class="h-12 w-full rounded-xl border border-white/15 bg-[#0d0a26]/45 px-4 text-base text-white placeholder:text-white/70 backdrop-blur-md [color-scheme:dark] focus:border-[#b3a4ff] focus:ring-4 focus:ring-[#b3a4ff]/25 focus:outline-none"></div>
+          <div class="flex flex-col gap-1.5"><label for="phone-b" class="text-sm font-semibold text-white/90">전화번호</label><input id="phone-b" inputmode="tel" autocomplete="tel" value="02-000-00" class="h-12 w-full rounded-xl border border-white/15 bg-[#0d0a26]/45 px-4 text-base text-white placeholder:text-white/70 backdrop-blur-md [color-scheme:dark] focus:border-[#b3a4ff] focus:ring-4 focus:ring-[#b3a4ff]/25 focus:outline-none"><p class="px-1 text-sm font-semibold text-[#ffd6d6]" role="alert">전화번호 형식이 올바르지 않아요.</p></div>
+        <div class="flex gap-2 pt-4"><button type="button" data-set-state="pos" class="inline-flex h-[52px] flex-1 items-center justify-center rounded-xl bg-brand px-5 text-lg font-bold text-white transition-colors hover:bg-brand-strong">다음</button></div>
+      </form>
+    </div>
+    <div data-when="pos">
+      <div class="flex justify-center gap-2" aria-label="2 / 4 단계"><span class="h-1 w-9 rounded-full bg-white/20"></span><span class="h-1 w-9 rounded-full bg-[#b3a4ff]"></span><span class="h-1 w-9 rounded-full bg-white/20"></span><span class="h-1 w-9 rounded-full bg-white/20"></span></div>
+      <h1 class="mt-9 text-[1.75rem] font-extrabold tracking-tight">POS를 연결해 주세요</h1>
+      <p class="mt-2 text-base text-white/75">김사주님, 환영해요. 매출을 가져올 방법을 골라 주세요</p>
+      <form class="mt-8 space-y-3 text-left" novalidate>
+          <div class="grid grid-cols-2 gap-2.5" role="radiogroup" aria-label="POS 종류"><label data-set-state="pos-okpos" class="flex cursor-pointer items-center gap-2.5 rounded-xl border border-white/15 bg-[#0d0a26]/45 text-white/90 hover:bg-white/10 px-4 py-3.5 text-[0.95rem] font-semibold backdrop-blur-md"><input type="radio" name="pos_type-0" class="size-4 accent-[#b3a4ff]">토스플레이스</label><label data-set-state="pos-okpos" class="flex cursor-pointer items-center gap-2.5 rounded-xl border border-white/15 bg-[#0d0a26]/45 text-white/90 hover:bg-white/10 px-4 py-3.5 text-[0.95rem] font-semibold backdrop-blur-md"><input type="radio" name="pos_type-0" class="size-4 accent-[#b3a4ff]">키움페이</label><label data-set-state="pos-okpos" class="flex cursor-pointer items-center gap-2.5 rounded-xl border border-white/15 bg-[#0d0a26]/45 text-white/90 hover:bg-white/10 px-4 py-3.5 text-[0.95rem] font-semibold backdrop-blur-md"><input type="radio" name="pos_type-0" class="size-4 accent-[#b3a4ff]">OKPOS</label><label class="flex cursor-pointer items-center gap-2.5 rounded-xl border border-[#b3a4ff] bg-[#b3a4ff]/20 text-white px-4 py-3.5 text-[0.95rem] font-semibold backdrop-blur-md"><input type="radio" name="pos_type-0" checked class="size-4 accent-[#b3a4ff]">CSV 업로드만 사용</label></div>
+          <p class="px-1 text-sm text-white/85">CSV 업로드는 API 키 없이 진행해요. 매출 파일은 나중에 올리면 돼요.</p>
+        <div class="flex gap-2 pt-4"><button type="button" data-set-state="store" class="inline-flex h-[52px] w-28 shrink-0 items-center justify-center rounded-xl bg-white/15 px-5 text-lg font-semibold text-white backdrop-blur-md transition-colors hover:bg-white/25">이전</button><button type="button" data-set-state="menus" class="inline-flex h-[52px] flex-1 items-center justify-center rounded-xl bg-brand px-5 text-lg font-bold text-white transition-colors hover:bg-brand-strong">다음</button></div>
+      </form>
+    </div>
+    <div data-when="pos-okpos">
+      <div class="flex justify-center gap-2" aria-label="2 / 4 단계"><span class="h-1 w-9 rounded-full bg-white/20"></span><span class="h-1 w-9 rounded-full bg-[#b3a4ff]"></span><span class="h-1 w-9 rounded-full bg-white/20"></span><span class="h-1 w-9 rounded-full bg-white/20"></span></div>
+      <h1 class="mt-9 text-[1.75rem] font-extrabold tracking-tight">POS를 연결해 주세요</h1>
+      <p class="mt-2 text-base text-white/75">김사주님, 환영해요. 매출을 가져올 방법을 골라 주세요</p>
+      <form class="mt-8 space-y-3 text-left" novalidate>
+          <div class="grid grid-cols-2 gap-2.5" role="radiogroup" aria-label="POS 종류"><label data-set-state="pos-okpos" class="flex cursor-pointer items-center gap-2.5 rounded-xl border border-white/15 bg-[#0d0a26]/45 text-white/90 hover:bg-white/10 px-4 py-3.5 text-[0.95rem] font-semibold backdrop-blur-md"><input type="radio" name="pos_type-1" class="size-4 accent-[#b3a4ff]">토스플레이스</label><label data-set-state="pos-okpos" class="flex cursor-pointer items-center gap-2.5 rounded-xl border border-white/15 bg-[#0d0a26]/45 text-white/90 hover:bg-white/10 px-4 py-3.5 text-[0.95rem] font-semibold backdrop-blur-md"><input type="radio" name="pos_type-1" class="size-4 accent-[#b3a4ff]">키움페이</label><label class="flex cursor-pointer items-center gap-2.5 rounded-xl border border-[#b3a4ff] bg-[#b3a4ff]/20 text-white px-4 py-3.5 text-[0.95rem] font-semibold backdrop-blur-md"><input type="radio" name="pos_type-1" checked class="size-4 accent-[#b3a4ff]">OKPOS</label><label data-set-state="pos" class="flex cursor-pointer items-center gap-2.5 rounded-xl border border-white/15 bg-[#0d0a26]/45 text-white/90 hover:bg-white/10 px-4 py-3.5 text-[0.95rem] font-semibold backdrop-blur-md"><input type="radio" name="pos_type-1" class="size-4 accent-[#b3a4ff]">CSV 업로드만 사용</label></div>
+          <div class="space-y-3">
+          <div class="flex flex-col gap-1.5"><label for="api_key" class="text-sm font-semibold text-white/90">POS API 키</label><input id="api_key" type="text" value="okpos-demo-key-0000" autocomplete="off" class="h-12 w-full rounded-xl border border-white/15 bg-[#0d0a26]/45 px-4 text-base text-white placeholder:text-white/70 backdrop-blur-md [color-scheme:dark] focus:border-[#b3a4ff] focus:ring-4 focus:ring-[#b3a4ff]/25 focus:outline-none"></div>
+          <div class="flex flex-col gap-1.5"><label for="store_code" class="text-sm font-semibold text-white/90">매장 코드</label><input id="store_code" type="text" value="STORE-0001" autocomplete="off" class="h-12 w-full rounded-xl border border-white/15 bg-[#0d0a26]/45 px-4 text-base text-white placeholder:text-white/70 backdrop-blur-md [color-scheme:dark] focus:border-[#b3a4ff] focus:ring-4 focus:ring-[#b3a4ff]/25 focus:outline-none"></div>
+          </div>
+        <div class="flex gap-2 pt-4"><button type="button" data-set-state="store" class="inline-flex h-[52px] w-28 shrink-0 items-center justify-center rounded-xl bg-white/15 px-5 text-lg font-semibold text-white backdrop-blur-md transition-colors hover:bg-white/25">이전</button><button type="button" data-set-state="menus" class="inline-flex h-[52px] flex-1 items-center justify-center rounded-xl bg-brand px-5 text-lg font-bold text-white transition-colors hover:bg-brand-strong">다음</button></div>
+      </form>
+    </div>
+    <div data-when="menus">
+      <div class="flex justify-center gap-2" aria-label="3 / 4 단계"><span class="h-1 w-9 rounded-full bg-white/20"></span><span class="h-1 w-9 rounded-full bg-white/20"></span><span class="h-1 w-9 rounded-full bg-[#b3a4ff]"></span><span class="h-1 w-9 rounded-full bg-white/20"></span></div>
+      <h1 class="mt-9 text-[1.75rem] font-extrabold tracking-tight">판매하는 메뉴를 알려 주세요</h1>
+      <p class="mt-2 text-base text-white/75">재고 차감은 레시피를 등록한 뒤 켤 수 있어요</p>
+      <form class="mt-8 space-y-2.5 text-left" novalidate>
+          <div class="space-y-2 rounded-2xl border border-white/15 p-3" data-testid="menu-row-0">
+            <input id="menus.0.name" aria-label="메뉴명" placeholder="메뉴명" value="마르게리타 화덕피자" class="h-12 w-full rounded-xl border border-white/15 bg-[#0d0a26]/45 px-4 text-base text-white placeholder:text-white/70 backdrop-blur-md [color-scheme:dark] focus:border-[#b3a4ff] focus:ring-4 focus:ring-[#b3a4ff]/25 focus:outline-none">
+            <div class="flex items-center gap-2">
+              <input id="menus.0.category" aria-label="카테고리" placeholder="카테고리" value="피자" class="h-12 rounded-xl border border-white/15 bg-[#0d0a26]/45 px-3 text-base text-white placeholder:text-white/70 backdrop-blur-md [color-scheme:dark] focus:border-[#b3a4ff] focus:ring-4 focus:ring-[#b3a4ff]/25 focus:outline-none w-20 shrink-0">
+              <input id="menus.0.price" aria-label="단가(원)" placeholder="단가(원)" inputmode="numeric" value="16000" class="h-12 rounded-xl border border-white/15 bg-[#0d0a26]/45 px-3 text-base text-white placeholder:text-white/70 backdrop-blur-md [color-scheme:dark] focus:border-[#b3a4ff] focus:ring-4 focus:ring-[#b3a4ff]/25 focus:outline-none min-w-0 flex-1">
+              <label class="flex shrink-0 items-center gap-1 text-sm text-white/90"><input type="checkbox" checked class="size-4 accent-[#b3a4ff]">판매</label>
+              <button type="button" aria-label="메뉴 삭제" class="flex size-9 shrink-0 items-center justify-center rounded-lg text-white/75 hover:bg-white/10"><span data-icon="trash2" class="size-4"></span></button>
+            </div>
+          </div>
+          <div class="space-y-2 rounded-2xl border border-white/15 p-3" data-testid="menu-row-1">
+            <input id="menus.1.name" aria-label="메뉴명" placeholder="메뉴명" value="페페로니 듬뿍 화덕피자" class="h-12 w-full rounded-xl border border-white/15 bg-[#0d0a26]/45 px-4 text-base text-white placeholder:text-white/70 backdrop-blur-md [color-scheme:dark] focus:border-[#b3a4ff] focus:ring-4 focus:ring-[#b3a4ff]/25 focus:outline-none">
+            <div class="flex items-center gap-2">
+              <input id="menus.1.category" aria-label="카테고리" placeholder="카테고리" value="피자" class="h-12 rounded-xl border border-white/15 bg-[#0d0a26]/45 px-3 text-base text-white placeholder:text-white/70 backdrop-blur-md [color-scheme:dark] focus:border-[#b3a4ff] focus:ring-4 focus:ring-[#b3a4ff]/25 focus:outline-none w-20 shrink-0">
+              <input id="menus.1.price" aria-label="단가(원)" placeholder="단가(원)" inputmode="numeric" value="18000" class="h-12 rounded-xl border border-white/15 bg-[#0d0a26]/45 px-3 text-base text-white placeholder:text-white/70 backdrop-blur-md [color-scheme:dark] focus:border-[#b3a4ff] focus:ring-4 focus:ring-[#b3a4ff]/25 focus:outline-none min-w-0 flex-1">
+              <label class="flex shrink-0 items-center gap-1 text-sm text-white/90"><input type="checkbox" checked class="size-4 accent-[#b3a4ff]">판매</label>
+              <button type="button" aria-label="메뉴 삭제" class="flex size-9 shrink-0 items-center justify-center rounded-lg text-white/75 hover:bg-white/10"><span data-icon="trash2" class="size-4"></span></button>
+            </div>
+          </div>
+          <div class="space-y-2 rounded-2xl border border-white/15 p-3" data-testid="menu-row-2">
+            <input id="menus.2.name" aria-label="메뉴명" placeholder="메뉴명" value="콜라" class="h-12 w-full rounded-xl border border-white/15 bg-[#0d0a26]/45 px-4 text-base text-white placeholder:text-white/70 backdrop-blur-md [color-scheme:dark] focus:border-[#b3a4ff] focus:ring-4 focus:ring-[#b3a4ff]/25 focus:outline-none">
+            <div class="flex items-center gap-2">
+              <input id="menus.2.category" aria-label="카테고리" placeholder="카테고리" value="음료" class="h-12 rounded-xl border border-white/15 bg-[#0d0a26]/45 px-3 text-base text-white placeholder:text-white/70 backdrop-blur-md [color-scheme:dark] focus:border-[#b3a4ff] focus:ring-4 focus:ring-[#b3a4ff]/25 focus:outline-none w-20 shrink-0">
+              <input id="menus.2.price" aria-label="단가(원)" placeholder="단가(원)" inputmode="numeric" value="2500" class="h-12 rounded-xl border border-white/15 bg-[#0d0a26]/45 px-3 text-base text-white placeholder:text-white/70 backdrop-blur-md [color-scheme:dark] focus:border-[#b3a4ff] focus:ring-4 focus:ring-[#b3a4ff]/25 focus:outline-none min-w-0 flex-1">
+              <label class="flex shrink-0 items-center gap-1 text-sm text-white/90"><input type="checkbox" checked class="size-4 accent-[#b3a4ff]">판매</label>
+              <button type="button" aria-label="메뉴 삭제" class="flex size-9 shrink-0 items-center justify-center rounded-lg text-white/75 hover:bg-white/10"><span data-icon="trash2" class="size-4"></span></button>
+            </div>
+          </div>
+          <button type="button" data-testid="menu-add" class="flex h-12 w-full items-center justify-center gap-1.5 rounded-xl border border-dashed border-white/35 text-[0.95rem] font-semibold text-white hover:bg-white/10"><span data-icon="plus" class="size-4"></span>메뉴 추가</button>
+        <div class="flex gap-2 pt-4"><button type="button" data-set-state="pos" class="inline-flex h-[52px] w-28 shrink-0 items-center justify-center rounded-xl bg-white/15 px-5 text-lg font-semibold text-white backdrop-blur-md transition-colors hover:bg-white/25">이전</button><button type="button" data-set-state="confirm" class="inline-flex h-[52px] flex-1 items-center justify-center rounded-xl bg-brand px-5 text-lg font-bold text-white transition-colors hover:bg-brand-strong">다음</button></div>
+      </form>
+    </div>
+    <div data-when="confirm">
+      <div class="flex justify-center gap-2" aria-label="4 / 4 단계"><span class="h-1 w-9 rounded-full bg-white/20"></span><span class="h-1 w-9 rounded-full bg-white/20"></span><span class="h-1 w-9 rounded-full bg-white/20"></span><span class="h-1 w-9 rounded-full bg-[#b3a4ff]"></span></div>
+      <h1 class="mt-9 text-[1.75rem] font-extrabold tracking-tight">입력한 내용을 확인해 주세요</h1>
+      <p class="mt-2 text-base text-white/75">완료하면 오늘 밤부터 사주라가 계산을 시작해요</p>
+      <div class="mt-8 space-y-4 rounded-2xl border border-white/15 bg-[#0d0a26]/45 p-5 text-left text-[0.95rem] backdrop-blur-md">
+        <section>
+          <h2 class="font-bold">매장</h2>
+          <dl class="mt-1.5 grid grid-cols-[5rem_1fr] gap-y-1"><dt class="text-white/75">매장명</dt><dd>사주라 화덕피자 성수점</dd><dt class="text-white/75">업종</dt><dd>양식</dd><dt class="text-white/75">규모</dt><dd>중형 (11~30석)</dd><dt class="text-white/75">운영</dt><dd>홀+배달</dd><dt class="text-white/75">주소</dt><dd>서울 성동구 성수이로 00</dd><dt class="text-white/75">전화</dt><dd>02-000-0000</dd></dl>
+        </section>
+        <section class="border-t border-white/15 pt-4">
+          <h2 class="font-bold">POS</h2>
+          <p class="mt-1">CSV 업로드만 사용</p>
+        </section>
+        <section class="border-t border-white/15 pt-4">
+          <h2 class="font-bold">메뉴 3개</h2>
+          <ul class="mt-1.5 space-y-1"><li>마르게리타 화덕피자 · 피자 · 16,000원</li><li>페페로니 듬뿍 화덕피자 · 피자 · 18,000원</li><li>콜라 · 음료 · 2,500원</li></ul>
+        </section>
+      </div>
+      <div class="text-left">
+        <div class="flex gap-2 pt-4"><button type="button" data-set-state="menus" class="inline-flex h-[52px] w-28 shrink-0 items-center justify-center rounded-xl bg-white/15 px-5 text-lg font-semibold text-white backdrop-blur-md transition-colors hover:bg-white/25">이전</button><button type="button" data-go-dashboard data-testid="confirm-submit" class="inline-flex h-[52px] flex-1 items-center justify-center rounded-xl bg-brand px-5 text-lg font-bold text-white transition-colors hover:bg-brand-strong">온보딩 완료</button></div>
+      </div>
+    </div>
+    <div data-when="confirm-error">
+      <div class="flex justify-center gap-2" aria-label="4 / 4 단계"><span class="h-1 w-9 rounded-full bg-white/20"></span><span class="h-1 w-9 rounded-full bg-white/20"></span><span class="h-1 w-9 rounded-full bg-white/20"></span><span class="h-1 w-9 rounded-full bg-[#b3a4ff]"></span></div>
+      <h1 class="mt-9 text-[1.75rem] font-extrabold tracking-tight">입력한 내용을 확인해 주세요</h1>
+      <p class="mt-2 text-base font-semibold text-[#ffd6d6]" role="alert">제출 중 오류가 났어요. 다시 시도해 주세요</p>
+      <div class="mt-8 space-y-4 rounded-2xl border border-white/15 bg-[#0d0a26]/45 p-5 text-left text-[0.95rem] backdrop-blur-md">
+        <section>
+          <h2 class="font-bold">매장</h2>
+          <dl class="mt-1.5 grid grid-cols-[5rem_1fr] gap-y-1"><dt class="text-white/75">매장명</dt><dd>사주라 화덕피자 성수점</dd><dt class="text-white/75">업종</dt><dd>양식</dd><dt class="text-white/75">규모</dt><dd>중형 (11~30석)</dd><dt class="text-white/75">운영</dt><dd>홀+배달</dd><dt class="text-white/75">주소</dt><dd>서울 성동구 성수이로 00</dd><dt class="text-white/75">전화</dt><dd>02-000-0000</dd></dl>
+        </section>
+        <section class="border-t border-white/15 pt-4">
+          <h2 class="font-bold">POS</h2>
+          <p class="mt-1">CSV 업로드만 사용</p>
+        </section>
+        <section class="border-t border-white/15 pt-4">
+          <h2 class="font-bold">메뉴 3개</h2>
+          <ul class="mt-1.5 space-y-1"><li>마르게리타 화덕피자 · 피자 · 16,000원</li><li>페페로니 듬뿍 화덕피자 · 피자 · 18,000원</li><li>콜라 · 음료 · 2,500원</li></ul>
+        </section>
+      </div>
+      <div class="text-left">
+        <div class="flex gap-2 pt-4"><button type="button" data-set-state="menus" class="inline-flex h-[52px] w-28 shrink-0 items-center justify-center rounded-xl bg-white/15 px-5 text-lg font-semibold text-white backdrop-blur-md transition-colors hover:bg-white/25">이전</button><button type="button" data-go-dashboard data-testid="confirm-submit" class="inline-flex h-[52px] flex-1 items-center justify-center rounded-xl bg-brand px-5 text-lg font-bold text-white transition-colors hover:bg-brand-strong">온보딩 완료</button></div>
+      </div>
+    </div>
+  </section>
+</main>
+</body>
+</html>

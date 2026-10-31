@@ -8,22 +8,19 @@ const PAGES = {
   login: { file: "02_login.html", route: "/login", name: "로그인" },
   register: { file: "03_register.html", route: "/register", name: "회원가입" },
   verify: { file: "04_verify-business.html", route: "/verify-business", name: "사업자 검증" },
-  ob1: { file: "05_onboarding-store.html", route: "/onboarding/1", name: "온보딩 1 매장 정보" },
-  ob2: { file: "06_onboarding-pos.html", route: "/onboarding/2", name: "온보딩 2 POS 연동" },
-  ob3: { file: "07_onboarding-menus.html", route: "/onboarding/3", name: "온보딩 3 메뉴 등록" },
-  ob4: { file: "08_onboarding-confirm.html", route: "/onboarding/4", name: "온보딩 4 확인" },
-  home: { file: "09_home.html", route: "/", name: "홈" },
-  forecast: { file: "10_forecast.html", route: "/forecast", name: "매출예측" },
-  inventory: { file: "11_inventory.html", route: "/inventory", name: "재고관리" },
-  orders: { file: "12_orders.html", route: "/orders", name: "발주추천" },
-  menus: { file: "13_menus.html", route: "/menus", name: "메뉴 관리" },
-  upload: { file: "14_sales-upload.html", route: "/sales/upload", name: "매출 CSV 업로드" },
-  settings: { file: "15_settings.html", route: "/settings", name: "설정(앱: 더보기)" },
-  pos: { file: "16_settings-pos.html", route: "/settings/pos", name: "POS 연동 설정" },
-  notifications: { file: "17_settings-notifications.html", route: "/settings/notifications", name: "알림 설정" },
-  account: { file: "18_settings-account.html", route: "/settings/account", name: "계정 정보" },
-  appinfo: { file: "19_settings-app-info.html", route: "/settings/app-info", name: "앱 정보" },
-  admin: { file: "20_admin-verifications.html", route: "/admin/verifications", name: "관리자 심사" },
+  onboarding: { file: "05_onboarding.html", route: "/onboarding/1~4", name: "매장 온보딩" },
+  home: { file: "06_home.html", route: "/", name: "홈" },
+  forecast: { file: "07_forecast.html", route: "/forecast", name: "매출예측" },
+  inventory: { file: "08_inventory.html", route: "/inventory", name: "재고관리" },
+  orders: { file: "09_orders.html", route: "/orders", name: "발주추천" },
+  menus: { file: "10_menus.html", route: "/menus", name: "메뉴 관리" },
+  upload: { file: "11_sales-upload.html", route: "/sales/upload", name: "매출 CSV 업로드" },
+  settings: { file: "12_settings.html", route: "/settings", name: "설정(앱: 더보기)" },
+  pos: { file: "13_settings-pos.html", route: "/settings/pos", name: "POS 연동 설정" },
+  notifications: { file: "14_settings-notifications.html", route: "/settings/notifications", name: "알림 설정" },
+  account: { file: "15_settings-account.html", route: "/settings/account", name: "계정 정보" },
+  appinfo: { file: "16_settings-app-info.html", route: "/settings/app-info", name: "앱 정보" },
+  admin: { file: "17_admin-verifications.html", route: "/admin/verifications", name: "관리자 심사" },
 };
 
 const href = (key) => PAGES[key]?.file ?? "#";
@@ -939,6 +936,7 @@ function applyState(state) {
   for (const b of document.querySelectorAll("[data-mock-state]")) {
     b.setAttribute("aria-pressed", String(b.dataset.mockState === state));
   }
+  skyForState(state);
   const url = new URL(location.href);
   url.searchParams.set("state", state);
   history.replaceState(null, "", url);
@@ -947,6 +945,25 @@ function applyState(state) {
     for (const el of document.querySelectorAll("[data-chart]")) if (el.clientWidth > 0) renderChart(el);
   });
   if (inFrame) parent.postMessage({ mock: "page", page: document.body.dataset.page, state }, "*");
+}
+
+// 단계마다 하늘 시각이 다른 화면(온보딩) — body[data-sky-steps]="상태:HH:MM,…". 상태가 바뀌면 그 시각으로 앞뒤 중 가까운 쪽으로 흐른다
+function skyForState(state) {
+  const steps = Object.fromEntries(
+    (document.body.dataset.skySteps ?? "")
+      .split(",")
+      .filter(Boolean)
+      .map((p) => [p.slice(0, p.indexOf(":")), p.slice(p.indexOf(":") + 1)]),
+  );
+  if (!steps[state] || !document.querySelector(".bd-day")) return;
+  const [h, m] = steps[state].split(":").map(Number);
+  const from = ((Math.round(DAY.mf) % 1440) + 1440) % 1440;
+  let to = h * 60 + m;
+  while (to - from > 720) to -= 1440;
+  while (from - to > 720) to += 1440;
+  DAY.redraw = () => drawDay(h * 60 + m);
+  if (to === from || matchMedia("(prefers-reduced-motion: reduce)").matches) DAY.redraw();
+  else flowSky(from, to, 0, 1, 900, ++DAY.run);
 }
 
 function parseStates(raw) {
