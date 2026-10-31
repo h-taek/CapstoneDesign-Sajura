@@ -7,7 +7,7 @@
 <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4.0.17"></script>
 <script src="mockup.js" defer></script>
 </head>
-<!-- v2 홈 — 배치 잡는 중. 웹은 위 3열·아래 2열 카드가 패널 높이를 채운다(내용은 아직 비움). 앱은 세로로 쌓는다 -->
+<!-- v2 홈 — 배치 잡는 중. 웹은 위 3열·아래 1:2, 카드는 내용 높이대로 두고 넘치면 패널째 스크롤한다. 앱은 세로로 쌓는다 -->
 <body data-page="home" data-states="기본:default">
 <div data-shell="home">
   <!-- 머리글 — 왼쪽 위, 제목·부제 두 줄(다른 대시보드 화면과 같은 높이) -->
@@ -15,7 +15,7 @@
     <h1 class="text-xl font-bold tracking-tight text-ink lg:text-[1.75rem]">Test</h1>
     <p class="text-[0.95rem] text-ink-3">Test</p>
   </header>
-  <div class="grid gap-4 lg:h-[calc(100%-68px-0.75rem)] lg:grid-rows-2">
+  <div class="grid gap-4">
     <div class="grid grid-cols-1 gap-4 lg:grid-cols-3">
       <!-- 대표 카드 — 오늘 예상 매출(GET /api/forecast predicted_sales) + 평소 대비(explanation.deviation_vs_baseline, 기준 직전 7영업일 평균 136만원)
            + 할 일 버튼 + 많이 나갈 메뉴 상위 3개(menu_forecast, 수량 숫자 없이 1위 대비 막대) -->
@@ -92,8 +92,8 @@
     </div>
     <!-- 아래 줄 1:2 — 위 줄 3칸 격자에 세로선을 맞춘다 -->
     <div class="grid grid-cols-1 gap-4 lg:grid-cols-3">
-      <section class="min-h-40 rounded-2xl glass-card"></section>
-      <section class="min-h-40 rounded-2xl glass-card lg:col-span-2"></section>
+      <section class="min-h-96 rounded-2xl glass-card"></section>
+      <section class="min-h-96 rounded-2xl glass-card lg:col-span-2"></section>
     </div>
   </div>
 </div>
