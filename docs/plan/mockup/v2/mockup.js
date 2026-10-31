@@ -927,8 +927,8 @@ function renderShell(el) {
   <nav aria-label="주 메뉴" style="--d:0.1s" class="en en-left glass-bar fixed top-[calc(6.5rem+68px)] left-[calc(3rem-29px)] z-30 hidden flex-col items-center gap-2 rounded-full p-1.5 lg:flex">${sideNav}</nav>
 
   <!-- 본문 패널 — 안에서 따로 스크롤하지 않고 패널째 화면과 함께 스크롤된다. 상단 바·왼쪽 메뉴·하단 알약·탭 막대는 제자리에 떠 있다.
-       내용이 짧아도 화면 높이만큼은 채운다 -->
-  <main style="--d:0.15s" class="en glass relative z-20 mx-3 mt-[4.75rem] mb-[5.75rem] min-h-[calc(100dvh-10.5rem)] rounded-[1.75rem] px-3 py-5 lg:mt-[5.25rem] lg:mr-4 lg:mb-12 lg:ml-12 lg:min-h-[calc(100dvh-8.25rem)] lg:pr-5 lg:pl-[calc(29px+1.25rem)] lg:py-5">
+       내용이 짧아도 화면 높이만큼은 채운다. 바깥 그림자는 두지 않는다(안쪽 반사광만) -->
+  <main style="--d:0.15s; box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.6), inset 0 -1px 0 rgb(255 255 255 / 0.15)" class="en glass relative z-20 mx-3 mt-[4.75rem] mb-[5.75rem] min-h-[calc(100dvh-10.5rem)] rounded-[1.75rem] px-3 py-5 lg:mt-[5.25rem] lg:mr-4 lg:mb-12 lg:ml-12 lg:min-h-[calc(100dvh-8.25rem)] lg:pr-5 lg:pl-[calc(29px+1.25rem)] lg:py-5">
     ${content}
   </main>
 
