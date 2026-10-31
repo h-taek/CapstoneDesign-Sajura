@@ -93,14 +93,6 @@ const THEME_CSS = `
   border: 1px solid rgb(255 255 255 / 0.5);
   box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.7);
 }
-/* 밤하늘 위 묶음 상자 — 젖빛(흰) 유리는 어두운 하늘에서 탁한 회색이 되어 남색을 옅게 깐 스모크 유리를 쓴다. 윗변에만 가는 반사광 */
-@utility glass-night {
-  background: linear-gradient(180deg, rgb(40 30 100 / 0.5), rgb(13 10 38 / 0.55));
-  -webkit-backdrop-filter: blur(20px) saturate(140%);
-  backdrop-filter: blur(20px) saturate(140%);
-  border: 1px solid rgb(255 255 255 / 0.14);
-  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.22), 0 16px 40px -16px rgb(0 0 0 / 0.5);
-}
 `;
 
 (function injectTheme() {
