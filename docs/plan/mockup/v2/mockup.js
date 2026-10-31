@@ -913,6 +913,14 @@ function renderShell(el) {
       <p class="text-base font-bold text-ink">알림</p>
       <button type="button" class="text-sm font-semibold text-brand hover:text-brand-strong">모두 읽음</button>
     </div>
+    <!-- POS 연동 끊김 — 알림이 아니라 상태(GET /api/store/pos/status ERROR·DISCONNECTED)라 맨 위 고정 항목으로. 홈 '연동 끊김' 상태에서 보인다 -->
+    <a data-when="pos" href="${href("pos")}" class="mb-1 flex gap-3 rounded-2xl bg-danger-soft/70 px-3 py-2.5 hover:bg-danger-soft">
+      <span class="mt-0.5 shrink-0 text-danger">${icon("alertTriangle", "size-4")}</span>
+      <span class="min-w-0 flex-1">
+        <span class="block text-[0.95rem] font-semibold text-ink">POS 연동이 끊겼어요</span>
+        <span class="block text-sm text-ink-3">새 매출이 들어오지 않아요. 눌러서 다시 연동하세요.</span>
+      </span>
+    </a>
     <ul>${NOTIS.map((n) => `<li><a href="${href(n.to)}" class="flex gap-3 rounded-2xl px-3 py-2.5 hover:bg-white/60">
       <span class="mt-2 size-2 shrink-0 rounded-full ${n.read ? "" : n.dot}"></span>
       <span class="min-w-0 flex-1">
