@@ -113,7 +113,7 @@
         </section>
       </div>
       <!-- 쿠팡 단가 추세 — 재고 재료와 연결된 쿠팡 상품의 공용 단가 최근 30일(재료 단위). 30일 전 대비 변화 폭이 큰 순 4개를 카드로(변동 없는 재료는 뒤로).
-           카드마다 재료명 · 지금 단가 · 30일 전 대비(오름 빨강·내림 파랑) · 30일 면적 곡선(세로축은 값 범위에 맞추고 그리지 않음, 가로는 글자 없이 축선만). 공용 단가 이력 저장이 정해져야 쓸 수 있다(미정). 값은 09 단가와 맞춘 목업 -->
+           카드마다 재료명 · 지금 단가 · 30일 전 대비(오름 빨강·내림 파랑) · 30일 면적 곡선(세로축은 값 범위에 맞추고 그리지 않음, 가로는 글자 없이 축선만). GET /api/inventory/price-trends?days=30, 값은 09 단가와 맞춘 목업 -->
       <section class="flex flex-col rounded-2xl p-5 glass-card">
         <div class="flex items-center justify-between gap-2">
           <h2 class="text-base font-bold text-ink">쿠팡 단가 추세</h2>

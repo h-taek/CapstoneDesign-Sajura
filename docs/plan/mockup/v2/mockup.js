@@ -213,9 +213,9 @@ function icon(name, cls = "size-5", strokeWidth = 2) {
 // 앱(lg 미만): 상단 바 + 본문 패널 + 하단 알약 탭
 const WEB_NAV = [
   { key: "home", label: "홈", icon: "home" },
-  { key: "forecast", label: "매출예측", icon: "trendingUp" },
-  { key: "inventory", label: "재고관리", icon: "boxes" },
-  { key: "orders", label: "발주추천", icon: "clipboardList" },
+  { key: "forecast", label: "매출 예측", icon: "trendingUp" },
+  { key: "inventory", label: "재고 관리", icon: "boxes" },
+  { key: "orders", label: "추천발주", icon: "clipboardList" },
   { key: "menus", label: "메뉴 관리", icon: "chefHat" },
 ];
 
