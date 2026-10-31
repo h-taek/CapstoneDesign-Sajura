@@ -3389,60 +3389,6 @@
         }
       }
     },
-    "/api/prices/ingredients": {
-      "get": {
-        "tags": [
-          "prices"
-        ],
-        "summary": "Get Ingredient Prices",
-        "description": "식당에서 자주 쓰는 식자재 소매가 — KAMIS 오픈API(키 미설정 시 샘플 데이터).",
-        "operationId": "get_ingredient_prices_api_prices_ingredients_get",
-        "parameters": [
-          {
-            "name": "authorization",
-            "in": "header",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "Authorization"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/IngredientPriceResponse"
-                  },
-                  "title": "Response Get Ingredient Prices Api Prices Ingredients Get"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
     "/api/notifications": {
       "get": {
         "tags": [
@@ -4936,44 +4882,6 @@
           "item_name"
         ],
         "title": "IngredientItemWithName"
-      },
-      "IngredientPriceResponse": {
-        "properties": {
-          "item_name": {
-            "type": "string",
-            "title": "Item Name"
-          },
-          "price": {
-            "type": "integer",
-            "title": "Price"
-          },
-          "unit": {
-            "type": "string",
-            "title": "Unit"
-          },
-          "direction": {
-            "type": "string",
-            "title": "Direction"
-          },
-          "change_percent": {
-            "type": "number",
-            "title": "Change Percent"
-          },
-          "source": {
-            "type": "string",
-            "title": "Source",
-            "default": "KAMIS"
-          }
-        },
-        "type": "object",
-        "required": [
-          "item_name",
-          "price",
-          "unit",
-          "direction",
-          "change_percent"
-        ],
-        "title": "IngredientPriceResponse"
       },
       "InventoryDeduction": {
         "properties": {

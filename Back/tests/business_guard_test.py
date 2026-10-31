@@ -18,7 +18,6 @@ GUARDED = [
     ("GET", "/api/orders"),
     ("GET", "/api/forecast"),
     ("GET", "/api/store/pos/status"),
-    ("GET", "/api/prices/ingredients"),
     ("PATCH", "/api/store"),
     ("POST", "/api/store/onboarding/complete"),
 ]

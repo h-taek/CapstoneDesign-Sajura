@@ -770,26 +770,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/prices/ingredients": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get Ingredient Prices
-         * @description 식당에서 자주 쓰는 식자재 소매가 — KAMIS 오픈API(키 미설정 시 샘플 데이터).
-         */
-        get: operations["get_ingredient_prices_api_prices_ingredients_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/api/notifications": {
         parameters: {
             query?: never;
@@ -1264,24 +1244,6 @@ export interface components {
             unit: string;
             /** Item Name */
             item_name: string;
-        };
-        /** IngredientPriceResponse */
-        IngredientPriceResponse: {
-            /** Item Name */
-            item_name: string;
-            /** Price */
-            price: number;
-            /** Unit */
-            unit: string;
-            /** Direction */
-            direction: string;
-            /** Change Percent */
-            change_percent: number;
-            /**
-             * Source
-             * @default KAMIS
-             */
-            source?: string;
         };
         /** InventoryDeduction */
         InventoryDeduction: {
@@ -4107,37 +4069,6 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["CSVUploadResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    get_ingredient_prices_api_prices_ingredients_get: {
-        parameters: {
-            query?: never;
-            header?: {
-                authorization?: string | null;
-            };
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["IngredientPriceResponse"][];
                 };
             };
             /** @description Validation Error */

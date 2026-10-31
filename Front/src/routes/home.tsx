@@ -1,7 +1,7 @@
 // 홈 화면 — 리디자인 v2.
-// 맨 위 "오늘 할 일" 한 줄 → 큰 숫자 KPI → 그래프·인기 메뉴 → 재고·시세 순서.
-// 전부 실제 GET /api/sales/{summary,trends,top-menus} · /api/inventory · /api/orders/recommend ·
-// /api/prices 데이터로 렌더링하며,
+// 맨 위 "오늘 할 일" 한 줄 → 큰 숫자 KPI → 그래프·인기 메뉴 → 재고 순서.
+// 전부 실제 GET /api/sales/{summary,trends,top-menus} · /api/inventory · /api/orders/recommend
+// 데이터로 렌더링하며,
 // 시스템에 없는 값(신규 고객·추천 공급처 등)은 가짜로 채우지 않는다.
 import { useQuery } from "@tanstack/react-query";
 import {
@@ -9,19 +9,14 @@ import {
   ArrowRight,
   CalendarDays,
   CheckCircle2,
-  Minus,
   Receipt,
-  TrendingDown,
-  TrendingUp,
   Wallet,
 } from "lucide-react";
 import { useState } from "react";
 import { Link } from "react-router";
 import { listInventory } from "../api/endpoints/inventory";
 import { getAIRecommend } from "../api/endpoints/orders";
-import { getIngredientPrices } from "../api/endpoints/prices";
 import { getSalesSummary, getSalesTrends, getTopMenus } from "../api/endpoints/sales";
-import { IngredientIcon } from "../components/dashboard/ingredient-icon";
 import { RevenueBarChart } from "../components/dashboard/revenue-chart";
 import { DashboardShell } from "../components/dashboard/shell";
 import { AlertBadge } from "../components/inventory/alert-badge";
@@ -38,11 +33,6 @@ import {
 } from "../components/ui/card";
 import { formatQty, formatWon, formatWonShort } from "../lib/format";
 import { cn } from "../lib/utils";
-
-function previousPrice(price: number, changePercent: number): number {
-  if (changePercent === 0) return price;
-  return Math.round(price / (1 + changePercent / 100));
-}
 
 export default function HomePage() {
   const { data: summary } = useQuery({
@@ -82,11 +72,6 @@ export default function HomePage() {
     queryKey: ["top-menus"],
     queryFn: () => getTopMenus(4),
     staleTime: 60_000,
-  });
-  const { data: ingredientPrices = [] } = useQuery({
-    queryKey: ["ingredient-prices"],
-    queryFn: getIngredientPrices,
-    staleTime: 5 * 60_000,
   });
   const { data: inventory = [] } = useQuery({
     queryKey: ["inventory"],
@@ -286,61 +271,6 @@ export default function HomePage() {
         </div>
 
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-          <Card as="section" className="space-y-4 p-5 lg:p-6">
-            <SectionTitle
-              title="식자재 시세"
-              description={
-                ingredientPrices[0]
-                  ? "KAMIS 농산물 가격정보 · 샘플 데이터(실 API 키 연동 전)"
-                  : "KAMIS 농산물 가격정보 · 불러오는 중"
-              }
-            />
-            {ingredientPrices.length === 0 ? (
-              <EmptyState>시세 정보를 불러오는 중입니다.</EmptyState>
-            ) : (
-              <ul className="divide-y divide-line-soft">
-                {ingredientPrices.map((item) => {
-                  const up = item.direction === "UP";
-                  const down = item.direction === "DOWN";
-                  return (
-                    <li key={item.item_name} className="flex items-center gap-3 py-3">
-                      <IngredientIcon itemName={item.item_name} />
-                      <div className="min-w-0 flex-1">
-                        <p className="truncate text-base font-semibold text-ink">
-                          {item.item_name}
-                          <span className="ml-1 text-sm font-normal text-ink-3">({item.unit})</span>
-                        </p>
-                        <p className="text-sm text-ink-3">
-                          직전 {formatWon(previousPrice(item.price, item.change_percent))}
-                        </p>
-                      </div>
-                      <div className="text-right">
-                        <p className="tabular text-base font-bold text-ink">
-                          {formatWon(item.price)}
-                        </p>
-                        <p
-                          className={cn(
-                            "inline-flex items-center gap-0.5 text-sm font-semibold",
-                            up ? "text-up" : down ? "text-down" : "text-ink-3",
-                          )}
-                        >
-                          {up ? (
-                            <TrendingUp className="size-4" />
-                          ) : down ? (
-                            <TrendingDown className="size-4" />
-                          ) : (
-                            <Minus className="size-4" />
-                          )}
-                          {Math.abs(item.change_percent).toFixed(1)}%
-                        </p>
-                      </div>
-                    </li>
-                  );
-                })}
-              </ul>
-            )}
-          </Card>
-
           <Card as="section" className="hidden space-y-4 p-5 lg:block lg:p-6">
             <SectionTitle
               title="누적 매출"
