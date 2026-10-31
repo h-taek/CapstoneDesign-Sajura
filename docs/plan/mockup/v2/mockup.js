@@ -956,7 +956,7 @@ function renderChart(el) {
   // 요소 크기 그대로 그려 글자가 늘어나지 않게 한다
   const W = el.clientWidth || 600;
   const H = el.clientHeight || 240;
-  const B = 26;
+  const B = el.dataset.font != null ? Number(el.dataset.font) + 10 : 26; // 가로축 글자 띠. 글자 크기를 준 그래프는 글자에 맞춰 좁게
   const max = Math.max(...values) * 1.15 || 1;
   const fmt = (v) => (isRevenue ? `${Math.round(v / 10000)}만` : String(Math.round(v)));
   // 세로축 숫자 형식은 PR(만 단위) 그대로 두고, 칸 폭만 가장 긴 숫자에 맞춘다
@@ -984,7 +984,7 @@ function renderChart(el) {
   body += labels
     .map((l, i) =>
       (fromEnd ? labels.length - 1 - i : i) % step === 0
-        ? `<text x="${x(i)}" y="${H - 6}" text-anchor="middle" font-size="${fs}" fill="${CHART.tick}">${l}</text>`
+        ? `<text x="${x(i)}" y="${tight ? H - 2 : H - 6}" text-anchor="middle" font-size="${fs}" fill="${CHART.tick}">${l}</text>`
         : "",
     )
     .join("");
