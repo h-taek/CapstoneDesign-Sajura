@@ -113,11 +113,18 @@ const THEME_CSS = `
   box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.45), inset 0 -1px 0 rgb(255 255 255 / 0.12),
     0 8px 20px -12px rgb(107 78 255 / 0.45);
 }
-/* 패널 안쪽 카드 — 이미 흐려진 패널 위라 흐림은 다시 걸지 않고 흰색만 더 올린다 */
+/* 카드 — 배경 위에 바로 놓이면 뒤를 흐려 유리 결을 낸다(바깥은 또렷, 안은 뭉개짐). 카드·패널 안에 든 안쪽 판은 아래 규칙으로 흐림을 끈다 */
 @utility glass-card {
   background: rgb(255 255 255 / 0.38);
+  -webkit-backdrop-filter: blur(20px) saturate(160%);
+  backdrop-filter: blur(20px) saturate(160%);
   border: 1px solid rgb(255 255 255 / 0.5);
   box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.7);
+}
+/* 안쪽 판 — 이미 흐려진 판 위라 흐림을 다시 걸지 않는다 */
+:is(.glass, .glass-card, .glass-strong, .glass-brand) .glass-card {
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
 }
 `;
 
