@@ -8,7 +8,7 @@ from __future__ import annotations
 import re
 from collections.abc import Iterable
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import date, datetime, timedelta
 from decimal import ROUND_HALF_UP, Decimal
 
 Q3 = Decimal("0.001")
@@ -172,3 +172,39 @@ def item_unit_price(
     if per_unit is None or factor is None:
         return None
     return (per_unit * factor).quantize(Q3, rounding=ROUND_HALF_UP)
+
+
+def kst_date(utc_naive: datetime) -> date:
+    """UTC naive 시각 → 한국 날짜. 단가 이력·연결 이력의 날짜 기준 (01_basic_design.md §3.3.1)."""
+    return (utc_naive + timedelta(hours=9)).date()
+
+
+def daily_unit_prices(
+    dates: list[date],
+    links: list[tuple[date, str]],
+    history: dict[str, list[tuple[date, Decimal]]],
+    content_units: dict[str, str | None],
+    item_unit: str,
+) -> list[Decimal | None]:
+    """재고 품목의 날짜별 단가(재료 단위 1당 원) — 01_basic_design.md §3.3.1.
+
+    날짜마다 그날 연결돼 있던 상품(그 날짜까지의 마지막 연결)의 그날 공용 단가(그 날짜까지의
+    마지막 이력)를 재료 단위로 바꾼다. 이력이 없는 날은 직전 값이 이어지고, 연결이 바뀐 날 앞뒤는
+    상품이 달라도 이어진다.
+    그날 연결이 없거나, 그 날짜까지 이력이 없거나, 재료 단위로 바꿀 수 없으면 None.
+    links는 (연결 날짜, itemId), history는 itemId → (날짜, 공용 단가) — 둘 다 날짜 오름차순.
+    """
+    out: list[Decimal | None] = []
+    for d in dates:
+        linked = None
+        for linked_on, coupang_item_id in links:
+            if linked_on > d:
+                break
+            linked = coupang_item_id
+        price = None
+        for priced_on, unit_price in history.get(linked, []) if linked else []:
+            if priced_on > d:
+                break
+            price = unit_price
+        out.append(item_unit_price(price, content_units.get(linked), item_unit) if linked else None)
+    return out

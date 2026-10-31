@@ -16,7 +16,7 @@ from sqlalchemy import delete, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core import errors
-from app.models.coupang import CoupangProduct
+from app.models.coupang import CoupangPriceHistory, CoupangProduct, InventoryCoupangLink
 from app.models.inventory_item import (
     AdjustmentReason,
     DisposalLog,
@@ -27,6 +27,7 @@ from app.models.inventory_item import (
 from app.models.menu import Menu, Recipe, RecipeIngredient
 from app.models.notification import Notification, NotificationType
 from app.models.order import OrderApprovalLog, OrderItem, OrderRecommendationItem
+from app.services import coupang_pricing as cp
 from app.services.notification_service import NotificationService
 
 KST = ZoneInfo("Asia/Seoul")
@@ -63,6 +64,12 @@ class ItemStock:
     total_quantity: Decimal
     nearest_expiry: date | None  # 잔여 수량이 남은 로트 중 가장 빠른 소비기한
     product: CoupangProduct | None = None  # 연결된 공용 쿠팡 상품
+
+
+@dataclass
+class PriceTrend:
+    item: InventoryItem
+    points: list[tuple[date, Decimal | None]]  # 기간의 모든 날짜, 재료 단위당 원
 
 
 @dataclass
@@ -110,6 +117,58 @@ class InventoryService:
         return ItemStock(
             item, *agg.get(item_id, (Decimal(0), None)), products.get(item.coupang_item_id)
         )
+
+    async def price_trends(
+        self, *, store_id: str, days: int, today: date
+    ) -> tuple[date, date, list[PriceTrend]]:
+        """매장 재고 품목의 단가 추세 — 기간(오늘과 그 앞 days일)에 값이 하나라도 있는 품목만.
+
+        01_basic_design.md §3.3.1.
+        """
+        start = today - timedelta(days=days)
+        dates = [start + timedelta(days=n) for n in range(days + 1)]
+        items = (
+            await self.session.scalars(
+                select(InventoryItem)
+                .where(InventoryItem.store_id == store_id)
+                .order_by(InventoryItem.name)
+            )
+        ).all()
+        if not items:
+            return start, today, []
+        links: dict[str, list[tuple[date, str]]] = defaultdict(list)
+        for link in await self.session.scalars(
+            select(InventoryCoupangLink)
+            .where(InventoryCoupangLink.item_id.in_([i.item_id for i in items]))
+            .order_by(InventoryCoupangLink.linked_at)
+        ):
+            links[link.item_id].append((cp.kst_date(link.linked_at), link.coupang_item_id))
+        product_ids = {c for rows in links.values() for _, c in rows}
+        if not product_ids:
+            return start, today, []
+        # 기간 앞 마지막 값도 이어 써야 해서 끝 날짜까지의 이력을 모두 읽는다 — 옵션마다 하루 한 행
+        history: dict[str, list[tuple[date, Decimal]]] = defaultdict(list)
+        for row in await self.session.scalars(
+            select(CoupangPriceHistory)
+            .where(
+                CoupangPriceHistory.item_id.in_(product_ids),
+                CoupangPriceHistory.price_date <= today,
+            )
+            .order_by(CoupangPriceHistory.price_date)
+        ):
+            history[row.item_id].append((row.price_date, row.unit_price))
+        units = {
+            p.item_id: p.content_unit
+            for p in await self.session.scalars(
+                select(CoupangProduct).where(CoupangProduct.item_id.in_(product_ids))
+            )
+        }
+        trends = []
+        for item in items:
+            prices = cp.daily_unit_prices(dates, links[item.item_id], history, units, item.unit)
+            if any(p is not None for p in prices):
+                trends.append(PriceTrend(item, list(zip(dates, prices, strict=True))))
+        return start, today, trends
 
     async def _products(self, items: list[InventoryItem]) -> dict[str | None, CoupangProduct]:
         ids = {i.coupang_item_id for i in items if i.coupang_item_id}

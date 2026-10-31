@@ -5,7 +5,9 @@
 
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, Response, status
+from datetime import datetime
+
+from fastapi import APIRouter, Depends, Query, Response, status
 
 from app.api.deps import CurrentUserDep, SessionDep, require_business_access
 from app.models.inventory_item import InventoryLot
@@ -23,9 +25,12 @@ from app.schemas.inventory import (
     LotResponse,
     LotUpdateRequest,
     PendingOrderItem,
+    PriceTrendItem,
+    PriceTrendPoint,
+    PriceTrendResponse,
 )
 from app.services import coupang_pricing
-from app.services.inventory_service import InventoryService, ItemStock
+from app.services.inventory_service import KST, InventoryService, ItemStock
 from app.services.order_service import OrderService
 from app.services.store_service import StoreService
 
@@ -90,6 +95,32 @@ async def list_inventory(session: SessionDep, current: CurrentUserDep) -> Invent
     store_id = await _store_id(session, current.user_id)
     stocks = await InventoryService(session).list_stocks(store_id=store_id)
     return InventoryListResponse(items=[_to_dto(s) for s in stocks])
+
+
+# /{item_id}보다 먼저 등록해야 'price-trends'가 품목 id로 잡히지 않는다
+@router.get("/price-trends", response_model=PriceTrendResponse)
+async def list_price_trends(
+    session: SessionDep,
+    current: CurrentUserDep,
+    days: int = Query(30, ge=1, le=365),
+) -> PriceTrendResponse:
+    store_id = await _store_id(session, current.user_id)
+    start, end, trends = await InventoryService(session).price_trends(
+        store_id=store_id, days=days, today=datetime.now(KST).date()
+    )
+    return PriceTrendResponse(
+        start_date=start,
+        end_date=end,
+        items=[
+            PriceTrendItem(
+                item_id=t.item.item_id,
+                name=t.item.name,
+                unit=t.item.unit,
+                points=[PriceTrendPoint(date=d, unit_price=p) for d, p in t.points],
+            )
+            for t in trends
+        ],
+    )
 
 
 @router.post("", response_model=InventoryItemResponse, status_code=status.HTTP_201_CREATED)

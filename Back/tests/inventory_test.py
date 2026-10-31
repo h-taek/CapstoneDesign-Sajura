@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import io
-from datetime import date, datetime
+from datetime import date, datetime, time, timedelta
 from decimal import Decimal
 
 import pytest
@@ -11,10 +11,13 @@ from httpx import AsyncClient
 from sqlalchemy import select, update
 
 import app.db as app_db
+from app.models.coupang import CoupangPriceHistory, CoupangProduct, InventoryCoupangLink
 from app.models.inventory_item import InventoryItem, InventoryLot
 from app.models.notification import Notification
 from app.services.anomaly_detector import AnomalyDetector, AnomalyFlag
-from app.services.inventory_service import InventoryService
+from app.services.automation_service import utcnow
+from app.services.inventory_service import KST, InventoryService
+from tests.automation_test import coupang_id
 from tests.notifications_test import _store_id
 from tests.sales_test import _create_menu, _csv_bytes, _register_verified_user
 
@@ -503,3 +506,57 @@ async def test_upload_with_anomalies_notifies_once(
     assert [(t.value, body) for t, body in rows] == [
         ("ANOMALY_HIGH", "방금 올린 판매 데이터에서 이상치 2건이 감지됐습니다."),
     ]
+
+
+@pytest.mark.asyncio
+async def test_price_trends_join_links_and_carry_forward(client: AsyncClient) -> None:
+    """단가 추세 — 날짜마다 그날 연결 상품의 그날 공용 단가, 빈 날은 직전 값,
+    연결이 바뀌어도 이어진다. 기간에 값이 없는 품목은 빠진다 (01_basic_design.md §3.3.1)."""
+    _, auth = await _register_verified_user(client)
+    cheese = await _item(client, auth, "모짜렐라", unit="kg")
+    await _item(client, auth, "설탕")  # 연결이 없어 빠진다
+    today = datetime.now(KST).date()
+    old, new = coupang_id(), coupang_id()
+    async with app_db.SessionLocal() as s:
+        for cid in (old, new):
+            s.add(
+                CoupangProduct(
+                    item_id=cid, product_id=cid, product_name="치즈", option_name=None,
+                    sale_price=10000, content_quantity=Decimal(1000), content_unit="g",
+                    unit_price=None, updated_at=utcnow(),
+                )
+            )
+        await s.flush()
+        s.add_all([
+            # 기간(30일) 앞 마지막 값이 첫날부터 이어진다
+            CoupangPriceHistory(
+                item_id=old, price_date=today - timedelta(days=40),
+                unit_price=Decimal("15"), updated_at=utcnow(),
+            ),
+            CoupangPriceHistory(
+                item_id=new, price_date=today - timedelta(days=12),
+                unit_price=Decimal("12"), updated_at=utcnow(),
+            ),
+            # 시각은 UTC — 03시는 한국 12시라 같은 날짜
+            InventoryCoupangLink(
+                item_id=cheese, coupang_item_id=old,
+                linked_at=datetime.combine(today - timedelta(days=60), time(3)),
+            ),
+            InventoryCoupangLink(
+                item_id=cheese, coupang_item_id=new,
+                linked_at=datetime.combine(today - timedelta(days=10), time(3)),
+            ),
+        ])
+        await s.commit()
+
+    r = await client.get("/api/inventory/price-trends?days=30", headers=auth)
+    assert r.status_code == 200, r.text
+    body = r.json()
+    assert (body["start_date"], body["end_date"]) == (
+        str(today - timedelta(days=30)), str(today),
+    )
+    [item] = body["items"]
+    assert (item["name"], item["unit"]) == ("모짜렐라", "kg")
+    prices = [p["unit_price"] for p in item["points"]]
+    # 연결이 바뀐 날(앞에서 21번째 날)부터 새 상품 단가, 그 앞은 옛 상품 단가 — 재료 단위 kg
+    assert prices == [15000.0] * 20 + [12000.0] * 11

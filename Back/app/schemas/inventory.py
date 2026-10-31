@@ -68,6 +68,24 @@ class InventoryListResponse(BaseModel):
     items: list[InventoryItemResponse]
 
 
+class PriceTrendPoint(BaseModel):
+    date: date
+    unit_price: JsonDecimal | None  # 그날 재료 단위당 원. 값이 없으면 null
+
+
+class PriceTrendItem(BaseModel):
+    item_id: str
+    name: str
+    unit: str
+    points: list[PriceTrendPoint]  # 기간의 모든 날짜, 오름차순
+
+
+class PriceTrendResponse(BaseModel):
+    start_date: date
+    end_date: date
+    items: list[PriceTrendItem]
+
+
 class LotCreateRequest(BaseModel):
     quantity: JsonDecimal = Field(gt=0)
     received_at: date

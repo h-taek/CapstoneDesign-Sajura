@@ -18,7 +18,12 @@ from sqlalchemy import delete, func, select, update
 import app.db as app_db
 from app.core.redis import get_redis
 from app.integrations import agent
-from app.models.coupang import CoupangProduct, CoupangStorePrice
+from app.models.coupang import (
+    CoupangPriceHistory,
+    CoupangProduct,
+    CoupangStorePrice,
+    InventoryCoupangLink,
+)
 from app.models.inventory_item import InventoryItem
 from app.models.order import Order, OrderApprovalLog, OrderItem
 from app.schemas.orders import PageElement
@@ -29,6 +34,7 @@ from app.services.automation_service import (
     read_cards,
     utcnow,
 )
+from app.services.coupang_pricing import kst_date
 from tests.conftest import TEST_COUPANG_PREFIX, FakeAgent
 from tests.notifications_test import _store_id
 from tests.sales_test import _register_verified_user
@@ -212,6 +218,29 @@ async def _store_prices(item_id: str) -> dict[str, CoupangStorePrice]:
 async def _item(item_id: str) -> InventoryItem:
     async with app_db.SessionLocal() as session:
         return await session.get(InventoryItem, item_id)
+
+
+async def _links(item_id: str) -> list[str]:
+    """재고 품목의 연결 이력 — 연결한 상품 itemId, 시각 순."""
+    async with app_db.SessionLocal() as session:
+        return list(
+            await session.scalars(
+                select(InventoryCoupangLink.coupang_item_id)
+                .where(InventoryCoupangLink.item_id == item_id)
+                .order_by(InventoryCoupangLink.linked_at)
+            )
+        )
+
+
+async def _history(item_id: str) -> list[tuple[date, Decimal]]:
+    """공용 단가 이력 — (날짜, 단가), 날짜 순."""
+    async with app_db.SessionLocal() as session:
+        rows = await session.scalars(
+            select(CoupangPriceHistory)
+            .where(CoupangPriceHistory.item_id == item_id)
+            .order_by(CoupangPriceHistory.price_date)
+        )
+        return [(r.price_date, r.unit_price) for r in rows]
 
 
 async def _link(
@@ -512,6 +541,7 @@ async def test_cart_added_ends_item_and_links(client: AsyncClient, fake_agent: F
         item = await _item(item_id)
         assert item.coupang_item_id == cid
         assert utcnow() - item.coupang_linked_at < timedelta(minutes=1)
+        assert await _links(item_id) == [cid]  # 처음 연결도 연결 이력에 남는다
 
     r = await finish(client, auth, run_id)
     assert r.status_code == 200, r.text
@@ -578,6 +608,9 @@ async def test_linked_at_kept_only_for_linked_product(client: AsyncClient) -> No
     onion_item = await _item(ids["양파"])
     assert onion_item.coupang_item_id == other
     assert onion_item.coupang_linked_at > before["양파"]
+    # 연결 이력은 상품이 바뀔 때만 남는다
+    assert (await _links(ids["삼겹살"]), await _links(ids["목살"])) == ([], [])
+    assert await _links(ids["양파"]) == [other]
 
 
 @pytest.mark.asyncio
@@ -726,6 +759,8 @@ async def test_majority_across_stores(client: AsyncClient) -> None:
     cid = coupang_id()
     await _observe(stores[0], cid, 10000, unit_text="100g당 1,000원")
     assert ((p := await _product(cid)).sale_price, p.unit_price) == (10000, Decimal("10.0000"))
+    today = kst_date(utcnow())
+    assert await _history(cid) == [(today, Decimal("10.0000"))]  # 그날 공용 단가 한 행
     await asyncio.sleep(1)  # 받은 시각은 초 단위 — '최근'을 가르려면 초를 넘긴다
     await _observe(stores[1], cid, 12000)
     assert (await _product(cid)).sale_price == 12000  # 1:1이면 최근
@@ -754,10 +789,14 @@ async def test_majority_across_stores(client: AsyncClient) -> None:
     await _observe(stores[1], cid, 11000)
     assert ((p := await _product(cid)).sale_price, p.unit_price) == (11000, None)
 
+    # 공용 단가가 빈 결정은 이력에 남기지 않는다 — 그날 행은 마지막으로 정한 단가 그대로
+    assert await _history(cid) == [(today, Decimal("10.0000"))]
+
     # 매장 가격을 받은 적 없는 옵션은 판매가·단가가 비어 있다
     wow = coupang_id()
     await _observe(stores[0], wow, 9600, label="와우할인")
     assert ((p := await _product(wow)).sale_price, p.unit_price) == (None, None)
+    assert await _history(wow) == []
 
 
 @pytest.mark.asyncio

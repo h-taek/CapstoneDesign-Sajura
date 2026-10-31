@@ -1,14 +1,17 @@
-"""공용 쿠팡 상품·매장 가격 ORM — 02_implementation_design.md §4.3.12·§4.3.24 (테이블은 0017)."""
+"""공용 쿠팡 상품·매장 가격·단가 이력·재고 연결 이력 ORM.
+
+02_implementation_design.md §4.3.12·§4.3.24·§4.3.26·§4.3.27 (테이블은 0017·0018).
+"""
 
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import date, datetime
 from decimal import Decimal
 
-from sqlalchemy import CHAR, DECIMAL, Boolean, DateTime, ForeignKey, Integer, String
+from sqlalchemy import CHAR, DECIMAL, Boolean, Date, DateTime, ForeignKey, Integer, String
 from sqlalchemy.orm import Mapped, mapped_column
 
-from app.models.base import Base
+from app.models.base import Base, new_uuid
 
 
 class CoupangProduct(Base):
@@ -43,3 +46,31 @@ class CoupangStorePrice(Base):
     sale_price: Mapped[int] = mapped_column(Integer, nullable=False)
     unit_price: Mapped[Decimal | None] = mapped_column(DECIMAL(12, 4), nullable=True)
     received_at: Mapped[datetime] = mapped_column(DateTime, nullable=False)
+
+
+class CoupangPriceHistory(Base):
+    """공용 단가 이력 — 옵션마다 하루(한국 시각) 한 행, 그날 마지막 공용 단가. 지우지 않는다."""
+
+    __tablename__ = "coupang_price_history"
+
+    item_id: Mapped[str] = mapped_column(
+        String(20), ForeignKey("coupang_products.item_id", ondelete="CASCADE"), primary_key=True
+    )
+    price_date: Mapped[date] = mapped_column(Date, primary_key=True)
+    unit_price: Mapped[Decimal] = mapped_column(DECIMAL(12, 4), nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, nullable=False)
+
+
+class InventoryCoupangLink(Base):
+    """재고 품목의 쿠팡 상품 연결 이력 — 연결이 바뀔 때마다(처음 포함) 한 행. 지우지 않는다."""
+
+    __tablename__ = "inventory_coupang_links"
+
+    link_id: Mapped[str] = mapped_column(CHAR(36), primary_key=True, default=new_uuid)
+    item_id: Mapped[str] = mapped_column(
+        CHAR(36), ForeignKey("inventory_items.item_id", ondelete="CASCADE"), nullable=False
+    )
+    coupang_item_id: Mapped[str] = mapped_column(
+        String(20), ForeignKey("coupang_products.item_id"), nullable=False
+    )
+    linked_at: Mapped[datetime] = mapped_column(DateTime, nullable=False)

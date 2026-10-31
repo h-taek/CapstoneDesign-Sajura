@@ -24,7 +24,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core import errors
 from app.core.redis import get_redis
 from app.integrations import agent
-from app.models.coupang import CoupangProduct, CoupangStorePrice
+from app.models.coupang import (
+    CoupangPriceHistory,
+    CoupangProduct,
+    CoupangStorePrice,
+    InventoryCoupangLink,
+)
 from app.models.inventory_item import InventoryItem
 from app.models.order import (
     Order,
@@ -510,6 +515,14 @@ class AutomationService:
             conversation.get("linked_item_id") == cart.item_id
             and item.coupang_item_id == cart.item_id
         )
+        # 연결이 바뀌면(처음 연결 포함) 연결 이력을 남긴다 — 단가 추세가 날짜별 연결 상품을 찾는다
+        # (01_basic_design.md §3.3.1)
+        if item.coupang_item_id != cart.item_id:
+            self.session.add(
+                InventoryCoupangLink(
+                    item_id=item.item_id, coupang_item_id=cart.item_id, linked_at=now
+                )
+            )
         item.coupang_item_id = cart.item_id
         if not kept:
             item.coupang_linked_at = now
@@ -633,7 +646,26 @@ class AutomationService:
         if decided is not None:
             product.sale_price, product.unit_price = decided
             product.updated_at = now
+            if product.unit_price is not None:
+                await self._record_price(item_id=item_id, unit_price=product.unit_price, now=now)
         await self.session.flush()
+
+    async def _record_price(self, *, item_id: str, unit_price: Decimal, now: datetime) -> None:
+        """공용 단가 이력 — 그날(한국 시각) 행을 이번 공용 단가로 남기고, 같은 날이면 덮어쓴다.
+
+        01_basic_design.md §3.3.1.
+        """
+        stmt = mysql_insert(CoupangPriceHistory).values(
+            item_id=item_id,
+            price_date=cp.kst_date(now),
+            unit_price=unit_price,
+            updated_at=now,
+        )
+        await self.session.execute(
+            stmt.on_duplicate_key_update(
+                unit_price=stmt.inserted.unit_price, updated_at=stmt.inserted.updated_at
+            )
+        )
 
     async def clear_store_prices(self, *, today: date) -> int:
         """매장 가격 전체 삭제 — 이틀마다 자정. 공용 판매가·단가는 그대로 둔다 (§3.3.1)."""

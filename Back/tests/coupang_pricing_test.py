@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timedelta
+from datetime import date, datetime, timedelta
 from decimal import Decimal
 
 import pytest
@@ -11,7 +11,9 @@ from app.services.coupang_pricing import (
     Content,
     content,
     content_unit_for,
+    daily_unit_prices,
     item_unit_price,
+    kst_date,
     majority,
     split_name,
     store_price,
@@ -116,3 +118,39 @@ def test_item_unit_price_converts_to_item_unit() -> None:
         "g", "ml", "개",
     )
     assert content_unit_for("봉") is None
+
+
+def test_kst_date_adds_nine_hours() -> None:
+    assert kst_date(datetime(2026, 10, 19, 14, 59)) == date(2026, 10, 19)
+    assert kst_date(datetime(2026, 10, 19, 15, 0)) == date(2026, 10, 20)
+
+
+def _days(start: date, n: int) -> list[date]:
+    return [start + timedelta(days=i) for i in range(n)]
+
+
+def test_daily_unit_prices_carries_last_value_forward() -> None:
+    d = _days(date(2026, 10, 1), 5)
+    history = {"A": [(date(2026, 9, 28), Decimal("15")), (date(2026, 10, 3), Decimal("16"))]}
+    prices = daily_unit_prices(d, [(date(2026, 9, 20), "A")], history, {"A": "g"}, "kg")
+    # 기간 앞 마지막 값(9/28)부터 이어지고, 10/3에 바뀐 뒤로는 새 값이 이어진다
+    assert prices == [Decimal("15000.000")] * 2 + [Decimal("16000.000")] * 3
+
+
+def test_daily_unit_prices_joins_across_link_change() -> None:
+    d = _days(date(2026, 10, 1), 4)
+    links = [(date(2026, 9, 1), "A"), (date(2026, 10, 3), "B")]
+    history = {"A": [(date(2026, 9, 1), Decimal("15"))], "B": [(date(2026, 9, 30), Decimal("12"))]}
+    prices = daily_unit_prices(d, links, history, {"A": "g", "B": "g"}, "kg")
+    # 연결이 바뀐 날부터 새 상품의 그날 단가로 이어진다
+    assert prices == [Decimal("15000.000")] * 2 + [Decimal("12000.000")] * 2
+
+
+def test_daily_unit_prices_none_before_link_or_history() -> None:
+    d = _days(date(2026, 10, 1), 4)
+    history = {"A": [(date(2026, 10, 3), Decimal("10"))]}
+    prices = daily_unit_prices(d, [(date(2026, 10, 2), "A")], history, {"A": "개"}, "개")
+    # 10/1은 연결 전, 10/2는 연결됐지만 이력 전
+    assert prices == [None, None, Decimal("10.000"), Decimal("10.000")]
+    # 재료 단위로 바꿀 수 없으면 값이 없다
+    assert daily_unit_prices(d, [(date(2026, 9, 1), "A")], history, {"A": "g"}, "개") == [None] * 4
