@@ -7,57 +7,28 @@
 <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4.0.17"></script>
 <script src="mockup.js" defer></script>
 </head>
-<!-- 원본: Front/src/routes/register.tsx, components/auth/hero-panel.tsx, components/ui/button.tsx·field.tsx -->
-<body data-page="register" data-states="기본:default,입력 오류:error" data-mood="hero">
+<!-- 원본: Front/src/routes/register.tsx, components/ui/button.tsx·field.tsx. v2는 AuthHeroPanel(왼쪽 설명 글)을 빼고 이름표 대신 안내 글만 둔다 -->
+<body data-page="register" data-states="기본:default,입력 오류:error">
 <div data-backdrop></div>
-<main class="grid min-h-dvh lg:grid-cols-[1fr_minmax(480px,820px)]">
-  <!-- AuthHeroPanel — 웹(lg 이상)에서만 보인다. v2는 사진 대신 배경 위에 글만 둔다 -->
-  <section class="relative hidden lg:block">
-    <p class="relative px-16 pt-14 text-5xl font-semibold text-[var(--sky-fg)]">Sajura</p>
-    <div class="absolute top-[26vh] left-16 right-16 space-y-6">
-      <h2 class="text-5xl font-semibold leading-tight text-[var(--sky-fg)]">내 가게를 쉽게 관리하다</h2>
-      <p class="text-2xl text-[var(--sky-fg2)]">사주라는 소상공인을 위한 자동화 가게 재고 정리 서비스입니다.<br>지금 바로 계정을 만들고 시작해보세요</p>
-    </div>
-  </section>
+<!-- v2 — 로그인과 같은 카드 한 장(가운데 정렬, 맨 위 브랜드색 Sajura·제목, 안내 글만 있는 입력칸). 처음 여는 빈 폼이라 안내 글이 보이게 값은 비운다 -->
+<main class="grid min-h-dvh place-items-center px-3 pt-16 pb-[6vh] sm:px-6 sm:pb-[8vh]">
+  <section class="glass-strong w-full max-w-[440px] rounded-[1.75rem] p-6 text-center sm:p-7">
+    <p class="text-[2rem] leading-none font-extrabold tracking-tight text-brand">Sajura</p>
+    <h1 class="mt-4 text-[1.6rem] leading-snug font-extrabold tracking-tight text-ink">사장님 계정 만들기</h1>
+    <p class="mt-1.5 text-base text-ink-2">가입하고 사업자 인증을 마치면 바로 시작할 수 있어요.</p>
 
-  <section class="glass-strong m-3 flex items-center justify-center rounded-[1.75rem] p-6 lg:m-6 lg:p-16">
-    <div class="w-full max-w-[688px] space-y-8">
-      <header class="space-y-2">
-        <h1 class="text-4xl font-semibold text-ink lg:text-5xl">계정 생성</h1>
-        <p class="text-xl font-medium text-ink-2 lg:text-2xl">사주라 사장님 계정을 만들어보아요</p>
-      </header>
+    <form class="mt-7 space-y-2.5 text-left" novalidate>
+      <input id="email" type="email" autocomplete="email" aria-label="이메일" placeholder="이메일" class="h-[52px] w-full rounded-xl border border-line bg-white/70 px-4 text-base text-ink placeholder:text-ink-4 focus:border-brand focus:outline-none focus:ring-4 focus:ring-brand-soft">
+      <p data-when="error" class="px-1 text-sm text-red-600" role="alert">이미 가입된 이메일입니다.</p>
+      <input id="name" autocomplete="name" aria-label="이름" placeholder="이름" class="h-[52px] w-full rounded-xl border border-line bg-white/70 px-4 text-base text-ink placeholder:text-ink-4 focus:border-brand focus:outline-none focus:ring-4 focus:ring-brand-soft">
+      <input id="password" type="password" autocomplete="new-password" aria-label="비밀번호(8자 이상)" placeholder="비밀번호 (8자 이상)" class="h-[52px] w-full rounded-xl border border-line bg-white/70 px-4 text-base text-ink placeholder:text-ink-4 focus:border-brand focus:outline-none focus:ring-4 focus:ring-brand-soft">
+      <input id="password_confirm" type="password" autocomplete="new-password" aria-label="비밀번호 확인" placeholder="비밀번호 확인" class="h-[52px] w-full rounded-xl border border-line bg-white/70 px-4 text-base text-ink placeholder:text-ink-4 focus:border-brand focus:outline-none focus:ring-4 focus:ring-brand-soft">
+      <p data-when="error" class="px-1 text-sm text-red-600" role="alert">비밀번호가 일치하지 않습니다.</p>
 
-      <form class="space-y-6" novalidate>
-        <div class="flex flex-col gap-1.5">
-          <label for="email" class="text-[0.95rem] font-semibold text-ink-2">아이디(이메일)</label>
-          <input id="email" type="email" autocomplete="email" placeholder="아이디를 입력해 주세요." value="owner@sajura.kr" class="h-[58px] w-full rounded-xl border border-line bg-subtle px-4 text-base text-ink placeholder:text-ink-4 focus:border-brand focus:outline-none focus:ring-4 focus:ring-brand-soft disabled:bg-subtle disabled:text-ink-3">
-        </div>
+      <button type="submit" data-go="02_login.html?state=registered" class="!mt-4 inline-flex h-[52px] w-full items-center justify-center rounded-xl bg-brand px-5 text-lg font-bold text-white transition-colors hover:bg-brand-strong">가입하기</button>
+    </form>
 
-        <div class="flex flex-col gap-1.5">
-          <label for="name" class="text-[0.95rem] font-semibold text-ink-2">이름</label>
-          <input id="name" autocomplete="name" placeholder="이름을 입력해 주세요." value="김사주" class="h-[58px] w-full rounded-xl border border-line bg-subtle px-4 text-base text-ink placeholder:text-ink-4 focus:border-brand focus:outline-none focus:ring-4 focus:ring-brand-soft disabled:bg-subtle disabled:text-ink-3">
-        </div>
-
-        <!-- 라벨은 tsx 그대로 영문(Password)이다 -->
-        <div class="flex flex-col gap-1.5">
-          <label for="password" class="text-[0.95rem] font-semibold text-ink-2">Password</label>
-          <input id="password" type="password" autocomplete="new-password" placeholder="비밀번호를 입력해 주세요." value="password1234" class="h-[58px] w-full rounded-xl border border-line bg-subtle px-4 text-base text-ink placeholder:text-ink-4 focus:border-brand focus:outline-none focus:ring-4 focus:ring-brand-soft disabled:bg-subtle disabled:text-ink-3">
-          <p class="text-sm text-ink-3">8자 이상</p>
-        </div>
-
-        <div class="flex flex-col gap-1.5">
-          <label for="password_confirm" class="text-[0.95rem] font-semibold text-ink-2">PW 재입력</label>
-          <input id="password_confirm" type="password" autocomplete="new-password" placeholder="비밀번호를 다시 입력해 주세요." value="password12" class="h-[58px] w-full rounded-xl border border-line bg-subtle px-4 text-base text-ink placeholder:text-ink-4 focus:border-brand focus:outline-none focus:ring-4 focus:ring-brand-soft disabled:bg-subtle disabled:text-ink-3">
-          <p data-when="error" class="text-sm text-danger" role="alert">비밀번호가 일치하지 않습니다.</p>
-        </div>
-
-        <p data-when="error" class="text-sm text-red-600" role="alert">이미 가입된 이메일입니다.</p>
-
-        <button type="submit" data-go="02_login.html?state=registered" class="inline-flex h-[68px] w-full shrink-0 items-center justify-center gap-2 rounded-full bg-brand px-5 text-xl font-semibold whitespace-nowrap text-white transition-colors hover:bg-brand-strong disabled:cursor-not-allowed disabled:bg-ink-4">계정 생성</button>
-      </form>
-
-      <p class="text-center text-base text-ink-3">이미 계정이 있으신가요? <a href="02_login.html" class="font-medium text-ink-2 hover:underline">여기서 로그인 하세요</a></p>
-    </div>
+    <p class="mt-4 text-[0.95rem] text-ink-3">이미 계정이 있으신가요? <a href="02_login.html" class="font-bold text-ink hover:underline">로그인</a></p>
   </section>
 </main>
 </body>
