@@ -18,12 +18,37 @@
   <div class="grid gap-4 lg:h-[calc(100%-68px-0.75rem)] lg:grid-rows-2">
     <div class="grid grid-cols-1 gap-4 lg:grid-cols-3">
       <section class="min-h-40 rounded-2xl glass-card"></section>
-      <!-- 작은 카드 2×2 — 첫 칸은 포인트 색 유리 -->
+      <!-- 숫자 카드 2×2 — 발주할 재료(포인트 색 유리, 누르면 발주) · 오늘 예상 매출(GET /api/forecast) · 어제 매출·건수 · 이번 달 누적(GET /api/sales/summary).
+           '오늘 매출'은 마지막 판매일(어제) 값이라 '어제 매출'로 쓴다. 확인할 재료는 상단 바 알림에서 본다 -->
       <section class="grid min-h-40 grid-cols-2 grid-rows-2 gap-2 rounded-2xl p-2 glass-card">
-        <div class="rounded-xl glass-brand"></div>
-        <div class="rounded-xl glass-card"></div>
-        <div class="rounded-xl glass-card"></div>
-        <div class="rounded-xl glass-card"></div>
+        <a href="09_orders.html" class="group flex flex-col justify-between rounded-xl p-3.5 text-white glass-brand">
+          <p class="flex items-center justify-between text-sm font-medium text-white/85">발주할 재료<span data-icon="arrowRight" class="size-4 transition-transform group-hover:translate-x-0.5"></span></p>
+          <div>
+            <p class="tabular text-[1.35rem] leading-none font-bold tracking-tight lg:text-[1.65rem]">4개</p>
+            <p class="mt-1.5 truncate text-sm text-white/80">모짜렐라 치즈 외 3개</p>
+          </div>
+        </a>
+        <div class="flex flex-col justify-between rounded-xl p-3.5 glass-card">
+          <p class="text-sm font-medium text-ink-3">오늘 예상 매출</p>
+          <div>
+            <p class="tabular text-[1.35rem] leading-none font-bold tracking-tight lg:text-[1.65rem] text-ink">108만원</p>
+            <p class="mt-1.5 truncate text-sm text-ink-3">86만 ~ 130만원</p>
+          </div>
+        </div>
+        <div class="flex flex-col justify-between rounded-xl p-3.5 glass-card">
+          <p class="text-sm font-medium text-ink-3">어제 매출</p>
+          <div>
+            <p class="tabular text-[1.35rem] leading-none font-bold tracking-tight lg:text-[1.65rem] text-ink">128만원</p>
+            <p class="mt-1.5 truncate text-sm text-ink-3">판매 68건</p>
+          </div>
+        </div>
+        <div class="flex flex-col justify-between rounded-xl p-3.5 glass-card">
+          <p class="text-sm font-medium text-ink-3">이번 달 누적</p>
+          <div>
+            <p class="tabular text-[1.35rem] leading-none font-bold tracking-tight lg:text-[1.65rem] text-ink">3,074만원</p>
+            <p class="mt-1.5 truncate text-sm text-ink-3">판매 1,642건</p>
+          </div>
+        </div>
       </section>
       <!-- 그래프 — 최근 7일 매출 막대 + 오늘 예상(옅은 점선 막대). 그래프 뒤에 안쪽 판을 한 겹 더 깐다. 제목은 임시 문구 -->
       <section class="flex min-h-40 flex-col rounded-2xl px-4 pt-4 pb-2 glass-card">
