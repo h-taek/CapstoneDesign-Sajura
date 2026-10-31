@@ -196,7 +196,7 @@ function icon(name, cls = "size-5", strokeWidth = 2) {
 }
 
 // 유리 셸 — <div data-shell="활성키" data-title="패널 제목" data-back="뒤로 갈 목업 파일">본문</div>
-// 웹(lg 이상): 상단 바(매출 올리기·알림·설정·계정) + 왼쪽 알약 메뉴 + 본문 패널
+// 웹(lg 이상): 상단 바(알림·설정·계정) + 왼쪽 알약 메뉴 + 본문 패널. 매출 올리기 입구는 설정 > POS 연동 관리(spec 04 §4.10)
 // 앱(lg 미만): 상단 바 + 본문 패널 + 하단 알약 탭
 const WEB_NAV = [
   { key: "home", label: "홈", icon: "home" },
@@ -892,8 +892,6 @@ function renderShell(el) {
     </div>
 
     <div class="flex items-center gap-1 lg:gap-2">
-      <!-- 매출 올리기 — 웹은 검은 알약, 앱은 아이콘만 -->
-      <a href="${href("upload")}" aria-label="매출 올리기" class="flex size-10 items-center justify-center rounded-full text-ink-2 hover:bg-white/40 lg:w-auto lg:gap-1.5 lg:bg-ink lg:px-4 lg:text-sm lg:font-semibold lg:text-white lg:hover:bg-ink">${icon("upload", "size-5 lg:size-4")}<span class="hidden lg:inline">매출 올리기</span></a>
       <!-- 알림 — 지나간 알림 기록은 홈 본문이 아니라 여기서 연다(홈 '확인할 재료'는 지금 상태) -->
       <button type="button" data-toggle="#noti-pop" aria-expanded="false" aria-label="알림, 안 읽음 3개" class="relative flex size-10 items-center justify-center rounded-full text-ink-2 hover:bg-white/40">
         ${icon("bell")}<span class="absolute top-2 right-2 size-2 rounded-full bg-danger ring-2 ring-white"></span>
