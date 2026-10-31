@@ -8,27 +8,13 @@
 <script src="mockup.js" defer></script>
 <style>
 /* 컨셉 '사장님의 하루' — 스크롤하면 마감(21:30)부터 다음 날 저녁까지 시간이 흐른다.
-   하늘 색·별·달·해·가게 창문 불빛이 장면 시각을 따라 바뀌고, 유리는 장면마다 제품 화면 한 장에만 쓴다. */
-.sky, .stars, .moon, .sun, .town { position: fixed; pointer-events: none; }
-.sky { inset: 0; z-index: -5; background: #241a5e; }
-.stars { inset: 0; z-index: -4; width: 100%; height: 100%; }
-.stars circle { animation: tw 4s ease-in-out infinite alternate; }
-.stars circle:nth-child(3n) { animation-duration: 6s; animation-delay: -2s; }
-.stars circle:nth-child(4n) { animation-duration: 3s; animation-delay: -1s; }
-@keyframes tw { to { opacity: .25; } }
-.moon { z-index: -3; width: 88px; height: 88px; border-radius: 50%; translate: -50% -50%;
-  background: radial-gradient(circle at 38% 36%, #fffdf3, #e9e4ff 70%);
-  box-shadow: 0 0 60px 18px rgb(214 205 255 / .35), inset -14px -10px 0 rgb(170 160 230 / .35); }
-.sun { z-index: -3; width: 150px; height: 150px; border-radius: 50%; translate: -50% -50%;
-  background: radial-gradient(circle, #fff7e0 0 34%, #ffd9a0 46%, rgb(255 190 140 / 0) 70%); }
-.town { z-index: -2; left: 0; right: 0; bottom: 0; width: 100%; height: min(22vh, 190px); }
+   하늘·달·해·가게 불빛은 공용 배경(mockup.js ⑥)이 장면 시각(.scene[data-min])을 따라 그린다. 유리는 장면마다 제품 화면 한 장에만 쓴다. */
 
-/* 상단 바 — 장면이 밝아지면 글자색이 바뀐다(--fg) */
 /* 상단 바 — 첫 화면은 바탕 없이 로고만(시작·로그인 버튼은 본문에 있다), 스크롤하면 가운데 알약(로고·시계·시작하기)으로 바뀐다.
-   알약 유리는 그 시각 하늘색으로 물들고(--pill), 글자색(--fg)은 하늘 밝기를 따라 서서히 바뀐다 */
-.day-header { --fg: #fff; --fg-2: rgb(255 255 255 / .78); --pill: rgb(36 26 94 / .4); color: var(--fg); pointer-events: none; }
+   알약 유리는 그 시각 하늘색으로 물들고(--sky-pill), 글자색(--sky-fg)은 하늘 밝기를 따라 서서히 바뀐다 */
+.day-header { color: var(--sky-fg); pointer-events: none; }
 .hd-top, .hd-pill { transition: opacity .5s ease, transform .5s cubic-bezier(.2,.7,.2,1); }
-.hd-pill { background: var(--pill); border: 1px solid rgb(255 255 255 / .22);
+.hd-pill { background: var(--sky-pill); border: 1px solid rgb(255 255 255 / .22);
   backdrop-filter: blur(20px) saturate(160%); -webkit-backdrop-filter: blur(20px) saturate(160%);
   box-shadow: 0 10px 30px -12px rgb(20 10 70 / .35), inset 0 1px 0 rgb(255 255 255 / .25);
   opacity: 0; transform: translate(-50%, -8px) scale(.94); }
@@ -66,7 +52,7 @@
 .reveal { opacity: 0; transform: translateY(28px); transition: opacity .9s ease, transform .9s cubic-bezier(.2,.7,.2,1); }
 .reveal.in { opacity: 1; transform: none; }
 .reveal.d1 { transition-delay: .12s; } .reveal.d2 { transition-delay: .24s; }
-@media (prefers-reduced-motion: reduce) { .reveal { opacity: 1; transform: none; transition: none; } .stars circle, .hint::after { animation: none; } }
+@media (prefers-reduced-motion: reduce) { .reveal { opacity: 1; transform: none; transition: none; } .hint::after { animation: none; } }
 
 @media (max-width: 860px) {
   .scene { min-height: auto; padding: 120px 20px 26vh; }
@@ -74,33 +60,13 @@
   .scene-grid { grid-template-columns: 1fr; gap: 40px; }
   .time b { font-size: 2rem; }
   .lead { font-size: 1.02rem; }
-  .moon { width: 60px; height: 60px; } .sun { width: 110px; height: 110px; }
 }
 </style>
 </head>
 <!-- 원본: Front/src/routes/intro.tsx(PR #37 7a508a7), components/pwa/install-banner.tsx(useStartInstall·InstallGuideSheet) -->
 <!-- v2는 구성을 새로 잡았다. v1의 소개 구간(고민·주요 기능·이용 방법)은 시각별 장면으로 바뀌고, 앱 설치·FAQ·설치 안내 상태는 이어받는다 -->
-<body data-page="intro" data-states="기본:default,FAQ 펼침:faq,설치 안내(안드로이드):guide-android,설치 안내(아이폰):guide-ios,설치 창 가능(크롬):prompt,이미 설치됨:installed">
-<div class="sky" id="sky"></div>
-<svg class="stars" id="stars" aria-hidden="true"></svg>
-<div class="moon" id="moon" aria-hidden="true"></div>
-<div class="sun" id="sun" aria-hidden="true"></div>
-<!-- 동네 실루엣. 가운데 보라 차양이 사장님 가게, 창문 불빛이 시각마다 바뀐다(새벽엔 사주라가 일하는 보라 불) -->
-<svg class="town" viewBox="0 0 1440 190" preserveAspectRatio="xMidYMax slice" aria-hidden="true">
-  <g id="town-fill" fill="#1d1446">
-    <path d="M0 190V112h70V84h54v28h40V60h86v130zM250 190V96l46-30 46 30v94zM342 190V120h78V74h64v116z"/>
-    <path d="M484 190V130h60V100h46v90z"/>
-    <path d="M760 190V56h96v134zM856 190V108h58l30-24 30 24h40v82z"/>
-    <path d="M1014 190V92h120v98zM1134 190V124h70V70h80v120zM1284 190V100h60V80h96v110z"/>
-  </g>
-  <g transform="translate(162 0)">
-    <path id="shop" d="M484 190V88h170v102z" fill="#1d1446"/>
-    <path d="M478 92h182l-10 24H488z" fill="#6b4eff" opacity=".9"/>
-    <path d="M498 92l-6 24M528 92l-4 24M558 92l-2 24M588 92v24M618 92l2 24M648 92l4 24" stroke="#fff" stroke-opacity=".35" stroke-width="10"/>
-    <rect class="win" x="508" y="128" width="62" height="40" rx="4" fill="#ffd27a"/>
-    <rect class="win" x="586" y="128" width="40" height="62" rx="3" fill="#ffd27a"/>
-  </g>
-</svg>
+<body data-page="intro" data-sky="scroll" data-states="기본:default,FAQ 펼침:faq,설치 안내(안드로이드):guide-android,설치 안내(아이폰):guide-ios,설치 창 가능(크롬):prompt,이미 설치됨:installed">
+<div data-backdrop="day"></div>
 
 <header id="hd" class="day-header pt-safe fixed inset-x-0 top-0 z-40">
   <div class="hd-top flex h-20 items-center gap-4 px-5 sm:px-8">
@@ -111,8 +77,8 @@
   </div>
   <div class="hd-pill absolute top-3 left-1/2 flex h-13 items-center gap-3 rounded-full pr-1.5 pl-1.5">
     <a href="01_intro.html" aria-label="사주라 소개" class="flex size-10 items-center justify-center rounded-full bg-brand text-sm font-black text-white">사</a>
-    <p class="flex items-baseline gap-2 text-sm font-semibold whitespace-nowrap text-[var(--fg-2)]">사주라의 하루<b id="clock" class="text-lg font-bold tracking-wide text-[var(--fg)] tabular">21:30</b></p>
-    <a href="03_register.html" class="inline-flex h-10 items-center rounded-full bg-brand px-4 text-sm font-semibold whitespace-nowrap text-white hover:bg-brand-strong">시작하기</a>
+    <p class="flex items-baseline gap-2 text-sm font-semibold whitespace-nowrap text-[var(--sky-fg2)]">사주라의 하루<b data-sky-clock class="text-lg font-bold tracking-wide text-[var(--sky-fg)] tabular">21:30</b></p>
+    <a href="03_register.html" data-go-shop class="inline-flex h-10 items-center rounded-full bg-brand px-4 text-sm font-semibold whitespace-nowrap text-white hover:bg-brand-strong">시작하기</a>
   </div>
 </header>
 
@@ -124,8 +90,8 @@
       <h1 class="reveal d1">사장님이 퇴근하면<br>사주라가 출근해요</h1>
       <p class="lead reveal d2 mx-auto">밤사이 매출을 계산해서, 아침이면 오늘 시킬 재료를 알려 드려요. 주문은 사장님이 보고 확정하세요.</p>
       <div class="reveal d2 mt-9 flex flex-col justify-center gap-3 sm:flex-row">
-        <a href="03_register.html" class="inline-flex h-14 items-center justify-center gap-2 rounded-2xl bg-brand px-7 text-lg font-bold text-white hover:bg-brand-strong">지금 시작하기 <span data-icon="arrowRight" class="size-5"></span></a>
-        <a href="02_login.html" class="inline-flex h-14 items-center justify-center rounded-2xl border border-white/60 px-7 text-lg font-bold text-white hover:bg-white/10">로그인</a>
+        <a href="03_register.html" data-go-shop class="inline-flex h-14 items-center justify-center gap-2 rounded-2xl bg-brand px-7 text-lg font-bold text-white hover:bg-brand-strong">지금 시작하기 <span data-icon="arrowRight" class="size-5"></span></a>
+        <a href="02_login.html" data-go-shop class="inline-flex h-14 items-center justify-center rounded-2xl border border-white/60 px-7 text-lg font-bold text-white hover:bg-white/10">로그인</a>
       </div>
       <p class="hint">스크롤해서 사주라의 하루 보기</p>
     </div>
@@ -260,8 +226,8 @@
         <h2 class="reveal d1">오늘 밤부터<br>사주라에게 맡겨 보세요</h2>
         <p class="lead reveal d2 mx-auto">가입하고 사업자 인증을 마치면 오늘 매출 파일로 바로 시작할 수 있어요.</p>
         <div class="reveal d2 mt-8 flex flex-col justify-center gap-3 sm:flex-row">
-          <a href="03_register.html" class="inline-flex h-14 items-center justify-center gap-2 rounded-2xl bg-brand px-7 text-lg font-bold text-white hover:bg-brand-strong">지금 시작하기 <span data-icon="arrowRight" class="size-5"></span></a>
-          <a href="02_login.html" class="inline-flex h-14 items-center justify-center rounded-2xl border border-ink/30 px-7 text-lg font-bold text-ink hover:bg-white/40">로그인</a>
+          <a href="03_register.html" data-go-shop class="inline-flex h-14 items-center justify-center gap-2 rounded-2xl bg-brand px-7 text-lg font-bold text-white hover:bg-brand-strong">지금 시작하기 <span data-icon="arrowRight" class="size-5"></span></a>
+          <a href="02_login.html" data-go-shop class="inline-flex h-14 items-center justify-center rounded-2xl border border-ink/30 px-7 text-lg font-bold text-ink hover:bg-white/40">로그인</a>
         </div>
       </div>
       <h3 class="mt-20 text-sm font-bold text-ink-2">자주 묻는 질문</h3>
@@ -337,81 +303,14 @@
 </div>
 
 <script>
-// 별
-(() => {
-  let s = "";
-  for (let i = 0; i < 140; i++) {
-    const x = Math.random() * 100, y = Math.random() * 70, r = Math.random() * 1.3 + 0.3;
-    s += `<circle cx="${x}%" cy="${y}%" r="${r}" fill="#fff" opacity="${(Math.random() * 0.6 + 0.4).toFixed(2)}"/>`;
-  }
-  document.getElementById("stars").innerHTML = s;
-})();
-
-(() => {
-// 장면별 하늘 — 위·가운데·아래 색, 별 투명도, 동네 색, 가게 창문 색, 상단 바 글자 밝기(0 흰색 → 1 진한 글자)
-const SKY = [
-  { sky: ["#241a5e", "#6a46c4", "#f2988c"], stars: .35, town: "#1d1446", win: "#ffd27a", fg: 0 }, // 21:30 마감
-  { sky: ["#110b36", "#24195f", "#4a368f"], stars: .8,  town: "#0f0a2c", win: "#ffd27a", fg: 0 }, // 22:40
-  { sky: ["#05031a", "#110b3a", "#2a1d6a"], stars: 1,   town: "#07051a", win: "#8f7bff", fg: 0 }, // 02:00
-  { sky: ["#3e36a8", "#ac86d8", "#ffc6a6"], stars: .12, town: "#3a2c78", win: "#3a2c78", fg: 0.2 }, // 07:30
-  { sky: ["#8ea6ff", "#c8c2ff", "#f3efff"], stars: 0,   town: "#b9b0f0", win: "#fff3c4", fg: 1 }, // 10:00
-  { sky: ["#a6b8ff", "#dcd7ff", "#faf8ff"], stars: 0,   town: "#d4cdfb", win: "#fff3c4", fg: 1 }, // 14:00
-  { sky: ["#a9a6f4", "#e7d3f4", "#ffd6bf"], stars: 0,   town: "#c9b9ec", win: "#ffd27a", fg: 1 }, // 19:00
-];
-const hex = (h) => [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16));
-const mix = (a, b, t) => { const A = hex(a), B = hex(b); return `rgb(${A.map((v, i) => Math.round(v + (B[i] - v) * t)).join(" ")})`; };
-const lerp = (a, b, t) => a + (b - a) * t;
-const ease = (t) => t * t * (3 - 2 * t);
-
-function drawSky() {
-  const secs = [...document.querySelectorAll("main .scene")];
-  const mid = scrollY + innerHeight / 2;
-  const c = secs.map((el) => el.offsetTop + el.offsetHeight / 2);
-  let i = 0;
-  while (i < c.length - 2 && mid > c[i + 1]) i++;
-  const t = ease(Math.min(1, Math.max(0, (mid - c[i]) / (c[i + 1] - c[i]))));
-  const a = SKY[i], b = SKY[i + 1];
-  document.getElementById("sky").style.background =
-    `linear-gradient(180deg, ${mix(a.sky[0], b.sky[0], t)} 0%, ${mix(a.sky[1], b.sky[1], t)} 55%, ${mix(a.sky[2], b.sky[2], t)} 100%)`;
-  document.getElementById("stars").style.opacity = lerp(a.stars, b.stars, t);
-  // 시각 — 장면 시각 사이를 이어서 흐른다(분 단위, 자정을 넘으면 1440을 넘긴다)
-  const mf = lerp(+secs[i].dataset.min, +secs[i + 1].dataset.min, t);
-  // 달·해 — 시각으로 위치를 정해 같은 호를 같은 방향(오른쪽 → 왼쪽)으로 넘어간다.
-  // 왼쪽 글 칸을 피해 뜨는 쪽을 제품 화면이 있는 오른쪽에 둔다. 앱 폭에서는 위쪽 띠 안에서만 움직인다
-  const narrow = innerWidth < 860;
-  const arc = (el, f) => {
-    const p = Math.min(1, Math.max(0, f));
-    let y = 84 - 70 * Math.sin(Math.PI * p);
-    if (narrow) y = 6 + (y - 6) * 0.35;
-    el.style.left = 92 - 84 * p + "vw";
-    el.style.top = y + "vh";
-    el.style.opacity = f > 0 && f < 1 ? Math.min(1, p / 0.06, (1 - p) / 0.06) * (narrow ? 0.5 : 1) : 0;
-  };
-  arc(document.getElementById("sun"), ((mf % 1440) - 390) / 780); // 06:30 뜨고 19:30 진다
-  arc(document.getElementById("moon"), ((mf - 1170) % 1440) / 720); // 19:30 뜨고 07:30 진다
-  const town = mix(a.town, b.town, t);
-  document.getElementById("town-fill").setAttribute("fill", town);
-  document.getElementById("shop").setAttribute("fill", town);
-  const win = mix(a.win, b.win, t);
-  for (const w of document.querySelectorAll(".town .win")) w.setAttribute("fill", win);
-  // 시계
-  const m = Math.round(mf) % 1440;
-  document.getElementById("clock").textContent = `${String(Math.floor(m / 60)).padStart(2, "0")}:${String(m % 60).padStart(2, "0")}`;
-  const hd = document.getElementById("hd");
-  const fg = lerp(a.fg, b.fg, t);
-  hd.style.setProperty("--fg", mix("#ffffff", "#111827", fg));
-  hd.style.setProperty("--fg-2", mix("#dcd8f2", "#374151", fg));
-  hd.style.setProperty("--pill", mix(a.sky[0], b.sky[0], t).replace(")", " / .42)"));
-  hd.classList.toggle("scrolled", scrollY > innerHeight * 0.3);
-}
-addEventListener("scroll", () => requestAnimationFrame(drawSky), { passive: true });
-addEventListener("resize", drawSky);
-addEventListener("load", drawSky);
-drawSky();
+// 상단 바 — 조금 내려가면 가운데 알약으로 바뀐다
+const hd = document.getElementById("hd");
+const onScroll = () => hd.classList.toggle("scrolled", scrollY > innerHeight * 0.3);
+addEventListener("scroll", onScroll, { passive: true });
+onScroll();
 
 const io = new IntersectionObserver((es) => es.forEach((e) => e.isIntersecting && e.target.classList.add("in")), { threshold: 0.2 });
 document.querySelectorAll(".reveal").forEach((el) => io.observe(el));
-})();
 </script>
 </body>
 </html>

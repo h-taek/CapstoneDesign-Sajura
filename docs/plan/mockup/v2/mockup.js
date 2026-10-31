@@ -204,7 +204,8 @@ const APP_TITLE = {
 // 모든 후보는 가장자리가 또렷한 도형으로 그린다. 흐림은 유리 판이 맡아야 바깥은 또렷하고 패널 안은 뭉개진 대비가 생긴다.
 // 움직임은 느리게(한 바퀴 18~40초), '동작 줄이기' 설정에서는 멈춘다.
 const BACKDROP_KEYS = [
-  ["flow", "⑤ 흐름 (시작 화면 연결)"],
+  ["day", "⑥ 사장님의 하루"],
+  ["flow", "⑤ 흐름"],
   ["aurora", "① 오로라"],
   ["glossy", "② 3D 유광"],
   ["lines", "③ 선·파형"],
@@ -316,6 +317,44 @@ body[data-mood="hero"] .bd-veil { opacity: 0; }
 @keyframes skbr { from { translate: 0 0; scale: 1 -1; } to { translate: -40px -14px; scale: 1 -1; } }
 @keyframes skrays { from { opacity: 0.35; } to { opacity: 0.75; } }
 @keyframes sktw { from { opacity: 0.35; } to { opacity: 1; } }
+
+/* ⑥ 사장님의 하루 — 시각에 따라 하늘 색·별·달·해·가게 창문 불빛이 바뀐다.
+   시작 화면은 스크롤 위치, 가입·온보딩은 정해 둔 밤 시각, 대시보드는 실제 현재 시각을 쓴다.
+   대시보드(data-calm)는 읽기용 옅은 막을 덮고 동네를 흐리게 둔다. 밤일수록 막을 진하게 해 글이 읽힌다.
+   --sky-fg·--sky-fg2·--sky-pill은 하늘 위에 바로 놓인 글자색과 알약 유리색(막 없는 화면에서만 바뀐다) */
+:root { --sky-fg: #111827; --sky-fg2: #374151; --sky-pill: rgb(255 255 255 / 0.1); }
+.bd-day { background: #241a5e; }
+.bd-day .d-sky, .bd-day .d-veil { inset: 0; }
+.bd-day .d-stars { inset: 0; width: 100%; height: 100%; }
+.bd-day .d-stars circle { animation: dtw 4s ease-in-out infinite alternate; }
+.bd-day .d-stars circle:nth-child(3n) { animation-duration: 6s; }
+.bd-day .d-stars circle:nth-child(4n) { animation-duration: 3s; }
+@keyframes dtw { to { opacity: 0.25; } }
+.bd-day .d-veil { background: #f6f4ff; opacity: 0; }
+.bd-day .d-moon { width: 88px; height: 88px; border-radius: 50%; translate: -50% -50%;
+  background: radial-gradient(circle at 38% 36%, #fffdf3, #e9e4ff 70%);
+  box-shadow: 0 0 60px 18px rgb(214 205 255 / 0.35), inset -14px -10px 0 rgb(170 160 230 / 0.35); }
+.bd-day .d-sun { width: 150px; height: 150px; border-radius: 50%; translate: -50% -50%;
+  background: radial-gradient(circle, #fff7e0 0 34%, #ffd9a0 46%, rgb(255 190 140 / 0) 70%); }
+.bd-day .d-town { left: 0; right: 0; bottom: 0; width: 100%; height: min(22vh, 190px); }
+@media (max-width: 860px) { .bd-day .d-moon { width: 60px; height: 60px; } .bd-day .d-sun { width: 110px; height: 110px; } }
+.entering .bd-day .d-veil { animation: dveil 1s ease both; }
+@keyframes dveil { from { opacity: 0; } }
+
+/* 가게로 들어가기(시작 화면 → 가입·로그인) — 가게 창문 빛이 화면을 채우고, 다음 화면은 그 빛이 걷히며 나타난다 */
+.shop-light { position: fixed; inset: 0; z-index: 70; pointer-events: none; background: #fff1d2; }
+.shop-light.out { animation: shop-out 0.9s ease 0.1s both; }
+@keyframes shop-out { to { opacity: 0; } }
+.going-shop main, .going-shop header { transition: opacity 0.3s ease; opacity: 0; }
+.going-shop .bd-day .d-town { transition: transform 0.85s cubic-bezier(0.7, 0, 0.2, 1); }
+.arrive-shop main > * { animation: en-up 0.7s cubic-bezier(0.2, 0.8, 0.2, 1) 0.3s both; }
+
+/* 아침이 밝기(로그인 → 홈) — 폼이 사라지고 시계가 지금 시각까지 빨리 돈다 */
+.morning-clock { position: fixed; inset: 0; z-index: 70; display: grid; place-items: center; pointer-events: none;
+  font-size: clamp(3.5rem, 10vw, 7rem); font-weight: 300; letter-spacing: -0.02em; font-variant-numeric: tabular-nums;
+  animation: mc-in 0.4s ease both; }
+@keyframes mc-in { from { opacity: 0; transform: translateY(10px); } }
+@media (prefers-reduced-motion: reduce) { .arrive-shop *, .shop-light { animation: none !important; } }
 `;
 
 // 파형 하나 — 가로 2배 폭에 같은 모양을 두 번 그려, 절반만큼 밀면 이음매 없이 반복된다
@@ -409,6 +448,7 @@ function skyBackdrop() {
 }
 
 function backdropHtml(key) {
+  if (key === "day") return dayBackdrop();
   if (key === "flow") return `<div class="bd bd-flow" aria-hidden="true"><i class="f1"></i><i class="f2"></i><i class="f3"></i><i class="f4"></i><i class="f5"></i><i class="bd-veil"></i></div>`;
   if (key === "sky") return skyBackdrop();
   if (key === "aurora") return `<div class="bd bd-aurora" aria-hidden="true"><i class="a1"></i><i class="a2"></i><i class="a3"></i><i class="a4"></i><i class="a5"></i></div>`;
@@ -445,24 +485,50 @@ function goDashboard() {
     return;
   }
   document.body.classList.add("leaving");
+  if (!document.querySelector(".bd-day")) {
+    setTimeout(() => {
+      location.href = u.href;
+    }, 900);
+    return;
+  }
+  // 아침이 밝기 — 지금 시각(다음에 오는 그 시각)까지 1.8초 동안 시계를 돌린다
+  const from = DAY.mf;
+  const now = new Date();
+  let to = now.getHours() * 60 + now.getMinutes();
+  while (to <= from) to += 1440;
+  const clock = document.createElement("div");
+  clock.className = "morning-clock";
+  const dur = 1800;
+  let t0 = 0;
+  const step = (ts) => {
+    t0 ||= ts;
+    const p = Math.min(1, (ts - t0) / dur);
+    const e = p < 0.5 ? 2 * p * p : 1 - (-2 * p + 2) ** 2 / 2;
+    drawDay(from + (to - from) * e);
+    clock.textContent = dayClock(DAY.mf);
+    clock.style.color = getComputedStyle(document.documentElement).getPropertyValue("--sky-fg");
+    if (p < 1) requestAnimationFrame(step);
+    else setTimeout(() => (location.href = u.href), 300);
+  };
   setTimeout(() => {
-    location.href = u.href;
-  }, 900);
+    document.body.appendChild(clock);
+    requestAnimationFrame(step);
+  }, 350);
 }
 
 function currentBackdrop() {
   const fromUrl = new URLSearchParams(location.search).get("bg");
   let saved = null;
   try {
-    saved = localStorage.getItem("mock-bg");
+    saved = localStorage.getItem("mock-bg2");
   } catch {}
-  const key = fromUrl ?? saved ?? "flow";
-  return BACKDROP_KEYS.some(([k]) => k === key) ? key : "flow";
+  const key = fromUrl ?? saved ?? "day";
+  return BACKDROP_KEYS.some(([k]) => k === key) ? key : "day";
 }
 
 function setBackdrop(key) {
   try {
-    localStorage.setItem("mock-bg", key);
+    localStorage.setItem("mock-bg2", key);
   } catch {}
   const u = new URL(location.href);
   u.searchParams.set("bg", key);
@@ -484,6 +550,180 @@ const TEST_BACKDROP = `
     <i class="absolute block" style="right:16%;bottom:6%;width:min(170px,34vw);height:min(230px,46vw);border-radius:50% 50% 40% 40%;background:#5a5a5a"></i>
     <i class="absolute block" style="right:62%;top:58%;width:0;height:0;border-left:70px solid transparent;border-right:70px solid transparent;border-bottom:120px solid #000"></i>
   </div>`;
+
+// ⑥ 사장님의 하루 — [분, 하늘 위·가운데·아래, 별, 동네, 가게 창문, 하늘 위 글자 밝기(0 흰색 → 1 진한 글자)]
+// 열쇠 시각 사이는 직선으로 섞는다. 시작 화면 장면 시각(21:30 22:40 02:00 07:30 10:00 14:00 19:00)과 같다
+const DAY_KEYS = [
+  [120, ["#05031a", "#110b3a", "#2a1d6a"], 1, "#07051a", "#8f7bff", 0], // 02:00 — 창문은 사주라가 일하는 보라 불
+  [450, ["#3e36a8", "#ac86d8", "#ffc6a6"], 0.12, "#3a2c78", "#3a2c78", 0.2], // 07:30 새벽
+  [600, ["#8ea6ff", "#c8c2ff", "#f3efff"], 0, "#b9b0f0", "#fff3c4", 1], // 10:00
+  [840, ["#a6b8ff", "#dcd7ff", "#faf8ff"], 0, "#d4cdfb", "#fff3c4", 1], // 14:00
+  [1140, ["#a9a6f4", "#e7d3f4", "#ffd6bf"], 0, "#c9b9ec", "#ffd27a", 1], // 19:00
+  [1290, ["#241a5e", "#6a46c4", "#f2988c"], 0.35, "#1d1446", "#ffd27a", 0], // 21:30 마감
+  [1360, ["#110b36", "#24195f", "#4a368f"], 0.8, "#0f0a2c", "#ffd27a", 0], // 22:40
+];
+const dayHex = (h) => [1, 3, 5].map((i) => Number.parseInt(h.slice(i, i + 2), 16));
+const dayMix = (a, b, t) => dayHex(a).map((v, i) => Math.round(v + (dayHex(b)[i] - v) * t));
+const dayRgb = (c, alpha) => `rgb(${c.join(" ")}${alpha === undefined ? "" : ` / ${alpha}`})`;
+const dayLerp = (a, b, t) => a + (b - a) * t;
+const dayClock = (mf) => {
+  const m = Math.round(mf) % 1440;
+  return `${String(Math.floor(m / 60)).padStart(2, "0")}:${String(m % 60).padStart(2, "0")}`;
+};
+const DAY = { mf: 1290 };
+
+function dayAt(mf) {
+  const d = ((mf % 1440) + 1440) % 1440;
+  let i = DAY_KEYS.length - 1;
+  DAY_KEYS.forEach(([m], k) => {
+    if (m <= d) i = k;
+  });
+  const A = DAY_KEYS[i];
+  const B = DAY_KEYS[(i + 1) % DAY_KEYS.length];
+  const t = (((d - A[0]) % 1440) + 1440) % 1440 / ((((B[0] - A[0]) % 1440) + 1440) % 1440);
+  return {
+    sky: A[1].map((c, j) => dayMix(c, B[1][j], t)),
+    stars: dayLerp(A[2], B[2], t),
+    town: dayMix(A[3], B[3], t),
+    win: dayMix(A[4], B[4], t),
+    fg: dayLerp(A[5], B[5], t),
+  };
+}
+
+function dayBackdrop() {
+  // 별은 화면이 바뀌어도 같은 자리에 뜨게 고정 씨앗으로 뿌린다
+  let seed = 7;
+  const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+  let stars = "";
+  for (let i = 0; i < 140; i++) {
+    stars += `<circle cx="${(rnd() * 100).toFixed(2)}%" cy="${(rnd() * 70).toFixed(2)}%" r="${(rnd() * 1.3 + 0.3).toFixed(2)}" fill="#fff" opacity="${(rnd() * 0.6 + 0.4).toFixed(2)}"/>`;
+  }
+  const calm = document.body.dataset.sky === "now" || document.querySelector("[data-shell]") ? " data-calm" : "";
+  // 동네 실루엣 — 가운데 보라 차양이 사장님 가게
+  return `<div class="bd bd-day"${calm} aria-hidden="true">
+    <i class="d-sky"></i>
+    <svg class="d-stars">${stars}</svg>
+    <i class="d-veil"></i>
+    <i class="d-moon"></i>
+    <i class="d-sun"></i>
+    <svg class="d-town" viewBox="0 0 1440 190" preserveAspectRatio="xMidYMax slice">
+      <g class="d-fill">
+        <path d="M0 190V112h70V84h54v28h40V60h86v130zM250 190V96l46-30 46 30v94zM342 190V120h78V74h64v116z"/>
+        <path d="M484 190V130h60V100h46v90z"/>
+        <path d="M760 190V56h96v134zM856 190V108h58l30-24 30 24h40v82z"/>
+        <path d="M1014 190V92h120v98zM1134 190V124h70V70h80v120zM1284 190V100h60V80h96v110z"/>
+      </g>
+      <g transform="translate(162 0)">
+        <path class="d-fill" d="M484 190V88h170v102z"/>
+        <path d="M478 92h182l-10 24H488z" fill="#6b4eff" opacity=".9"/>
+        <path d="M498 92l-6 24M528 92l-4 24M558 92l-2 24M588 92v24M618 92l2 24M648 92l4 24" stroke="#fff" stroke-opacity=".35" stroke-width="10"/>
+        <rect class="d-win" x="508" y="128" width="62" height="40" rx="4"/>
+        <rect class="d-win" x="586" y="128" width="40" height="62" rx="3"/>
+      </g>
+    </svg>
+  </div>`;
+}
+
+// mf: 분(자정을 넘으면 1440을 넘는다)
+function drawDay(mf) {
+  const bd = document.querySelector(".bd-day");
+  if (!bd) return;
+  DAY.mf = mf;
+  const s = dayAt(mf);
+  const calm = bd.hasAttribute("data-calm");
+  bd.querySelector(".d-sky").style.background = `linear-gradient(180deg, ${dayRgb(s.sky[0])} 0%, ${dayRgb(s.sky[1])} 55%, ${dayRgb(s.sky[2])} 100%)`;
+  bd.querySelector(".d-stars").style.opacity = s.stars;
+  bd.querySelector(".d-veil").style.opacity = calm ? 0.25 + (1 - s.fg) * 0.55 : 0;
+  // 달·해 — 같은 호를 같은 방향(오른쪽 → 왼쪽)으로 넘어간다. 왼쪽 글 칸을 피해 뜨는 쪽을 오른쪽에 둔다.
+  // 앱 폭에서는 위쪽 띠 안에서만 움직인다
+  const narrow = innerWidth < 860;
+  const arc = (el, f) => {
+    const p = Math.min(1, Math.max(0, f));
+    let y = 84 - 70 * Math.sin(Math.PI * p);
+    if (narrow) y = 6 + (y - 6) * 0.35;
+    el.style.left = `${92 - 84 * p}vw`;
+    el.style.top = `${y}vh`;
+    el.style.opacity = f > 0 && f < 1 ? Math.min(1, p / 0.06, (1 - p) / 0.06) * (narrow ? 0.5 : 1) : 0;
+  };
+  arc(bd.querySelector(".d-sun"), ((mf % 1440) - 390) / 780); // 06:30 뜨고 19:30 진다
+  arc(bd.querySelector(".d-moon"), (((mf - 1170) % 1440) + 1440) % 1440 / 720); // 19:30 뜨고 07:30 진다
+  const town = bd.querySelector(".d-town");
+  town.style.opacity = calm ? 0.3 : 1;
+  for (const el of town.querySelectorAll(".d-fill")) el.setAttribute("fill", dayRgb(s.town));
+  for (const el of town.querySelectorAll(".d-win")) el.setAttribute("fill", dayRgb(s.win));
+  if (!calm) {
+    const root = document.documentElement.style;
+    root.setProperty("--sky-fg", dayRgb(dayMix("#ffffff", "#111827", s.fg)));
+    root.setProperty("--sky-fg2", dayRgb(dayMix("#dcd8f2", "#374151", s.fg)));
+    root.setProperty("--sky-pill", dayRgb(s.sky[0], 0.42));
+  }
+  for (const el of document.querySelectorAll("[data-sky-clock]")) el.textContent = dayClock(mf);
+}
+
+// 시각 소스 — body[data-sky]: "scroll"(시작 화면 장면 .scene[data-min]), "now"(실제 시각), "HH:MM"(고정). 없으면 대시보드는 now, 그 외는 21:30
+function startDay() {
+  const bd = document.querySelector(".bd-day");
+  if (!bd) return;
+  const mode = document.body.dataset.sky ?? (bd.hasAttribute("data-calm") ? "now" : "21:30");
+  if (mode === "scroll") {
+    const ease = (t) => t * t * (3 - 2 * t);
+    const fromScroll = () => {
+      const secs = [...document.querySelectorAll("main .scene[data-min]")];
+      const mid = scrollY + innerHeight / 2;
+      const c = secs.map((el) => el.offsetTop + el.offsetHeight / 2);
+      let i = 0;
+      while (i < c.length - 2 && mid > c[i + 1]) i++;
+      const t = ease(Math.min(1, Math.max(0, (mid - c[i]) / (c[i + 1] - c[i]))));
+      drawDay(dayLerp(+secs[i].dataset.min, +secs[i + 1].dataset.min, t));
+    };
+    addEventListener("scroll", () => requestAnimationFrame(fromScroll), { passive: true });
+    addEventListener("resize", fromScroll);
+    addEventListener("load", fromScroll);
+    fromScroll();
+  } else if (mode === "now") {
+    const fromNow = () => {
+      const d = new Date();
+      drawDay(d.getHours() * 60 + d.getMinutes() + d.getSeconds() / 60);
+    };
+    fromNow();
+    setInterval(fromNow, 30000);
+    addEventListener("resize", fromNow);
+  } else {
+    const [h, m] = mode.split(":").map(Number);
+    drawDay(h * 60 + m);
+    addEventListener("resize", () => drawDay(DAY.mf));
+  }
+}
+
+// 가게로 들어가기 — 창문 자리에서 빛이 화면을 채운 뒤 넘어간다. 다음 화면은 ?enter=shop으로 빛이 걷히며 나타난다
+function goShop(url) {
+  const u = new URL(url, location.href);
+  u.searchParams.set("enter", "shop");
+  const win = document.querySelector(".bd-day .d-win");
+  if (!win || matchMedia("(prefers-reduced-motion: reduce)").matches) {
+    location.href = u.href;
+    return;
+  }
+  const r = win.getBoundingClientRect();
+  const town = document.querySelector(".bd-day .d-town");
+  const tr = town.getBoundingClientRect();
+  town.style.transformOrigin = `${r.left + r.width / 2 - tr.left}px ${r.top + r.height / 2 - tr.top}px`;
+  const light = document.createElement("div");
+  light.className = "shop-light";
+  light.style.clipPath = `inset(${r.top}px ${innerWidth - r.right}px ${innerHeight - r.bottom}px ${r.left}px round 4px)`;
+  document.body.appendChild(light);
+  document.body.classList.add("going-shop");
+  requestAnimationFrame(() =>
+    requestAnimationFrame(() => {
+      light.style.transition = "clip-path 0.8s cubic-bezier(0.7, 0, 0.2, 1)";
+      light.style.clipPath = "inset(0 0 0 0 round 0)";
+      town.style.transform = "scale(4)";
+    }),
+  );
+  setTimeout(() => {
+    location.href = u.href;
+  }, 850);
+}
 
 function renderShell(el) {
   const active = el.dataset.shell;
@@ -717,11 +957,20 @@ document.addEventListener("DOMContentLoaded", () => {
   const bdStyle = document.createElement("style");
   bdStyle.textContent = BACKDROP_CSS;
   document.head.appendChild(bdStyle);
-  for (const el of document.querySelectorAll("[data-backdrop]")) el.outerHTML = backdropHtml(currentBackdrop());
+  for (const el of document.querySelectorAll("[data-backdrop]")) el.outerHTML = backdropHtml(el.dataset.backdrop || currentBackdrop());
   for (const el of document.querySelectorAll("[data-shell]")) renderShell(el);
   syncBackdropPhase();
+  startDay();
   if (params.get("enter")) {
-    document.body.classList.add("entering");
+    if (params.get("enter") === "shop") {
+      document.body.classList.add("arrive-shop");
+      const light = document.createElement("div");
+      light.className = "shop-light out";
+      document.body.appendChild(light);
+      setTimeout(() => light.remove(), 1100);
+    } else {
+      document.body.classList.add("entering");
+    }
     const u = new URL(location.href);
     u.searchParams.delete("enter");
     history.replaceState(null, "", u);
@@ -750,6 +999,12 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   document.addEventListener("click", (e) => {
+    const shop = e.target.closest("[data-go-shop]");
+    if (shop) {
+      e.preventDefault();
+      goShop(shop.getAttribute("href"));
+      return;
+    }
     if (e.target.closest("[data-go-dashboard]")) {
       e.preventDefault();
       goDashboard();
