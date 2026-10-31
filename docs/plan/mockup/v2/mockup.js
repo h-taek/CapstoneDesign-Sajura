@@ -962,8 +962,10 @@ function skyForState(state) {
   while (to - from > 720) to -= 1440;
   while (from - to > 720) to += 1440;
   DAY.redraw = () => drawDay(h * 60 + m);
-  if (to === from || matchMedia("(prefers-reduced-motion: reduce)").matches) DAY.redraw();
+  // 페이지를 처음 열 때는 흐르지 않고 바로 그 시각에 둔다(열자마자 달이 움직이지 않게)
+  if (!DAY.stepped || to === from || matchMedia("(prefers-reduced-motion: reduce)").matches) DAY.redraw();
   else flowSky(from, to, 0, 1, 900, ++DAY.run);
+  DAY.stepped = true;
 }
 
 function parseStates(raw) {
