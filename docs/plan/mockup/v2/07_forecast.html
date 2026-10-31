@@ -7,157 +7,311 @@
 <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4.0.17"></script>
 <script src="mockup.js" defer></script>
 <style>
-  /* 그래프 전환 — 숨긴 그래프도 자리를 차지해야 처음 렌더 때 크기를 잰다. data-when(hidden) 대신 visibility로 감춘다 */
-  body[data-state="last"] .chart-this,
-  body:not([data-state="last"]) .chart-last { visibility: hidden; }
+  /* 고른 날 — 3일 목록에서 지금 상태의 줄을 밝힌다 */
+  body[data-state="default"] [data-day="1"],
+  body[data-state="d2"] [data-day="2"],
+  body[data-state="d3"] [data-day="3"] { background: rgb(255 255 255 / 0.6); }
 </style>
 </head>
-<!-- 원본: Front/src/routes/forecast.tsx, components/ui/card.tsx(PageHeader·SectionTitle·Card·StatCard·EmptyState·Segmented), components/dashboard/revenue-chart.tsx, lib/format.ts -->
-<body data-page="forecast" data-states="예측 정상(이번 달):default,지난 달 그래프:last,계산 중:loading,이력 부족:short,AI 서버 오류:error">
+<!-- v2 매출 예측 — 웹은 위 2:1(이번 달 매출·일별 막대 | 앞으로 3일 예상 매출), 아래 고른 날의 메뉴별 예상 판매 5장. 앱은 세로로 쌓는다.
+     보는 날은 2026-10-20(화) 아침, 마지막 판매 10-19. 3일 목록의 줄을 누르면 아래 메뉴 카드가 그날로 바뀐다(상태 오늘·내일·모레).
+     원본: Front/src/routes/forecast.tsx. 값 — 3일 예상(GET /api/forecast), 정확도(GET /api/dashboard/forecast-vs-actual, 홈과 같은 94%), 메뉴(menu_forecast, 고리는 그날 예상 판매 수량에서 그 메뉴가 차지하는 비중). spec 04 §4.4 -->
+<body data-page="forecast" data-states="오늘:default,내일:d2,모레:d3,계산 중:loading,이력 부족:short,AI 서버 오류:error">
 <div data-shell="forecast">
-  <div class="space-y-6 lg:space-y-8">
-    <!-- PageHeader -->
-    <header class="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
-      <div class="space-y-1">
-        <h1 class="hidden text-[1.75rem] font-bold tracking-tight text-ink lg:block">매출 예측</h1>
-        <p class="text-[0.95rem] text-ink-3">AI가 앞으로 3일 매출을 미리 계산해 드려요. 실제 매출과 함께 비교해 보세요.</p>
-      </div>
-    </header>
-
-    <!-- 앞으로 3일 예상 매출 — 기준일은 마지막 판매일(10/19) -->
-    <section class="space-y-4">
-      <div class="flex items-end justify-between gap-3">
-        <div class="min-w-0 space-y-0.5">
-          <h2 class="flex items-center gap-2 text-lg font-bold text-ink lg:text-xl">
-            앞으로 3일 예상 매출
-            <span class="inline-flex items-center gap-1 rounded-full bg-brand-soft px-2.5 py-0.5 text-sm font-semibold text-brand"><span data-icon="sparkles" class="size-3.5"></span> AI</span>
-          </h2>
-        </div>
-      </div>
-
-      <div data-when="loading" class="flex min-h-[120px] flex-col items-center justify-center gap-3 rounded-2xl border border-dashed border-line px-6 py-8 text-center text-[0.95rem] text-ink-3">예측 계산 중…</div>
-      <div data-when="short" class="flex min-h-[120px] flex-col items-center justify-center gap-3 rounded-2xl border border-dashed border-line px-6 py-8 text-center text-[0.95rem] text-ink-3">
-        <span data-icon="alertTriangle" class="size-6 text-warn"></span>
-        AI 예측에 필요한 판매 이력이 부족합니다 (최소 10일 이상 필요).
-      </div>
-      <div data-when="error" class="flex min-h-[120px] flex-col items-center justify-center gap-3 rounded-2xl border border-dashed border-line px-6 py-8 text-center text-[0.95rem] text-ink-3">
-        <span data-icon="alertTriangle" class="size-6 text-warn"></span>
-        AI 서버에 연결할 수 없습니다. 잠시 후 다시 시도해주세요.
-      </div>
-
-      <div data-when="default last" class="grid grid-cols-1 gap-3 md:grid-cols-3 lg:gap-4">
-        <!-- 첫 카드(다음 날)는 보라 테두리 강조 -->
-        <div class="rounded-2xl space-y-3 p-5 lg:p-6 border-brand ring-2 ring-brand-soft glass-card">
-          <div class="flex items-center justify-between gap-2">
-            <p class="flex items-center gap-1.5 text-base font-bold text-ink"><span data-icon="calendarDays" class="size-5 text-brand"></span>10월 20일(화)</p>
-            <span class="rounded-full px-2.5 py-0.5 text-sm font-semibold bg-brand text-white">다음 날</span>
+  <!-- 머리글 — 반영 기준(마지막 판매일). 두 줄(홈과 같은 높이), 앱은 제목을 상단 바가 보여 준다 -->
+  <header class="mb-3 space-y-1">
+    <h1 class="hidden text-xl font-bold tracking-tight text-ink lg:block lg:text-[1.75rem]">매출 예측</h1>
+    <p class="text-[0.95rem] text-ink-3">10월 19일 판매까지 반영했어요</p>
+  </header>
+  <div class="grid gap-4">
+    <div class="grid grid-cols-1 gap-4 lg:grid-cols-3">
+      <!-- 기간 매출 — 주(7일씩)·월·년(최근 12개월, 월별 막대)을 고르고 ‹ ›로 지난 기간을 넘겨 첫 판매까지 본다(GET /api/dashboard/forecast-vs-actual start_date·end_date).
+           왼쪽은 고른 기간 합계와 직전 같은 길이 기간 대비. 마지막 판매가 든 기간이면 끝에 오늘·내일·모레 예상 막대(점선)를 붙인다 -->
+      <section class="flex flex-col rounded-2xl p-4 glass-card lg:col-span-2">
+        <div class="flex flex-1 flex-col gap-5 lg:flex-row">
+          <div class="flex flex-col lg:w-[38%]">
+            <div class="-ml-1.5 flex h-6 items-center gap-0.5">
+              <button type="button" data-step="1" aria-label="이전 기간" class="flex size-6 items-center justify-center rounded-full text-ink-2 hover:bg-white/60 disabled:text-ink-4 disabled:hover:bg-transparent"><span data-icon="chevronLeft" class="size-4"></span></button>
+              <p id="range-label" class="tabular text-sm font-semibold text-ink-2"></p>
+              <button type="button" data-step="-1" aria-label="다음 기간" class="flex size-6 items-center justify-center rounded-full text-ink-2 hover:bg-white/60 disabled:text-ink-4 disabled:hover:bg-transparent"><span data-icon="chevronRight" class="size-4"></span></button>
+            </div>
+            <p id="range-total" class="tabular mt-2 text-[2.25rem] leading-none font-bold tracking-tight text-ink"></p>
+            <p id="range-count" class="tabular mt-2.5 text-sm text-ink-3"></p>
+            <div class="mt-6 lg:mt-auto">
+              <div id="range-bar" class="h-2 rounded-full bg-brand/15"><div class="h-full rounded-full bg-brand"></div></div>
+              <p id="range-compare" class="tabular mt-2 text-sm text-ink-3"></p>
+            </div>
           </div>
-          <div>
-            <p class="tabular text-[2rem] leading-tight font-bold tracking-tight text-ink">108만원</p>
-            <p class="text-sm text-ink-3">예상 범위 864,000원 ~ 1,295,000원</p>
+          <div class="flex min-w-0 flex-1 flex-col">
+            <div class="flex h-6 items-center justify-between gap-2 text-xs">
+              <p class="flex items-center gap-3 text-ink-3"><span id="range-unit" class="font-semibold text-ink-2"></span><span class="inline-flex items-center gap-1"><span class="size-2.5 rounded-sm bg-brand"></span>실제</span><span data-when="default d2 d3"><span id="legend-forecast" class="inline-flex items-center gap-1"><span class="size-2.5 rounded-sm border border-dashed border-brand bg-brand/20"></span>예상</span></span></p>
+              <div role="tablist" aria-label="그래프 기간" class="inline-flex rounded-lg bg-white/50 p-0.5"><button type="button" role="tab" data-range="week" class="rounded-md px-2.5 py-0.5 text-xs font-semibold transition-colors">주</button><button type="button" role="tab" data-range="month" class="rounded-md px-2.5 py-0.5 text-xs font-semibold transition-colors">월</button><button type="button" role="tab" data-range="year" class="rounded-md px-2.5 py-0.5 text-xs font-semibold transition-colors">년</button></div>
+            </div>
+            <div id="chart-fc" data-when="default d2 d3" data-chart="bar" data-font="11" data-metric="revenue" class="mt-2 h-48 w-full" data-labels="" data-values="0"></div>
+            <div id="chart-plain" data-when="loading short error" data-chart="bar" data-font="11" data-metric="revenue" class="mt-2 h-48 w-full" data-labels="" data-values="0"></div>
           </div>
-          <p class="rounded-xl bg-subtle px-4 py-3 text-[0.95rem] leading-relaxed text-ink-2">화요일은 최근 4주 평균보다 판매가 적은 요일이라 낮게 예측했습니다.</p>
         </div>
-        <div class="rounded-2xl space-y-3 p-5 lg:p-6 glass-card">
-          <div class="flex items-center justify-between gap-2">
-            <p class="flex items-center gap-1.5 text-base font-bold text-ink"><span data-icon="calendarDays" class="size-5 text-brand"></span>10월 21일(수)</p>
-            <span class="rounded-full px-2.5 py-0.5 text-sm font-semibold bg-subtle text-ink-3">이틀 뒤</span>
-          </div>
-          <div>
-            <p class="tabular text-[2rem] leading-tight font-bold tracking-tight text-ink">114만원</p>
-            <p class="text-sm text-ink-3">예상 범위 921,000원 ~ 1,372,000원</p>
-          </div>
-          <p class="rounded-xl bg-subtle px-4 py-3 text-[0.95rem] leading-relaxed text-ink-2">최근 7일 매출 흐름이 이어져 평일 평균 수준으로 예측했습니다.</p>
+      </section>
+      <!-- 앞으로 3일 예상 매출 — 줄을 누르면 아래 메뉴 카드가 그날로. 예측 근거(explanation.sentence)는 한 줄로 줄이고 전체는 마우스오버, 예상 범위(P10~P90)는 금액 밑에 늘 함께. 신뢰도 낮음은 날짜(예측)마다, 마우스오버로 사유(low_confidence_reason) -->
+      <section class="flex flex-col rounded-2xl px-2 pt-4 pb-2 glass-card">
+        <div class="flex items-center justify-between gap-2 px-2">
+          <h2 class="text-base font-bold text-ink">앞으로 3일 예상 매출</h2>
+          <span title="어제 예측 121만원, 실제 128만원" class="rounded-full bg-brand-soft px-2.5 py-1 text-xs font-semibold text-brand">어제 정확도 94%</span>
         </div>
-        <!-- is_low_confidence → 'n일 뒤' 대신 '신뢰도 낮음' 배지 -->
-        <div class="rounded-2xl space-y-3 p-5 lg:p-6 glass-card">
-          <div class="flex items-center justify-between gap-2">
-            <p class="flex items-center gap-1.5 text-base font-bold text-ink"><span data-icon="calendarDays" class="size-5 text-brand"></span>10월 22일(목)</p>
-            <span class="rounded-full bg-warn-soft px-2.5 py-0.5 text-sm font-semibold text-warn">신뢰도 낮음</span>
-          </div>
-          <div>
-            <p class="tabular text-[2rem] leading-tight font-bold tracking-tight text-ink">121만원</p>
-            <p class="text-sm text-ink-3">예상 범위 702,000원 ~ 1,731,000원</p>
-          </div>
-          <p class="rounded-xl bg-subtle px-4 py-3 text-[0.95rem] leading-relaxed text-ink-2">비 예보가 있어 배달 주문이 늘 것으로 보았지만 비슷한 날의 이력이 적어 범위가 넓습니다.</p>
-        </div>
-      </div>
-    </section>
-
-    <!-- StatCard 4개 — 아이콘은 sm 미만(앱)에서 숨는다 -->
-    <div class="grid grid-cols-2 gap-3 lg:grid-cols-4 lg:gap-4">
-      <div class="rounded-2xl flex flex-col gap-3 p-5 glass-card">
-        <div class="flex items-center justify-between gap-2">
-          <p class="text-[0.95rem] font-medium text-ink-3">이번 달 누적매출</p>
-          <span class="hidden size-9 items-center justify-center rounded-xl sm:flex bg-brand-soft text-brand"><span data-icon="trendingUp" class="size-5"></span></span>
-        </div>
-        <p class="tabular text-[1.65rem] leading-none font-bold tracking-tight text-ink lg:text-[1.9rem]">2,292만원</p>
-        <p class="text-sm text-ink-3">판매 1042건</p>
-      </div>
-      <!-- 이번 달은 10/19까지, 전월은 한 달 전체를 비교한다(PR 계산 그대로) -->
-      <div class="rounded-2xl flex flex-col gap-3 p-5 glass-card">
-        <div class="flex items-center justify-between gap-2">
-          <p class="text-[0.95rem] font-medium text-ink-3">전월 대비</p>
-          <span class="hidden size-9 items-center justify-center rounded-xl sm:flex bg-subtle text-ink-2"><span data-icon="calendarDays" class="size-5"></span></span>
-        </div>
-        <p class="tabular text-[1.65rem] leading-none font-bold tracking-tight text-ink lg:text-[1.9rem]">-28.1%</p>
-        <p class="text-sm text-ink-3">전월 3,190만원</p>
-      </div>
-      <div class="rounded-2xl flex flex-col gap-3 p-5 glass-card">
-        <div class="flex items-center justify-between gap-2">
-          <p class="text-[0.95rem] font-medium text-ink-3">예측 정확도</p>
-          <span class="hidden size-9 items-center justify-center rounded-xl sm:flex bg-subtle text-ink-2"><span data-icon="target" class="size-5"></span></span>
-        </div>
-        <p class="tabular text-[1.65rem] leading-none font-bold tracking-tight text-ink lg:text-[1.9rem]">준비 중</p>
-        <p class="text-sm text-ink-3">데이터가 쌓이면 제공</p>
-      </div>
-      <div class="rounded-2xl flex flex-col gap-3 p-5 glass-card">
-        <div class="flex items-center justify-between gap-2">
-          <p class="text-[0.95rem] font-medium text-ink-3">평균 오차율</p>
-          <span class="hidden size-9 items-center justify-center rounded-xl sm:flex bg-subtle text-ink-2"><span data-icon="activity" class="size-5"></span></span>
-        </div>
-        <p class="tabular text-[1.65rem] leading-none font-bold tracking-tight text-ink lg:text-[1.9rem]">준비 중</p>
-        <p class="text-sm text-ink-3">데이터가 쌓이면 제공</p>
-      </div>
+        <ul data-when="default d2 d3" class="mt-3 flex flex-1 flex-col justify-between gap-1">
+          <li><button type="button" data-day="1" data-set-state="default" class="flex w-full items-center gap-3 rounded-xl px-2.5 py-2.5 text-left hover:bg-white/40">
+            <span class="flex size-9 shrink-0 items-center justify-center rounded-lg bg-white/70 text-brand"><span data-icon="calendarDays" class="size-4.5"></span></span>
+            <span class="min-w-0 flex-1">
+              <span class="flex items-center gap-2 text-[0.95rem] font-semibold text-ink">오늘<span class="font-normal text-ink-3">10월 20일 (화)</span></span>
+              <span title="화요일은 최근 4주 평균보다 판매가 적은 요일이라 낮게 예측했습니다." class="mt-0.5 block truncate text-xs text-ink-3">화요일은 최근 4주 평균보다 판매가 적은 요일이라 낮게 예측했습니다.</span>
+            </span>
+            <span class="shrink-0 text-right"><span class="tabular block text-base font-bold text-ink">108만원</span><span class="tabular block text-xs text-ink-3">86만~130만원</span></span>
+          </button></li>
+          <li><button type="button" data-day="2" data-set-state="d2" class="flex w-full items-center gap-3 rounded-xl px-2.5 py-2.5 text-left hover:bg-white/40">
+            <span class="flex size-9 shrink-0 items-center justify-center rounded-lg bg-white/70 text-brand"><span data-icon="calendarDays" class="size-4.5"></span></span>
+            <span class="min-w-0 flex-1">
+              <span class="flex items-center gap-2 text-[0.95rem] font-semibold text-ink">내일<span class="font-normal text-ink-3">10월 21일 (수)</span></span>
+              <span title="최근 7일 매출 흐름이 이어져 평일 평균 수준으로 예측했습니다." class="mt-0.5 block truncate text-xs text-ink-3">최근 7일 매출 흐름이 이어져 평일 평균 수준으로 예측했습니다.</span>
+            </span>
+            <span class="shrink-0 text-right"><span class="tabular block text-base font-bold text-ink">114만원</span><span class="tabular block text-xs text-ink-3">92만~137만원</span></span>
+          </button></li>
+          <li><button type="button" data-day="3" data-set-state="d3" class="flex w-full items-center gap-3 rounded-xl px-2.5 py-2.5 text-left hover:bg-white/40">
+            <span class="flex size-9 shrink-0 items-center justify-center rounded-lg bg-white/70 text-brand"><span data-icon="calendarDays" class="size-4.5"></span></span>
+            <span class="min-w-0 flex-1">
+              <span class="flex items-center gap-2 text-[0.95rem] font-semibold text-ink">모레<span class="font-normal text-ink-3">10월 22일 (목)</span><span title="사흘 뒤 예측이라 오차가 클 수 있어요" class="shrink-0 rounded-full bg-warn-soft px-2 py-0.5 text-xs font-semibold text-warn">신뢰도 낮음</span></span>
+              <span title="비 예보가 있어 배달 주문이 늘 것으로 보았지만 비슷한 날의 이력이 적어 범위가 넓습니다." class="mt-0.5 block truncate text-xs text-ink-3">비 예보가 있어 배달 주문이 늘 것으로 보았지만 비슷한 날의 이력이 적어 범위가 넓습니다.</span>
+            </span>
+            <span class="shrink-0 text-right"><span class="tabular block text-base font-bold text-ink">121만원</span><span class="tabular block text-xs text-ink-3">70만~173만원</span></span>
+          </button></li>
+        </ul>
+        <div data-when="loading" class="flex flex-1 flex-col items-center justify-center gap-3 px-4 py-6 text-center text-sm text-ink-3">예측 계산 중…</div>
+        <div data-when="short" class="flex flex-1 flex-col items-center justify-center gap-3 px-4 py-6 text-center text-sm text-ink-3"><span data-icon="alertTriangle" class="size-6 text-warn"></span>AI 예측에 필요한 판매 이력이 부족합니다 (최소 10일 이상 필요).</div>
+        <div data-when="error" class="flex flex-1 flex-col items-center justify-center gap-3 px-4 py-6 text-center text-sm text-ink-3"><span data-icon="alertTriangle" class="size-6 text-warn"></span>AI 서버에 연결할 수 없습니다. 잠시 후 다시 시도해주세요.</div>
+      </section>
     </div>
-
-    <!-- 매출 그래프 — Segmented로 이번 달/지난 달 전환 -->
-    <section class="rounded-2xl space-y-4 p-5 lg:p-6 glass-card">
-      <div class="flex items-end justify-between gap-3">
-        <div class="min-w-0 space-y-0.5">
-          <h2 class="flex items-center gap-2 text-lg font-bold text-ink lg:text-xl">매출 그래프</h2>
-          <p data-when="default loading short error" class="text-sm text-ink-3">2026-10 일별 매출</p>
-          <p data-when="last" class="text-sm text-ink-3">2026-09 일별 매출</p>
+    <!-- 메뉴별 예상 판매 — 고른 날 상위 5개(예상 판매량 높은 순). 고리는 그날 예상 판매 수량 비중. 신뢰도는 날짜 단위라 메뉴 카드에는 없다 -->
+    <h2 data-when="default" class="px-1 text-base font-bold text-ink">10월 20일 (화) 메뉴별 예상 판매</h2>
+    <ul data-when="default" class="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
+      <li class="flex flex-col items-center rounded-2xl px-4 pt-4 pb-5 text-center glass-card">
+        <div class="flex w-full items-center justify-between gap-2"><span class="flex size-7 items-center justify-center rounded-lg text-sm font-bold bg-brand text-white">1</span></div>
+        <div class="relative mt-2 size-24">
+          <svg viewBox="0 0 88 88" class="size-full -rotate-90"><circle cx="44" cy="44" r="36" fill="none" stroke-width="9" class="stroke-brand/15"/><circle cx="44" cy="44" r="36" fill="none" stroke-width="9" stroke-linecap="round" stroke-dasharray="54.3 226.2" class="stroke-brand"/></svg>
+          <span class="absolute inset-0 flex flex-col items-center justify-center"><span class="tabular text-lg leading-none font-bold text-ink">24%</span><span class="mt-1 text-xs text-ink-3">비중</span></span>
         </div>
-        <div data-when="default loading short error" role="tablist" aria-label="그래프 기간" class="inline-flex rounded-xl p-1 glass-card">
-          <button type="button" role="tab" aria-selected="true" data-set-state="default" class="rounded-lg px-3.5 py-1.5 text-sm font-semibold transition-colors bg-brand-soft text-brand">이번 달</button>
-          <button type="button" role="tab" aria-selected="false" data-set-state="last" class="rounded-lg px-3.5 py-1.5 text-sm font-semibold transition-colors text-ink-3 hover:text-ink-2">지난 달</button>
+        <p class="mt-3 line-clamp-2 w-full text-[0.95rem] font-semibold break-keep text-ink lg:truncate">불새우 루꼴라 화덕피자</p>
+        <p class="tabular mt-0.5 text-sm text-ink-3">예상 22개</p>
+      </li>
+      <li class="flex flex-col items-center rounded-2xl px-4 pt-4 pb-5 text-center glass-card">
+        <div class="flex w-full items-center justify-between gap-2"><span class="flex size-7 items-center justify-center rounded-lg text-sm font-bold bg-white/70 text-ink-2">2</span></div>
+        <div class="relative mt-2 size-24">
+          <svg viewBox="0 0 88 88" class="size-full -rotate-90"><circle cx="44" cy="44" r="36" fill="none" stroke-width="9" class="stroke-brand/15"/><circle cx="44" cy="44" r="36" fill="none" stroke-width="9" stroke-linecap="round" stroke-dasharray="47.5 226.2" class="stroke-brand"/></svg>
+          <span class="absolute inset-0 flex flex-col items-center justify-center"><span class="tabular text-lg leading-none font-bold text-ink">21%</span><span class="mt-1 text-xs text-ink-3">비중</span></span>
         </div>
-        <div data-when="last" role="tablist" aria-label="그래프 기간" class="inline-flex rounded-xl p-1 glass-card">
-          <button type="button" role="tab" aria-selected="false" data-set-state="default" class="rounded-lg px-3.5 py-1.5 text-sm font-semibold transition-colors text-ink-3 hover:text-ink-2">이번 달</button>
-          <button type="button" role="tab" aria-selected="true" data-set-state="last" class="rounded-lg px-3.5 py-1.5 text-sm font-semibold transition-colors bg-brand-soft text-brand">지난 달</button>
+        <p class="mt-3 line-clamp-2 w-full text-[0.95rem] font-semibold break-keep text-ink lg:truncate">페페로니 듬뿍 화덕피자</p>
+        <p class="tabular mt-0.5 text-sm text-ink-3">예상 19개</p>
+      </li>
+      <li class="flex flex-col items-center rounded-2xl px-4 pt-4 pb-5 text-center glass-card">
+        <div class="flex w-full items-center justify-between gap-2"><span class="flex size-7 items-center justify-center rounded-lg text-sm font-bold bg-white/70 text-ink-2">3</span></div>
+        <div class="relative mt-2 size-24">
+          <svg viewBox="0 0 88 88" class="size-full -rotate-90"><circle cx="44" cy="44" r="36" fill="none" stroke-width="9" class="stroke-brand/15"/><circle cx="44" cy="44" r="36" fill="none" stroke-width="9" stroke-linecap="round" stroke-dasharray="38.5 226.2" class="stroke-brand"/></svg>
+          <span class="absolute inset-0 flex flex-col items-center justify-center"><span class="tabular text-lg leading-none font-bold text-ink">17%</span><span class="mt-1 text-xs text-ink-3">비중</span></span>
         </div>
-      </div>
-      <!-- RevenueBarChart variant="area" height=280. 두 그래프를 한 칸에 겹쳐 두고 상태에 따라 하나만 보인다 -->
-      <div class="grid">
-        <div class="chart-this [grid-area:1/1] w-full" data-chart="area" data-metric="revenue" style="height:280px"
-          data-labels="10/1,10/2,10/3,10/4,10/5,10/6,10/7,10/8,10/9,10/10,10/11,10/12,10/13,10/14,10/15,10/16,10/17,10/18,10/19"
-          data-values="920000,870000,1080000,1260000,1410000,890000,940000,1010000,960000,1150000,1380000,1520000,1120000,980000,1240000,1310000,1680000,1920000,1284000"></div>
-        <div class="chart-last [grid-area:1/1] w-full" data-chart="area" data-metric="revenue" style="height:280px"
-          data-labels="9/1,9/2,9/3,9/4,9/5,9/6,9/7,9/8,9/9,9/10,9/11,9/12,9/13,9/14,9/15,9/16,9/17,9/18,9/19,9/20,9/21,9/22,9/23,9/24,9/25,9/26,9/27,9/28,9/29,9/30"
-          data-values="741000,1013000,895000,1121000,1482000,1182000,782000,937000,968000,968000,1295000,1443000,1282000,761000,838000,955000,1012000,1063000,1463000,1160000,929000,952000,798000,959000,1383000,1465000,1221000,844000,979000,1009000"></div>
-      </div>
-    </section>
-
-    <section class="rounded-2xl space-y-2 p-5 lg:p-6 glass-card">
-      <div class="flex items-end justify-between gap-3">
-        <div class="min-w-0 space-y-0.5">
-          <h2 class="flex items-center gap-2 text-lg font-bold text-ink lg:text-xl">오차율 분석 · 영향 요인</h2>
+        <p class="mt-3 line-clamp-2 w-full text-[0.95rem] font-semibold break-keep text-ink lg:truncate">마르게리타 화덕피자</p>
+        <p class="tabular mt-0.5 text-sm text-ink-3">예상 15개</p>
+      </li>
+      <li class="flex flex-col items-center rounded-2xl px-4 pt-4 pb-5 text-center glass-card">
+        <div class="flex w-full items-center justify-between gap-2"><span class="flex size-7 items-center justify-center rounded-lg text-sm font-bold bg-white/70 text-ink-2">4</span></div>
+        <div class="relative mt-2 size-24">
+          <svg viewBox="0 0 88 88" class="size-full -rotate-90"><circle cx="44" cy="44" r="36" fill="none" stroke-width="9" class="stroke-brand/15"/><circle cx="44" cy="44" r="36" fill="none" stroke-width="9" stroke-linecap="round" stroke-dasharray="29.4 226.2" class="stroke-brand"/></svg>
+          <span class="absolute inset-0 flex flex-col items-center justify-center"><span class="tabular text-lg leading-none font-bold text-ink">13%</span><span class="mt-1 text-xs text-ink-3">비중</span></span>
         </div>
-      </div>
-      <p class="text-[0.95rem] leading-relaxed text-ink-3">예측 대비 오차율(정확도 평가)은 과거 예측과 실제 결과를 누적 비교해야 계산되는 지표라, 예측 자체는 위에서 실시간 제공되지만 이 부분은 운영 데이터가 쌓인 뒤 제공됩니다.</p>
-    </section>
+        <p class="mt-3 line-clamp-2 w-full text-[0.95rem] font-semibold break-keep text-ink lg:truncate">고르곤졸라 꿀 피자</p>
+        <p class="tabular mt-0.5 text-sm text-ink-3">예상 12개</p>
+      </li>
+      <li class="flex flex-col items-center rounded-2xl px-4 pt-4 pb-5 text-center glass-card">
+        <div class="flex w-full items-center justify-between gap-2"><span class="flex size-7 items-center justify-center rounded-lg text-sm font-bold bg-white/70 text-ink-2">5</span></div>
+        <div class="relative mt-2 size-24">
+          <svg viewBox="0 0 88 88" class="size-full -rotate-90"><circle cx="44" cy="44" r="36" fill="none" stroke-width="9" class="stroke-brand/15"/><circle cx="44" cy="44" r="36" fill="none" stroke-width="9" stroke-linecap="round" stroke-dasharray="20.4 226.2" class="stroke-brand"/></svg>
+          <span class="absolute inset-0 flex flex-col items-center justify-center"><span class="tabular text-lg leading-none font-bold text-ink">9%</span><span class="mt-1 text-xs text-ink-3">비중</span></span>
+        </div>
+        <p class="mt-3 line-clamp-2 w-full text-[0.95rem] font-semibold break-keep text-ink lg:truncate">루꼴라 샐러드</p>
+        <p class="tabular mt-0.5 text-sm text-ink-3">예상 8개</p>
+      </li>
+    </ul>
+    <h2 data-when="d2" class="px-1 text-base font-bold text-ink">10월 21일 (수) 메뉴별 예상 판매</h2>
+    <ul data-when="d2" class="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
+      <li class="flex flex-col items-center rounded-2xl px-4 pt-4 pb-5 text-center glass-card">
+        <div class="flex w-full items-center justify-between gap-2"><span class="flex size-7 items-center justify-center rounded-lg text-sm font-bold bg-brand text-white">1</span></div>
+        <div class="relative mt-2 size-24">
+          <svg viewBox="0 0 88 88" class="size-full -rotate-90"><circle cx="44" cy="44" r="36" fill="none" stroke-width="9" class="stroke-brand/15"/><circle cx="44" cy="44" r="36" fill="none" stroke-width="9" stroke-linecap="round" stroke-dasharray="54.3 226.2" class="stroke-brand"/></svg>
+          <span class="absolute inset-0 flex flex-col items-center justify-center"><span class="tabular text-lg leading-none font-bold text-ink">24%</span><span class="mt-1 text-xs text-ink-3">비중</span></span>
+        </div>
+        <p class="mt-3 line-clamp-2 w-full text-[0.95rem] font-semibold break-keep text-ink lg:truncate">불새우 루꼴라 화덕피자</p>
+        <p class="tabular mt-0.5 text-sm text-ink-3">예상 23개</p>
+      </li>
+      <li class="flex flex-col items-center rounded-2xl px-4 pt-4 pb-5 text-center glass-card">
+        <div class="flex w-full items-center justify-between gap-2"><span class="flex size-7 items-center justify-center rounded-lg text-sm font-bold bg-white/70 text-ink-2">2</span></div>
+        <div class="relative mt-2 size-24">
+          <svg viewBox="0 0 88 88" class="size-full -rotate-90"><circle cx="44" cy="44" r="36" fill="none" stroke-width="9" class="stroke-brand/15"/><circle cx="44" cy="44" r="36" fill="none" stroke-width="9" stroke-linecap="round" stroke-dasharray="47.5 226.2" class="stroke-brand"/></svg>
+          <span class="absolute inset-0 flex flex-col items-center justify-center"><span class="tabular text-lg leading-none font-bold text-ink">21%</span><span class="mt-1 text-xs text-ink-3">비중</span></span>
+        </div>
+        <p class="mt-3 line-clamp-2 w-full text-[0.95rem] font-semibold break-keep text-ink lg:truncate">페페로니 듬뿍 화덕피자</p>
+        <p class="tabular mt-0.5 text-sm text-ink-3">예상 20개</p>
+      </li>
+      <li class="flex flex-col items-center rounded-2xl px-4 pt-4 pb-5 text-center glass-card">
+        <div class="flex w-full items-center justify-between gap-2"><span class="flex size-7 items-center justify-center rounded-lg text-sm font-bold bg-white/70 text-ink-2">3</span></div>
+        <div class="relative mt-2 size-24">
+          <svg viewBox="0 0 88 88" class="size-full -rotate-90"><circle cx="44" cy="44" r="36" fill="none" stroke-width="9" class="stroke-brand/15"/><circle cx="44" cy="44" r="36" fill="none" stroke-width="9" stroke-linecap="round" stroke-dasharray="40.7 226.2" class="stroke-brand"/></svg>
+          <span class="absolute inset-0 flex flex-col items-center justify-center"><span class="tabular text-lg leading-none font-bold text-ink">18%</span><span class="mt-1 text-xs text-ink-3">비중</span></span>
+        </div>
+        <p class="mt-3 line-clamp-2 w-full text-[0.95rem] font-semibold break-keep text-ink lg:truncate">마르게리타 화덕피자</p>
+        <p class="tabular mt-0.5 text-sm text-ink-3">예상 17개</p>
+      </li>
+      <li class="flex flex-col items-center rounded-2xl px-4 pt-4 pb-5 text-center glass-card">
+        <div class="flex w-full items-center justify-between gap-2"><span class="flex size-7 items-center justify-center rounded-lg text-sm font-bold bg-white/70 text-ink-2">4</span></div>
+        <div class="relative mt-2 size-24">
+          <svg viewBox="0 0 88 88" class="size-full -rotate-90"><circle cx="44" cy="44" r="36" fill="none" stroke-width="9" class="stroke-brand/15"/><circle cx="44" cy="44" r="36" fill="none" stroke-width="9" stroke-linecap="round" stroke-dasharray="29.4 226.2" class="stroke-brand"/></svg>
+          <span class="absolute inset-0 flex flex-col items-center justify-center"><span class="tabular text-lg leading-none font-bold text-ink">13%</span><span class="mt-1 text-xs text-ink-3">비중</span></span>
+        </div>
+        <p class="mt-3 line-clamp-2 w-full text-[0.95rem] font-semibold break-keep text-ink lg:truncate">고르곤졸라 꿀 피자</p>
+        <p class="tabular mt-0.5 text-sm text-ink-3">예상 12개</p>
+      </li>
+      <li class="flex flex-col items-center rounded-2xl px-4 pt-4 pb-5 text-center glass-card">
+        <div class="flex w-full items-center justify-between gap-2"><span class="flex size-7 items-center justify-center rounded-lg text-sm font-bold bg-white/70 text-ink-2">5</span></div>
+        <div class="relative mt-2 size-24">
+          <svg viewBox="0 0 88 88" class="size-full -rotate-90"><circle cx="44" cy="44" r="36" fill="none" stroke-width="9" class="stroke-brand/15"/><circle cx="44" cy="44" r="36" fill="none" stroke-width="9" stroke-linecap="round" stroke-dasharray="20.4 226.2" class="stroke-brand"/></svg>
+          <span class="absolute inset-0 flex flex-col items-center justify-center"><span class="tabular text-lg leading-none font-bold text-ink">9%</span><span class="mt-1 text-xs text-ink-3">비중</span></span>
+        </div>
+        <p class="mt-3 line-clamp-2 w-full text-[0.95rem] font-semibold break-keep text-ink lg:truncate">루꼴라 샐러드</p>
+        <p class="tabular mt-0.5 text-sm text-ink-3">예상 9개</p>
+      </li>
+    </ul>
+    <h2 data-when="d3" class="px-1 text-base font-bold text-ink">10월 22일 (목) 메뉴별 예상 판매</h2>
+    <ul data-when="d3" class="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
+      <li class="flex flex-col items-center rounded-2xl px-4 pt-4 pb-5 text-center glass-card">
+        <div class="flex w-full items-center justify-between gap-2"><span class="flex size-7 items-center justify-center rounded-lg text-sm font-bold bg-brand text-white">1</span></div>
+        <div class="relative mt-2 size-24">
+          <svg viewBox="0 0 88 88" class="size-full -rotate-90"><circle cx="44" cy="44" r="36" fill="none" stroke-width="9" class="stroke-brand/15"/><circle cx="44" cy="44" r="36" fill="none" stroke-width="9" stroke-linecap="round" stroke-dasharray="54.3 226.2" class="stroke-brand"/></svg>
+          <span class="absolute inset-0 flex flex-col items-center justify-center"><span class="tabular text-lg leading-none font-bold text-ink">24%</span><span class="mt-1 text-xs text-ink-3">비중</span></span>
+        </div>
+        <p class="mt-3 line-clamp-2 w-full text-[0.95rem] font-semibold break-keep text-ink lg:truncate">페페로니 듬뿍 화덕피자</p>
+        <p class="tabular mt-0.5 text-sm text-ink-3">예상 24개</p>
+      </li>
+      <li class="flex flex-col items-center rounded-2xl px-4 pt-4 pb-5 text-center glass-card">
+        <div class="flex w-full items-center justify-between gap-2"><span class="flex size-7 items-center justify-center rounded-lg text-sm font-bold bg-white/70 text-ink-2">2</span></div>
+        <div class="relative mt-2 size-24">
+          <svg viewBox="0 0 88 88" class="size-full -rotate-90"><circle cx="44" cy="44" r="36" fill="none" stroke-width="9" class="stroke-brand/15"/><circle cx="44" cy="44" r="36" fill="none" stroke-width="9" stroke-linecap="round" stroke-dasharray="52.0 226.2" class="stroke-brand"/></svg>
+          <span class="absolute inset-0 flex flex-col items-center justify-center"><span class="tabular text-lg leading-none font-bold text-ink">23%</span><span class="mt-1 text-xs text-ink-3">비중</span></span>
+        </div>
+        <p class="mt-3 line-clamp-2 w-full text-[0.95rem] font-semibold break-keep text-ink lg:truncate">불새우 루꼴라 화덕피자</p>
+        <p class="tabular mt-0.5 text-sm text-ink-3">예상 23개</p>
+      </li>
+      <li class="flex flex-col items-center rounded-2xl px-4 pt-4 pb-5 text-center glass-card">
+        <div class="flex w-full items-center justify-between gap-2"><span class="flex size-7 items-center justify-center rounded-lg text-sm font-bold bg-white/70 text-ink-2">3</span></div>
+        <div class="relative mt-2 size-24">
+          <svg viewBox="0 0 88 88" class="size-full -rotate-90"><circle cx="44" cy="44" r="36" fill="none" stroke-width="9" class="stroke-brand/15"/><circle cx="44" cy="44" r="36" fill="none" stroke-width="9" stroke-linecap="round" stroke-dasharray="38.5 226.2" class="stroke-brand"/></svg>
+          <span class="absolute inset-0 flex flex-col items-center justify-center"><span class="tabular text-lg leading-none font-bold text-ink">17%</span><span class="mt-1 text-xs text-ink-3">비중</span></span>
+        </div>
+        <p class="mt-3 line-clamp-2 w-full text-[0.95rem] font-semibold break-keep text-ink lg:truncate">마르게리타 화덕피자</p>
+        <p class="tabular mt-0.5 text-sm text-ink-3">예상 17개</p>
+      </li>
+      <li class="flex flex-col items-center rounded-2xl px-4 pt-4 pb-5 text-center glass-card">
+        <div class="flex w-full items-center justify-between gap-2"><span class="flex size-7 items-center justify-center rounded-lg text-sm font-bold bg-white/70 text-ink-2">4</span></div>
+        <div class="relative mt-2 size-24">
+          <svg viewBox="0 0 88 88" class="size-full -rotate-90"><circle cx="44" cy="44" r="36" fill="none" stroke-width="9" class="stroke-brand/15"/><circle cx="44" cy="44" r="36" fill="none" stroke-width="9" stroke-linecap="round" stroke-dasharray="31.7 226.2" class="stroke-brand"/></svg>
+          <span class="absolute inset-0 flex flex-col items-center justify-center"><span class="tabular text-lg leading-none font-bold text-ink">14%</span><span class="mt-1 text-xs text-ink-3">비중</span></span>
+        </div>
+        <p class="mt-3 line-clamp-2 w-full text-[0.95rem] font-semibold break-keep text-ink lg:truncate">고르곤졸라 꿀 피자</p>
+        <p class="tabular mt-0.5 text-sm text-ink-3">예상 14개</p>
+      </li>
+      <li class="flex flex-col items-center rounded-2xl px-4 pt-4 pb-5 text-center glass-card">
+        <div class="flex w-full items-center justify-between gap-2"><span class="flex size-7 items-center justify-center rounded-lg text-sm font-bold bg-white/70 text-ink-2">5</span></div>
+        <div class="relative mt-2 size-24">
+          <svg viewBox="0 0 88 88" class="size-full -rotate-90"><circle cx="44" cy="44" r="36" fill="none" stroke-width="9" class="stroke-brand/15"/><circle cx="44" cy="44" r="36" fill="none" stroke-width="9" stroke-linecap="round" stroke-dasharray="18.1 226.2" class="stroke-brand"/></svg>
+          <span class="absolute inset-0 flex flex-col items-center justify-center"><span class="tabular text-lg leading-none font-bold text-ink">8%</span><span class="mt-1 text-xs text-ink-3">비중</span></span>
+        </div>
+        <p class="mt-3 line-clamp-2 w-full text-[0.95rem] font-semibold break-keep text-ink lg:truncate">루꼴라 샐러드</p>
+        <p class="tabular mt-0.5 text-sm text-ink-3">예상 8개</p>
+      </li>
+    </ul>
+    <div data-when="loading short error" class="flex min-h-[120px] items-center justify-center rounded-2xl px-6 py-8 text-center text-sm text-ink-3 glass-card">메뉴별 예측도 함께 기다리고 있어요</div>
   </div>
 </div>
+<script>
+// 기간 매출 그래프 — 목업은 9/1~10/19 일별 값(일 단위 원)과 2025-11부터 월 합계만 있다. 그 앞으로는 넘기지 못한다
+(() => {
+  const DAILY = [741000,1013000,895000,1121000,1482000,1182000,782000,937000,968000,968000,1295000,1443000,1282000,761000,838000,955000,1012000,1063000,1463000,1160000,929000,952000,798000,959000,1383000,1465000,1221000,844000,979000,1009000,
+    920000,870000,1080000,1260000,1410000,890000,940000,1010000,960000,1150000,1380000,1520000,1120000,980000,1240000,1310000,1680000,1920000,1284000];
+  const day = (i) => new Date(2026, 8, 1 + i); // DAILY[0] = 9월 1일
+  const MONTHLY = [28500000,34200000,27100000,26400000,29800000,30500000,33100000,31800000,34600000,35200000,31900000,22924000]; // 2025-11 ~ 2026-10(10/19까지)
+  const FORECAST = [1080000,1140000,1210000];
+  const won = (v) => {
+    const man = Math.round(v / 10000), eok = Math.floor(man / 10000), rest = man % 10000;
+    return eok ? `${eok}억${rest ? ` ${rest.toLocaleString()}만` : ""}원` : `${man.toLocaleString()}만원`;
+  };
+  const md = (d) => `${d.getMonth() + 1}월 ${d.getDate()}일`;
+  const sum = (a) => a.reduce((x, y) => x + y, 0);
+  let range = "month", back = 0;
+
+  function view() {
+    const last = DAILY.length - 1;
+    if (range === "week") {
+      const end = last - 7 * back, start = end - 6;
+      const prev = start - 7 >= 0 ? sum(DAILY.slice(start - 7, start)) : null;
+      return { label: `${md(day(start))} ~ ${md(day(end))}`, unit: "일별 매출", values: DAILY.slice(start, end + 1),
+        labels: DAILY.slice(start, end + 1).map((_, i) => { const d = day(start + i); return `${d.getMonth() + 1}/${d.getDate()}`; }),
+        prev, prevName: "직전 7일", latest: back === 0, canBack: start - 7 >= 0 };
+    }
+    if (range === "month") {
+      const [start, end, m] = back === 0 ? [30, last, 10] : [0, 29, 9];
+      return { label: `2026년 ${m}월`, unit: "일별 매출", values: DAILY.slice(start, end + 1),
+        labels: DAILY.slice(start, end + 1).map((_, i) => `${m}/${i + 1}`),
+        prev: MONTHLY[back === 0 ? 10 : 9], prevName: back === 0 ? "9월" : "8월", latest: back === 0, canBack: back === 0 };
+    }
+    return { label: "2025년 11월 ~ 2026년 10월", unit: "월별 매출", values: MONTHLY,
+      labels: ["11월","12월","1월","2월","3월","4월","5월","6월","7월","8월","9월","10월"],
+      prev: null, avg: sum(MONTHLY) / 12, latest: false, canBack: false };
+  }
+
+  function draw() {
+    const v = view(), total = sum(v.values);
+    document.getElementById("range-label").textContent = v.label;
+    document.getElementById("range-unit").textContent = v.unit;
+    document.getElementById("range-total").textContent = won(total);
+    document.getElementById("range-count").textContent = `판매 ${Math.round(total / 22000).toLocaleString()}건`;
+    const bar = document.getElementById("range-bar"), cmp = document.getElementById("range-compare");
+    if (v.prev) {
+      const pct = Math.round((total / v.prev) * 100);
+      bar.style.display = "";
+      bar.firstElementChild.style.width = `${Math.min(pct, 100)}%`;
+      cmp.innerHTML = `${v.prevName} ${won(v.prev)}의 <span class="font-semibold text-brand">${pct}%</span>`;
+    } else {
+      bar.style.display = "none";
+      cmp.textContent = v.avg ? `월 평균 ${won(v.avg)}` : "비교할 직전 기간이 없어요";
+    }
+    const fc = document.getElementById("chart-fc"), plain = document.getElementById("chart-plain");
+    plain.dataset.labels = v.labels.join(","); plain.dataset.values = v.values.join(",");
+    fc.dataset.labels = (v.latest ? [...v.labels, "오늘", "내일", "모레"] : v.labels).join(",");
+    fc.dataset.values = (v.latest ? [...v.values, ...FORECAST] : v.values).join(",");
+    if (v.latest) fc.dataset.forecast = "3"; else delete fc.dataset.forecast;
+    document.getElementById("legend-forecast").style.display = v.latest ? "" : "none";
+    for (const b of document.querySelectorAll("[data-range]")) {
+      const on = b.dataset.range === range;
+      b.setAttribute("aria-selected", String(on));
+      b.className = `rounded-md px-2.5 py-0.5 text-xs font-semibold transition-colors ${on ? "bg-brand-soft text-brand" : "text-ink-3 hover:text-ink-2"}`;
+    }
+    document.querySelector('[data-step="1"]').disabled = !v.canBack;
+    document.querySelector('[data-step="-1"]').disabled = back === 0;
+    for (const el of [fc, plain]) if (el.clientWidth > 0) renderChart(el);
+  }
+
+  document.addEventListener("click", (e) => {
+    const r = e.target.closest("[data-range]"), st = e.target.closest("[data-step]");
+    if (r) { range = r.dataset.range; back = 0; draw(); }
+    if (st && !st.disabled) { back = Math.max(0, back + Number(st.dataset.step)); draw(); }
+  });
+  window.addEventListener("load", () => requestAnimationFrame(draw));
+})();
+</script>
 </body>
 </html>

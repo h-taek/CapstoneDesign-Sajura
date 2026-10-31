@@ -196,7 +196,7 @@ function icon(name, cls = "size-5", strokeWidth = 2) {
 }
 
 // 유리 셸 — <div data-shell="활성키" data-title="패널 제목" data-back="뒤로 갈 목업 파일">본문</div>
-// 웹(lg 이상): 상단 바(알림·설정·계정) + 왼쪽 알약 메뉴 + 본문 패널. 매출 올리기 입구는 설정 > POS 연동 관리(spec 04 §4.10)
+// 웹(lg 이상): 상단 바(알림·설정·계정) + 왼쪽 알약 메뉴 + 본문 패널. 매출 올리기 입구는 설정 > POS 연동 관리(spec 04 §4.9)
 // 앱(lg 미만): 상단 바 + 본문 패널 + 하단 알약 탭
 const WEB_NAV = [
   { key: "home", label: "홈", icon: "home" },
@@ -981,10 +981,13 @@ function renderChart(el) {
   // 글자 칸이 46px(13px 글자 기준)보다 좁아지면 건너뛴다. 예측이 있는 그래프는 끝(예측)이 꼭 보이게 끝에서부터 센다
   const step = Math.ceil(labels.length / Math.max(2, Math.min(8, Math.floor((W - L) / (46 * fs / 13)))));
   const fromEnd = el.dataset.forecast != null;
+  // 양 끝 막대를 붙인 그래프는 끝 글자가 그래프 밖으로 잘리지 않게 안으로 민다(한글은 글자 크기, 그 밖은 0.6배 폭으로 어림)
+  const half = (l) => [...l].reduce((w, c) => w + (/[가-힣]/.test(c) ? fs : fs * 0.6), 0) / 2;
+  const lx = (l, i) => (tight ? Math.min(Math.max(x(i), L + half(l)), W - half(l)) : x(i));
   body += labels
     .map((l, i) =>
       (fromEnd ? labels.length - 1 - i : i) % step === 0
-        ? `<text x="${x(i)}" y="${tight ? H - 2 : H - 6}" text-anchor="middle" font-size="${fs}" fill="${CHART.tick}">${l}</text>`
+        ? `<text x="${lx(l, i)}" y="${tight ? H - 2 : H - 6}" text-anchor="middle" font-size="${fs}" fill="${CHART.tick}">${l}</text>`
         : "",
     )
     .join("");
