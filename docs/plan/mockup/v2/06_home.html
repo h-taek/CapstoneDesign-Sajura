@@ -7,9 +7,8 @@
 <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4.0.17"></script>
 <script src="mockup.js" defer></script>
 </head>
-<!-- v2 홈 — 레퍼런스(solvik) 배치. 머리 줄은 두 줄 인사 + 카드 없는 숫자 셋, 본문은 12칸 격자: 왼쪽 위 오늘 예상 매출·7일 그래프(7칸), 오른쪽 최근 발주 2×2(5칸, 두 줄 높이),
-     왼쪽 아래 지난달 매출까지 진행 도넛(3칸, 포인트 색)·많이 나갈 메뉴 비중 도넛(4칸),
-     맨 아래 줄 쿠팡 단가 추세(7칸)·재고(5칸, 최근 발주 아래). 앱은 세로로 쌓는다.
+<!-- v2 홈 — 레퍼런스(solvik) 배치. 머리 줄은 두 줄 인사 + 카드 없는 숫자 셋, 본문은 두 열: 왼쪽 7칸 — 오늘 예상 매출·7일 그래프,
+     지난달 매출까지 진행 도넛(3칸, 포인트 색)·많이 나갈 메뉴 비중 도넛(4칸), 쿠팡 단가 추세 / 오른쪽 5칸 — 최근 발주 2×2, 재고. 앱은 세로로 쌓는다.
      보는 날은 2026-10-20(화) 아침, 마지막 판매 10-19. 예상 매출·월 매출은 07, 발주는 09 목업 값과 같다(10/2·9/25 두 건은 09에 없는 값). 입고 대기는 최근 발주 타일의 상태로 본다.
      상태 — 예측 실패(GET /api/forecast 404·오류: 예측에 기대는 칸만 비우고 '불러오지 못했어요') · 매출 없음(가입 직후) · 설치 안내(앱 폭 배너 → 아이폰 안내 시트) · POS 연동 끊김(상단 바 알림 목록 맨 위 고정 항목) -->
 <body data-page="home" data-states="기본:default,예측 실패:aifail,매출 없음:empty,POS 연동 끊김:pos,설치 안내:guide">
@@ -41,200 +40,207 @@
     </div>
     <button type="button" data-toggle="#install-banner" aria-label="설치 안내 닫기" class="absolute top-1/2 right-2 flex size-10 -translate-y-1/2 items-center justify-center rounded-full text-ink-3 hover:bg-white/60"><span data-icon="x" class="size-5"></span></button>
   </div>
+  <!-- 웹은 두 열 — 왼쪽 7칸(오늘 예상 매출 · 지난달 도넛+메뉴 도넛 · 쿠팡 단가 추세), 오른쪽 5칸(최근 발주 · 재고를 위아래 1:1). 두 열은 같은 위치에서 끝난다 -->
   <div class="grid grid-cols-1 gap-4 lg:grid-cols-12">
-    <!-- 오늘 예상 매출 — 예상 매출(GET /api/forecast predicted_sales) + 평소 대비(explanation.deviation_vs_baseline, 평소 = 직전 7영업일 평균 136만원).
-         그래프는 최근 7일 실제(면적 선) + 오늘 예상(점선·속 빈 점), 평소는 가로 점선 -->
-    <section class="flex flex-col rounded-2xl p-5 glass-card lg:col-span-7">
-      <div class="flex items-center justify-between gap-2">
-        <h2 class="text-base font-bold text-ink">오늘 예상 매출</h2>
-        <span class="rounded-full bg-white/60 px-2.5 py-1 text-xs font-semibold text-ink-2">10월 20일 (화)</span>
-      </div>
-      <div data-when="default pos guide" class="mt-3 flex flex-wrap items-baseline gap-x-3 gap-y-1">
-        <p class="tabular text-[2.5rem] leading-none font-bold tracking-tight text-ink">108만원</p>
-        <p class="text-sm text-ink-2">평소보다 <span class="inline-flex items-center gap-0.5 font-bold text-down"><span data-icon="arrowDown" class="size-3"></span>21%</span> 낮을 것으로 예상</p>
-      </div>
-      <div data-when="aifail" class="mt-3 flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <p class="text-lg font-bold text-ink">오늘 예측을 불러오지 못했어요</p>
-          <p class="mt-1 text-sm text-ink-3">발주 추천도 예측으로 계산해서 함께 비어 있어요.</p>
+    <div class="grid gap-4 lg:col-span-7">
+      <!-- 오늘 예상 매출 — 예상 매출(GET /api/forecast predicted_sales) + 평소 대비(explanation.deviation_vs_baseline, 평소 = 직전 7영업일 평균 136만원).
+           그래프는 최근 7일 실제(면적 선) + 오늘 예상(점선·속 빈 점), 평소는 가로 점선 -->
+      <section class="flex flex-col rounded-2xl p-5 glass-card">
+        <div class="flex items-center justify-between gap-2">
+          <h2 class="text-base font-bold text-ink">오늘 예상 매출</h2>
+          <span class="rounded-full bg-white/60 px-2.5 py-1 text-xs font-semibold text-ink-2">10월 20일 (화)</span>
         </div>
-        <button type="button" data-set-state="default" class="inline-flex h-11 items-center rounded-full bg-ink px-5 text-[0.95rem] font-semibold text-white">다시 불러오기</button>
-      </div>
-      <div data-when="empty" class="mt-3 flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <p class="text-lg font-bold text-ink">첫 매출을 올려 주세요</p>
-          <p class="mt-1 text-sm text-ink-3">올린 다음 날 아침부터 예상 매출과 발주 추천이 나와요.</p>
+        <div data-when="default pos guide" class="mt-3 flex flex-wrap items-baseline gap-x-3 gap-y-1">
+          <p class="tabular text-[2.5rem] leading-none font-bold tracking-tight text-ink">108만원</p>
+          <p class="text-sm text-ink-2">평소보다 <span class="inline-flex items-center gap-0.5 font-bold text-down"><span data-icon="arrowDown" class="size-3"></span>21%</span> 낮을 것으로 예상</p>
         </div>
-        <a href="11_sales-upload.html" class="inline-flex h-11 items-center gap-1.5 rounded-full bg-ink px-5 text-[0.95rem] font-semibold text-white"><span data-icon="upload" class="size-4"></span>매출 올리기</a>
+        <div data-when="aifail" class="mt-3 flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <p class="text-lg font-bold text-ink">오늘 예측을 불러오지 못했어요</p>
+            <p class="mt-1 text-sm text-ink-3">발주 추천도 예측으로 계산해서 함께 비어 있어요.</p>
+          </div>
+          <button type="button" data-set-state="default" class="inline-flex h-11 items-center rounded-full bg-ink px-5 text-[0.95rem] font-semibold text-white">다시 불러오기</button>
+        </div>
+        <div data-when="empty" class="mt-3 flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <p class="text-lg font-bold text-ink">첫 매출을 올려 주세요</p>
+            <p class="mt-1 text-sm text-ink-3">올린 다음 날 아침부터 예상 매출과 발주 추천이 나와요.</p>
+          </div>
+          <a href="11_sales-upload.html" class="inline-flex h-11 items-center gap-1.5 rounded-full bg-ink px-5 text-[0.95rem] font-semibold text-white"><span data-icon="upload" class="size-4"></span>매출 올리기</a>
+        </div>
+        <p data-when="default aifail pos guide" class="mt-4 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-ink-2">
+          <span class="inline-flex items-center gap-1.5"><span class="h-0.5 w-3.5 rounded-full bg-brand"></span>실제</span>
+          <span data-when="default pos guide" class="inline-flex items-center gap-1.5"><span class="w-3.5 border-t-2 border-dashed border-brand"></span>오늘 예상</span>
+          <span class="inline-flex items-center gap-1.5"><span class="w-3.5 border-t-2 border-dashed border-ink-3"></span>평소 · 136만원</span>
+        </p>
+        <div data-when="default pos guide" data-chart="area" data-forecast="1" data-font="11" data-ref="1360000" data-smooth data-metric="revenue" class="mt-2 h-56 w-full lg:h-auto lg:min-h-56 lg:flex-1"
+          data-labels="10/13,10/14,10/15,10/16,10/17,10/18,10/19,오늘" data-values="1120000,980000,1240000,1310000,1680000,1920000,1284000,1080000"></div>
+        <div data-when="aifail" data-chart="area" data-font="11" data-ref="1360000" data-smooth data-metric="revenue" class="mt-2 h-56 w-full lg:h-auto lg:min-h-56 lg:flex-1"
+          data-labels="10/13,10/14,10/15,10/16,10/17,10/18,10/19" data-values="1120000,980000,1240000,1310000,1680000,1920000,1284000"></div>
+        <p data-when="empty" class="mt-4 flex h-40 items-center justify-center rounded-xl text-sm text-ink-3 glass-card lg:h-56">매출을 올리면 그려져요</p>
+      </section>
+      <div class="grid gap-4 lg:grid-cols-7">
+        <!-- 지난달 매출까지 — 이번 달 누적 / 지난달 합계(07과 같은 값). 포인트 색 판, 진행 도넛 -->
+        <section class="flex flex-col rounded-2xl p-5 text-white glass-brand lg:col-span-3">
+          <h2 class="text-base font-bold">지난달 매출까지</h2>
+          <div data-when="default aifail pos guide" class="relative mx-auto mt-3 size-32">
+            <svg viewBox="0 0 132 132" class="size-full -rotate-90"><circle cx="66" cy="66" r="52" fill="none" stroke="rgb(255 255 255 / .25)" stroke-width="14"/><circle cx="66" cy="66" r="52" fill="none" stroke="#fff" stroke-width="14" stroke-linecap="round" stroke-dasharray="235.2 326.7"/></svg>
+            <p class="tabular absolute inset-0 flex items-center justify-center text-[1.65rem] font-bold">72%</p>
+          </div>
+          <p data-when="default aifail pos guide" class="tabular mt-auto pt-3 text-center text-sm text-white/85">2,292만원 / 지난달 3,190만원</p>
+          <p data-when="empty" class="mt-3 text-sm text-white/85">매출을 올리면 지난달과 견줘 보여 드려요</p>
+        </section>
+        <!-- 많이 나갈 메뉴 — 오늘 menu_forecast 상위 5개의 그날 예상 판매 수량 대비 비중(07 메뉴 카드와 같은 값). 6위부터는 '그 외' 한 조각으로 묶고 회색으로 메뉴와 구분한다.
+             조각 색은 포인트 보라 한 색의 농담, 정체는 옆 범례의 이름·비율이 나른다. 가운데는 그날 예상 판매 합계 -->
+        <section class="flex flex-col rounded-2xl p-5 glass-card lg:col-span-4">
+          <h2 class="text-base font-bold text-ink">오늘 많이 나갈 메뉴</h2>
+          <div data-when="default pos guide" class="mt-3 flex flex-1 items-center gap-4">
+            <ul class="w-40 shrink-0 space-y-1.5 text-sm">
+                <li class="flex items-center gap-2"><span class="size-2.5 shrink-0 rounded-sm bg-brand" style="opacity:1"></span><span class="min-w-0 flex-1 truncate font-semibold text-ink">불새우 루꼴라 화덕피자</span><span class="tabular text-ink-2">24%</span></li>
+                <li class="flex items-center gap-2"><span class="size-2.5 shrink-0 rounded-sm bg-brand" style="opacity:0.72"></span><span class="min-w-0 flex-1 truncate font-semibold text-ink">페페로니 듬뿍 화덕피자</span><span class="tabular text-ink-2">21%</span></li>
+                <li class="flex items-center gap-2"><span class="size-2.5 shrink-0 rounded-sm bg-brand" style="opacity:0.52"></span><span class="min-w-0 flex-1 truncate font-semibold text-ink">마르게리타 화덕피자</span><span class="tabular text-ink-2">17%</span></li>
+                <li class="flex items-center gap-2"><span class="size-2.5 shrink-0 rounded-sm bg-brand" style="opacity:0.36"></span><span class="min-w-0 flex-1 truncate font-semibold text-ink">고르곤졸라 꿀 피자</span><span class="tabular text-ink-2">13%</span></li>
+                <li class="flex items-center gap-2"><span class="size-2.5 shrink-0 rounded-sm bg-brand" style="opacity:0.24"></span><span class="min-w-0 flex-1 truncate font-semibold text-ink">루꼴라 샐러드</span><span class="tabular text-ink-2">9%</span></li>
+                <li class="flex items-center gap-2"><span class="size-2.5 shrink-0 rounded-sm bg-ink-4/50"></span><span class="min-w-0 flex-1 truncate text-ink-3">그 외</span><span class="tabular text-ink-2">16%</span></li>
+            </ul>
+            <div class="relative mx-auto size-40 shrink-0">
+              <svg viewBox="0 0 132 132" class="size-full -rotate-90"><circle cx="66" cy="66" r="52" fill="none" stroke="#6b4eff" stroke-opacity="1" stroke-width="20" stroke-dasharray="75.9 326.7" stroke-dashoffset="0.0"/><circle cx="66" cy="66" r="52" fill="none" stroke="#6b4eff" stroke-opacity="0.72" stroke-width="20" stroke-dasharray="66.1 326.7" stroke-dashoffset="-78.4"/><circle cx="66" cy="66" r="52" fill="none" stroke="#6b4eff" stroke-opacity="0.52" stroke-width="20" stroke-dasharray="53.0 326.7" stroke-dashoffset="-147.0"/><circle cx="66" cy="66" r="52" fill="none" stroke="#6b4eff" stroke-opacity="0.36" stroke-width="20" stroke-dasharray="40.0 326.7" stroke-dashoffset="-202.6"/><circle cx="66" cy="66" r="52" fill="none" stroke="#6b4eff" stroke-opacity="0.24" stroke-width="20" stroke-dasharray="26.9 326.7" stroke-dashoffset="-245.0"/><circle cx="66" cy="66" r="52" fill="none" class="stroke-ink-4" stroke-opacity=".5" stroke-width="20" stroke-dasharray="49.8 326.7" stroke-dashoffset="-274.4"/></svg>
+              <p class="absolute inset-0 flex flex-col items-center justify-center"><span class="tabular text-2xl leading-none font-bold text-ink">90개</span><span class="mt-1 text-xs text-ink-3">예상 판매</span></p>
+            </div>
+          </div>
+          <p data-when="aifail" class="mt-4 text-sm text-ink-3">오늘 예측을 불러오지 못했어요</p>
+          <p data-when="empty" class="mt-4 text-sm text-ink-3">예측이 나오면 보여 드려요</p>
+        </section>
       </div>
-      <p data-when="default aifail pos guide" class="mt-4 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-ink-2">
-        <span class="inline-flex items-center gap-1.5"><span class="h-0.5 w-3.5 rounded-full bg-brand"></span>실제</span>
-        <span data-when="default pos guide" class="inline-flex items-center gap-1.5"><span class="w-3.5 border-t-2 border-dashed border-brand"></span>오늘 예상</span>
-        <span class="inline-flex items-center gap-1.5"><span class="w-3.5 border-t-2 border-dashed border-ink-3"></span>평소 · 136만원</span>
-      </p>
-      <div data-when="default pos guide" data-chart="area" data-forecast="1" data-font="11" data-ref="1360000" data-smooth data-metric="revenue" class="mt-2 h-56 w-full lg:h-auto lg:min-h-56 lg:flex-1"
-        data-labels="10/13,10/14,10/15,10/16,10/17,10/18,10/19,오늘" data-values="1120000,980000,1240000,1310000,1680000,1920000,1284000,1080000"></div>
-      <div data-when="aifail" data-chart="area" data-font="11" data-ref="1360000" data-smooth data-metric="revenue" class="mt-2 h-56 w-full lg:h-auto lg:min-h-56 lg:flex-1"
-        data-labels="10/13,10/14,10/15,10/16,10/17,10/18,10/19" data-values="1120000,980000,1240000,1310000,1680000,1920000,1284000"></div>
-      <p data-when="empty" class="mt-4 flex h-40 items-center justify-center rounded-xl text-sm text-ink-3 glass-card lg:h-56">매출을 올리면 그려져요</p>
-    </section>
-    <!-- 최근 발주 — GET /api/orders 최신순 4건(09 발주 확정 이력과 같은 값). 타일은 확정일 · 대표 품목 · 나머지 품목 · 예상 금액 · 상태(입고 대기 / 입고 완료) · 품목 수.
-         입고 대기 타일은 재고에서 입고 처리한다(누르면 09, 입고는 08) -->
-    <section class="flex flex-col rounded-2xl p-5 glass-card lg:col-span-5 lg:row-span-2">
-      <div class="flex items-center justify-between gap-2">
-        <h2 class="text-base font-bold text-ink">최근 발주</h2>
-        <a data-when="default aifail pos guide" href="09_orders.html" class="inline-flex items-center gap-0.5 text-sm font-semibold text-brand hover:text-brand-strong">전체 보기<span data-icon="chevronRight" class="size-4"></span></a>
-      </div>
-      <ul data-when="default aifail pos guide" class="mt-4 grid flex-1 grid-cols-2 gap-3 lg:grid-rows-2">
-          <li><a href="09_orders.html" class="flex h-full min-h-40 flex-col rounded-xl p-3.5 glass-card hover:bg-white/50">
-            <span class="self-start rounded-full bg-white/60 px-2.5 py-1 text-xs font-semibold text-ink-2">10월 16일 (금)</span>
-            <span class="mt-3 text-[0.95rem] leading-snug font-bold text-ink">모짜렐라 치즈 외 2개</span>
-            <span class="mt-0.5 truncate text-xs text-ink-3">피자 도우 · 루꼴라</span>
-            <span class="tabular mt-auto pt-4 text-[1.35rem] leading-none font-bold tracking-tight text-ink">103,000원</span>
-            <span class="mt-1.5 flex items-center justify-between gap-2 text-xs"><span class="inline-flex items-center gap-1.5 font-semibold text-warn"><span class="size-1.5 rounded-full bg-warn"></span>입고 대기</span><span class="text-ink-3">품목 3개</span></span>
-          </a></li>
-          <li><a href="09_orders.html" class="flex h-full min-h-40 flex-col rounded-xl p-3.5 glass-card hover:bg-white/50">
-            <span class="self-start rounded-full bg-white/60 px-2.5 py-1 text-xs font-semibold text-ink-2">10월 9일 (금)</span>
-            <span class="mt-3 text-[0.95rem] leading-snug font-bold text-ink">토마토 소스 외 1개</span>
-            <span class="mt-0.5 truncate text-xs text-ink-3">페퍼로니</span>
-            <span class="tabular mt-auto pt-4 text-[1.35rem] leading-none font-bold tracking-tight text-ink">37,000원</span>
-            <span class="mt-1.5 flex items-center justify-between gap-2 text-xs"><span class="inline-flex items-center gap-1.5 font-semibold text-ok"><span class="size-1.5 rounded-full bg-ok"></span>입고 완료</span><span class="text-ink-3">품목 2개</span></span>
-          </a></li>
-          <li><a href="09_orders.html" class="flex h-full min-h-40 flex-col rounded-xl p-3.5 glass-card hover:bg-white/50">
-            <span class="self-start rounded-full bg-white/60 px-2.5 py-1 text-xs font-semibold text-ink-2">10월 2일 (금)</span>
-            <span class="mt-3 text-[0.95rem] leading-snug font-bold text-ink">모짜렐라 치즈 외 2개</span>
-            <span class="mt-0.5 truncate text-xs text-ink-3">피자 도우 · 바질</span>
-            <span class="tabular mt-auto pt-4 text-[1.35rem] leading-none font-bold tracking-tight text-ink">64,500원</span>
-            <span class="mt-1.5 flex items-center justify-between gap-2 text-xs"><span class="inline-flex items-center gap-1.5 font-semibold text-ok"><span class="size-1.5 rounded-full bg-ok"></span>입고 완료</span><span class="text-ink-3">품목 3개</span></span>
-          </a></li>
-          <li><a href="09_orders.html" class="flex h-full min-h-40 flex-col rounded-xl p-3.5 glass-card hover:bg-white/50">
-            <span class="self-start rounded-full bg-white/60 px-2.5 py-1 text-xs font-semibold text-ink-2">9월 25일 (금)</span>
-            <span class="mt-3 text-[0.95rem] leading-snug font-bold text-ink">모짜렐라 치즈 외 3개</span>
-            <span class="mt-0.5 truncate text-xs text-ink-3">토마토 소스 · 페퍼로니 · 루꼴라</span>
-            <span class="tabular mt-auto pt-4 text-[1.35rem] leading-none font-bold tracking-tight text-ink">92,000원</span>
-            <span class="mt-1.5 flex items-center justify-between gap-2 text-xs"><span class="inline-flex items-center gap-1.5 font-semibold text-ok"><span class="size-1.5 rounded-full bg-ok"></span>입고 완료</span><span class="text-ink-3">품목 4개</span></span>
-          </a></li>
-      </ul>
-      <p data-when="empty" class="mt-4 flex flex-1 items-center justify-center rounded-xl py-10 text-sm text-ink-3 glass-card">아직 확정한 발주가 없어요</p>
-    </section>
-    <!-- 지난달 매출까지 — 이번 달 누적 / 지난달 합계(07과 같은 값). 포인트 색 판, 진행 도넛 -->
-    <section class="flex flex-col rounded-2xl p-5 text-white glass-brand lg:col-span-3">
-      <h2 class="text-base font-bold">지난달 매출까지</h2>
-      <div data-when="default aifail pos guide" class="relative mx-auto mt-3 size-32">
-        <svg viewBox="0 0 132 132" class="size-full -rotate-90"><circle cx="66" cy="66" r="52" fill="none" stroke="rgb(255 255 255 / .25)" stroke-width="14"/><circle cx="66" cy="66" r="52" fill="none" stroke="#fff" stroke-width="14" stroke-linecap="round" stroke-dasharray="235.2 326.7"/></svg>
-        <p class="tabular absolute inset-0 flex items-center justify-center text-[1.65rem] font-bold">72%</p>
-      </div>
-      <p data-when="default aifail pos guide" class="tabular mt-auto pt-3 text-center text-sm text-white/85">2,292만원 / 지난달 3,190만원</p>
-      <p data-when="empty" class="mt-3 text-sm text-white/85">매출을 올리면 지난달과 견줘 보여 드려요</p>
-    </section>
-    <!-- 많이 나갈 메뉴 — 오늘 menu_forecast 상위 5개의 그날 예상 판매 수량 대비 비중(07 메뉴 카드와 같은 값). 6위부터는 '그 외' 한 조각으로 묶고 회색으로 메뉴와 구분한다.
-         조각 색은 포인트 보라 한 색의 농담, 정체는 옆 범례의 이름·비율이 나른다. 가운데는 그날 예상 판매 합계 -->
-    <section class="flex flex-col rounded-2xl p-5 glass-card lg:col-span-4">
-      <h2 class="text-base font-bold text-ink">오늘 많이 나갈 메뉴</h2>
-      <div data-when="default pos guide" class="mt-3 flex flex-1 items-center gap-4">
-        <ul class="w-40 shrink-0 space-y-1.5 text-sm">
-            <li class="flex items-center gap-2"><span class="size-2.5 shrink-0 rounded-sm bg-brand" style="opacity:1"></span><span class="min-w-0 flex-1 truncate font-semibold text-ink">불새우 루꼴라 화덕피자</span><span class="tabular text-ink-2">24%</span></li>
-            <li class="flex items-center gap-2"><span class="size-2.5 shrink-0 rounded-sm bg-brand" style="opacity:0.72"></span><span class="min-w-0 flex-1 truncate font-semibold text-ink">페페로니 듬뿍 화덕피자</span><span class="tabular text-ink-2">21%</span></li>
-            <li class="flex items-center gap-2"><span class="size-2.5 shrink-0 rounded-sm bg-brand" style="opacity:0.52"></span><span class="min-w-0 flex-1 truncate font-semibold text-ink">마르게리타 화덕피자</span><span class="tabular text-ink-2">17%</span></li>
-            <li class="flex items-center gap-2"><span class="size-2.5 shrink-0 rounded-sm bg-brand" style="opacity:0.36"></span><span class="min-w-0 flex-1 truncate font-semibold text-ink">고르곤졸라 꿀 피자</span><span class="tabular text-ink-2">13%</span></li>
-            <li class="flex items-center gap-2"><span class="size-2.5 shrink-0 rounded-sm bg-brand" style="opacity:0.24"></span><span class="min-w-0 flex-1 truncate font-semibold text-ink">루꼴라 샐러드</span><span class="tabular text-ink-2">9%</span></li>
-            <li class="flex items-center gap-2"><span class="size-2.5 shrink-0 rounded-sm bg-ink-4/50"></span><span class="min-w-0 flex-1 truncate text-ink-3">그 외</span><span class="tabular text-ink-2">16%</span></li>
+      <!-- 쿠팡 단가 추세 — 재고 재료와 연결된 쿠팡 상품의 공용 단가 최근 30일(재료 단위). 작은 선 그래프 + 지금 단가 + 30일 전 대비(오름 빨강·내림 파랑).
+           공용 단가는 지금 덮어쓰기만 하고 이력이 없다 — 이 카드는 공용 단가 이력 저장이 정해져야 쓸 수 있다(미정). 값은 09 단가와 맞춘 목업 -->
+      <section class="flex flex-col rounded-2xl p-5 glass-card">
+        <div class="flex items-center justify-between gap-2">
+          <h2 class="text-base font-bold text-ink">쿠팡 단가 추세</h2>
+          <span class="text-xs text-ink-3">최근 30일</span>
+        </div>
+        <ul data-when="default aifail pos guide" class="mt-2 divide-y divide-white/60">
+            <li class="grid grid-cols-[minmax(0,1fr)_4.5rem_auto] items-center gap-3 py-2.5 lg:grid-cols-[minmax(0,1fr)_7.5rem_6.5rem_5rem]">
+              <span class="truncate text-sm font-semibold text-ink">모짜렐라 치즈</span>
+              <svg viewBox="0 0 120 32" class="h-8 w-full" preserveAspectRatio="none"><polyline points="3.0,29.0 25.8,22.5 48.6,16.0 71.4,11.7 94.2,5.2 117.0,3.0" fill="none" stroke="#6b4eff" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" vector-effect="non-scaling-stroke"/></svg>
+              <div class="flex flex-col items-end gap-0.5 lg:contents">
+                <span class="tabular text-right text-sm text-ink-2">16,000원/kg</span>
+                <span class="tabular text-right text-sm"><span class="inline-flex items-center gap-0.5 font-bold text-up"><span data-icon="arrowUp" class="size-3"></span>8.1%</span></span>
+              </div>
+            </li>
+            <li class="grid grid-cols-[minmax(0,1fr)_4.5rem_auto] items-center gap-3 py-2.5 lg:grid-cols-[minmax(0,1fr)_7.5rem_6.5rem_5rem]">
+              <span class="truncate text-sm font-semibold text-ink">페퍼로니</span>
+              <svg viewBox="0 0 120 32" class="h-8 w-full" preserveAspectRatio="none"><polyline points="3.0,29.0 25.8,20.3 48.6,16.9 71.4,9.9 94.2,3.0 117.0,3.0" fill="none" stroke="#6b4eff" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" vector-effect="non-scaling-stroke"/></svg>
+              <div class="flex flex-col items-end gap-0.5 lg:contents">
+                <span class="tabular text-right text-sm text-ink-2">25,000원/kg</span>
+                <span class="tabular text-right text-sm"><span class="inline-flex items-center gap-0.5 font-bold text-up"><span data-icon="arrowUp" class="size-3"></span>6.4%</span></span>
+              </div>
+            </li>
+            <li class="grid grid-cols-[minmax(0,1fr)_4.5rem_auto] items-center gap-3 py-2.5 lg:grid-cols-[minmax(0,1fr)_7.5rem_6.5rem_5rem]">
+              <span class="truncate text-sm font-semibold text-ink">루꼴라</span>
+              <svg viewBox="0 0 120 32" class="h-8 w-full" preserveAspectRatio="none"><polyline points="3.0,29.0 25.8,21.2 48.6,13.4 71.4,3.0 94.2,5.6 117.0,8.2" fill="none" stroke="#6b4eff" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" vector-effect="non-scaling-stroke"/></svg>
+              <div class="flex flex-col items-end gap-0.5 lg:contents">
+                <span class="tabular text-right text-sm text-ink-2">30,000원/kg</span>
+                <span class="tabular text-right text-sm"><span class="inline-flex items-center gap-0.5 font-bold text-up"><span data-icon="arrowUp" class="size-3"></span>15.4%</span></span>
+              </div>
+            </li>
+            <li class="grid grid-cols-[minmax(0,1fr)_4.5rem_auto] items-center gap-3 py-2.5 lg:grid-cols-[minmax(0,1fr)_7.5rem_6.5rem_5rem]">
+              <span class="truncate text-sm font-semibold text-ink">토마토 소스</span>
+              <svg viewBox="0 0 120 32" class="h-8 w-full" preserveAspectRatio="none"><polyline points="3.0,3.0 25.8,11.7 48.6,16.0 71.4,20.3 94.2,24.7 117.0,29.0" fill="none" stroke="#6b4eff" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" vector-effect="non-scaling-stroke"/></svg>
+              <div class="flex flex-col items-end gap-0.5 lg:contents">
+                <span class="tabular text-right text-sm text-ink-2">4,000원/kg</span>
+                <span class="tabular text-right text-sm"><span class="inline-flex items-center gap-0.5 font-bold text-down"><span data-icon="arrowDown" class="size-3"></span>7.0%</span></span>
+              </div>
+            </li>
+            <li class="grid grid-cols-[minmax(0,1fr)_4.5rem_auto] items-center gap-3 py-2.5 lg:grid-cols-[minmax(0,1fr)_7.5rem_6.5rem_5rem]">
+              <span class="truncate text-sm font-semibold text-ink">피자 도우</span>
+              <svg viewBox="0 0 120 32" class="h-8 w-full" preserveAspectRatio="none"><polyline points="3.0,16.0 25.8,16.0 48.6,16.0 71.4,16.0 94.2,16.0 117.0,16.0" fill="none" stroke="#6b4eff" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" vector-effect="non-scaling-stroke"/></svg>
+              <div class="flex flex-col items-end gap-0.5 lg:contents">
+                <span class="tabular text-right text-sm text-ink-2">500원/개</span>
+                <span class="tabular text-right text-sm"><span class="text-ink-3">변동 없음</span></span>
+              </div>
+            </li>
         </ul>
-        <div class="relative mx-auto size-40 shrink-0">
-          <svg viewBox="0 0 132 132" class="size-full -rotate-90"><circle cx="66" cy="66" r="52" fill="none" stroke="#6b4eff" stroke-opacity="1" stroke-width="20" stroke-dasharray="75.9 326.7" stroke-dashoffset="0.0"/><circle cx="66" cy="66" r="52" fill="none" stroke="#6b4eff" stroke-opacity="0.72" stroke-width="20" stroke-dasharray="66.1 326.7" stroke-dashoffset="-78.4"/><circle cx="66" cy="66" r="52" fill="none" stroke="#6b4eff" stroke-opacity="0.52" stroke-width="20" stroke-dasharray="53.0 326.7" stroke-dashoffset="-147.0"/><circle cx="66" cy="66" r="52" fill="none" stroke="#6b4eff" stroke-opacity="0.36" stroke-width="20" stroke-dasharray="40.0 326.7" stroke-dashoffset="-202.6"/><circle cx="66" cy="66" r="52" fill="none" stroke="#6b4eff" stroke-opacity="0.24" stroke-width="20" stroke-dasharray="26.9 326.7" stroke-dashoffset="-245.0"/><circle cx="66" cy="66" r="52" fill="none" class="stroke-ink-4" stroke-opacity=".5" stroke-width="20" stroke-dasharray="49.8 326.7" stroke-dashoffset="-274.4"/></svg>
-          <p class="absolute inset-0 flex flex-col items-center justify-center"><span class="tabular text-2xl leading-none font-bold text-ink">90개</span><span class="mt-1 text-xs text-ink-3">예상 판매</span></p>
+        <p data-when="empty" class="mt-4 text-sm text-ink-3">쿠팡 담기를 하면 재료 단가가 쌓여요</p>
+      </section>
+    </div>
+    <div class="grid gap-4 lg:col-span-5 lg:grid-rows-2">
+      <!-- 최근 발주 — GET /api/orders 최신순 4건(09 발주 확정 이력과 같은 값). 타일은 확정일 · 대표 품목 · 나머지 품목 · 예상 금액 · 상태(입고 대기 / 입고 완료) · 품목 수.
+           입고 대기 타일은 재고에서 입고 처리한다(누르면 09, 입고는 08) -->
+      <section class="flex flex-col rounded-2xl p-5 glass-card">
+        <div class="flex items-center justify-between gap-2">
+          <h2 class="text-base font-bold text-ink">최근 발주</h2>
+          <a data-when="default aifail pos guide" href="09_orders.html" class="inline-flex items-center gap-0.5 text-sm font-semibold text-brand hover:text-brand-strong">전체 보기<span data-icon="chevronRight" class="size-4"></span></a>
         </div>
-      </div>
-      <p data-when="aifail" class="mt-4 text-sm text-ink-3">오늘 예측을 불러오지 못했어요</p>
-      <p data-when="empty" class="mt-4 text-sm text-ink-3">예측이 나오면 보여 드려요</p>
-    </section>
-    <!-- 쿠팡 단가 추세 — 재고 재료와 연결된 쿠팡 상품의 공용 단가 최근 30일(재료 단위). 작은 선 그래프 + 지금 단가 + 30일 전 대비(오름 빨강·내림 파랑).
-         공용 단가는 지금 덮어쓰기만 하고 이력이 없다 — 이 카드는 공용 단가 이력 저장이 정해져야 쓸 수 있다(미정). 값은 09 단가와 맞춘 목업 -->
-    <section class="flex flex-col rounded-2xl p-5 glass-card lg:col-span-7">
-      <div class="flex items-center justify-between gap-2">
-        <h2 class="text-base font-bold text-ink">쿠팡 단가 추세</h2>
-        <span class="text-xs text-ink-3">최근 30일</span>
-      </div>
-      <ul data-when="default aifail pos guide" class="mt-2 divide-y divide-white/60">
-          <li class="grid grid-cols-[minmax(0,1fr)_4.5rem_auto] items-center gap-3 py-2.5 lg:grid-cols-[minmax(0,1fr)_7.5rem_6.5rem_5rem]">
-            <span class="truncate text-sm font-semibold text-ink">모짜렐라 치즈</span>
-            <svg viewBox="0 0 120 32" class="h-8 w-full" preserveAspectRatio="none"><polyline points="3.0,29.0 25.8,22.5 48.6,16.0 71.4,11.7 94.2,5.2 117.0,3.0" fill="none" stroke="#6b4eff" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" vector-effect="non-scaling-stroke"/></svg>
-            <div class="flex flex-col items-end gap-0.5 lg:contents">
-              <span class="tabular text-right text-sm text-ink-2">16,000원/kg</span>
-              <span class="tabular text-right text-sm"><span class="inline-flex items-center gap-0.5 font-bold text-up"><span data-icon="arrowUp" class="size-3"></span>8.1%</span></span>
-            </div>
-          </li>
-          <li class="grid grid-cols-[minmax(0,1fr)_4.5rem_auto] items-center gap-3 py-2.5 lg:grid-cols-[minmax(0,1fr)_7.5rem_6.5rem_5rem]">
-            <span class="truncate text-sm font-semibold text-ink">페퍼로니</span>
-            <svg viewBox="0 0 120 32" class="h-8 w-full" preserveAspectRatio="none"><polyline points="3.0,29.0 25.8,20.3 48.6,16.9 71.4,9.9 94.2,3.0 117.0,3.0" fill="none" stroke="#6b4eff" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" vector-effect="non-scaling-stroke"/></svg>
-            <div class="flex flex-col items-end gap-0.5 lg:contents">
-              <span class="tabular text-right text-sm text-ink-2">25,000원/kg</span>
-              <span class="tabular text-right text-sm"><span class="inline-flex items-center gap-0.5 font-bold text-up"><span data-icon="arrowUp" class="size-3"></span>6.4%</span></span>
-            </div>
-          </li>
-          <li class="grid grid-cols-[minmax(0,1fr)_4.5rem_auto] items-center gap-3 py-2.5 lg:grid-cols-[minmax(0,1fr)_7.5rem_6.5rem_5rem]">
-            <span class="truncate text-sm font-semibold text-ink">루꼴라</span>
-            <svg viewBox="0 0 120 32" class="h-8 w-full" preserveAspectRatio="none"><polyline points="3.0,29.0 25.8,21.2 48.6,13.4 71.4,3.0 94.2,5.6 117.0,8.2" fill="none" stroke="#6b4eff" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" vector-effect="non-scaling-stroke"/></svg>
-            <div class="flex flex-col items-end gap-0.5 lg:contents">
-              <span class="tabular text-right text-sm text-ink-2">30,000원/kg</span>
-              <span class="tabular text-right text-sm"><span class="inline-flex items-center gap-0.5 font-bold text-up"><span data-icon="arrowUp" class="size-3"></span>15.4%</span></span>
-            </div>
-          </li>
-          <li class="grid grid-cols-[minmax(0,1fr)_4.5rem_auto] items-center gap-3 py-2.5 lg:grid-cols-[minmax(0,1fr)_7.5rem_6.5rem_5rem]">
-            <span class="truncate text-sm font-semibold text-ink">토마토 소스</span>
-            <svg viewBox="0 0 120 32" class="h-8 w-full" preserveAspectRatio="none"><polyline points="3.0,3.0 25.8,11.7 48.6,16.0 71.4,20.3 94.2,24.7 117.0,29.0" fill="none" stroke="#6b4eff" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" vector-effect="non-scaling-stroke"/></svg>
-            <div class="flex flex-col items-end gap-0.5 lg:contents">
-              <span class="tabular text-right text-sm text-ink-2">4,000원/kg</span>
-              <span class="tabular text-right text-sm"><span class="inline-flex items-center gap-0.5 font-bold text-down"><span data-icon="arrowDown" class="size-3"></span>7.0%</span></span>
-            </div>
-          </li>
-          <li class="grid grid-cols-[minmax(0,1fr)_4.5rem_auto] items-center gap-3 py-2.5 lg:grid-cols-[minmax(0,1fr)_7.5rem_6.5rem_5rem]">
-            <span class="truncate text-sm font-semibold text-ink">피자 도우</span>
-            <svg viewBox="0 0 120 32" class="h-8 w-full" preserveAspectRatio="none"><polyline points="3.0,16.0 25.8,16.0 48.6,16.0 71.4,16.0 94.2,16.0 117.0,16.0" fill="none" stroke="#6b4eff" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" vector-effect="non-scaling-stroke"/></svg>
-            <div class="flex flex-col items-end gap-0.5 lg:contents">
-              <span class="tabular text-right text-sm text-ink-2">500원/개</span>
-              <span class="tabular text-right text-sm"><span class="text-ink-3">변동 없음</span></span>
-            </div>
-          </li>
-      </ul>
-      <p data-when="empty" class="mt-4 text-sm text-ink-3">쿠팡 담기를 하면 재료 단가가 쌓여요</p>
-    </section>
-    <!-- 재고 — '확인 필요' 재료(08 §4.6 기준: 소비기한 오늘+3일 이내 또는 수량 ≤ 재주문 임계값), 08 기본 정렬(소비기한 빠른순, 없으면 뒤).
-         경고는 배지 없이 해당 글씨만 빨갛게(수량·소비기한) -->
-    <section class="flex flex-col rounded-2xl p-5 glass-card lg:col-span-5">
-      <div class="flex items-center justify-between gap-2">
-        <h2 class="text-base font-bold text-ink">재고<span class="ml-1.5 text-sm font-normal text-ink-3">확인 필요 5</span></h2>
-        <a href="08_inventory.html" class="inline-flex items-center gap-0.5 text-sm font-semibold text-brand hover:text-brand-strong">전체 보기<span data-icon="chevronRight" class="size-4"></span></a>
-      </div>
-      <p class="mt-3 grid grid-cols-[minmax(0,1fr)_5.5rem_4rem] gap-3 text-xs text-ink-3"><span>재료</span><span class="text-right">총 수량</span><span class="text-right">소비기한</span></p>
-      <ul class="mt-1 divide-y divide-white/60">
-          <li class="grid grid-cols-[minmax(0,1fr)_5.5rem_4rem] items-center gap-3 py-2.5">
-            <span class="truncate text-sm font-semibold text-ink">리코타 치즈</span>
-            <span class="tabular text-right text-sm text-ink-2">1,200 g</span>
-            <span class="tabular text-right text-sm text-danger">D-1</span>
-          </li>
-          <li class="grid grid-cols-[minmax(0,1fr)_5.5rem_4rem] items-center gap-3 py-2.5">
-            <span class="truncate text-sm font-semibold text-ink">모짜렐라 치즈</span>
-            <span class="tabular text-right text-sm text-ink-2">4,250 g</span>
-            <span class="tabular text-right text-sm text-danger">D-3</span>
-          </li>
-          <li class="grid grid-cols-[minmax(0,1fr)_5.5rem_4rem] items-center gap-3 py-2.5">
-            <span class="truncate text-sm font-semibold text-ink">페퍼로니</span>
-            <span class="tabular text-right text-sm text-danger">380 g</span>
-            <span class="tabular text-right text-sm text-ink-2">D-42</span>
-          </li>
-          <li class="grid grid-cols-[minmax(0,1fr)_5.5rem_4rem] items-center gap-3 py-2.5">
-            <span class="truncate text-sm font-semibold text-ink">루꼴라</span>
-            <span class="tabular text-right text-sm text-danger">0 g</span>
-            <span class="tabular text-right text-sm text-ink-2">—</span>
-          </li>
-          <li class="grid grid-cols-[minmax(0,1fr)_5.5rem_4rem] items-center gap-3 py-2.5">
-            <span class="truncate text-sm font-semibold text-ink">바질</span>
-            <span class="tabular text-right text-sm text-danger">0 g</span>
-            <span class="tabular text-right text-sm text-ink-2">—</span>
-          </li>
-      </ul>
-    </section>
+        <ul data-when="default aifail pos guide" class="mt-4 grid grid-cols-2 gap-3 lg:flex-1 lg:grid-rows-2">
+            <li><a href="09_orders.html" class="flex h-full flex-col rounded-xl p-3.5 glass-card hover:bg-white/50">
+              <span class="self-start rounded-full bg-white/60 px-2.5 py-1 text-xs font-semibold text-ink-2">10월 16일 (금)</span>
+              <span class="mt-3 text-[0.95rem] leading-snug font-bold text-ink">모짜렐라 치즈 외 2개</span>
+              <span class="mt-0.5 truncate text-xs text-ink-3">피자 도우 · 루꼴라</span>
+              <span class="tabular mt-auto pt-3 text-[1.35rem] leading-none font-bold tracking-tight text-ink">103,000원</span>
+              <span class="mt-1.5 flex items-center justify-between gap-2 text-xs"><span class="inline-flex items-center gap-1.5 font-semibold text-warn"><span class="size-1.5 rounded-full bg-warn"></span>입고 대기</span><span class="text-ink-3">품목 3개</span></span>
+            </a></li>
+            <li><a href="09_orders.html" class="flex h-full flex-col rounded-xl p-3.5 glass-card hover:bg-white/50">
+              <span class="self-start rounded-full bg-white/60 px-2.5 py-1 text-xs font-semibold text-ink-2">10월 9일 (금)</span>
+              <span class="mt-3 text-[0.95rem] leading-snug font-bold text-ink">토마토 소스 외 1개</span>
+              <span class="mt-0.5 truncate text-xs text-ink-3">페퍼로니</span>
+              <span class="tabular mt-auto pt-3 text-[1.35rem] leading-none font-bold tracking-tight text-ink">37,000원</span>
+              <span class="mt-1.5 flex items-center justify-between gap-2 text-xs"><span class="inline-flex items-center gap-1.5 font-semibold text-ok"><span class="size-1.5 rounded-full bg-ok"></span>입고 완료</span><span class="text-ink-3">품목 2개</span></span>
+            </a></li>
+            <li><a href="09_orders.html" class="flex h-full flex-col rounded-xl p-3.5 glass-card hover:bg-white/50">
+              <span class="self-start rounded-full bg-white/60 px-2.5 py-1 text-xs font-semibold text-ink-2">10월 2일 (금)</span>
+              <span class="mt-3 text-[0.95rem] leading-snug font-bold text-ink">모짜렐라 치즈 외 2개</span>
+              <span class="mt-0.5 truncate text-xs text-ink-3">피자 도우 · 바질</span>
+              <span class="tabular mt-auto pt-3 text-[1.35rem] leading-none font-bold tracking-tight text-ink">64,500원</span>
+              <span class="mt-1.5 flex items-center justify-between gap-2 text-xs"><span class="inline-flex items-center gap-1.5 font-semibold text-ok"><span class="size-1.5 rounded-full bg-ok"></span>입고 완료</span><span class="text-ink-3">품목 3개</span></span>
+            </a></li>
+            <li><a href="09_orders.html" class="flex h-full flex-col rounded-xl p-3.5 glass-card hover:bg-white/50">
+              <span class="self-start rounded-full bg-white/60 px-2.5 py-1 text-xs font-semibold text-ink-2">9월 25일 (금)</span>
+              <span class="mt-3 text-[0.95rem] leading-snug font-bold text-ink">모짜렐라 치즈 외 3개</span>
+              <span class="mt-0.5 truncate text-xs text-ink-3">토마토 소스 · 페퍼로니 · 루꼴라</span>
+              <span class="tabular mt-auto pt-3 text-[1.35rem] leading-none font-bold tracking-tight text-ink">92,000원</span>
+              <span class="mt-1.5 flex items-center justify-between gap-2 text-xs"><span class="inline-flex items-center gap-1.5 font-semibold text-ok"><span class="size-1.5 rounded-full bg-ok"></span>입고 완료</span><span class="text-ink-3">품목 4개</span></span>
+            </a></li>
+        </ul>
+        <p data-when="empty" class="mt-4 flex items-center justify-center rounded-xl py-10 text-sm text-ink-3 glass-card">아직 확정한 발주가 없어요</p>
+      </section>
+      <!-- 재고 — '확인 필요' 재료(08 §4.6 기준: 소비기한 오늘+3일 이내 또는 수량 ≤ 재주문 임계값), 08 기본 정렬(소비기한 빠른순, 없으면 뒤).
+           경고는 배지 없이 해당 글씨만 빨갛게(수량·소비기한) -->
+      <section class="flex flex-col rounded-2xl p-5 glass-card">
+        <div class="flex items-center justify-between gap-2">
+          <h2 class="text-base font-bold text-ink">재고<span class="ml-1.5 text-sm font-normal text-ink-3">확인 필요 5</span></h2>
+          <a href="08_inventory.html" class="inline-flex items-center gap-0.5 text-sm font-semibold text-brand hover:text-brand-strong">전체 보기<span data-icon="chevronRight" class="size-4"></span></a>
+        </div>
+        <p class="mt-3 grid grid-cols-[minmax(0,1fr)_5.5rem_4rem] gap-3 text-xs text-ink-3"><span>재료</span><span class="text-right">총 수량</span><span class="text-right">소비기한</span></p>
+        <ul class="mt-1 divide-y divide-white/60">
+            <li class="grid grid-cols-[minmax(0,1fr)_5.5rem_4rem] items-center gap-3 py-2.5">
+              <span class="truncate text-sm font-semibold text-ink">리코타 치즈</span>
+              <span class="tabular text-right text-sm text-ink-2">1,200 g</span>
+              <span class="tabular text-right text-sm text-danger">D-1</span>
+            </li>
+            <li class="grid grid-cols-[minmax(0,1fr)_5.5rem_4rem] items-center gap-3 py-2.5">
+              <span class="truncate text-sm font-semibold text-ink">모짜렐라 치즈</span>
+              <span class="tabular text-right text-sm text-ink-2">4,250 g</span>
+              <span class="tabular text-right text-sm text-danger">D-3</span>
+            </li>
+            <li class="grid grid-cols-[minmax(0,1fr)_5.5rem_4rem] items-center gap-3 py-2.5">
+              <span class="truncate text-sm font-semibold text-ink">페퍼로니</span>
+              <span class="tabular text-right text-sm text-danger">380 g</span>
+              <span class="tabular text-right text-sm text-ink-2">D-42</span>
+            </li>
+            <li class="grid grid-cols-[minmax(0,1fr)_5.5rem_4rem] items-center gap-3 py-2.5">
+              <span class="truncate text-sm font-semibold text-ink">루꼴라</span>
+              <span class="tabular text-right text-sm text-danger">0 g</span>
+              <span class="tabular text-right text-sm text-ink-2">—</span>
+            </li>
+            <li class="grid grid-cols-[minmax(0,1fr)_5.5rem_4rem] items-center gap-3 py-2.5">
+              <span class="truncate text-sm font-semibold text-ink">바질</span>
+              <span class="tabular text-right text-sm text-danger">0 g</span>
+              <span class="tabular text-right text-sm text-ink-2">—</span>
+            </li>
+        </ul>
+      </section>
+    </div>
   </div>
 </div>
 
