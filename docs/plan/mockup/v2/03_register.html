@@ -10,13 +10,13 @@
 <!-- 원본: Front/src/routes/register.tsx, components/ui/button.tsx·field.tsx. v2는 AuthHeroPanel(왼쪽 설명 글)을 빼고, 레퍼런스(daglo 회원가입)처럼 한 화면에 칸 하나씩 단계로 나눈다 -->
 <body data-page="register" data-states="1 약관:terms,2 이메일:email,3 이름:name,4 비밀번호:password,약관 미동의:terms-error,이메일 오류:email-error,비밀번호 오류:pw-error">
 <div data-backdrop></div>
-<!-- v2 — 카드 없이 밤하늘 위에 바로. 레퍼런스(daglo 회원가입)처럼 한 화면에 한 가지씩(약관 → 이메일 → 이름 → 비밀번호), 위에 4칸 진행 막대. 진행 막대와 제목은 단계와 상관없이 같은 높이(위에서 13vh)에 둔다.
+<!-- v2 — 카드 없이 밤하늘 위에 바로. 레퍼런스(daglo 회원가입)처럼 한 화면에 한 가지씩(약관 → 이메일 → 이름 → 비밀번호), 위에 4칸 진행 막대. 진행 막대와 제목은 단계와 상관없이 같은 높이(위에서 13vh)에 둔다. 진행 막대의 지나간 칸을 누르면 그 단계로 간다.
      '계속'은 다음 단계 상태로 넘긴다. 약관 미동의는 부제 자리에 오류 문구를 보여 높이를 그대로 둔다. 하늘 위라 브랜드 보라 대신 밝은 보라(#b3a4ff)를 강조색으로 쓴다 -->
 <p class="fixed top-6 left-6 z-10 text-[1.75rem] leading-none font-extrabold tracking-tight text-[#b3a4ff] sm:top-8 sm:left-10">Sajura</p>
 <main class="min-h-dvh px-5 pt-[13vh] pb-10 text-center text-white">
   <section class="mx-auto w-full max-w-[400px]">
     <div data-when="terms">
-      <div class="flex justify-center gap-2" aria-label="1 / 4 단계"><span class="h-1 w-9 rounded-full bg-[#b3a4ff]"></span><span class="h-1 w-9 rounded-full bg-white/20"></span><span class="h-1 w-9 rounded-full bg-white/20"></span><span class="h-1 w-9 rounded-full bg-white/20"></span></div>
+      <div class="-my-3 flex justify-center gap-2" aria-label="1 / 4 단계"><span class="py-3" aria-current="step"><span class="block h-1 w-9 rounded-full bg-[#b3a4ff]"></span></span><span class="py-3"><span class="block h-1 w-9 rounded-full bg-white/20"></span></span><span class="py-3"><span class="block h-1 w-9 rounded-full bg-white/20"></span></span><span class="py-3"><span class="block h-1 w-9 rounded-full bg-white/20"></span></span></div>
       <h1 class="mt-9 text-[1.75rem] font-extrabold tracking-tight">이용약관 및 정책</h1>
       <p class="mt-2 text-base text-white/75">사주라 서비스 약관을 확인해 주세요</p>
       <form class="mt-8 space-y-3 text-left" novalidate>
@@ -50,7 +50,7 @@
       </form>
     </div>
     <div data-when="terms-error">
-      <div class="flex justify-center gap-2" aria-label="1 / 4 단계"><span class="h-1 w-9 rounded-full bg-[#b3a4ff]"></span><span class="h-1 w-9 rounded-full bg-white/20"></span><span class="h-1 w-9 rounded-full bg-white/20"></span><span class="h-1 w-9 rounded-full bg-white/20"></span></div>
+      <div class="-my-3 flex justify-center gap-2" aria-label="1 / 4 단계"><span class="py-3" aria-current="step"><span class="block h-1 w-9 rounded-full bg-[#b3a4ff]"></span></span><span class="py-3"><span class="block h-1 w-9 rounded-full bg-white/20"></span></span><span class="py-3"><span class="block h-1 w-9 rounded-full bg-white/20"></span></span><span class="py-3"><span class="block h-1 w-9 rounded-full bg-white/20"></span></span></div>
       <h1 class="mt-9 text-[1.75rem] font-extrabold tracking-tight">이용약관 및 정책</h1>
       <p class="mt-2 text-base font-semibold text-[#ffd6d6]" role="alert">필수 약관에 모두 동의해 주세요</p>
       <form class="mt-8 space-y-3 text-left" novalidate>
@@ -84,7 +84,7 @@
       </form>
     </div>
     <div data-when="email">
-      <div class="flex justify-center gap-2" aria-label="2 / 4 단계"><span class="h-1 w-9 rounded-full bg-white/20"></span><span class="h-1 w-9 rounded-full bg-[#b3a4ff]"></span><span class="h-1 w-9 rounded-full bg-white/20"></span><span class="h-1 w-9 rounded-full bg-white/20"></span></div>
+      <div class="-my-3 flex justify-center gap-2" aria-label="2 / 4 단계"><button type="button" data-set-state="terms" aria-label="1단계 약관로 돌아가기" class="cursor-pointer py-3 hover:opacity-80"><span class="block h-1 w-9 rounded-full bg-white/20"></span></button><span class="py-3" aria-current="step"><span class="block h-1 w-9 rounded-full bg-[#b3a4ff]"></span></span><span class="py-3"><span class="block h-1 w-9 rounded-full bg-white/20"></span></span><span class="py-3"><span class="block h-1 w-9 rounded-full bg-white/20"></span></span></div>
       <h1 class="mt-9 text-[1.75rem] font-extrabold tracking-tight">반가워요!</h1>
       <p class="mt-2 text-base text-white/75">이메일 주소를 입력해 주세요</p>
       <form class="mt-8 space-y-3 text-left" novalidate>
@@ -93,7 +93,7 @@
       </form>
     </div>
     <div data-when="email-error">
-      <div class="flex justify-center gap-2" aria-label="2 / 4 단계"><span class="h-1 w-9 rounded-full bg-white/20"></span><span class="h-1 w-9 rounded-full bg-[#b3a4ff]"></span><span class="h-1 w-9 rounded-full bg-white/20"></span><span class="h-1 w-9 rounded-full bg-white/20"></span></div>
+      <div class="-my-3 flex justify-center gap-2" aria-label="2 / 4 단계"><button type="button" data-set-state="terms" aria-label="1단계 약관로 돌아가기" class="cursor-pointer py-3 hover:opacity-80"><span class="block h-1 w-9 rounded-full bg-white/20"></span></button><span class="py-3" aria-current="step"><span class="block h-1 w-9 rounded-full bg-[#b3a4ff]"></span></span><span class="py-3"><span class="block h-1 w-9 rounded-full bg-white/20"></span></span><span class="py-3"><span class="block h-1 w-9 rounded-full bg-white/20"></span></span></div>
       <h1 class="mt-9 text-[1.75rem] font-extrabold tracking-tight">반가워요!</h1>
       <p class="mt-2 text-base text-white/75">이메일 주소를 입력해 주세요</p>
       <form class="mt-8 space-y-3 text-left" novalidate>
@@ -103,7 +103,7 @@
       </form>
     </div>
     <div data-when="name">
-      <div class="flex justify-center gap-2" aria-label="3 / 4 단계"><span class="h-1 w-9 rounded-full bg-white/20"></span><span class="h-1 w-9 rounded-full bg-white/20"></span><span class="h-1 w-9 rounded-full bg-[#b3a4ff]"></span><span class="h-1 w-9 rounded-full bg-white/20"></span></div>
+      <div class="-my-3 flex justify-center gap-2" aria-label="3 / 4 단계"><button type="button" data-set-state="terms" aria-label="1단계 약관로 돌아가기" class="cursor-pointer py-3 hover:opacity-80"><span class="block h-1 w-9 rounded-full bg-white/20"></span></button><button type="button" data-set-state="email" aria-label="2단계 이메일로 돌아가기" class="cursor-pointer py-3 hover:opacity-80"><span class="block h-1 w-9 rounded-full bg-white/20"></span></button><span class="py-3" aria-current="step"><span class="block h-1 w-9 rounded-full bg-[#b3a4ff]"></span></span><span class="py-3"><span class="block h-1 w-9 rounded-full bg-white/20"></span></span></div>
       <h1 class="mt-9 text-[1.75rem] font-extrabold tracking-tight">이름을 알려 주세요</h1>
       <p class="mt-2 text-base text-white/75">사장님 이름을 입력해 주세요</p>
       <form class="mt-8 space-y-3 text-left" novalidate>
@@ -112,7 +112,7 @@
       </form>
     </div>
     <div data-when="password">
-      <div class="flex justify-center gap-2" aria-label="4 / 4 단계"><span class="h-1 w-9 rounded-full bg-white/20"></span><span class="h-1 w-9 rounded-full bg-white/20"></span><span class="h-1 w-9 rounded-full bg-white/20"></span><span class="h-1 w-9 rounded-full bg-[#b3a4ff]"></span></div>
+      <div class="-my-3 flex justify-center gap-2" aria-label="4 / 4 단계"><button type="button" data-set-state="terms" aria-label="1단계 약관로 돌아가기" class="cursor-pointer py-3 hover:opacity-80"><span class="block h-1 w-9 rounded-full bg-white/20"></span></button><button type="button" data-set-state="email" aria-label="2단계 이메일로 돌아가기" class="cursor-pointer py-3 hover:opacity-80"><span class="block h-1 w-9 rounded-full bg-white/20"></span></button><button type="button" data-set-state="name" aria-label="3단계 이름로 돌아가기" class="cursor-pointer py-3 hover:opacity-80"><span class="block h-1 w-9 rounded-full bg-white/20"></span></button><span class="py-3" aria-current="step"><span class="block h-1 w-9 rounded-full bg-[#b3a4ff]"></span></span></div>
       <h1 class="mt-9 text-[1.75rem] font-extrabold tracking-tight">비밀번호를 만들어 주세요</h1>
       <p class="mt-2 text-base text-white/75">8자 이상으로 입력해 주세요</p>
       <form class="mt-8 space-y-3 text-left" novalidate>
@@ -122,7 +122,7 @@
       </form>
     </div>
     <div data-when="pw-error">
-      <div class="flex justify-center gap-2" aria-label="4 / 4 단계"><span class="h-1 w-9 rounded-full bg-white/20"></span><span class="h-1 w-9 rounded-full bg-white/20"></span><span class="h-1 w-9 rounded-full bg-white/20"></span><span class="h-1 w-9 rounded-full bg-[#b3a4ff]"></span></div>
+      <div class="-my-3 flex justify-center gap-2" aria-label="4 / 4 단계"><button type="button" data-set-state="terms" aria-label="1단계 약관로 돌아가기" class="cursor-pointer py-3 hover:opacity-80"><span class="block h-1 w-9 rounded-full bg-white/20"></span></button><button type="button" data-set-state="email" aria-label="2단계 이메일로 돌아가기" class="cursor-pointer py-3 hover:opacity-80"><span class="block h-1 w-9 rounded-full bg-white/20"></span></button><button type="button" data-set-state="name" aria-label="3단계 이름로 돌아가기" class="cursor-pointer py-3 hover:opacity-80"><span class="block h-1 w-9 rounded-full bg-white/20"></span></button><span class="py-3" aria-current="step"><span class="block h-1 w-9 rounded-full bg-[#b3a4ff]"></span></span></div>
       <h1 class="mt-9 text-[1.75rem] font-extrabold tracking-tight">비밀번호를 만들어 주세요</h1>
       <p class="mt-2 text-base text-white/75">8자 이상으로 입력해 주세요</p>
       <form class="mt-8 space-y-3 text-left" novalidate>

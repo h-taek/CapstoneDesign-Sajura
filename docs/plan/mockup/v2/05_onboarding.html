@@ -10,14 +10,14 @@
 <!-- 원본: Front/src/routes/onboarding/*.tsx(매장 정보·POS 연동·메뉴 등록·확인). v2는 네 단계를 한 파일에 두고 상태로 넘긴다 -->
 <!-- v2 — 회원가입과 같은 방식. 카드 없이 밤하늘 위에 바로, 'Sajura'는 왼쪽 위, 진행 막대 4칸과 제목은 위에서 13vh 높이에 고정.
      단계를 넘기면 하늘이 그 단계 시각으로 흐른다(data-sky-steps — 22:40 → 23:10 → 23:40 → 00:10, 밤이 깊어진다. 22:00 하늘은 아래쪽이 분홍빛이라 작은 글이 4.5:1에 못 미쳐 늦췄다).
-     '온보딩 완료'는 로그인과 같은 '아침이 밝기' 전환으로 홈에 들어간다 -->
+     '온보딩 완료'는 로그인과 같은 '아침이 밝기' 전환으로 홈에 들어간다. 진행 막대의 지나간 칸을 누르면 그 단계로 간다 -->
 <body data-page="onboarding" data-sky="22:40" data-sky-steps="store:22:40,store-error:22:40,pos:23:10,pos-okpos:23:10,menus:23:40,confirm:00:10,confirm-error:00:10" data-states="1 매장 정보:store,2 POS(CSV):pos,2 POS(OKPOS):pos-okpos,3 메뉴:menus,4 확인:confirm,전화번호 오류:store-error,제출 오류:confirm-error">
 <div data-backdrop></div>
 <p class="fixed top-6 left-6 z-10 text-[1.75rem] leading-none font-extrabold tracking-tight text-[#b3a4ff] sm:top-8 sm:left-10">Sajura</p>
 <main class="min-h-dvh px-5 pt-[13vh] pb-10 text-center text-white">
   <section class="mx-auto w-full max-w-[440px]">
     <div data-when="store">
-      <div class="flex justify-center gap-2" aria-label="1 / 4 단계"><span class="h-1 w-9 rounded-full bg-[#b3a4ff]"></span><span class="h-1 w-9 rounded-full bg-white/20"></span><span class="h-1 w-9 rounded-full bg-white/20"></span><span class="h-1 w-9 rounded-full bg-white/20"></span></div>
+      <div class="-my-3 flex justify-center gap-2" aria-label="1 / 4 단계"><span class="py-3" aria-current="step"><span class="block h-1 w-9 rounded-full bg-[#b3a4ff]"></span></span><span class="py-3"><span class="block h-1 w-9 rounded-full bg-white/20"></span></span><span class="py-3"><span class="block h-1 w-9 rounded-full bg-white/20"></span></span><span class="py-3"><span class="block h-1 w-9 rounded-full bg-white/20"></span></span></div>
       <h1 class="mt-9 text-[1.75rem] font-extrabold tracking-tight">매장 정보를 알려 주세요</h1>
       <p class="mt-2 text-base text-white/75">AI 예측에 쓰는 기본 정보예요</p>
       <form class="mt-8 space-y-3 text-left" novalidate>
@@ -33,7 +33,7 @@
       </form>
     </div>
     <div data-when="store-error">
-      <div class="flex justify-center gap-2" aria-label="1 / 4 단계"><span class="h-1 w-9 rounded-full bg-[#b3a4ff]"></span><span class="h-1 w-9 rounded-full bg-white/20"></span><span class="h-1 w-9 rounded-full bg-white/20"></span><span class="h-1 w-9 rounded-full bg-white/20"></span></div>
+      <div class="-my-3 flex justify-center gap-2" aria-label="1 / 4 단계"><span class="py-3" aria-current="step"><span class="block h-1 w-9 rounded-full bg-[#b3a4ff]"></span></span><span class="py-3"><span class="block h-1 w-9 rounded-full bg-white/20"></span></span><span class="py-3"><span class="block h-1 w-9 rounded-full bg-white/20"></span></span><span class="py-3"><span class="block h-1 w-9 rounded-full bg-white/20"></span></span></div>
       <h1 class="mt-9 text-[1.75rem] font-extrabold tracking-tight">매장 정보를 알려 주세요</h1>
       <p class="mt-2 text-base text-white/75">AI 예측에 쓰는 기본 정보예요</p>
       <form class="mt-8 space-y-3 text-left" novalidate>
@@ -49,7 +49,7 @@
       </form>
     </div>
     <div data-when="pos">
-      <div class="flex justify-center gap-2" aria-label="2 / 4 단계"><span class="h-1 w-9 rounded-full bg-white/20"></span><span class="h-1 w-9 rounded-full bg-[#b3a4ff]"></span><span class="h-1 w-9 rounded-full bg-white/20"></span><span class="h-1 w-9 rounded-full bg-white/20"></span></div>
+      <div class="-my-3 flex justify-center gap-2" aria-label="2 / 4 단계"><button type="button" data-set-state="store" aria-label="1단계 매장 정보로 돌아가기" class="cursor-pointer py-3 hover:opacity-80"><span class="block h-1 w-9 rounded-full bg-white/20"></span></button><span class="py-3" aria-current="step"><span class="block h-1 w-9 rounded-full bg-[#b3a4ff]"></span></span><span class="py-3"><span class="block h-1 w-9 rounded-full bg-white/20"></span></span><span class="py-3"><span class="block h-1 w-9 rounded-full bg-white/20"></span></span></div>
       <h1 class="mt-9 text-[1.75rem] font-extrabold tracking-tight">POS를 연결해 주세요</h1>
       <p class="mt-2 text-base text-white/75">김사주님, 환영해요. 매출을 가져올 방법을 골라 주세요</p>
       <form class="mt-8 space-y-3 text-left" novalidate>
@@ -59,7 +59,7 @@
       </form>
     </div>
     <div data-when="pos-okpos">
-      <div class="flex justify-center gap-2" aria-label="2 / 4 단계"><span class="h-1 w-9 rounded-full bg-white/20"></span><span class="h-1 w-9 rounded-full bg-[#b3a4ff]"></span><span class="h-1 w-9 rounded-full bg-white/20"></span><span class="h-1 w-9 rounded-full bg-white/20"></span></div>
+      <div class="-my-3 flex justify-center gap-2" aria-label="2 / 4 단계"><button type="button" data-set-state="store" aria-label="1단계 매장 정보로 돌아가기" class="cursor-pointer py-3 hover:opacity-80"><span class="block h-1 w-9 rounded-full bg-white/20"></span></button><span class="py-3" aria-current="step"><span class="block h-1 w-9 rounded-full bg-[#b3a4ff]"></span></span><span class="py-3"><span class="block h-1 w-9 rounded-full bg-white/20"></span></span><span class="py-3"><span class="block h-1 w-9 rounded-full bg-white/20"></span></span></div>
       <h1 class="mt-9 text-[1.75rem] font-extrabold tracking-tight">POS를 연결해 주세요</h1>
       <p class="mt-2 text-base text-white/75">김사주님, 환영해요. 매출을 가져올 방법을 골라 주세요</p>
       <form class="mt-8 space-y-3 text-left" novalidate>
@@ -72,7 +72,7 @@
       </form>
     </div>
     <div data-when="menus">
-      <div class="flex justify-center gap-2" aria-label="3 / 4 단계"><span class="h-1 w-9 rounded-full bg-white/20"></span><span class="h-1 w-9 rounded-full bg-white/20"></span><span class="h-1 w-9 rounded-full bg-[#b3a4ff]"></span><span class="h-1 w-9 rounded-full bg-white/20"></span></div>
+      <div class="-my-3 flex justify-center gap-2" aria-label="3 / 4 단계"><button type="button" data-set-state="store" aria-label="1단계 매장 정보로 돌아가기" class="cursor-pointer py-3 hover:opacity-80"><span class="block h-1 w-9 rounded-full bg-white/20"></span></button><button type="button" data-set-state="pos" aria-label="2단계 POS 연동로 돌아가기" class="cursor-pointer py-3 hover:opacity-80"><span class="block h-1 w-9 rounded-full bg-white/20"></span></button><span class="py-3" aria-current="step"><span class="block h-1 w-9 rounded-full bg-[#b3a4ff]"></span></span><span class="py-3"><span class="block h-1 w-9 rounded-full bg-white/20"></span></span></div>
       <h1 class="mt-9 text-[1.75rem] font-extrabold tracking-tight">판매하는 메뉴를 알려 주세요</h1>
       <p class="mt-2 text-base text-white/75">재고 차감은 레시피를 등록한 뒤 켤 수 있어요</p>
       <form class="mt-8 space-y-2.5 text-left" novalidate>
@@ -80,7 +80,7 @@
             <input id="menus.0.name" aria-label="메뉴명" placeholder="메뉴명" value="마르게리타 화덕피자" class="h-12 w-full rounded-xl border border-white/15 bg-[#0d0a26]/45 px-4 text-base text-white placeholder:text-white/70 backdrop-blur-md [color-scheme:dark] focus:border-[#b3a4ff] focus:ring-4 focus:ring-[#b3a4ff]/25 focus:outline-none">
             <div class="flex items-center gap-2">
               <input id="menus.0.category" aria-label="카테고리" placeholder="카테고리" value="피자" class="h-12 rounded-xl border border-white/15 bg-[#0d0a26]/45 px-3 text-base text-white placeholder:text-white/70 backdrop-blur-md [color-scheme:dark] focus:border-[#b3a4ff] focus:ring-4 focus:ring-[#b3a4ff]/25 focus:outline-none w-20 shrink-0">
-              <input id="menus.0.price" aria-label="단가(원)" placeholder="단가(원)" inputmode="numeric" value="16000" class="h-12 rounded-xl border border-white/15 bg-[#0d0a26]/45 px-3 text-base text-white placeholder:text-white/70 backdrop-blur-md [color-scheme:dark] focus:border-[#b3a4ff] focus:ring-4 focus:ring-[#b3a4ff]/25 focus:outline-none min-w-0 flex-1">
+              <input id="menus.0.price" aria-label="단가(원)" placeholder="단가(원)" type="number" min="0" inputmode="numeric" value="16000" class="[appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none h-12 rounded-xl border border-white/15 bg-[#0d0a26]/45 px-3 text-base text-white placeholder:text-white/70 backdrop-blur-md [color-scheme:dark] focus:border-[#b3a4ff] focus:ring-4 focus:ring-[#b3a4ff]/25 focus:outline-none min-w-0 flex-1">
               <label class="flex shrink-0 items-center gap-1 text-sm text-white/90"><input type="checkbox" checked class="size-4 accent-[#b3a4ff]">판매</label>
               <button type="button" aria-label="메뉴 삭제" class="flex size-9 shrink-0 items-center justify-center rounded-lg text-white/75 hover:bg-white/10"><span data-icon="trash2" class="size-4"></span></button>
             </div>
@@ -89,7 +89,7 @@
             <input id="menus.1.name" aria-label="메뉴명" placeholder="메뉴명" value="페페로니 듬뿍 화덕피자" class="h-12 w-full rounded-xl border border-white/15 bg-[#0d0a26]/45 px-4 text-base text-white placeholder:text-white/70 backdrop-blur-md [color-scheme:dark] focus:border-[#b3a4ff] focus:ring-4 focus:ring-[#b3a4ff]/25 focus:outline-none">
             <div class="flex items-center gap-2">
               <input id="menus.1.category" aria-label="카테고리" placeholder="카테고리" value="피자" class="h-12 rounded-xl border border-white/15 bg-[#0d0a26]/45 px-3 text-base text-white placeholder:text-white/70 backdrop-blur-md [color-scheme:dark] focus:border-[#b3a4ff] focus:ring-4 focus:ring-[#b3a4ff]/25 focus:outline-none w-20 shrink-0">
-              <input id="menus.1.price" aria-label="단가(원)" placeholder="단가(원)" inputmode="numeric" value="18000" class="h-12 rounded-xl border border-white/15 bg-[#0d0a26]/45 px-3 text-base text-white placeholder:text-white/70 backdrop-blur-md [color-scheme:dark] focus:border-[#b3a4ff] focus:ring-4 focus:ring-[#b3a4ff]/25 focus:outline-none min-w-0 flex-1">
+              <input id="menus.1.price" aria-label="단가(원)" placeholder="단가(원)" type="number" min="0" inputmode="numeric" value="18000" class="[appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none h-12 rounded-xl border border-white/15 bg-[#0d0a26]/45 px-3 text-base text-white placeholder:text-white/70 backdrop-blur-md [color-scheme:dark] focus:border-[#b3a4ff] focus:ring-4 focus:ring-[#b3a4ff]/25 focus:outline-none min-w-0 flex-1">
               <label class="flex shrink-0 items-center gap-1 text-sm text-white/90"><input type="checkbox" checked class="size-4 accent-[#b3a4ff]">판매</label>
               <button type="button" aria-label="메뉴 삭제" class="flex size-9 shrink-0 items-center justify-center rounded-lg text-white/75 hover:bg-white/10"><span data-icon="trash2" class="size-4"></span></button>
             </div>
@@ -98,7 +98,7 @@
             <input id="menus.2.name" aria-label="메뉴명" placeholder="메뉴명" value="콜라" class="h-12 w-full rounded-xl border border-white/15 bg-[#0d0a26]/45 px-4 text-base text-white placeholder:text-white/70 backdrop-blur-md [color-scheme:dark] focus:border-[#b3a4ff] focus:ring-4 focus:ring-[#b3a4ff]/25 focus:outline-none">
             <div class="flex items-center gap-2">
               <input id="menus.2.category" aria-label="카테고리" placeholder="카테고리" value="음료" class="h-12 rounded-xl border border-white/15 bg-[#0d0a26]/45 px-3 text-base text-white placeholder:text-white/70 backdrop-blur-md [color-scheme:dark] focus:border-[#b3a4ff] focus:ring-4 focus:ring-[#b3a4ff]/25 focus:outline-none w-20 shrink-0">
-              <input id="menus.2.price" aria-label="단가(원)" placeholder="단가(원)" inputmode="numeric" value="2500" class="h-12 rounded-xl border border-white/15 bg-[#0d0a26]/45 px-3 text-base text-white placeholder:text-white/70 backdrop-blur-md [color-scheme:dark] focus:border-[#b3a4ff] focus:ring-4 focus:ring-[#b3a4ff]/25 focus:outline-none min-w-0 flex-1">
+              <input id="menus.2.price" aria-label="단가(원)" placeholder="단가(원)" type="number" min="0" inputmode="numeric" value="2500" class="[appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none h-12 rounded-xl border border-white/15 bg-[#0d0a26]/45 px-3 text-base text-white placeholder:text-white/70 backdrop-blur-md [color-scheme:dark] focus:border-[#b3a4ff] focus:ring-4 focus:ring-[#b3a4ff]/25 focus:outline-none min-w-0 flex-1">
               <label class="flex shrink-0 items-center gap-1 text-sm text-white/90"><input type="checkbox" checked class="size-4 accent-[#b3a4ff]">판매</label>
               <button type="button" aria-label="메뉴 삭제" class="flex size-9 shrink-0 items-center justify-center rounded-lg text-white/75 hover:bg-white/10"><span data-icon="trash2" class="size-4"></span></button>
             </div>
@@ -108,7 +108,7 @@
       </form>
     </div>
     <div data-when="confirm">
-      <div class="flex justify-center gap-2" aria-label="4 / 4 단계"><span class="h-1 w-9 rounded-full bg-white/20"></span><span class="h-1 w-9 rounded-full bg-white/20"></span><span class="h-1 w-9 rounded-full bg-white/20"></span><span class="h-1 w-9 rounded-full bg-[#b3a4ff]"></span></div>
+      <div class="-my-3 flex justify-center gap-2" aria-label="4 / 4 단계"><button type="button" data-set-state="store" aria-label="1단계 매장 정보로 돌아가기" class="cursor-pointer py-3 hover:opacity-80"><span class="block h-1 w-9 rounded-full bg-white/20"></span></button><button type="button" data-set-state="pos" aria-label="2단계 POS 연동로 돌아가기" class="cursor-pointer py-3 hover:opacity-80"><span class="block h-1 w-9 rounded-full bg-white/20"></span></button><button type="button" data-set-state="menus" aria-label="3단계 메뉴 등록로 돌아가기" class="cursor-pointer py-3 hover:opacity-80"><span class="block h-1 w-9 rounded-full bg-white/20"></span></button><span class="py-3" aria-current="step"><span class="block h-1 w-9 rounded-full bg-[#b3a4ff]"></span></span></div>
       <h1 class="mt-9 text-[1.75rem] font-extrabold tracking-tight">입력한 내용을 확인해 주세요</h1>
       <p class="mt-2 text-base text-white/75">완료하면 오늘 밤부터 사주라가 계산을 시작해요</p>
       <div class="mt-8 space-y-4 rounded-2xl border border-white/15 bg-[#0d0a26]/45 p-5 text-left text-[0.95rem] backdrop-blur-md">
@@ -130,7 +130,7 @@
       </div>
     </div>
     <div data-when="confirm-error">
-      <div class="flex justify-center gap-2" aria-label="4 / 4 단계"><span class="h-1 w-9 rounded-full bg-white/20"></span><span class="h-1 w-9 rounded-full bg-white/20"></span><span class="h-1 w-9 rounded-full bg-white/20"></span><span class="h-1 w-9 rounded-full bg-[#b3a4ff]"></span></div>
+      <div class="-my-3 flex justify-center gap-2" aria-label="4 / 4 단계"><button type="button" data-set-state="store" aria-label="1단계 매장 정보로 돌아가기" class="cursor-pointer py-3 hover:opacity-80"><span class="block h-1 w-9 rounded-full bg-white/20"></span></button><button type="button" data-set-state="pos" aria-label="2단계 POS 연동로 돌아가기" class="cursor-pointer py-3 hover:opacity-80"><span class="block h-1 w-9 rounded-full bg-white/20"></span></button><button type="button" data-set-state="menus" aria-label="3단계 메뉴 등록로 돌아가기" class="cursor-pointer py-3 hover:opacity-80"><span class="block h-1 w-9 rounded-full bg-white/20"></span></button><span class="py-3" aria-current="step"><span class="block h-1 w-9 rounded-full bg-[#b3a4ff]"></span></span></div>
       <h1 class="mt-9 text-[1.75rem] font-extrabold tracking-tight">입력한 내용을 확인해 주세요</h1>
       <p class="mt-2 text-base font-semibold text-[#ffd6d6]" role="alert">제출 중 오류가 났어요. 다시 시도해 주세요</p>
       <div class="mt-8 space-y-4 rounded-2xl border border-white/15 bg-[#0d0a26]/45 p-5 text-left text-[0.95rem] backdrop-blur-md">
