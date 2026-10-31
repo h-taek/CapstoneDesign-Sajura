@@ -104,6 +104,15 @@ const THEME_CSS = `
   border: 1px solid rgb(255 255 255 / 0.6);
   box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.8), 0 24px 60px -24px rgb(40 20 120 / 0.35);
 }
+/* 포인트 색 유리 — 패널 안에서 강조할 카드. 브랜드 보라를 반투명으로 깔고 위쪽 반사광·밝은 테두리로 유리 결을 남긴다 */
+@utility glass-brand {
+  background: linear-gradient(150deg, rgb(107 78 255 / 0.82) 0%, rgb(107 78 255 / 0.62) 100%);
+  -webkit-backdrop-filter: blur(16px) saturate(160%);
+  backdrop-filter: blur(16px) saturate(160%);
+  border: 1px solid rgb(255 255 255 / 0.4);
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.45), inset 0 -1px 0 rgb(255 255 255 / 0.12),
+    0 14px 30px -14px rgb(107 78 255 / 0.6);
+}
 /* 패널 안쪽 카드 — 이미 흐려진 패널 위라 흐림은 다시 걸지 않고 흰색만 더 올린다 */
 @utility glass-card {
   background: rgb(255 255 255 / 0.38);
@@ -917,7 +926,7 @@ function renderShell(el) {
   <!-- 메뉴 폭(58px)의 절반이 패널 왼쪽 가장자리(3rem)에 걸친다. 윗변은 제목 아래 첫 카드 줄 윗선(패널 위 5.25rem + 안쪽 여백 1.75rem + 제목 줄 68px) -->
   <nav aria-label="주 메뉴" style="--d:0.1s" class="en en-left glass-bar fixed top-[calc(7rem+68px)] left-[calc(3rem-29px)] z-30 hidden flex-col items-center gap-2 rounded-full p-1.5 lg:flex">${sideNav}</nav>
 
-  <main style="--d:0.15s" class="en glass fixed inset-x-3 top-[4.75rem] bottom-[5.75rem] z-20 overflow-y-auto rounded-[1.75rem] px-4 py-5 lg:top-[5.25rem] lg:right-4 lg:bottom-12 lg:left-12 lg:pr-8 lg:pl-[calc(29px+2rem)] lg:py-7">
+  <main style="--d:0.15s" class="en glass fixed inset-x-3 top-[4.75rem] bottom-[5.75rem] z-20 overflow-y-auto rounded-[1.75rem] px-3 py-5 lg:top-[5.25rem] lg:right-4 lg:bottom-12 lg:left-12 lg:pr-5 lg:pl-[calc(29px+1.25rem)] lg:py-7">
     ${content}
   </main>
 
