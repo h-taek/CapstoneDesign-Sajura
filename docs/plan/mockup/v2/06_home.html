@@ -17,7 +17,34 @@
   </header>
   <div class="grid gap-4 lg:h-[calc(100%-68px-0.75rem)] lg:grid-rows-2">
     <div class="grid grid-cols-1 gap-4 lg:grid-cols-3">
-      <section class="min-h-40 rounded-2xl glass-card"></section>
+      <!-- 많이 나갈 메뉴 — 오늘 예상 판매량 상위 5개(GET /api/forecast menu_forecast). 수량 숫자는 쓰지 않고 1위 대비 가로 막대로만. 제목은 임시 문구 -->
+      <section class="flex min-h-40 flex-col rounded-2xl px-4 pt-4 pb-2 glass-card">
+        <h2 class="text-base font-bold text-ink">Test</h2>
+        <div class="-mx-2 mt-3 rounded-xl px-3 py-3 glass-card lg:min-h-0 lg:flex-1">
+          <ol class="flex h-full flex-col justify-between gap-3">
+            <li class="space-y-1.5">
+              <p class="flex items-baseline gap-2 text-[0.95rem] font-semibold text-ink"><span class="w-3 text-sm font-bold text-brand">1</span><span class="truncate">불새우 루꼴라 화덕피자</span></p>
+              <div class="ml-5 h-2 rounded-full bg-white/60"><div class="h-full rounded-full bg-brand" style="width:100%"></div></div>
+            </li>
+            <li class="space-y-1.5">
+              <p class="flex items-baseline gap-2 text-[0.95rem] font-semibold text-ink"><span class="w-3 text-sm font-bold text-ink-3">2</span><span class="truncate">페페로니 듬뿍 화덕피자</span></p>
+              <div class="ml-5 h-2 rounded-full bg-white/60"><div class="h-full rounded-full bg-brand/40" style="width:86%"></div></div>
+            </li>
+            <li class="space-y-1.5">
+              <p class="flex items-baseline gap-2 text-[0.95rem] font-semibold text-ink"><span class="w-3 text-sm font-bold text-ink-3">3</span><span class="truncate">마르게리타 화덕피자</span></p>
+              <div class="ml-5 h-2 rounded-full bg-white/60"><div class="h-full rounded-full bg-brand/40" style="width:68%"></div></div>
+            </li>
+            <li class="space-y-1.5">
+              <p class="flex items-baseline gap-2 text-[0.95rem] font-semibold text-ink"><span class="w-3 text-sm font-bold text-ink-3">4</span><span class="truncate">고르곤졸라 꿀 피자</span></p>
+              <div class="ml-5 h-2 rounded-full bg-white/60"><div class="h-full rounded-full bg-brand/40" style="width:55%"></div></div>
+            </li>
+            <li class="space-y-1.5">
+              <p class="flex items-baseline gap-2 text-[0.95rem] font-semibold text-ink"><span class="w-3 text-sm font-bold text-ink-3">5</span><span class="truncate">루꼴라 샐러드</span></p>
+              <div class="ml-5 h-2 rounded-full bg-white/60"><div class="h-full rounded-full bg-brand/40" style="width:36%"></div></div>
+            </li>
+          </ol>
+        </div>
+      </section>
       <!-- 숫자 카드 2×2 — 발주할 재료(포인트 색 유리, 누르면 발주) · 오늘 예상 매출(GET /api/forecast) · 어제 매출·건수 · 이번 달 누적(GET /api/sales/summary).
            '오늘 매출'은 마지막 판매일(어제) 값이라 '어제 매출'로 쓴다. 확인할 재료는 상단 바 알림에서 본다 -->
       <section class="grid min-h-40 grid-cols-2 grid-rows-2 gap-2 rounded-2xl p-2 glass-card">
