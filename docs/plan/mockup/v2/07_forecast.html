@@ -17,11 +17,11 @@
      보는 날은 2026-10-20(화) 아침, 마지막 판매 10-19. 3일 목록의 줄을 누르면 아래 메뉴 카드가 그날로 바뀐다(상태 오늘·내일·모레).
      원본: Front/src/routes/forecast.tsx. 값 — 3일 예상(GET /api/forecast), 정확도(GET /api/dashboard/forecast-vs-actual, 홈과 같은 94%), 메뉴(menu_forecast, 고리는 그날 예상 판매 수량에서 그 메뉴가 차지하는 비중). spec 04 §4.4 -->
 <body data-page="forecast" data-states="오늘:default,내일:d2,모레:d3,계산 중:loading,이력 부족:short,AI 서버 오류:error">
-<div data-shell="forecast">
+<div data-shell="forecast" data-layout="open">
   <!-- 머리글 — 반영 기준(마지막 판매일). 두 줄(홈과 같은 높이), 앱은 제목을 상단 바가 보여 준다 -->
   <header class="mb-3 space-y-1">
     <h1 class="hidden text-xl font-bold tracking-tight text-ink lg:block lg:text-[1.75rem]">매출 예측</h1>
-    <p class="text-[0.95rem] text-ink-3">10월 19일 판매까지 반영했어요</p>
+    <p class="text-[0.95rem] text-ink-2">10월 19일 판매까지 반영했어요</p>
   </header>
   <div class="grid gap-4">
     <div class="grid grid-cols-1 gap-4 lg:grid-cols-3">

@@ -857,6 +857,32 @@ function renderShell(el) {
   const subtitle = active === "home" && !el.dataset.title ? `${MOCK_USER.name}님, 안녕하세요` : "";
   const back = el.dataset.back ?? (active === "menus" ? PAGES.settings.file : "");
   const content = el.innerHTML;
+  // 열린 배치(data-layout="open") — 본문 유리 패널과 왼쪽 메뉴 없이 카드가 배경 위에 바로 놓이고, 주 메뉴는 상단 바 가운데 글자 알약으로 올라간다
+  const open = el.dataset.layout === "open";
+  const topNav = WEB_NAV.map((n) => {
+    const on = n.key === active;
+    return `<a href="${href(n.key)}" ${on ? 'aria-current="page"' : ""} class="rounded-full px-4 py-2 text-sm font-semibold whitespace-nowrap transition-colors ${on ? "bg-white/90 text-ink shadow-sm" : "text-ink-2 hover:bg-white/40"}">${n.label}</a>`;
+  }).join("");
+
+  // 열린 배치의 웹 상단 — 한 막대가 아니라 판을 나눈다. 왼쪽 'Sajura' 글자(판 없음), 가운데 메뉴 알약 유리, 오른쪽 알림·설정·계정이 각자 유리 판.
+  // 스크롤하면 가운데 메뉴만 화면 위에 떠 있고, 'Sajura'와 오른쪽 판은 본문과 같이 올라간다(메뉴는 header 밖 fixed — header의 등장 움직임 transform에 묶이지 않게)
+  const webHeader = `<nav aria-label="주 메뉴" class="en en-top glass-bar fixed top-4 left-1/2 z-40 hidden -translate-x-1/2 items-center gap-1 rounded-full p-1.5 lg:flex">${topNav}</nav>
+  <header class="en en-top absolute inset-x-0 top-4 z-30 hidden h-14 items-center justify-between px-16 lg:flex xl:px-24">
+    <a href="${href("home")}" aria-label="사주라 홈" class="text-[1.75rem] leading-none font-extrabold tracking-tight text-brand">Sajura</a>
+    <div class="flex items-center gap-2">
+      <button type="button" data-toggle="#noti-pop" aria-expanded="false" aria-label="알림, 안 읽음 3개" class="glass-bar relative flex size-12 items-center justify-center rounded-full text-ink-2 hover:text-ink">
+        ${icon("bell")}<span class="absolute top-3 right-3 size-2 rounded-full bg-danger ring-2 ring-white"></span>
+      </button>
+      <a href="${href("settings")}" aria-label="설정" class="glass-bar flex size-12 items-center justify-center rounded-full text-ink-2 hover:text-ink">${icon("settings")}</a>
+      <a href="${href("account")}" aria-label="계정" class="glass-bar flex h-12 items-center gap-2 rounded-full px-1.5 xl:pr-4">
+        <span class="flex size-9 items-center justify-center rounded-full bg-white/80 text-sm font-bold text-ink">${MOCK_USER.name.slice(0, 1)}</span>
+        <span class="hidden leading-tight xl:block">
+          <span class="block text-sm font-semibold text-ink">${MOCK_USER.store}</span>
+          <span class="block text-xs text-ink-3">${MOCK_USER.name}님</span>
+        </span>
+      </a>
+    </div>
+  </header>`;
 
   // 왼쪽 알약 메뉴 — 아이콘만 두고 이름은 마우스를 올리면 오른쪽에 뜬다
   const sideNav = WEB_NAV.map((n) => {
@@ -875,7 +901,8 @@ function renderShell(el) {
   el.outerHTML = `
   ${backdropHtml(currentBackdrop())}
 
-  <header class="en en-top glass-bar pt-safe fixed inset-x-3 top-3 z-30 flex h-14 items-center gap-2 rounded-full pr-2 pl-2 lg:top-4 lg:right-4 lg:left-12 lg:gap-3 lg:pl-5">
+  ${open ? webHeader : ""}
+  <header class="en en-top glass-bar pt-safe fixed inset-x-3 top-3 z-30 flex h-14${open ? " lg:hidden" : ""} items-center gap-2 rounded-full pr-2 pl-2 lg:top-4 lg:right-4 lg:left-12 lg:gap-3 lg:pl-5">
     ${back ? `<a href="${back}" aria-label="뒤로 가기" class="flex size-10 items-center justify-center rounded-full text-ink hover:bg-white/40 lg:hidden">${icon("chevronLeft", "size-6")}</a>` : ""}
     <a href="${href("home")}" class="hidden items-center gap-2 lg:flex" aria-label="사주라 홈">
       <span class="flex size-8 items-center justify-center rounded-lg bg-ink text-sm font-black text-white">S</span>
@@ -886,10 +913,11 @@ function renderShell(el) {
       <p class="truncate text-[1.05rem] font-bold text-ink">${title}</p>
     </div>
 
+    ${open ? "" : `
     <!-- 입력창 자리 — 연결할 기능 미정 -->
     <div class="mx-auto hidden h-10 w-full max-w-[460px] items-center gap-2 rounded-full border border-dashed border-ink/25 bg-white/30 px-4 text-sm text-ink-3 lg:flex">
       ${icon("sparkles", "size-4")}<span>입력창 자리 — 연결할 기능 미정</span>
-    </div>
+    </div>`}
 
     <div class="flex items-center gap-1 lg:gap-2">
       <!-- 알림 — 지나간 알림 기록은 홈 본문이 아니라 여기서 연다(홈 '확인할 재료'는 지금 상태) -->
@@ -908,7 +936,7 @@ function renderShell(el) {
   </header>
 
   <!-- 알림 목록(GET /api/notifications) — 긴급 → 경고 → 정보 순, 누르면 해당 화면으로 -->
-  <div id="noti-pop" hidden role="dialog" aria-label="알림" class="glass-strong fixed inset-x-3 top-[4.5rem] z-40 rounded-3xl p-2 lg:top-[4.75rem] lg:right-4 lg:left-auto lg:w-[380px]">
+  <div id="noti-pop" hidden role="dialog" aria-label="알림" class="glass-strong fixed inset-x-3 top-[4.5rem] z-40 rounded-3xl p-2 lg:top-[4.75rem] ${open ? "lg:absolute lg:right-16 xl:right-24" : "lg:right-4"} lg:left-auto lg:w-[380px]">
     <div class="flex items-center justify-between px-3 pt-2 pb-1">
       <p class="text-base font-bold text-ink">알림</p>
       <button type="button" class="text-sm font-semibold text-brand hover:text-brand-strong">모두 읽음</button>
@@ -932,13 +960,15 @@ function renderShell(el) {
   </div>
 
   <!-- 메뉴 폭(58px)의 절반이 패널 왼쪽 가장자리(3rem)에 걸친다. 윗변은 제목 줄 아랫선(패널 위 5.25rem + 안쪽 여백 1.25rem + 제목 줄 68px) -->
-  <nav aria-label="주 메뉴" style="--d:0.1s" class="en en-left glass-bar fixed top-[calc(6.5rem+68px)] left-[calc(3rem-29px)] z-30 hidden flex-col items-center gap-2 rounded-full p-1.5 lg:flex">${sideNav}</nav>
+  ${open ? "" : `<nav aria-label="주 메뉴" style="--d:0.1s" class="en en-left glass-bar fixed top-[calc(6.5rem+68px)] left-[calc(3rem-29px)] z-30 hidden flex-col items-center gap-2 rounded-full p-1.5 lg:flex">${sideNav}</nav>`}
 
   <!-- 본문 패널 — 안에서 따로 스크롤하지 않고 패널째 화면과 함께 스크롤된다. 상단 바·왼쪽 메뉴·앱 탭 막대는 제자리에 떠 있다.
        내용이 짧아도 화면 높이만큼은 채운다. 바깥 그림자는 두지 않는다(안쪽 반사광만) -->
-  <main style="--d:0.15s; box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.6), inset 0 -1px 0 rgb(255 255 255 / 0.15)" class="en glass relative z-20 mx-3 mt-[4.75rem] mb-[5.75rem] min-h-[calc(100dvh-10.5rem)] rounded-[1.75rem] px-3 py-5 lg:mt-[5.25rem] lg:mr-4 lg:mb-12 lg:ml-12 lg:min-h-[calc(100dvh-8.25rem)] lg:pr-5 lg:pl-[calc(29px+1.25rem)] lg:py-5">
+  ${open ? `<main style="--d:0.15s" class="en relative z-20 mx-3 mt-[5.25rem] mb-[5.75rem] lg:mx-16 lg:mt-24 lg:mb-8 xl:mx-24">
     ${content}
-  </main>
+  </main>` : `<main style="--d:0.15s; box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.6), inset 0 -1px 0 rgb(255 255 255 / 0.15)" class="en glass relative z-20 mx-3 mt-[4.75rem] mb-[5.75rem] min-h-[calc(100dvh-10.5rem)] rounded-[1.75rem] px-3 py-5 lg:mt-[5.25rem] lg:mr-4 lg:mb-12 lg:ml-12 lg:min-h-[calc(100dvh-8.25rem)] lg:pr-5 lg:pl-[calc(29px+1.25rem)] lg:py-5">
+    ${content}
+  </main>`}
 
   <nav aria-label="하단 메뉴" style="--d:0.25s" class="en glass-bar pb-safe fixed inset-x-3 bottom-3 z-30 rounded-full p-1.5 lg:hidden">
     <ul class="grid grid-cols-5 gap-1">${tabs}</ul>

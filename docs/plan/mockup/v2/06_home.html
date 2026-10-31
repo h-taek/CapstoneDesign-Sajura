@@ -11,12 +11,12 @@
      보는 날은 2026-10-20(화) 아침, 마지막 판매 10-19. 예상 매출·월 매출은 07, 발주는 09, 재고는 08 목업 값과 같다.
      상태 — 예측 실패(GET /api/forecast 404·오류: 예측 칸만 비우고 '불러오지 못했어요', 없다고 말하지 않는다) · 매출 없음(가입 직후: 매출 올리기 안내, 숫자는 0·빈칸) · 설치 안내(앱 폭 배너 → 아이폰 안내 시트) · POS 연동 끊김(상단 바 알림 목록 맨 위 고정 항목) -->
 <body data-page="home" data-states="기본:default,예측 실패:aifail,매출 없음:empty,POS 연동 끊김:pos,설치 안내:guide">
-<div data-shell="home">
+<div data-shell="home" data-layout="open">
   <!-- 머리글 — 인사(사용자 이름) + 반영 기준(GET /api/sales/summary last_sale_at). 두 줄(다른 대시보드 화면과 같은 높이) -->
   <header class="mb-3 space-y-1">
     <h1 class="text-xl font-bold tracking-tight text-ink lg:text-[1.75rem]">어서 오세요, 김사주 사장님</h1>
-    <p data-when="default aifail pos guide" class="text-[0.95rem] text-ink-3">10월 19일 판매까지 반영했어요</p>
-    <p data-when="empty" class="text-[0.95rem] text-ink-3">아직 올린 매출이 없어요</p>
+    <p data-when="default aifail pos guide" class="text-[0.95rem] text-ink-2">10월 19일 판매까지 반영했어요</p>
+    <p data-when="empty" class="text-[0.95rem] text-ink-2">아직 올린 매출이 없어요</p>
   </header>
   <!-- 설치 안내 — 앱 폭(lg 미만)에서만, 닫을 수 있다. 아이폰은 '설치 방법 보기'(안내 시트), 안드로이드는 설치 창 -->
   <div id="install-banner" data-when="default pos guide" class="relative mb-4 flex items-center gap-3 rounded-2xl px-4 py-3 pr-12 glass-card lg:hidden">
