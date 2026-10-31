@@ -661,6 +661,28 @@ function drawDay(mf) {
   for (const el of document.querySelectorAll("[data-sky-clock]")) el.textContent = dayClock(mf);
 }
 
+// 이전 화면에서 넘겨받은 하늘 시각(?sky=분). 화면이 넘어가도 달이 이전 화면 자리에서 시작해 이 화면 시각으로 흐른다
+const SKY_FROM = (() => {
+  const q = new URLSearchParams(location.search);
+  if (!q.has("sky")) return null;
+  const v = Number(q.get("sky"));
+  q.delete("sky");
+  const u = new URL(location.href);
+  u.search = q.toString();
+  history.replaceState(null, "", u);
+  return Number.isFinite(v) ? v : null;
+})();
+const reduceMotion = () => matchMedia("(prefers-reduced-motion: reduce)").matches;
+// from에서 to로 앞뒤 중 가까운 쪽으로 흐른다
+function flowTo(from, to, ms) {
+  const f = ((Math.round(from) % 1440) + 1440) % 1440;
+  let t = to;
+  while (t - f > 720) t -= 1440;
+  while (f - t > 720) t += 1440;
+  if (t === f || reduceMotion()) drawDay(to);
+  else flowSky(f, t, 0, 1, ms, ++DAY.run);
+}
+
 // 시각 소스 — body[data-sky]: "scroll"(시작 화면 장면 .scene[data-min]), "now"(실제 시각), "HH:MM"(고정). 없으면 대시보드는 now, 그 외는 21:30
 function startDay() {
   const bd = document.querySelector(".bd-day");
@@ -697,8 +719,10 @@ function startDay() {
     // 가게로 들어가기로 왔으면 시작 화면에서 흐르던 하늘을 이어받아 빛이 걷히는 동안 끝까지 흐른다
     const q = new URLSearchParams(location.search);
     const [from, to, p] = ["from", "to", "p"].map((k) => Number(q.get(k)));
-    if (q.get("enter") === "shop" && q.has("to") && to !== from && p < 1 && !matchMedia("(prefers-reduced-motion: reduce)").matches) {
+    if (q.get("enter") === "shop" && q.has("to") && to !== from && p < 1 && !reduceMotion()) {
       flowSky(from, to, p, 1, SHOP_ARRIVE_MS, ++DAY.run);
+    } else if (SKY_FROM !== null && !document.body.dataset.skySteps) {
+      flowTo(SKY_FROM, h * 60 + m, 900);
     } else {
       DAY.redraw();
     }
@@ -962,10 +986,15 @@ function skyForState(state) {
   while (to - from > 720) to -= 1440;
   while (from - to > 720) to += 1440;
   DAY.redraw = () => drawDay(h * 60 + m);
-  // 페이지를 처음 열 때는 흐르지 않고 바로 그 시각에 둔다(열자마자 달이 움직이지 않게)
-  if (!DAY.stepped || to === from || matchMedia("(prefers-reduced-motion: reduce)").matches) DAY.redraw();
+  // 처음 열 때 — 이전 화면에서 시각을 넘겨받았으면 거기서 흐르고, 아니면 흐르지 않고 바로 그 시각(열자마자 달이 움직이지 않게)
+  if (!DAY.stepped) {
+    DAY.stepped = true;
+    if (SKY_FROM !== null) flowTo(SKY_FROM, h * 60 + m, 900);
+    else DAY.redraw();
+    return;
+  }
+  if (to === from || reduceMotion()) DAY.redraw();
   else flowSky(from, to, 0, 1, 900, ++DAY.run);
-  DAY.stepped = true;
 }
 
 function parseStates(raw) {
@@ -1122,7 +1151,11 @@ document.addEventListener("DOMContentLoaded", () => {
       for (const target of document.querySelectorAll(t.dataset.toggle)) target.toggleAttribute("hidden");
       t.setAttribute("aria-expanded", String(t.getAttribute("aria-expanded") !== "true"));
     }
-    if (t.dataset.go) location.href = t.dataset.go;
+    if (t.dataset.go) {
+      const u = new URL(t.dataset.go, location.href);
+      if (document.querySelector(".bd-day")) u.searchParams.set("sky", String(Math.round(DAY.mf)));
+      location.href = u.href;
+    }
   });
   // 목업은 서버로 보내지 않는다 — 제출 버튼의 data-go/data-set-state만 동작한다
   document.addEventListener("submit", (e) => e.preventDefault());

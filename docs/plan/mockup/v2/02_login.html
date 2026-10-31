@@ -38,7 +38,9 @@
       </label>
 
 
-      <button type="submit" data-go-dashboard class="!mt-6 inline-flex h-[52px] w-full items-center justify-center rounded-xl bg-brand px-5 text-lg font-bold text-white transition-colors hover:bg-brand-strong">로그인</button>
+      <button type="submit" data-when="default withdrawn error" data-go-dashboard class="!mt-6 inline-flex h-[52px] w-full items-center justify-center rounded-xl bg-brand px-5 text-lg font-bold text-white transition-colors hover:bg-brand-strong">로그인</button>
+      <!-- 가입 직후 첫 로그인은 사업자 검증으로 간다(spec 01 §3.1.4 — 검증 → 온보딩 → 홈) -->
+      <button type="submit" data-when="registered" data-go="04_verify-business.html" class="!mt-6 inline-flex h-[52px] w-full items-center justify-center rounded-xl bg-brand px-5 text-lg font-bold text-white transition-colors hover:bg-brand-strong">로그인</button>
     </form>
 
         <p class="mt-6"><span class="inline-flex items-center gap-4 text-[0.95rem] text-white">
