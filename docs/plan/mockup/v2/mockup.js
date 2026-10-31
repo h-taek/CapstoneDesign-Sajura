@@ -1002,24 +1002,35 @@ function renderChart(el) {
   // 요소 크기 그대로 그려 글자가 늘어나지 않게 한다
   const W = el.clientWidth || 600;
   const H = el.clientHeight || 240;
-  const B = el.dataset.font != null ? Number(el.dataset.font) + 10 : 26; // 가로축 글자 띠. 글자 크기를 준 그래프는 글자에 맞춰 좁게
+  // data-xlabels="off" — 가로축 글자 없이 축선만
+  const noX = el.dataset.xlabels === "off";
+  const B = noX ? 2 : el.dataset.font != null ? Number(el.dataset.font) + 10 : 26; // 가로축 글자 띠. 글자 크기를 준 그래프는 글자에 맞춰 좁게
   // data-ref="값" — 기준선(예: 평소 매출)을 점선으로 긋는다. 눈금 최대값에 함께 넣는다
   const ref = el.dataset.ref != null ? Number(el.dataset.ref) : null;
-  const max = Math.max(...values, ref ?? 0) * 1.15 || 1;
+  // data-min="auto" — 세로축을 0이 아니라 값 범위에 맞춰 시작한다(단가처럼 변화 폭이 작은 값)
+  const auto = el.dataset.min === "auto";
+  const span = Math.max(...values) - Math.min(...values) || Math.max(...values) * 0.1 || 1;
+  const lo = auto ? Math.min(...values) - span * 0.35 : 0;
+  const max = auto ? Math.max(...values) + span * 0.25 : Math.max(...values, ref ?? 0) * 1.15 || 1;
   const fmt = (v) => (isRevenue ? `${Math.round(v / 10000)}만` : String(Math.round(v)));
   // 세로축 숫자 형식은 PR(만 단위) 그대로 두고, 칸 폭만 가장 긴 숫자에 맞춘다
   const fs = Number(el.dataset.font ?? 13); // 축 글자 크기(data-font, 기본 13px)
-  const L = Math.max(el.dataset.font ? 0 : 52, fmt(max).length * 8.5 * fs / 13 + 8); // 글자 크기를 준 그래프는 숫자 길이만큼만
+  // data-ylabels="off" — 세로축을 숫자·선 모두 그리지 않는다(아래 가로 축선만 남는다)
+  const noY = el.dataset.ylabels === "off";
+  const L = noY ? 0 : Math.max(el.dataset.font ? 0 : 52, fmt(max).length * 8.5 * fs / 13 + 8); // 글자 크기를 준 그래프는 숫자 길이만큼만
   // 글자 크기를 준(좁은 카드용) 그래프는 오른쪽 여백을 줄이고, 양 끝 막대를 그래프 칸 가장자리에 붙인다(반 칸씩 비지 않게)
   const tight = el.dataset.font != null;
   const R = tight ? 2 : 8;
   const bw = Math.min(36, ((W - L - R) / values.length) * 0.6);
-  const x = tight && values.length > 1
+  // 세로축이 없는 그래프는 첫 점·끝 점을 칸 양 끝(선 두께만큼 안쪽)에 붙여 위 글자와 시작선을 맞춘다
+  const x = noY && values.length > 1
+    ? (i) => 2 + ((W - 4) / (values.length - 1)) * i
+    : tight && values.length > 1
     ? (i) => L + 6 + bw / 2 + ((W - R - bw - L - 6) / (values.length - 1)) * i
     : (i) => L + ((W - L - R) / values.length) * (i + 0.5);
-  const y = (v) => 8 + (H - B - 8) * (1 - v / max);
+  const y = (v) => 8 + (H - B - 8) * (1 - (v - lo) / (max - lo));
   // 가로 눈금선은 긋지 않는다 — 세로축 숫자와 아래 기준선(축)만 둔다
-  const ticks = [0, 0.25, 0.5, 0.75, 1].map((t) => max * t);
+  const ticks = noY ? [] : [0, 0.25, 0.5, 0.75, 1].map((t) => lo + (max - lo) * t);
   let body = ticks
     .map(
       (t) =>
@@ -1033,7 +1044,7 @@ function renderChart(el) {
   // 양 끝 막대를 붙인 그래프는 끝 글자가 그래프 밖으로 잘리지 않게 안으로 민다(한글은 글자 크기, 그 밖은 0.6배 폭으로 어림)
   const half = (l) => [...l].reduce((w, c) => w + (/[가-힣]/.test(c) ? fs : fs * 0.6), 0) / 2;
   const lx = (l, i) => (tight ? Math.min(Math.max(x(i), L + half(l)), W - half(l)) : x(i));
-  body += labels
+  if (!noX) body += labels
     .map((l, i) =>
       (fromEnd ? labels.length - 1 - i : i) % step === 0
         ? `<text x="${lx(l, i)}" y="${tight ? H - 2 : H - 6}" text-anchor="middle" font-size="${fs}" fill="${CHART.tick}">${l}</text>`
