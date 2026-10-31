@@ -946,7 +946,7 @@ function renderShell(el) {
 }
 
 // RevenueBarChart(components/dashboard/revenue-chart.tsx) 모양
-// <div data-chart="bar|area|dashed-line" data-labels="10/1,10/2,…" data-values="…" data-metric="revenue|sales_count" [data-forecast="N"(area만)] style="height:240px">
+// <div data-chart="bar|area|dashed-line" data-labels="10/1,10/2,…" data-values="…" data-metric="revenue|sales_count" [data-forecast="N"(bar·area)] [data-font="축 글자 px"] style="height:240px">
 const CHART = { brand: "#6b4eff", grid: "#eef0f3", tick: "#6b7280", line: "#e3e6eb" };
 
 function renderChart(el) {
@@ -960,32 +960,44 @@ function renderChart(el) {
   const max = Math.max(...values) * 1.15 || 1;
   const fmt = (v) => (isRevenue ? `${Math.round(v / 10000)}만` : String(Math.round(v)));
   // 세로축 숫자 형식은 PR(만 단위) 그대로 두고, 칸 폭만 가장 긴 숫자에 맞춘다
-  const L = Math.max(52, fmt(max).length * 8.5 + 10);
-  const x = (i) => L + ((W - L - 8) / values.length) * (i + 0.5);
+  const fs = Number(el.dataset.font ?? 13); // 축 글자 크기(data-font, 기본 13px)
+  const L = Math.max(el.dataset.font ? 0 : 52, fmt(max).length * 8.5 * fs / 13 + 8); // 글자 크기를 준 그래프는 숫자 길이만큼만
+  // 글자 크기를 준(좁은 카드용) 그래프는 오른쪽 여백을 줄이고, 양 끝 막대를 그래프 칸 가장자리에 붙인다(반 칸씩 비지 않게)
+  const tight = el.dataset.font != null;
+  const R = tight ? 2 : 8;
+  const bw = Math.min(36, ((W - L - R) / values.length) * 0.6);
+  const x = tight && values.length > 1
+    ? (i) => L + 6 + bw / 2 + ((W - R - bw - L - 6) / (values.length - 1)) * i
+    : (i) => L + ((W - L - R) / values.length) * (i + 0.5);
   const y = (v) => 8 + (H - B - 8) * (1 - v / max);
   const ticks = [0, 0.25, 0.5, 0.75, 1].map((t) => max * t);
   let body = ticks
     .map(
       (t) =>
-        `<line x1="${L}" x2="${W - 8}" y1="${y(t)}" y2="${y(t)}" stroke="${CHART.grid}"/><text x="${L - 6}" y="${y(t) + 4}" text-anchor="end" font-size="13" fill="${CHART.tick}">${fmt(t)}</text>`,
+        `<line x1="${L}" x2="${W - R}" y1="${y(t)}" y2="${y(t)}" stroke="${CHART.grid}"/><text x="${L - 6}" y="${y(t) + 4}" text-anchor="end" font-size="${fs}" fill="${CHART.tick}">${fmt(t)}</text>`,
     )
     .join("");
-  body += `<line x1="${L}" x2="${W - 8}" y1="${H - B}" y2="${H - B}" stroke="${CHART.line}"/>`;
-  const step = Math.ceil(labels.length / 8);
+  body += `<line x1="${L}" x2="${W - R}" y1="${H - B}" y2="${H - B}" stroke="${CHART.line}"/>`;
+  // 글자 칸이 46px(13px 글자 기준)보다 좁아지면 건너뛴다. 예측이 있는 그래프는 끝(예측)이 꼭 보이게 끝에서부터 센다
+  const step = Math.ceil(labels.length / Math.max(2, Math.min(8, Math.floor((W - L) / (46 * fs / 13)))));
+  const fromEnd = el.dataset.forecast != null;
   body += labels
     .map((l, i) =>
-      i % step === 0
-        ? `<text x="${x(i)}" y="${H - 6}" text-anchor="middle" font-size="13" fill="${CHART.tick}">${l}</text>`
+      (fromEnd ? labels.length - 1 - i : i) % step === 0
+        ? `<text x="${x(i)}" y="${H - 6}" text-anchor="middle" font-size="${fs}" fill="${CHART.tick}">${l}</text>`
         : "",
     )
     .join("");
   const pts = values.map((v, i) => `${x(i)},${y(v)}`);
   if (el.dataset.chart === "bar") {
-    const bw = Math.min(36, ((W - L - 8) / values.length) * 0.6);
+    // data-forecast="N" — 마지막 N개 막대는 예측: 옅은 보라 + 점선 테두리
+    const n = values.length - Number(el.dataset.forecast ?? 0);
     body += values
       .map(
         (v, i) =>
-          `<path d="M${x(i) - bw / 2},${H - B} V${y(v) + 6} q0,-6 6,-6 h${bw - 12} q6,0 6,6 V${H - B}Z" fill="${CHART.brand}"/>`,
+          `<path d="M${x(i) - bw / 2},${H - B} V${y(v) + 6} q0,-6 6,-6 h${bw - 12} q6,0 6,6 V${H - B}Z" ${
+            i < n ? `fill="${CHART.brand}"` : `fill="${CHART.brand}" fill-opacity=".22" stroke="${CHART.brand}" stroke-width="1.5" stroke-dasharray="4 3"`
+          }/>`,
       )
       .join("");
   } else if (el.dataset.chart === "area") {
