@@ -10,21 +10,11 @@
 <!-- 원본: Front/src/routes/login.tsx, components/ui/button.tsx·field.tsx. v2는 AuthHeroPanel(왼쪽 설명 글)을 뺐다 -->
 <body data-page="login" data-states="기본:default,가입 완료:registered,탈퇴 안내:withdrawn,로그인 실패:error">
 <div data-backdrop></div>
-<!-- v2 — 하늘과 동네가 화면 전체에 보이게 폼은 가운데 카드 한 장(안쪽은 가운데 정렬, 큰 두 줄 제목·불 켜진 가게·안내 글만 있는 입력칸·둥근 간편 로그인) -->
+<!-- v2 — 하늘과 동네가 화면 전체에 보이게 폼은 가운데 카드 한 장(안쪽은 가운데 정렬, 큰 두 줄 제목·안내 글만 있는 입력칸·둥근 간편 로그인) -->
 <main class="grid min-h-dvh place-items-center px-3 pt-16 pb-[6vh] sm:px-6 sm:pt-16 sm:pb-[8vh]">
   <section class="glass-strong w-full max-w-[440px] rounded-[1.75rem] p-6 text-center sm:p-7">
     <h1 class="text-[1.6rem] leading-snug font-extrabold tracking-tight text-ink">사장님은 퇴근하세요<br><span class="text-brand">계산은 사주라가</span></h1>
 
-    <!-- 불 켜진 가게 — 하늘 아래 동네의 그 가게 -->
-    <div class="relative mx-auto mt-3 grid size-20 place-items-center" aria-hidden="true">
-      <svg viewBox="0 0 80 72" class="relative w-14 drop-shadow-[0_6px_14px_rgb(60_30_160/0.35)]">
-        <rect x="8" y="22" width="64" height="48" rx="4" fill="#2d2170"/>
-        <path d="M4 12h72l-4 14H8z" fill="#6b4eff"/>
-        <path d="M14 12l-2 14M26 12l-1 14M38 12v14M50 12l1 14M62 12l2 14" stroke="#fff" stroke-opacity=".45" stroke-width="5"/>
-        <rect x="15" y="34" width="26" height="18" rx="2" fill="#ffd27a"/>
-        <rect x="48" y="34" width="16" height="36" rx="2" fill="#ffd27a"/>
-      </svg>
-    </div>
 
     <output data-when="registered" class="mt-4 block rounded-xl bg-emerald-50 p-3 text-sm text-emerald-700">회원가입이 완료되었습니다. 로그인해주세요.</output>
     <output data-when="withdrawn" class="mt-4 block rounded-xl bg-subtle p-3 text-sm text-ink-2">탈퇴가 접수되었습니다. 30일 뒤 매장 데이터를 포함한 모든 정보가 삭제됩니다.</output>
