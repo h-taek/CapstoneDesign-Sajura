@@ -52,7 +52,7 @@
           </div>
         </div>
       </section>
-      <!-- 앞으로 3일 예상 매출 — 줄을 누르면 아래 메뉴 카드가 그날로. 예측 근거(explanation.sentence)는 한 줄로 줄이고 전체는 마우스오버, 예상 범위(P10~P90)는 금액 밑에 늘 함께. 신뢰도 낮음은 날짜(예측)마다, 마우스오버로 사유(low_confidence_reason) -->
+      <!-- 앞으로 3일 예상 매출 — 줄을 누르면 아래 메뉴 카드가 그날로. 예측 근거는 평소 대비 증감(deviation_vs_baseline, 평소 = 직전 7영업일 평균 136만원)과 주요 요인(top_factors 이름·비율)으로 한 줄, 전체 문장(explanation.sentence)은 마우스오버, 예상 범위(P10~P90)는 금액 밑에 늘 함께. 신뢰도 낮음은 날짜(예측)마다, 마우스오버로 사유(low_confidence_reason) -->
       <section class="flex flex-col rounded-2xl px-2 pt-4 pb-2 glass-card">
         <div class="flex items-center justify-between gap-2 px-2">
           <h2 class="text-base font-bold text-ink">앞으로 3일 예상 매출</h2>
@@ -60,26 +60,23 @@
         </div>
         <ul data-when="default d2 d3" class="mt-3 flex flex-1 flex-col justify-between gap-1">
           <li><button type="button" data-day="1" data-set-state="default" class="flex w-full items-center gap-3 rounded-xl px-2.5 py-2.5 text-left hover:bg-white/40">
-            <span class="flex size-9 shrink-0 items-center justify-center rounded-lg bg-white/70 text-brand"><span data-icon="calendarDays" class="size-4.5"></span></span>
             <span class="min-w-0 flex-1">
               <span class="flex items-center gap-2 text-[0.95rem] font-semibold text-ink">오늘<span class="font-normal text-ink-3">10월 20일 (화)</span></span>
-              <span title="화요일은 최근 4주 평균보다 판매가 적은 요일이라 낮게 예측했습니다." class="mt-0.5 block truncate text-xs text-ink-3">화요일은 최근 4주 평균보다 판매가 적은 요일이라 낮게 예측했습니다.</span>
+              <span title="10월 20일(화)은 평소보다 약 21% 낮을 것으로 예상됩니다 — 주요 요인: 화요일 효과(-14%), 최근 같은 요일 평균(-6%), 기온(-2%)." class="mt-0.5 line-clamp-2 text-xs text-ink-3 lg:line-clamp-1"><span class="font-semibold text-down">평소보다 21% 낮음</span> · 화요일 효과 -14% · 최근 같은 요일 평균 -6% · 기온 -2%</span>
             </span>
             <span class="shrink-0 text-right"><span class="tabular block text-base font-bold text-ink">108만원</span><span class="tabular block text-xs text-ink-3">86만~130만원</span></span>
           </button></li>
           <li><button type="button" data-day="2" data-set-state="d2" class="flex w-full items-center gap-3 rounded-xl px-2.5 py-2.5 text-left hover:bg-white/40">
-            <span class="flex size-9 shrink-0 items-center justify-center rounded-lg bg-white/70 text-brand"><span data-icon="calendarDays" class="size-4.5"></span></span>
             <span class="min-w-0 flex-1">
               <span class="flex items-center gap-2 text-[0.95rem] font-semibold text-ink">내일<span class="font-normal text-ink-3">10월 21일 (수)</span></span>
-              <span title="최근 7일 매출 흐름이 이어져 평일 평균 수준으로 예측했습니다." class="mt-0.5 block truncate text-xs text-ink-3">최근 7일 매출 흐름이 이어져 평일 평균 수준으로 예측했습니다.</span>
+              <span title="10월 21일(수)은 평소보다 약 16% 낮을 것으로 예상됩니다 — 주요 요인: 수요일 효과(-9%), 최근 일주일 매출 수준(-5%), 일교차(-2%)." class="mt-0.5 line-clamp-2 text-xs text-ink-3 lg:line-clamp-1"><span class="font-semibold text-down">평소보다 16% 낮음</span> · 수요일 효과 -9% · 최근 일주일 매출 수준 -5% · 일교차 -2%</span>
             </span>
             <span class="shrink-0 text-right"><span class="tabular block text-base font-bold text-ink">114만원</span><span class="tabular block text-xs text-ink-3">92만~137만원</span></span>
           </button></li>
           <li><button type="button" data-day="3" data-set-state="d3" class="flex w-full items-center gap-3 rounded-xl px-2.5 py-2.5 text-left hover:bg-white/40">
-            <span class="flex size-9 shrink-0 items-center justify-center rounded-lg bg-white/70 text-brand"><span data-icon="calendarDays" class="size-4.5"></span></span>
             <span class="min-w-0 flex-1">
               <span class="flex items-center gap-2 text-[0.95rem] font-semibold text-ink">모레<span class="font-normal text-ink-3">10월 22일 (목)</span><span title="사흘 뒤 예측이라 오차가 클 수 있어요" class="shrink-0 rounded-full bg-warn-soft px-2 py-0.5 text-xs font-semibold text-warn">신뢰도 낮음</span></span>
-              <span title="비 예보가 있어 배달 주문이 늘 것으로 보았지만 비슷한 날의 이력이 적어 범위가 넓습니다." class="mt-0.5 block truncate text-xs text-ink-3">비 예보가 있어 배달 주문이 늘 것으로 보았지만 비슷한 날의 이력이 적어 범위가 넓습니다.</span>
+              <span title="10월 22일(목)은 평소보다 약 11% 낮을 것으로 예상됩니다 — 주요 요인: 목요일 효과(-7%), 학기 진행 주차(-3%), 기온(-1%)." class="mt-0.5 line-clamp-2 text-xs text-ink-3 lg:line-clamp-1"><span class="font-semibold text-down">평소보다 11% 낮음</span> · 목요일 효과 -7% · 학기 진행 주차 -3% · 기온 -1%</span>
             </span>
             <span class="shrink-0 text-right"><span class="tabular block text-base font-bold text-ink">121만원</span><span class="tabular block text-xs text-ink-3">70만~173만원</span></span>
           </button></li>
