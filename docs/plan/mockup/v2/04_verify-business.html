@@ -10,35 +10,38 @@
 <!-- 원본: Front/src/routes/verify-business.tsx, components/ui/button.tsx·field.tsx -->
 <body data-page="verify" data-states="기본:default,반려됨:rejected">
 <div data-backdrop></div>
-<main class="grid min-h-dvh place-items-center p-6">
-  <section class="w-full max-w-[560px] space-y-8 rounded-2xl p-10 glass-strong">
-    <header class="space-y-2">
-      <h1 class="text-3xl font-semibold text-ink">매장 인증을 완료해주세요</h1>
-      <p class="text-base text-ink-2">사업자등록번호와 등록증을 제출하면 검증 후 다음 단계로 진행합니다.</p>
-    </header>
-
-    <output data-when="rejected" class="block rounded-xl bg-red-50 p-3 text-sm text-red-700">반려됨: 사업자등록증 이미지가 흐려 번호를 확인할 수 없습니다 — 확인 후 다시 제출해주세요.</output>
-
-    <form class="space-y-6" novalidate>
-      <div class="flex flex-col gap-1.5">
-        <label for="business_no" class="text-[0.95rem] font-semibold text-ink-2">사업자등록번호</label>
-        <input id="business_no" inputmode="numeric" placeholder="사업자등록번호를 입력해 주세요." value="123-45-67890" class="h-[58px] w-full rounded-xl border border-line bg-subtle px-4 text-base text-ink placeholder:text-ink-4 focus:border-brand focus:outline-none focus:ring-4 focus:ring-brand-soft disabled:bg-subtle disabled:text-ink-3">
-        <p class="text-sm text-ink-3">123-45-67890</p>
-      </div>
-
-      <div class="flex flex-col gap-1.5">
-        <label for="cert" class="text-[0.95rem] font-semibold text-ink-2">사업자등록증</label>
-        <div class="flex items-center gap-3">
-          <!-- 첨부 전 문구: 사업자등록증(파일을 첨부해주세요) -->
-          <div class="flex h-[58px] flex-1 items-center rounded-xl border border-line bg-subtle px-4 text-base text-ink-3">사업자등록증_사주라화덕피자.pdf</div>
-          <button type="button" class="inline-flex h-[58px] shrink-0 items-center justify-center gap-2 rounded-xl bg-ink px-6 text-base font-medium whitespace-nowrap text-white transition-colors hover:bg-ink disabled:cursor-not-allowed disabled:bg-ink-4">파일 찾기</button>
-          <input id="cert" type="file" accept="image/*,application/pdf" class="hidden">
+<!-- v2 — 회원가입과 같은 방식. 카드 없이 밤하늘 위에 바로, 'Sajura'는 왼쪽 위, 제목은 위에서 13vh 높이에 고정, 입력칸은 어두운 반투명.
+     기본은 처음 들어온 빈 폼, 반려됨은 냈던 값이 채워진 폼에 부제 자리로 반려 사유를 보여 준다 -->
+<p class="fixed top-6 left-6 z-10 text-[1.75rem] leading-none font-extrabold tracking-tight text-[#b3a4ff] sm:top-8 sm:left-10">Sajura</p>
+<main class="min-h-dvh px-5 pt-[13vh] pb-10 text-center text-white">
+  <section class="mx-auto w-full max-w-[400px]">
+    <h1 class="text-[1.75rem] font-extrabold tracking-tight">매장 인증을 해 주세요</h1>
+    <div data-when="default">
+      <p class="mt-2 text-base text-white/75">사업자등록번호와 등록증을 올리면<br>확인 후 다음 단계로 넘어가요</p>
+      <form class="mt-8 space-y-3 text-left" novalidate>
+        <input id="business_no-a" inputmode="numeric" aria-label="사업자등록번호" placeholder="사업자등록번호 (숫자 10자리)" class="h-[52px] w-full rounded-xl border border-white/15 bg-[#0d0a26]/45 px-4 text-base text-white placeholder:text-white/70 backdrop-blur-md focus:border-[#b3a4ff] focus:ring-4 focus:ring-[#b3a4ff]/25 focus:outline-none">
+        <div class="flex items-center gap-2">
+          <div class="flex h-[52px] min-w-0 flex-1 items-center rounded-xl border border-white/15 bg-[#0d0a26]/45 px-4 text-base backdrop-blur-md"><span class="truncate text-white/70">사업자등록증 파일</span></div>
+          <button type="button" class="inline-flex h-[52px] shrink-0 items-center justify-center rounded-xl bg-white/15 px-4 text-base font-semibold text-white backdrop-blur-md transition-colors hover:bg-white/25">파일 찾기</button>
+          <input id="cert-a" type="file" accept="image/*,application/pdf" class="hidden">
         </div>
-        <p class="text-sm text-ink-3">이미지(jpg/png) 또는 PDF, 최대 10MB</p>
-      </div>
-
-      <button type="submit" data-go="05_onboarding-store.html" class="inline-flex h-[68px] w-full shrink-0 items-center justify-center gap-2 rounded-full bg-brand px-5 text-xl font-semibold whitespace-nowrap text-white transition-colors hover:bg-brand-strong disabled:cursor-not-allowed disabled:bg-ink-4">제출하기</button>
-    </form>
+        <p class="px-1 text-sm text-white/85">이미지(jpg·png) 또는 PDF, 최대 10MB</p>
+        <button type="submit" data-go="05_onboarding-store.html" class="mt-6 inline-flex h-[52px] w-full items-center justify-center rounded-xl bg-brand px-5 text-lg font-bold text-white transition-colors hover:bg-brand-strong">제출하기</button>
+      </form>
+    </div>
+    <div data-when="rejected">
+      <p class="mt-2 text-base font-semibold text-[#ffd6d6]" role="alert">반려됐어요. 등록증 이미지가 흐려<br>번호를 확인할 수 없어요. 다시 올려 주세요</p>
+      <form class="mt-8 space-y-3 text-left" novalidate>
+        <input id="business_no-b" inputmode="numeric" aria-label="사업자등록번호" placeholder="사업자등록번호 (숫자 10자리)" value="123-45-67890" class="h-[52px] w-full rounded-xl border border-white/15 bg-[#0d0a26]/45 px-4 text-base text-white placeholder:text-white/70 backdrop-blur-md focus:border-[#b3a4ff] focus:ring-4 focus:ring-[#b3a4ff]/25 focus:outline-none">
+        <div class="flex items-center gap-2">
+          <div class="flex h-[52px] min-w-0 flex-1 items-center rounded-xl border border-white/15 bg-[#0d0a26]/45 px-4 text-base backdrop-blur-md"><span class="truncate text-white">사업자등록증_사주라화덕피자.pdf</span></div>
+          <button type="button" class="inline-flex h-[52px] shrink-0 items-center justify-center rounded-xl bg-white/15 px-4 text-base font-semibold text-white backdrop-blur-md transition-colors hover:bg-white/25">파일 찾기</button>
+          <input id="cert-b" type="file" accept="image/*,application/pdf" class="hidden">
+        </div>
+        <p class="px-1 text-sm text-white/85">이미지(jpg·png) 또는 PDF, 최대 10MB</p>
+        <button type="submit" data-go="05_onboarding-store.html" class="mt-6 inline-flex h-[52px] w-full items-center justify-center rounded-xl bg-brand px-5 text-lg font-bold text-white transition-colors hover:bg-brand-strong">제출하기</button>
+      </form>
+    </div>
   </section>
 </main>
 </body>
