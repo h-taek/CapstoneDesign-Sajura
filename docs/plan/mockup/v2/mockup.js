@@ -87,6 +87,15 @@ const THEME_CSS = `
   box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.6), inset 0 -1px 0 rgb(255 255 255 / 0.15),
     0 20px 50px -20px rgb(0 0 0 / 0.35);
 }
+/* 떠 있는 판 유리 — 상단 바·왼쪽 메뉴·하단 알약·앱 탭 막대. 본문 패널(glass)과 구분되게 남보라 기운을 살짝 얹어 한 단계 어둡게 */
+@utility glass-bar {
+  background: rgb(46 32 120 / 0.1);
+  -webkit-backdrop-filter: blur(20px) saturate(160%);
+  backdrop-filter: blur(20px) saturate(160%);
+  border: 1px solid rgb(255 255 255 / 0.4);
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.5), inset 0 -1px 0 rgb(255 255 255 / 0.12),
+    0 20px 50px -20px rgb(0 0 0 / 0.35);
+}
 /* 진한 유리 — 폼·대화 상자처럼 배경 위에 바로 놓이면서 글을 오래 읽는 판 */
 @utility glass-strong {
   background: rgb(255 255 255 / 0.72);
@@ -857,7 +866,7 @@ function renderShell(el) {
   el.outerHTML = `
   ${backdropHtml(currentBackdrop())}
 
-  <header class="en en-top glass pt-safe fixed inset-x-3 top-3 z-30 flex h-14 items-center gap-2 rounded-full pr-2 pl-2 lg:top-4 lg:right-4 lg:left-12 lg:gap-3 lg:pl-5">
+  <header class="en en-top glass-bar pt-safe fixed inset-x-3 top-3 z-30 flex h-14 items-center gap-2 rounded-full pr-2 pl-2 lg:top-4 lg:right-4 lg:left-12 lg:gap-3 lg:pl-5">
     ${back ? `<a href="${back}" aria-label="뒤로 가기" class="flex size-10 items-center justify-center rounded-full text-ink hover:bg-white/40 lg:hidden">${icon("chevronLeft", "size-6")}</a>` : ""}
     <a href="${href("home")}" class="hidden items-center gap-2 lg:flex" aria-label="사주라 홈">
       <span class="flex size-8 items-center justify-center rounded-lg bg-ink text-sm font-black text-white">S</span>
@@ -906,7 +915,7 @@ function renderShell(el) {
   </div>
 
   <!-- 메뉴 폭(58px)의 절반이 패널 왼쪽 가장자리(3rem)에 걸친다. 윗변은 제목 아래 첫 카드 줄 윗선(패널 위 5.25rem + 안쪽 여백 1.75rem + 제목 줄 68px) -->
-  <nav aria-label="주 메뉴" style="--d:0.1s" class="en en-left glass fixed top-[calc(7rem+68px)] left-[calc(3rem-29px)] z-30 hidden flex-col items-center gap-2 rounded-full p-1.5 lg:flex">${sideNav}</nav>
+  <nav aria-label="주 메뉴" style="--d:0.1s" class="en en-left glass-bar fixed top-[calc(7rem+68px)] left-[calc(3rem-29px)] z-30 hidden flex-col items-center gap-2 rounded-full p-1.5 lg:flex">${sideNav}</nav>
 
   <main style="--d:0.15s" class="en glass fixed inset-x-3 top-[4.75rem] bottom-[5.75rem] z-20 overflow-y-auto rounded-[1.75rem] px-4 py-5 lg:top-[5.25rem] lg:right-4 lg:bottom-12 lg:left-12 lg:pr-8 lg:pl-[calc(29px+2rem)] lg:py-7">
     ${content}
@@ -914,7 +923,7 @@ function renderShell(el) {
 
   <!-- 웹 하단 알약 — 시작 화면의 시계 알약을 이어 '사주라의 하루' 시계 + 밤사이 계산 상태(GET /api/pipeline/status) + 매출 올리기.
        높이(54px)의 절반이 패널 아래 가장자리(3rem)에 걸치고, 가로는 패널 가운데 -->
-  <div style="--d:0.25s" class="en glass fixed bottom-[calc(3rem-27px)] left-[calc(50%+1rem)] z-30 hidden -translate-x-1/2 items-center gap-3 rounded-full p-1.5 lg:flex">
+  <div style="--d:0.25s" class="en glass-bar fixed bottom-[calc(3rem-27px)] left-[calc(50%+1rem)] z-30 hidden -translate-x-1/2 items-center gap-3 rounded-full p-1.5 lg:flex">
     <a href="${href("home")}" aria-label="홈" class="flex size-10 items-center justify-center rounded-full bg-brand text-sm font-black text-white">사</a>
     <p class="flex items-baseline gap-2 text-sm font-semibold whitespace-nowrap text-ink-2">사주라의 하루<b data-sky-clock class="text-lg font-bold tracking-wide text-ink tabular">--:--</b></p>
     <span class="h-5 w-px bg-ink/15" aria-hidden="true"></span>
@@ -922,7 +931,7 @@ function renderShell(el) {
     <a href="${href("upload")}" class="inline-flex h-10 items-center gap-1.5 rounded-full bg-ink px-4 text-sm font-semibold whitespace-nowrap text-white">${icon("upload", "size-4")} 매출 올리기</a>
   </div>
 
-  <nav aria-label="하단 메뉴" style="--d:0.25s" class="en glass pb-safe fixed inset-x-3 bottom-3 z-30 rounded-full p-1.5 lg:hidden">
+  <nav aria-label="하단 메뉴" style="--d:0.25s" class="en glass-bar pb-safe fixed inset-x-3 bottom-3 z-30 rounded-full p-1.5 lg:hidden">
     <ul class="grid grid-cols-5 gap-1">${tabs}</ul>
   </nav>`;
 }
