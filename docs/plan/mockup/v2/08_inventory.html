@@ -18,10 +18,6 @@
     .inv-wrap:has(> aside:not([hidden])) > .inv-list { grid-column: span 2 / span 2; }
     .inv-wrap:has(> aside:not([hidden])) .inv-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   }
-  /* 1024~1279px는 판이 화면 오른쪽 절반이라, 판이 열리면 쪽 이동을 카드 두 열 아래 가운데로 옮긴다(판 아래 끝이 쪽 이동 아래 끝까지 내려와 가리므로) */
-  @media (min-width: 64rem) and (max-width: 79.99rem) {
-    .inv-wrap:has(> aside:not([hidden])) ~ nav { margin-right: calc(50% + 0.25rem); }
-  }
   @media (min-width: 80rem) {
     .inv-wrap:has(> aside:not([hidden])) > .inv-list { grid-column: span 3 / span 3; }
     .inv-wrap:has(> aside:not([hidden])) .inv-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
@@ -76,7 +72,7 @@
     <button type="button" data-set-state="form" class="inline-flex h-11 items-center gap-1.5 rounded-full bg-brand px-7 text-[0.95rem] font-semibold text-white hover:bg-brand-strong"><span data-icon="plus" class="size-5"></span>재료 추가</button>
   </div>
 
-  <!-- 웹은 카드 격자 5열. 상세 판이 열리면 카드는 앞 3열로 다시 줄 서고(크기 그대로), 판은 4·5열 두 칸 자리에서 스크롤을 따라오고, 끝까지 내리면 판 아래 끝이 쪽 이동 아래 끝에 닿는다(바깥 칸을 쪽 이동 높이 3.75rem만큼 더 길게, 넘치면 판 안 스크롤).
+  <!-- 웹은 카드 격자 5열. 상세 판이 열리면 카드는 앞 3열로 다시 줄 서고(크기 그대로), 판은 4·5열 두 칸 자리에서 화면 높이만큼(격자가 더 짧으면 격자 높이) 스크롤을 따라오고, 끝까지 내리면 판 아래 끝이 격자 아래 끝에 닿는다(넘치면 판 안 스크롤).
        앱은 상세 판이 화면 전체를 덮고, 상단 바·하단 탭은 그 위에 남는다 -->
   <div class="inv-wrap lg:grid lg:grid-cols-4 lg:gap-x-2 xl:grid-cols-5">
     <div class="inv-list min-w-0 lg:col-span-4 xl:col-span-5">
@@ -222,8 +218,8 @@
     </div>
 
     <!-- 재료 추가 — 저장을 누른 뒤 구매 금액 검증 오류가 난 모습 -->
-    <aside data-when="form" aria-label="새 재료" class="fixed inset-0 z-50 overflow-y-auto lg:relative lg:inset-auto lg:z-auto lg:col-span-2 lg:flex lg:h-0 lg:min-h-[calc(100%+3.75rem)] lg:flex-col lg:overflow-visible">
-      <div class="min-h-full px-4 pt-[5.25rem] pb-28 glass-card lg:sticky lg:top-24 lg:max-h-[calc(100dvh-8rem)] lg:min-h-0 lg:overflow-y-auto lg:rounded-2xl lg:p-5">
+    <aside data-when="form" aria-label="새 재료" class="fixed inset-0 z-50 overflow-y-auto lg:relative lg:inset-auto lg:z-auto lg:col-span-2 lg:flex lg:h-0 lg:min-h-full lg:flex-col lg:overflow-visible">
+      <div class="min-h-full px-4 pt-[5.25rem] pb-28 glass-card lg:sticky lg:top-24 lg:h-[calc(100dvh-8rem)] lg:min-h-0 lg:overflow-y-auto lg:rounded-2xl lg:p-5">
         <div class="flex items-center gap-2">
           <button type="button" data-set-state="default" aria-label="목록으로" class="flex size-10 items-center justify-center rounded-full text-ink-2 hover:bg-white/60 lg:hidden"><span data-icon="chevronLeft" class="size-6"></span></button>
           <h2 class="min-w-0 flex-1 text-xl font-bold text-ink">새 재료</h2>
@@ -248,8 +244,8 @@
     </aside>
 
     <!-- 상세 — 루꼴라(needs_check: 기록상 재고 없이 판매 차감). 입고 대기 1건, 로트 1개(잔여 0) -->
-    <aside data-when="lots addlot edit" aria-label="루꼴라 상세" class="fixed inset-0 z-50 overflow-y-auto lg:relative lg:inset-auto lg:z-auto lg:col-span-2 lg:flex lg:h-0 lg:min-h-[calc(100%+3.75rem)] lg:flex-col lg:overflow-visible">
-      <div class="min-h-full px-4 pt-[5.25rem] pb-28 glass-card lg:sticky lg:top-24 lg:max-h-[calc(100dvh-8rem)] lg:min-h-0 lg:overflow-y-auto lg:rounded-2xl lg:p-5">
+    <aside data-when="lots addlot edit" aria-label="루꼴라 상세" class="fixed inset-0 z-50 overflow-y-auto lg:relative lg:inset-auto lg:z-auto lg:col-span-2 lg:flex lg:h-0 lg:min-h-full lg:flex-col lg:overflow-visible">
+      <div class="min-h-full px-4 pt-[5.25rem] pb-28 glass-card lg:sticky lg:top-24 lg:h-[calc(100dvh-8rem)] lg:min-h-0 lg:overflow-y-auto lg:rounded-2xl lg:p-5">
         <div class="flex items-center gap-2">
           <button type="button" data-set-state="default" aria-label="목록으로" class="flex size-10 items-center justify-center rounded-full text-ink-2 hover:bg-white/60 lg:hidden"><span data-icon="chevronLeft" class="size-6"></span></button>
           <h2 class="min-w-0 flex-1 truncate text-xl font-bold text-ink">루꼴라</h2>
@@ -363,8 +359,8 @@
     </aside>
 
     <!-- 상세 — 모짜렐라 치즈(소비기한 D-3). 입고 대기 1건, 로트 2개. dispose는 첫 로트 폐기 폼을 연 모습 -->
-    <aside data-when="mozz dispose" aria-label="모짜렐라 치즈 상세" class="fixed inset-0 z-50 overflow-y-auto lg:relative lg:inset-auto lg:z-auto lg:col-span-2 lg:flex lg:h-0 lg:min-h-[calc(100%+3.75rem)] lg:flex-col lg:overflow-visible">
-      <div class="min-h-full px-4 pt-[5.25rem] pb-28 glass-card lg:sticky lg:top-24 lg:max-h-[calc(100dvh-8rem)] lg:min-h-0 lg:overflow-y-auto lg:rounded-2xl lg:p-5">
+    <aside data-when="mozz dispose" aria-label="모짜렐라 치즈 상세" class="fixed inset-0 z-50 overflow-y-auto lg:relative lg:inset-auto lg:z-auto lg:col-span-2 lg:flex lg:h-0 lg:min-h-full lg:flex-col lg:overflow-visible">
+      <div class="min-h-full px-4 pt-[5.25rem] pb-28 glass-card lg:sticky lg:top-24 lg:h-[calc(100dvh-8rem)] lg:min-h-0 lg:overflow-y-auto lg:rounded-2xl lg:p-5">
         <div class="flex items-center gap-2">
           <button type="button" data-set-state="default" aria-label="목록으로" class="flex size-10 items-center justify-center rounded-full text-ink-2 hover:bg-white/60 lg:hidden"><span data-icon="chevronLeft" class="size-6"></span></button>
           <h2 class="min-w-0 flex-1 truncate text-xl font-bold text-ink">모짜렐라 치즈</h2>
@@ -466,7 +462,7 @@
       </div>
     </aside>
   </div>
-  <!-- 쪽 이동 — 화면 가운데. 1024~1279px에서 판이 열리면 카드 두 열 아래 가운데(위 style) -->
+  <!-- 쪽 이동 — 상세 판이 열려도 화면 가운데 -->
   <nav aria-label="쪽 이동" data-when="default form mozz dispose" class="mt-5 flex items-center justify-center gap-1">
     <button type="button" disabled aria-label="이전 쪽" class="flex size-10 items-center justify-center rounded-full text-ink-4"><span data-icon="chevronLeft" class="size-5"></span></button>
     <button type="button" aria-current="page" class="size-10 rounded-full bg-brand-soft text-sm font-bold text-brand">1</button>
