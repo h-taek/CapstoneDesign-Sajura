@@ -341,8 +341,8 @@ body[data-mood="hero"] .bd-veil { opacity: 0; }
 .entering .bd-day .d-veil { animation: dveil 1s ease both; }
 @keyframes dveil { from { opacity: 0; } }
 
-/* 가게로 들어가기(시작 화면 → 가입·로그인) — 그 순간의 창문 색 빛이 창문에서 원형으로 퍼져 화면을 채우고,
-   다음 화면은 같은 색 빛이 걷히며 나타난다 */
+/* 가게로 들어가기(시작 화면 → 가입·로그인) — 그 순간의 창문 색 빛이 창문에서 두 겹 원으로 퍼진다.
+   바깥 원(옅게)이 앞서고 안쪽 원이 뒤따른다. 다음 화면은 두 원이 겹친 밝기의 같은 색 빛이 걷히며 나타난다 */
 .shop-light { position: fixed; inset: 0; z-index: 70; pointer-events: none; }
 .shop-light.out { animation: shop-out 0.9s ease 0.1s both; }
 @keyframes shop-out { to { opacity: 0; } }
@@ -697,7 +697,14 @@ function startDay() {
   }
 }
 
-// 가게로 들어가기 — 창문 가운데서 창문 색 빛이 원형으로 퍼져 화면을 채운 뒤 넘어간다.
+const SHOP_RINGS = [
+  [0.3, 0],
+  [0.6, 0.12],
+];
+// 두 원이 겹친 밝기 — 다음 화면의 빛이 이 밝기에서 걷힌다
+const SHOP_GLOW_OPACITY = 1 - SHOP_RINGS.reduce((a, [o]) => a * (1 - o), 1);
+
+// 가게로 들어가기 — 창문 가운데서 창문 색 빛이 두 겹 원으로 퍼진 뒤 넘어간다.
 // 다음 화면은 ?enter=shop&glow=색으로 같은 색 빛이 걷히며 나타난다
 function goShop(url) {
   const u = new URL(url, location.href);
@@ -717,22 +724,30 @@ function goShop(url) {
   const cx = r.left + r.width / 2;
   const cy = r.top + r.height / 2;
   const far = Math.hypot(Math.max(cx, innerWidth - cx), Math.max(cy, innerHeight - cy));
-  const light = document.createElement("div");
-  light.className = "shop-light";
-  light.style.background = `#${glow}`;
-  light.style.clipPath = `circle(${Math.hypot(r.width, r.height) / 2}px at ${cx}px ${cy}px)`;
-  document.body.appendChild(light);
+  // [불투명도, 늦게 출발하는 초] — 바깥 원, 안쪽 원 순
+  const rings = SHOP_RINGS.map(([opacity, delay]) => {
+    const el = document.createElement("div");
+    el.className = "shop-light";
+    el.style.background = `#${glow}`;
+    el.style.opacity = opacity;
+    el.style.clipPath = `circle(${Math.hypot(r.width, r.height) / 2}px at ${cx}px ${cy}px)`;
+    el.dataset.delay = delay;
+    document.body.appendChild(el);
+    return el;
+  });
   document.body.classList.add("going-shop");
   requestAnimationFrame(() =>
     requestAnimationFrame(() => {
-      light.style.transition = "clip-path 0.8s cubic-bezier(0.7, 0, 0.2, 1)";
-      light.style.clipPath = `circle(${far}px at ${cx}px ${cy}px)`;
+      for (const el of rings) {
+        el.style.transition = `clip-path 0.8s cubic-bezier(0.7, 0, 0.2, 1) ${el.dataset.delay}s`;
+        el.style.clipPath = `circle(${far}px at ${cx}px ${cy}px)`;
+      }
       town.style.transform = "scale(4)";
     }),
   );
   setTimeout(() => {
     location.href = u.href;
-  }, 850);
+  }, 950);
 }
 
 function renderShell(el) {
@@ -978,6 +993,7 @@ document.addEventListener("DOMContentLoaded", () => {
       light.className = "shop-light out";
       const glow = params.get("glow");
       light.style.background = /^[0-9a-f]{6}$/.test(glow ?? "") ? `#${glow}` : `${dayRgb(DAY.win)}`;
+      light.style.opacity = SHOP_GLOW_OPACITY;
       document.body.appendChild(light);
       setTimeout(() => light.remove(), 1100);
     } else {
