@@ -493,6 +493,7 @@ function goDashboard() {
     return;
   }
   // 아침이 밝기 — 지금 시각(다음에 오는 그 시각)까지 1.8초 동안 시계를 돌린다
+  const run = ++DAY.run;
   const from = DAY.mf;
   const now = new Date();
   let to = now.getHours() * 60 + now.getMinutes();
@@ -502,6 +503,7 @@ function goDashboard() {
   const dur = 1800;
   let t0 = 0;
   const step = (ts) => {
+    if (run !== DAY.run) return;
     t0 ||= ts;
     const p = Math.min(1, (ts - t0) / dur);
     const e = p < 0.5 ? 2 * p * p : 1 - (-2 * p + 2) ** 2 / 2;
@@ -509,9 +511,10 @@ function goDashboard() {
     clock.textContent = dayClock(DAY.mf);
     clock.style.color = getComputedStyle(document.documentElement).getPropertyValue("--sky-fg");
     if (p < 1) requestAnimationFrame(step);
-    else setTimeout(() => (location.href = u.href), 300);
+    else setTimeout(() => run === DAY.run && (location.href = u.href), 300);
   };
   setTimeout(() => {
+    if (run !== DAY.run) return;
     document.body.appendChild(clock);
     requestAnimationFrame(step);
   }, 350);
@@ -571,7 +574,8 @@ const dayClock = (mf) => {
   const m = Math.round(mf) % 1440;
   return `${String(Math.floor(m / 60)).padStart(2, "0")}:${String(m % 60).padStart(2, "0")}`;
 };
-const DAY = { mf: 1290, win: [255, 210, 122] };
+// run — 나가는 연출 번호. 뒤로 가기로 돌아오면 올려서, 멈춰 있던 연출의 반복·타이머가 이어서 돌지 않게 한다
+const DAY = { mf: 1290, win: [255, 210, 122], redraw: () => {}, run: 0 };
 
 function dayAt(mf) {
   const d = ((mf % 1440) + 1440) % 1440;
@@ -681,18 +685,21 @@ function startDay() {
     addEventListener("scroll", () => requestAnimationFrame(fromScroll), { passive: true });
     addEventListener("resize", fromScroll);
     addEventListener("load", fromScroll);
+    DAY.redraw = fromScroll;
     fromScroll();
   } else if (mode === "now") {
     const fromNow = () => {
       const d = new Date();
       drawDay(d.getHours() * 60 + d.getMinutes() + d.getSeconds() / 60);
     };
+    DAY.redraw = fromNow;
     fromNow();
     setInterval(fromNow, 30000);
     addEventListener("resize", fromNow);
   } else {
     const [h, m] = mode.split(":").map(Number);
-    drawDay(h * 60 + m);
+    DAY.redraw = () => drawDay(h * 60 + m);
+    DAY.redraw();
     addEventListener("resize", () => drawDay(DAY.mf));
   }
 }
@@ -703,6 +710,18 @@ const SHOP_RINGS = [
 ];
 // 두 원이 겹친 밝기 — 다음 화면의 빛이 이 밝기에서 걷힌다
 const SHOP_GLOW_OPACITY = 1 - SHOP_RINGS.reduce((a, [o]) => a * (1 - o), 1);
+
+// 뒤로 가기로 돌아오면 브라우저가 떠나던 순간의 모습(빛이 덮은 화면, 돌던 시계)을 그대로 보여 준다.
+// 그때는 나가던 연출을 걷어 내고 하늘을 이 화면의 시각으로 다시 그린다
+addEventListener("pageshow", (e) => {
+  if (!e.persisted) return;
+  DAY.run++;
+  for (const el of document.querySelectorAll(".shop-light, .morning-clock")) el.remove();
+  document.body.classList.remove("going-shop", "leaving");
+  const town = document.querySelector(".bd-day .d-town");
+  if (town) town.style.transform = "";
+  DAY.redraw();
+});
 
 // 가게로 들어가기 — 창문 가운데서 창문 색 빛이 두 겹 원으로 퍼진 뒤 넘어간다.
 // 다음 화면은 ?enter=shop&glow=색으로 같은 색 빛이 걷히며 나타난다
@@ -736,6 +755,7 @@ function goShop(url) {
     return el;
   });
   document.body.classList.add("going-shop");
+  const run = ++DAY.run;
   requestAnimationFrame(() =>
     requestAnimationFrame(() => {
       for (const el of rings) {
@@ -746,7 +766,7 @@ function goShop(url) {
     }),
   );
   setTimeout(() => {
-    location.href = u.href;
+    if (run === DAY.run) location.href = u.href;
   }, 950);
 }
 
