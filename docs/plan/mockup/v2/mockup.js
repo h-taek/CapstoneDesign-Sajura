@@ -1063,7 +1063,7 @@ function renderChart(el) {
     body += values
       .map(
         (v, i) =>
-          `<path d="M${x(i) - bw / 2},${H - B} V${y(v) + 6} q0,-6 6,-6 h${bw - 12} q6,0 6,6 V${H - B}Z" ${
+          `<path d="M${x(i) - bw / 2},${H - B} V${y(v)} h${bw} V${H - B}Z" ${
             i < n ? `fill="${CHART.brand}"` : `fill="${CHART.brand}" fill-opacity=".22" stroke="${CHART.brand}" stroke-width="1.5" stroke-dasharray="4 3"`
           }/>`,
       )
@@ -1071,7 +1071,7 @@ function renderChart(el) {
   } else if (el.dataset.chart === "area") {
     const gid = `g${Math.random().toString(36).slice(2, 7)}`;
     body += `<defs><linearGradient id="${gid}" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="${CHART.brand}" stop-opacity=".22"/><stop offset="1" stop-color="${CHART.brand}" stop-opacity="0"/></linearGradient></defs>`;
-    // data-forecast="N" — 마지막 N개 값은 예측. 실제까지는 실선·면적, 예측은 마지막 실제 값에서 점선으로 잇고 속 빈 점을 찍는다
+    // data-forecast="N" — 마지막 N개 값은 예측. 실제까지는 실선·면적, 예측은 마지막 실제 값에서 점선으로 잇는다(선에 점 표시는 두지 않는다)
     const n = values.length - Number(el.dataset.forecast ?? 0);
     const real = pts.slice(0, n);
     // data-smooth — 꺾은선 대신 점을 지나는 매끈한 곡선(Catmull-Rom → 3차 베지어)
@@ -1089,11 +1089,9 @@ function renderChart(el) {
     body += `<path d="${line(real)}" fill="none" stroke="${CHART.brand}" stroke-width="2.5"/>`;
     if (n < values.length) {
       body += `<path d="${line(pts.slice(n - 1))}" fill="none" stroke="${CHART.brand}" stroke-width="2.5" stroke-dasharray="6 4"/>`;
-      body += values.slice(n).map((v, i) => `<circle cx="${x(n + i)}" cy="${y(v)}" r="4.5" fill="#fff" stroke="${CHART.brand}" stroke-width="2.5"/>`).join("");
     }
   } else {
     body += `<polyline points="${pts.join(" ")}" fill="none" stroke="${CHART.brand}" stroke-width="2.5" stroke-dasharray="6 4"/>`;
-    body += values.map((v, i) => `<circle cx="${x(i)}" cy="${y(v)}" r="4" fill="${CHART.brand}"/>`).join("");
   }
   if (predicted.length) {
     let run = [];
@@ -1103,7 +1101,6 @@ function renderChart(el) {
     };
     predicted.forEach((v, i) => (v == null ? flush() : run.push(`${x(i)},${y(v)}`)));
     flush();
-    body += predicted.map((v, i) => (v == null ? "" : `<circle cx="${x(i)}" cy="${y(v)}" r="2.5" fill="#fff" stroke="${CHART.tick}" stroke-width="1.5"/>`)).join("");
   }
   el.innerHTML = `<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" class="h-full w-full">${body}</svg>`;
 }
