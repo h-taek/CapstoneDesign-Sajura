@@ -10,18 +10,20 @@
 <!-- 원본: Front/src/routes/login.tsx, components/ui/button.tsx·field.tsx. v2는 AuthHeroPanel(왼쪽 설명 글)을 뺐다 -->
 <body data-page="login" data-states="기본:default,가입 완료:registered,탈퇴 안내:withdrawn,로그인 실패:error">
 <div data-backdrop></div>
-<!-- v2 — 회원가입과 같은 방식. 카드 없이 밤하늘 위에 바로, 'Sajura'는 왼쪽 위, 제목은 위에서 13vh 높이에 고정.
+<!-- v2 — 회원가입과 같은 방식. 카드 없이 밤하늘 위에 바로, 'Sajura'는 제목 바로 위 가운데(사용자 지시).
      하늘 위라 브랜드 보라 대신 밝은 보라(#b3a4ff)를 강조색으로 쓴다 -->
-<p class="fixed top-6 left-6 z-10 text-[1.75rem] leading-none font-extrabold tracking-tight text-[#b3a4ff] sm:top-8 sm:left-10">Sajura</p>
-<main class="min-h-dvh px-5 pt-[13vh] pb-10 text-center text-white">
+<main class="min-h-dvh px-5 pt-[8vh] pb-10 text-center text-white">
   <section class="mx-auto w-full max-w-[400px]">
-    <h1 class="text-[1.75rem] font-extrabold tracking-tight">어서 오세요, 사장님</h1>
-    <p class="mt-2 text-base text-white/75">로그인하고 오늘 밤부터 사주라에게 맡겨 보세요.</p>
+    <p class="text-[2rem] leading-none font-extrabold tracking-tight text-[#b3a4ff]">Sajura</p>
+    <h1 class="mt-4 text-[1.75rem] font-extrabold tracking-tight">어서 오세요, 사장님</h1>
+    <!-- 알림·오류는 부제 자리에 대신 보여 높이를 그대로 둔다(아래쪽 글이 분홍 하늘로 밀리지 않게) -->
+    <p data-when="default" class="mt-2 text-base text-white/75">로그인하고 오늘 밤부터 사주라에게 맡겨 보세요.</p>
+    <p data-when="registered" class="mt-2 text-base font-semibold text-[#c8f7dc]" role="status">가입이 완료되었어요. 로그인해 주세요.</p>
+    <p data-when="withdrawn" class="mt-2 text-base font-semibold text-white" role="status">탈퇴가 접수되었어요. 30일 뒤 삭제돼요.</p>
+    <p data-when="error" class="mt-2 text-base font-semibold text-[#ffd6d6]" role="alert">이메일 또는 비밀번호가 올바르지 않아요.</p>
 
-    <output data-when="registered" class="mt-6 block rounded-xl bg-emerald-400/15 px-4 py-3 text-sm text-emerald-100">회원가입이 완료되었습니다. 로그인해주세요.</output>
-    <output data-when="withdrawn" class="mt-6 block rounded-xl bg-[#0d0a26]/45 px-4 py-3 text-sm text-white/90">탈퇴가 접수되었습니다. 30일 뒤 매장 데이터를 포함한 모든 정보가 삭제됩니다.</output>
 
-    <form class="mt-8 space-y-3 text-left" novalidate>
+    <form class="mt-7 space-y-3 text-left" novalidate>
       <input id="email" type="email" autocomplete="email" aria-label="이메일" placeholder="이메일" value="owner@sajura.kr" class="h-[52px] w-full rounded-xl border border-white/15 bg-[#0d0a26]/45 px-4 text-base text-white placeholder:text-white/70 backdrop-blur-md focus:border-[#b3a4ff] focus:ring-4 focus:ring-[#b3a4ff]/25 focus:outline-none">
       <div class="relative">
         <input id="password" type="password" autocomplete="current-password" aria-label="비밀번호" placeholder="비밀번호" value="password1234" class="h-[52px] w-full rounded-xl border border-white/15 bg-[#0d0a26]/45 px-4 text-base text-white placeholder:text-white/70 backdrop-blur-md focus:border-[#b3a4ff] focus:ring-4 focus:ring-[#b3a4ff]/25 focus:outline-none pr-12">
@@ -35,26 +37,24 @@
         다음에도 기억하기
       </label>
 
-      <p data-when="error" class="px-1 text-sm text-[#ffd6d6]" role="alert">이메일 또는 비밀번호가 올바르지 않습니다.</p>
 
       <button type="submit" data-go-dashboard class="!mt-6 inline-flex h-[52px] w-full items-center justify-center rounded-xl bg-brand px-5 text-lg font-bold text-white transition-colors hover:bg-brand-strong">로그인</button>
     </form>
 
-    <!-- 아래쪽 분홍 하늘 위에서도 읽히게 작은 글 줄은 입력칸과 같은 어두운 반투명 바탕에 둔다 -->
-    <p class="mt-6"><span class="inline-flex items-center gap-4 rounded-full bg-[#0d0a26]/45 backdrop-blur-md px-5 py-2 text-[0.95rem] text-white">
+        <p class="mt-6"><span class="inline-flex items-center gap-4 text-[0.95rem] text-white">
       <a href="03_register.html" class="font-bold hover:underline">회원가입</a>
-      <span class="h-3.5 w-px bg-white/30" aria-hidden="true"></span>
+      <span class="h-3.5 w-px bg-white/40" aria-hidden="true"></span>
       <span class="cursor-default">비밀번호 재설정</span>
     </span></p>
 
-    <div class="mt-8 flex items-center gap-3">
-      <span class="h-px flex-1 bg-white/20"></span>
-      <span class="rounded-full bg-[#0d0a26]/45 backdrop-blur-md px-3 py-1 text-sm text-white">간편 로그인</span>
-      <span class="h-px flex-1 bg-white/20"></span>
+    <div class="mt-7 flex items-center gap-3">
+      <span class="h-px flex-1 bg-white/25"></span>
+      <span class="text-sm text-white">간편 로그인</span>
+      <span class="h-px flex-1 bg-white/25"></span>
     </div>
 
     <!-- 간편 로그인 — 둥근 아이콘 버튼. 카카오 색은 카카오 로그인 디자인 규정을 따른다 -->
-    <div class="mt-5 flex justify-center gap-4">
+    <div class="mt-4 flex justify-center gap-4">
       <button type="button" data-go-dashboard data-provider="kakao" aria-label="카카오 로그인" class="flex size-[52px] items-center justify-center rounded-full bg-[#ffdf20] transition-colors hover:bg-[#f5d500]">
         <img src="../../../../Front/src/assets/login/kakao-icon.svg" alt="" class="h-[22px] w-[24px]">
       </button>
