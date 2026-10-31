@@ -2,19 +2,28 @@
 // 아이콘, 차트, 화면 상태 전환, 목업 도구 막대, 앱 폭(390px) 보기.
 // 리디자인 시안이다. 색은 아직 정하지 않았다 — 배경은 후보 세 가지와 유리 효과 판단용 흑백 시험 배경을 도구 막대에서 고른다.
 
-// file이 없는 화면은 아직 v2에 없다 — 메뉴에는 보이지만 누르면 이동하지 않는다
+// 진입 순서. 각 화면은 v1 목업(Front/src/routes/*.tsx 재현)의 구성·문구·상태를 그대로 두고 모양만 바꾼다
 const PAGES = {
-  frame: { file: "02_frame.html", route: "—", name: "공용 틀" },
-  intro: { file: "01_intro.html", route: "/intro", name: "시작 화면" },
-  home: { route: "/", name: "홈" },
-  forecast: { route: "/forecast", name: "매출예측" },
-  inventory: { route: "/inventory", name: "재고관리" },
-  orders: { route: "/orders", name: "발주추천" },
-  menus: { route: "/menus", name: "메뉴 관리" },
-  upload: { route: "/sales/upload", name: "매출 CSV 업로드" },
-  settings: { route: "/settings", name: "설정(앱: 더보기)" },
-  account: { route: "/settings/account", name: "계정 정보" },
-  login: { route: "/login", name: "로그인" },
+  intro: { file: "01_intro.html", route: "/intro", name: "서비스 소개" },
+  login: { file: "02_login.html", route: "/login", name: "로그인" },
+  register: { file: "03_register.html", route: "/register", name: "회원가입" },
+  verify: { file: "04_verify-business.html", route: "/verify-business", name: "사업자 검증" },
+  ob1: { file: "05_onboarding-store.html", route: "/onboarding/1", name: "온보딩 1 매장 정보" },
+  ob2: { file: "06_onboarding-pos.html", route: "/onboarding/2", name: "온보딩 2 POS 연동" },
+  ob3: { file: "07_onboarding-menus.html", route: "/onboarding/3", name: "온보딩 3 메뉴 등록" },
+  ob4: { file: "08_onboarding-confirm.html", route: "/onboarding/4", name: "온보딩 4 확인" },
+  home: { file: "09_home.html", route: "/", name: "홈" },
+  forecast: { file: "10_forecast.html", route: "/forecast", name: "매출예측" },
+  inventory: { file: "11_inventory.html", route: "/inventory", name: "재고관리" },
+  orders: { file: "12_orders.html", route: "/orders", name: "발주추천" },
+  menus: { file: "13_menus.html", route: "/menus", name: "메뉴 관리" },
+  upload: { file: "14_sales-upload.html", route: "/sales/upload", name: "매출 CSV 업로드" },
+  settings: { file: "15_settings.html", route: "/settings", name: "설정(앱: 더보기)" },
+  pos: { file: "16_settings-pos.html", route: "/settings/pos", name: "POS 연동 설정" },
+  notifications: { file: "17_settings-notifications.html", route: "/settings/notifications", name: "알림 설정" },
+  account: { file: "18_settings-account.html", route: "/settings/account", name: "계정 정보" },
+  appinfo: { file: "19_settings-app-info.html", route: "/settings/app-info", name: "앱 정보" },
+  admin: { file: "20_admin-verifications.html", route: "/admin/verifications", name: "관리자 심사" },
 };
 
 const href = (key) => PAGES[key]?.file ?? "#";
@@ -34,10 +43,11 @@ const THEME_CSS = `
   --color-ink-2: #374151;
   --color-ink-3: #6b7280;
   --color-ink-4: #9ca3af;
-  --color-line: #e3e6eb;
-  --color-line-soft: #eef0f3;
-  --color-canvas: #f4f5f8;
-  --color-subtle: #f6f7f9;
+  /* 유리 위에 놓이므로 선·옅은 바탕은 반투명. canvas는 배경이 비치도록 투명 */
+  --color-line: rgb(72 60 140 / 0.16);
+  --color-line-soft: rgb(72 60 140 / 0.09);
+  --color-canvas: transparent;
+  --color-subtle: rgb(255 255 255 / 0.5);
   --color-accent: #ffe066;
   --color-up: #e5484d;
   --color-down: #2f6fed;
@@ -71,6 +81,14 @@ const THEME_CSS = `
   border: 1px solid rgb(255 255 255 / 0.45);
   box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.6), inset 0 -1px 0 rgb(255 255 255 / 0.15),
     0 20px 50px -20px rgb(0 0 0 / 0.35);
+}
+/* 진한 유리 — 폼·대화 상자처럼 배경 위에 바로 놓이면서 글을 오래 읽는 판 */
+@utility glass-strong {
+  background: rgb(255 255 255 / 0.72);
+  -webkit-backdrop-filter: blur(24px) saturate(160%);
+  backdrop-filter: blur(24px) saturate(160%);
+  border: 1px solid rgb(255 255 255 / 0.6);
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.8), 0 24px 60px -24px rgb(40 20 120 / 0.35);
 }
 /* 패널 안쪽 카드 — 이미 흐려진 패널 위라 흐림은 다시 걸지 않고 흰색만 더 올린다 */
 @utility glass-card {
@@ -257,8 +275,8 @@ body[data-mood="hero"] .bd-veil { opacity: 0; }
   animation: orb-float 6s ease-in-out infinite alternate; }
 @keyframes orb-float { to { transform: translateY(-14px); } }
 
-/* 나가기(시작 화면 → 대시보드) */
-.leaving .intro-copy { animation: ex-down 0.4s ease-in both; }
+/* 나가기(로그인 → 홈) */
+.leaving .intro-copy, .leaving main { animation: ex-down 0.4s ease-in both; }
 .leaving .orb { animation: orb-out 0.9s cubic-bezier(0.6, 0, 0.2, 1) both; }
 .leaving .bd-veil { animation: veil-in 0.9s ease both; }
 @keyframes ex-down { to { opacity: 0; transform: translateY(16px); } }
@@ -416,9 +434,9 @@ function syncBackdropPhase() {
   }
 }
 
-// 시작 화면 → 대시보드. 나가는 연출이 끝나면 대시보드로 가고, 대시보드는 ?enter=1이면 들어오는 연출을 한다
+// 로그인 → 홈. 나가는 연출이 끝나면 홈으로 가고, 홈은 ?enter=1이면 들어오는 연출을 한다
 function goDashboard() {
-  const u = new URL(PAGES.frame.file, location.href);
+  const u = new URL(PAGES.home.file, location.href);
   const bg = new URLSearchParams(location.search).get("bg");
   if (bg) u.searchParams.set("bg", bg);
   u.searchParams.set("enter", "1");
@@ -470,8 +488,9 @@ const TEST_BACKDROP = `
 function renderShell(el) {
   const active = el.dataset.shell;
   const appTabKey = active === "menus" ? "settings" : active;
-  const title = el.dataset.title ?? APP_TITLE[active] ?? "";
-  const back = el.dataset.back ?? "";
+  const title = el.dataset.title ?? (active === "home" ? MOCK_USER.store : APP_TITLE[active]);
+  const subtitle = active === "home" && !el.dataset.title ? `${MOCK_USER.name}님, 안녕하세요` : "";
+  const back = el.dataset.back ?? (active === "menus" ? PAGES.settings.file : "");
   const content = el.innerHTML;
 
   // 왼쪽 알약 메뉴 — 아이콘만 두고 이름은 마우스를 올리면 오른쪽에 뜬다
@@ -497,7 +516,10 @@ function renderShell(el) {
       <span class="flex size-8 items-center justify-center rounded-lg bg-ink text-sm font-black text-white">S</span>
       <span class="text-lg font-extrabold tracking-tight text-ink">사주라</span>
     </a>
-    <p class="min-w-0 flex-1 truncate pl-2 text-[1.05rem] font-bold text-ink lg:hidden">${title}</p>
+    <div class="min-w-0 flex-1 pl-2 leading-tight lg:hidden">
+      ${subtitle ? `<p class="text-xs text-ink-3">${subtitle}</p>` : ""}
+      <p class="truncate text-[1.05rem] font-bold text-ink">${title}</p>
+    </div>
 
     <!-- 입력창 자리 — 연결할 기능 미정 -->
     <div class="mx-auto hidden h-10 w-full max-w-[460px] items-center gap-2 rounded-full border border-dashed border-ink/25 bg-white/30 px-4 text-sm text-ink-3 lg:flex">
@@ -521,7 +543,6 @@ function renderShell(el) {
   <nav aria-label="주 메뉴" style="--d:0.1s" class="en en-left glass fixed top-[calc(7rem+68px)] left-[calc(3rem-29px)] z-30 hidden flex-col items-center gap-2 rounded-full p-1.5 lg:flex">${sideNav}</nav>
 
   <main style="--d:0.15s" class="en glass fixed inset-x-3 top-[4.75rem] bottom-[5.75rem] z-20 overflow-y-auto rounded-[1.75rem] px-4 py-5 lg:top-[5.25rem] lg:right-4 lg:bottom-12 lg:left-12 lg:pr-8 lg:pl-[calc(29px+2rem)] lg:py-7">
-    ${title ? `<h1 class="mb-6 hidden text-[1.75rem] font-bold tracking-tight text-ink lg:block">${title}</h1>` : ""}
     ${content}
   </main>
 

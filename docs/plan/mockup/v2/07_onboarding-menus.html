@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>온보딩 3 메뉴 등록 — 사주라 목업 v2</title>
+<script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4.0.17"></script>
+<script src="mockup.js" defer></script>
+</head>
+<!-- 원본: Front/src/routes/onboarding/layout.tsx, onboarding/step-menus.tsx, components/ui/button.tsx·field.tsx -->
+<body data-page="ob3">
+<div data-backdrop></div>
+<main class="min-h-dvh bg-canvas px-4 py-6 sm:p-6">
+  <div class="glass mx-auto w-full max-w-2xl space-y-6 rounded-[1.75rem] p-5 sm:p-8 lg:my-6">
+    <header class="space-y-1">
+      <p class="text-sm font-semibold text-brand">3 / 4 단계</p>
+      <h1 class="text-[1.75rem] font-bold tracking-tight text-ink">매장 온보딩</h1>
+      <p class="text-base text-ink-3">기본 정보를 4단계로 입력하면 메인 화면으로 이동합니다.</p>
+    </header>
+    <!-- 단계 표시 — 지난 단계는 체크, 지금 단계는 보라. 좁은 화면(sm 미만)은 지금 단계 이름만 보인다 -->
+    <ol class="grid grid-cols-4 gap-2" aria-label="온보딩 단계">
+      <li class="flex flex-col items-center gap-2 text-center">
+        <span class="h-1.5 w-full rounded-full bg-brand"></span>
+        <span class="flex items-center gap-1.5"><span class="flex size-6 shrink-0 items-center justify-center rounded-full text-xs font-bold bg-brand-soft text-brand"><span data-icon="check" class="size-3.5"></span></span><a href="05_onboarding-store.html" class="text-sm font-semibold whitespace-nowrap text-ink-2 hidden sm:inline">매장 정보</a></span>
+      </li>
+      <li class="flex flex-col items-center gap-2 text-center">
+        <span class="h-1.5 w-full rounded-full bg-brand"></span>
+        <span class="flex items-center gap-1.5"><span class="flex size-6 shrink-0 items-center justify-center rounded-full text-xs font-bold bg-brand-soft text-brand"><span data-icon="check" class="size-3.5"></span></span><a href="06_onboarding-pos.html" class="text-sm font-semibold whitespace-nowrap text-ink-2 hidden sm:inline">POS 연동</a></span>
+      </li>
+      <li aria-current="step" class="flex flex-col items-center gap-2 text-center">
+        <span class="h-1.5 w-full rounded-full bg-brand"></span>
+        <span class="flex items-center gap-1.5"><span class="flex size-6 shrink-0 items-center justify-center rounded-full text-xs font-bold bg-brand text-white">3</span><a href="07_onboarding-menus.html" aria-current="page" class="text-sm font-semibold whitespace-nowrap text-ink">메뉴 등록</a></span>
+      </li>
+      <li class="flex flex-col items-center gap-2 text-center">
+        <span class="h-1.5 w-full rounded-full bg-line"></span>
+        <span class="flex items-center gap-1.5"><span class="flex size-6 shrink-0 items-center justify-center rounded-full text-xs font-bold bg-line-soft text-ink-4">4</span><a class="text-sm font-semibold whitespace-nowrap text-ink-4 hidden sm:inline">확인</a></span>
+      </li>
+    </ol>
+    <section class="rounded-2xl p-5 sm:p-8 glass-card">
+      <form class="space-y-6" novalidate>
+        <div class="space-y-1">
+          <h2 class="text-2xl font-semibold text-ink">메뉴 등록</h2>
+          <p class="text-base text-ink-2">판매하는 메뉴를 등록해주세요.</p>
+          <p class="text-sm text-ink-3">재고 차감은 레시피를 등록한 뒤 레시피 관리에서 켤 수 있습니다.</p>
+        </div>
+
+        <div class="space-y-3">
+          <!-- 메뉴 행 1 -->
+          <div class="grid grid-cols-12 items-start gap-3 rounded-xl p-4 glass-card" data-testid="menu-row-0">
+            <div class="col-span-4"><div class="flex flex-col gap-1.5"><label for="menus.0.name" class="text-[0.95rem] font-semibold text-ink-2">메뉴명</label><input id="menus.0.name" value="마르게리타 화덕피자" class="h-11 w-full rounded-xl border border-line bg-subtle px-4 text-base text-ink placeholder:text-ink-4 focus:border-brand focus:outline-none focus:ring-4 focus:ring-brand-soft disabled:bg-subtle disabled:text-ink-3"></div></div>
+            <div class="col-span-3"><div class="flex flex-col gap-1.5"><label for="menus.0.category" class="text-[0.95rem] font-semibold text-ink-2">카테고리</label><input id="menus.0.category" value="피자" class="h-11 w-full rounded-xl border border-line bg-subtle px-4 text-base text-ink placeholder:text-ink-4 focus:border-brand focus:outline-none focus:ring-4 focus:ring-brand-soft disabled:bg-subtle disabled:text-ink-3"></div></div>
+            <div class="col-span-3"><div class="flex flex-col gap-1.5"><label for="menus.0.price" class="text-[0.95rem] font-semibold text-ink-2">단가(원)</label><input id="menus.0.price" inputmode="numeric" type="number" min="0" value="16000" class="h-11 w-full rounded-xl border border-line bg-subtle px-4 text-base text-ink placeholder:text-ink-4 focus:border-brand focus:outline-none focus:ring-4 focus:ring-brand-soft disabled:bg-subtle disabled:text-ink-3"></div></div>
+            <div class="col-span-2 flex justify-end pt-7"><button type="button" aria-label="메뉴 삭제" class="inline-flex h-11 shrink-0 items-center justify-center gap-2 rounded-full bg-transparent px-5 text-[0.95rem] font-semibold whitespace-nowrap text-ink-3 transition-colors hover:bg-red-50 hover:text-red-600 disabled:cursor-not-allowed disabled:opacity-50"><span data-icon="trash2" class="size-4"></span></button></div>
+            <div class="col-span-12 flex gap-4 text-sm text-ink-2">
+              <label class="flex items-center gap-2"><input type="checkbox" checked class="accent-brand"> 판매 활성</label>
+            </div>
+          </div>
+          <!-- 메뉴 행 2 -->
+          <div class="grid grid-cols-12 items-start gap-3 rounded-xl p-4 glass-card" data-testid="menu-row-1">
+            <div class="col-span-4"><div class="flex flex-col gap-1.5"><label for="menus.1.name" class="text-[0.95rem] font-semibold text-ink-2">메뉴명</label><input id="menus.1.name" value="페페로니 듬뿍 화덕피자" class="h-11 w-full rounded-xl border border-line bg-subtle px-4 text-base text-ink placeholder:text-ink-4 focus:border-brand focus:outline-none focus:ring-4 focus:ring-brand-soft disabled:bg-subtle disabled:text-ink-3"></div></div>
+            <div class="col-span-3"><div class="flex flex-col gap-1.5"><label for="menus.1.category" class="text-[0.95rem] font-semibold text-ink-2">카테고리</label><input id="menus.1.category" value="피자" class="h-11 w-full rounded-xl border border-line bg-subtle px-4 text-base text-ink placeholder:text-ink-4 focus:border-brand focus:outline-none focus:ring-4 focus:ring-brand-soft disabled:bg-subtle disabled:text-ink-3"></div></div>
+            <div class="col-span-3"><div class="flex flex-col gap-1.5"><label for="menus.1.price" class="text-[0.95rem] font-semibold text-ink-2">단가(원)</label><input id="menus.1.price" inputmode="numeric" type="number" min="0" value="18000" class="h-11 w-full rounded-xl border border-line bg-subtle px-4 text-base text-ink placeholder:text-ink-4 focus:border-brand focus:outline-none focus:ring-4 focus:ring-brand-soft disabled:bg-subtle disabled:text-ink-3"></div></div>
+            <div class="col-span-2 flex justify-end pt-7"><button type="button" aria-label="메뉴 삭제" class="inline-flex h-11 shrink-0 items-center justify-center gap-2 rounded-full bg-transparent px-5 text-[0.95rem] font-semibold whitespace-nowrap text-ink-3 transition-colors hover:bg-red-50 hover:text-red-600 disabled:cursor-not-allowed disabled:opacity-50"><span data-icon="trash2" class="size-4"></span></button></div>
+            <div class="col-span-12 flex gap-4 text-sm text-ink-2">
+              <label class="flex items-center gap-2"><input type="checkbox" checked class="accent-brand"> 판매 활성</label>
+            </div>
+          </div>
+          <!-- 메뉴 행 3 -->
+          <div class="grid grid-cols-12 items-start gap-3 rounded-xl p-4 glass-card" data-testid="menu-row-2">
+            <div class="col-span-4"><div class="flex flex-col gap-1.5"><label for="menus.2.name" class="text-[0.95rem] font-semibold text-ink-2">메뉴명</label><input id="menus.2.name" value="콜라" class="h-11 w-full rounded-xl border border-line bg-subtle px-4 text-base text-ink placeholder:text-ink-4 focus:border-brand focus:outline-none focus:ring-4 focus:ring-brand-soft disabled:bg-subtle disabled:text-ink-3"></div></div>
+            <div class="col-span-3"><div class="flex flex-col gap-1.5"><label for="menus.2.category" class="text-[0.95rem] font-semibold text-ink-2">카테고리</label><input id="menus.2.category" value="음료" class="h-11 w-full rounded-xl border border-line bg-subtle px-4 text-base text-ink placeholder:text-ink-4 focus:border-brand focus:outline-none focus:ring-4 focus:ring-brand-soft disabled:bg-subtle disabled:text-ink-3"></div></div>
+            <div class="col-span-3"><div class="flex flex-col gap-1.5"><label for="menus.2.price" class="text-[0.95rem] font-semibold text-ink-2">단가(원)</label><input id="menus.2.price" inputmode="numeric" type="number" min="0" value="2500" class="h-11 w-full rounded-xl border border-line bg-subtle px-4 text-base text-ink placeholder:text-ink-4 focus:border-brand focus:outline-none focus:ring-4 focus:ring-brand-soft disabled:bg-subtle disabled:text-ink-3"></div></div>
+            <div class="col-span-2 flex justify-end pt-7"><button type="button" aria-label="메뉴 삭제" class="inline-flex h-11 shrink-0 items-center justify-center gap-2 rounded-full bg-transparent px-5 text-[0.95rem] font-semibold whitespace-nowrap text-ink-3 transition-colors hover:bg-red-50 hover:text-red-600 disabled:cursor-not-allowed disabled:opacity-50"><span data-icon="trash2" class="size-4"></span></button></div>
+            <div class="col-span-12 flex gap-4 text-sm text-ink-2">
+              <label class="flex items-center gap-2"><input type="checkbox" checked class="accent-brand"> 판매 활성</label>
+            </div>
+          </div>
+        </div>
+
+        <button type="button" data-testid="menu-add" class="inline-flex h-10 shrink-0 items-center justify-center gap-2 rounded-full px-4 text-sm font-semibold whitespace-nowrap text-ink-2 transition-colors hover:bg-subtle disabled:cursor-not-allowed disabled:bg-ink-4 glass-card"><span data-icon="plus" class="size-4"></span> 메뉴 추가</button>
+
+        <div class="flex justify-between pt-2">
+          <button type="button" data-go="06_onboarding-pos.html" class="inline-flex h-11 shrink-0 items-center justify-center gap-2 rounded-full px-6 text-[0.95rem] font-semibold whitespace-nowrap text-ink-2 transition-colors hover:bg-subtle disabled:cursor-not-allowed disabled:bg-ink-4 glass-card">이전</button>
+          <button type="submit" data-go="08_onboarding-confirm.html" data-testid="menus-next" class="inline-flex h-11 shrink-0 items-center justify-center gap-2 rounded-full bg-brand px-8 text-[0.95rem] font-semibold whitespace-nowrap text-white transition-colors hover:bg-brand-strong disabled:cursor-not-allowed disabled:bg-ink-4">다음</button>
+        </div>
+      </form>
+    </section>
+  </div>
+</main>
+</body>
+</html>

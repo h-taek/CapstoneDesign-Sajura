@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>관리자 심사 — 사주라 목업 v2</title>
+<script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4.0.17"></script>
+<script src="mockup.js" defer></script>
+</head>
+<!-- 원본: Front/src/routes/admin/verifications.tsx, components/ui/button.tsx, components/ui/field.tsx (셸 없음, 네비 링크 없이 직접 진입) -->
+<body data-page="admin" data-states="목록:default,등록증 보기:cert,반려 입력:reject,대기 없음:empty">
+<div data-backdrop></div>
+<main class="glass mx-3 my-6 max-w-3xl rounded-[1.75rem] p-6 sm:mx-auto">
+  <h1 class="mb-4 text-2xl font-semibold text-ink">사업자 검증 심사</h1>
+
+  <p data-when="empty" class="text-sm text-ink-3">심사 대기 중인 항목이 없습니다.</p>
+
+  <ul data-when="default cert reject" class="space-y-4">
+    <li class="rounded-lg p-4 glass-card">
+      <div class="flex items-center justify-between">
+        <div>
+          <p class="font-medium text-ink">owner@sajura.kr</p>
+          <p class="text-sm text-ink-3">사업자번호: 123-45-67890</p>
+        </div>
+        <div class="flex gap-2">
+          <button type="button" data-set-state="cert" class="inline-flex h-9 shrink-0 items-center justify-center gap-2 rounded-lg px-3.5 text-sm font-semibold whitespace-nowrap text-ink-2 transition-colors hover:border-ink-4 hover:bg-subtle disabled:cursor-not-allowed disabled:opacity-60 glass-card">등록증 보기</button>
+          <button type="button" data-set-state="empty" class="inline-flex h-9 shrink-0 items-center justify-center gap-2 rounded-lg bg-brand px-3.5 text-sm font-semibold whitespace-nowrap text-white transition-colors hover:bg-brand-strong disabled:cursor-not-allowed disabled:bg-ink-4">승인</button>
+          <button type="button" data-set-state="reject" class="inline-flex h-9 shrink-0 items-center justify-center gap-2 rounded-lg px-3.5 text-sm font-semibold whitespace-nowrap text-ink-2 transition-colors hover:border-ink-4 hover:bg-subtle disabled:cursor-not-allowed disabled:opacity-60 glass-card">반려</button>
+        </div>
+      </div>
+
+      <!-- 등록증 이미지 자리 — 실제 화면은 img(max-h-64) 또는 PDF iframe(h-96) -->
+      <div data-when="cert" class="mt-3 grid h-64 w-full place-items-center rounded border border-line bg-subtle text-sm text-ink-4">사업자등록증 미리보기 (이미지 또는 PDF)</div>
+
+      <div data-when="reject" class="mt-3 flex gap-2">
+        <input id="reject-reason-1" placeholder="반려 사유" value="사업자등록증 이미지가 흐려 번호를 확인할 수 없습니다" class="h-12 w-full rounded-xl border border-line bg-white/70 px-4 text-base text-ink placeholder:text-ink-4 focus:border-brand focus:ring-4 focus:ring-brand-soft focus:outline-none disabled:bg-subtle disabled:text-ink-3">
+        <button type="button" data-set-state="empty" class="inline-flex h-9 shrink-0 items-center justify-center gap-2 rounded-lg bg-brand px-3.5 text-sm font-semibold whitespace-nowrap text-white transition-colors hover:bg-brand-strong disabled:cursor-not-allowed disabled:bg-ink-4">반려 확정</button>
+      </div>
+    </li>
+  </ul>
+</main>
+</body>
+</html>
