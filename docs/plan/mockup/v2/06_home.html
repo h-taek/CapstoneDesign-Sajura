@@ -7,13 +7,14 @@
 <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4.0.17"></script>
 <script src="mockup.js" defer></script>
 </head>
-<!-- v2 홈 — 배치 잡는 중. 웹은 위 3열·아래 1:2, 카드는 내용 높이대로 두고 넘치면 패널째 스크롤한다. 앱은 세로로 쌓는다 -->
+<!-- v2 홈 — 웹은 위 3열(대표 카드 · 숫자 2×2 · 7일 매출 그래프), 아래 1:2(지난달 대비 진행·입고 대기 | 최근 발주). 카드는 내용 높이대로, 넘치면 패널째 스크롤. 앱은 세로로 쌓는다.
+     보는 날은 2026-10-20(화) 아침, 마지막 판매 10-19. 예상 매출·월 매출은 07, 발주는 09, 재고는 08 목업 값과 같다 -->
 <body data-page="home" data-states="기본:default">
 <div data-shell="home">
-  <!-- 머리글 — 왼쪽 위, 제목·부제 두 줄(다른 대시보드 화면과 같은 높이) -->
+  <!-- 머리글 — 아침 인사 + 반영 기준(GET /api/sales/summary last_sale_at). 두 줄(다른 대시보드 화면과 같은 높이) -->
   <header class="mb-3 space-y-1">
-    <h1 class="text-xl font-bold tracking-tight text-ink lg:text-[1.75rem]">Test</h1>
-    <p class="text-[0.95rem] text-ink-3">Test</p>
+    <h1 class="text-xl font-bold tracking-tight text-ink lg:text-[1.75rem]">좋은 아침이에요, 김사주 사장님</h1>
+    <p class="text-[0.95rem] text-ink-3">10월 19일 판매까지 반영했어요</p>
   </header>
   <div class="grid gap-4">
     <div class="grid grid-cols-1 gap-4 lg:min-h-[22rem] lg:grid-cols-3">
@@ -48,14 +49,14 @@
           </ol>
         </div>
       </section>
-      <!-- 숫자 카드 2×2 — 입고 대기(포인트 색 유리, 확정 발주 중 입고 처리 안 된 것, 누르면 재고) · 내일 예상 매출(GET /api/forecast D+2, 07과 같은 값) · 어제 매출·건수 · 이번 달 누적(GET /api/sales/summary).
-           '오늘 매출'은 마지막 판매일(어제) 값이라 '어제 매출'로 쓴다. 확인할 재료는 상단 바 알림에서 본다 -->
+      <!-- 숫자 카드 2×2 — 발주할 재료(포인트 색 유리, 누르면 발주) · 내일 예상 매출(GET /api/forecast D+2, 07과 같은 값) · 어제 매출·건수 · 최근 7일 매출(GET /api/sales/trends, 그래프와 같은 7일).
+           '오늘 매출'은 마지막 판매일(어제) 값이라 '어제 매출'로 쓴다. 확인할 재료는 상단 바 알림, 입고 대기는 아래 줄에서 본다 -->
       <section class="grid min-h-40 grid-cols-2 grid-rows-2 gap-2 rounded-2xl p-2 glass-card">
-        <a href="08_inventory.html" class="group flex flex-col justify-between rounded-xl p-3.5 text-white glass-brand">
-          <p class="flex items-center justify-between text-sm font-medium text-white/85">입고 대기<span data-icon="arrowRight" class="size-4 transition-transform group-hover:translate-x-0.5"></span></p>
+        <a href="09_orders.html" class="group flex flex-col justify-between rounded-xl p-3.5 text-white glass-brand">
+          <p class="flex items-center justify-between text-sm font-medium text-white/85">발주할 재료<span data-icon="arrowRight" class="size-4 transition-transform group-hover:translate-x-0.5"></span></p>
           <div>
-            <p class="tabular text-[1.35rem] leading-none font-bold tracking-tight lg:text-[1.65rem]">3건</p>
-            <p class="mt-1.5 truncate text-sm text-white/80">모짜렐라 치즈 외 2개</p>
+            <p class="tabular text-[1.35rem] leading-none font-bold tracking-tight lg:text-[1.65rem]">4개</p>
+            <p class="mt-1.5 truncate text-sm text-white/80">모짜렐라 치즈 외 3개</p>
           </div>
         </a>
         <div class="flex flex-col justify-between rounded-xl p-3.5 glass-card">
@@ -73,25 +74,90 @@
           </div>
         </div>
         <div class="flex flex-col justify-between rounded-xl p-3.5 glass-card">
-          <p class="text-sm font-medium text-ink-3">이번 달 누적</p>
+          <p class="text-sm font-medium text-ink-3">최근 7일 매출</p>
           <div>
-            <p class="tabular text-[1.35rem] leading-none font-bold tracking-tight lg:text-[1.65rem] text-ink">3,074만원</p>
-            <p class="mt-1.5 truncate text-sm text-ink-3">판매 1,642건</p>
+            <p class="tabular text-[1.35rem] leading-none font-bold tracking-tight lg:text-[1.65rem] text-ink">953만원</p>
+            <p class="mt-1.5 truncate text-sm text-ink-3">하루 평균 136만원</p>
           </div>
         </div>
       </section>
-      <!-- 그래프 — 최근 7일 매출 막대 + 오늘 예상(옅은 점선 막대). 그래프 뒤에 안쪽 판을 한 겹 더 깐다. 제목은 임시 문구 -->
+      <!-- 그래프 — 최근 7일 매출 막대 + 오늘 예상(옅은 점선 막대). 안쪽 판 머리에 범례 -->
       <section class="flex min-h-40 flex-col rounded-2xl px-4 pt-4 pb-2 glass-card">
-        <h2 class="text-base font-bold text-ink">Test</h2>
-        <div class="-mx-2 mt-3 flex h-48 flex-col rounded-xl px-1 pt-3 pb-1.5 glass-card lg:h-auto lg:min-h-0 lg:flex-1">
+        <h2 class="text-base font-bold text-ink">최근 7일 매출</h2>
+        <div class="-mx-2 mt-3 flex h-56 flex-col rounded-xl px-1 pt-2.5 pb-1.5 glass-card lg:h-auto lg:min-h-0 lg:flex-1">
+          <div class="flex items-center justify-between px-2 pb-1 text-xs">
+            <p class="font-semibold text-ink-2">일별 매출</p>
+            <p class="flex items-center gap-3 text-ink-3"><span class="inline-flex items-center gap-1"><span class="size-2.5 rounded-sm bg-brand"></span>실제</span><span class="inline-flex items-center gap-1"><span class="size-2.5 rounded-sm border border-dashed border-brand bg-brand/20"></span>예상</span></p>
+          </div>
           <div data-chart="bar" data-forecast="1" data-font="11" data-labels="10/13,10/14,10/15,10/16,10/17,10/18,10/19,오늘" data-values="1120000,980000,1240000,1310000,1680000,1920000,1284000,1080000" data-metric="revenue" class="min-h-0 w-full flex-1"></div>
         </div>
       </section>
     </div>
     <!-- 아래 줄 1:2 — 위 줄 3칸 격자에 세로선을 맞춘다 -->
     <div class="grid grid-cols-1 gap-4 lg:grid-cols-3">
-      <section class="min-h-96 rounded-2xl glass-card"></section>
-      <section class="min-h-96 rounded-2xl glass-card lg:col-span-2"></section>
+      <!-- 왼쪽 두 칸 — 지난달 매출까지 진행(이번 달 누적 / 지난달 합계, 07과 같은 값) · 입고 대기(확정 발주 중 입고 처리 안 된 재료, 누르면 재고에서 입고 처리) -->
+      <div class="grid gap-4">
+        <section class="rounded-2xl p-4 glass-card">
+          <h2 class="text-base font-bold text-ink">지난달 매출까지</h2>
+          <div class="mt-3 flex items-baseline justify-between gap-2">
+            <p class="tabular text-[1.35rem] leading-none font-bold tracking-tight text-ink">2,292만원</p>
+            <p class="tabular text-sm font-semibold text-brand">72%</p>
+          </div>
+          <div class="mt-2.5 h-2 rounded-full bg-brand/15"><div class="h-full rounded-full bg-brand" style="width:72%"></div></div>
+          <p class="tabular mt-2 flex justify-between text-sm text-ink-3"><span>판매 1,042건</span><span>지난달 3,190만원</span></p>
+        </section>
+        <section class="rounded-2xl px-4 pt-4 pb-2 glass-card">
+          <div class="flex items-center justify-between gap-2">
+            <h2 class="text-base font-bold text-ink">입고 대기<span class="ml-1.5 text-brand">3</span></h2>
+            <a href="08_inventory.html" class="inline-flex items-center gap-0.5 text-sm font-semibold text-brand hover:text-brand-strong">입고 처리<span data-icon="chevronRight" class="size-4"></span></a>
+          </div>
+          <ul class="-mx-2 mt-3 grid grid-cols-3 gap-2 rounded-xl p-2 glass-card">
+            <li class="rounded-xl bg-white/70 p-2.5"><p class="truncate text-sm font-semibold text-ink">모짜렐라 치즈</p><p class="tabular mt-1 text-sm text-ink-3">3,000g</p></li>
+            <li class="rounded-xl bg-white/70 p-2.5"><p class="truncate text-sm font-semibold text-ink">피자 도우</p><p class="tabular mt-1 text-sm text-ink-3">50개</p></li>
+            <li class="rounded-xl bg-white/70 p-2.5"><p class="truncate text-sm font-semibold text-ink">루꼴라</p><p class="tabular mt-1 text-sm text-ink-3">1,000g</p></li>
+          </ul>
+        </section>
+      </div>
+      <!-- 최근 발주 — GET /api/orders 최신순(09 발주 확정 이력과 같은 값, 더 이전 두 건 추가). 상태는 입고 대기·입고 완료. 앱은 날짜·상태 + 품목·금액 한 줄 -->
+      <section class="rounded-2xl px-4 pt-4 pb-2 glass-card lg:col-span-2">
+        <div class="flex items-center justify-between gap-2">
+          <h2 class="text-base font-bold text-ink">최근 발주</h2>
+          <a href="09_orders.html" class="inline-flex items-center gap-0.5 text-sm font-semibold text-brand hover:text-brand-strong">전체 보기<span data-icon="chevronRight" class="size-4"></span></a>
+        </div>
+        <div class="-mx-2 mt-3 overflow-hidden rounded-xl glass-card">
+          <p class="hidden grid-cols-[1.2fr_0.6fr_1fr_0.9fr] gap-x-3 border-b border-white/60 px-3 py-2 text-xs font-semibold text-ink-3 lg:grid"><span>확정일</span><span>품목</span><span>예상 금액</span><span>상태</span></p>
+          <ul class="divide-y divide-white/60">
+            <li><a href="09_orders.html" class="grid grid-cols-[1fr_auto] items-center gap-x-3 gap-y-0.5 px-3 py-3 hover:bg-white/50 lg:grid-cols-[1.2fr_0.6fr_1fr_0.9fr]">
+              <span class="text-[0.95rem] font-semibold text-ink">10월 16일 (금)</span>
+              <span class="hidden text-[0.95rem] text-ink-2 lg:block">3개</span>
+              <span class="tabular hidden text-[0.95rem] text-ink-2 lg:block">103,000원</span>
+              <span class="inline-flex items-center gap-1.5 text-sm font-semibold text-warn"><span class="size-1.5 rounded-full bg-warn"></span>입고 대기</span>
+              <span class="tabular text-sm text-ink-3 lg:hidden">품목 3개 · 103,000원</span>
+            </a></li>
+            <li><a href="09_orders.html" class="grid grid-cols-[1fr_auto] items-center gap-x-3 gap-y-0.5 px-3 py-3 hover:bg-white/50 lg:grid-cols-[1.2fr_0.6fr_1fr_0.9fr]">
+              <span class="text-[0.95rem] font-semibold text-ink">10월 9일 (금)</span>
+              <span class="hidden text-[0.95rem] text-ink-2 lg:block">2개</span>
+              <span class="tabular hidden text-[0.95rem] text-ink-2 lg:block">37,000원</span>
+              <span class="inline-flex items-center gap-1.5 text-sm font-semibold text-ok"><span class="size-1.5 rounded-full bg-ok"></span>입고 완료</span>
+              <span class="tabular text-sm text-ink-3 lg:hidden">품목 2개 · 37,000원</span>
+            </a></li>
+            <li><a href="09_orders.html" class="grid grid-cols-[1fr_auto] items-center gap-x-3 gap-y-0.5 px-3 py-3 hover:bg-white/50 lg:grid-cols-[1.2fr_0.6fr_1fr_0.9fr]">
+              <span class="text-[0.95rem] font-semibold text-ink">10월 2일 (금)</span>
+              <span class="hidden text-[0.95rem] text-ink-2 lg:block">3개</span>
+              <span class="tabular hidden text-[0.95rem] text-ink-2 lg:block">64,500원</span>
+              <span class="inline-flex items-center gap-1.5 text-sm font-semibold text-ok"><span class="size-1.5 rounded-full bg-ok"></span>입고 완료</span>
+              <span class="tabular text-sm text-ink-3 lg:hidden">품목 3개 · 64,500원</span>
+            </a></li>
+            <li><a href="09_orders.html" class="grid grid-cols-[1fr_auto] items-center gap-x-3 gap-y-0.5 px-3 py-3 hover:bg-white/50 lg:grid-cols-[1.2fr_0.6fr_1fr_0.9fr]">
+              <span class="text-[0.95rem] font-semibold text-ink">9월 25일 (금)</span>
+              <span class="hidden text-[0.95rem] text-ink-2 lg:block">4개</span>
+              <span class="tabular hidden text-[0.95rem] text-ink-2 lg:block">92,000원</span>
+              <span class="inline-flex items-center gap-1.5 text-sm font-semibold text-ok"><span class="size-1.5 rounded-full bg-ok"></span>입고 완료</span>
+              <span class="tabular text-sm text-ink-3 lg:hidden">품목 4개 · 92,000원</span>
+            </a></li>
+          </ul>
+        </div>
+      </section>
     </div>
   </div>
 </div>
