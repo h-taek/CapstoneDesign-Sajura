@@ -9,13 +9,13 @@
 </head>
 <!-- 원본: Front/src/routes/orders.tsx(OrderItemRow·QuantityStepper·ApproveBar·ApprovedNotice·OrderHistoryRow), components/ui/card.tsx, components/ui/button.tsx, lib/format.ts -->
 <body data-page="orders" data-states="추천 있음:default,확정 중:pending,확정 완료:approved,계산 중:loading,이력 부족:short,AI 서버 오류:aierror,추천 없음:empty">
-<div data-shell="orders">
+<div data-shell="orders" data-layout="open">
   <div class="space-y-6 lg:space-y-8">
     <!-- PageHeader — 앱은 상단바가 제목을 보여 주므로 설명만 남는다 -->
     <header class="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
       <div class="space-y-1">
         <h1 class="hidden text-[1.75rem] font-bold tracking-tight text-ink lg:block">발주 추천</h1>
-        <p class="text-[0.95rem] text-ink-3">AI가 계산한 추천량을 확인하고, 필요한 것만 골라 확정하세요.</p>
+        <p class="text-[0.95rem] text-ink-2">AI가 계산한 추천량을 확인하고, 필요한 것만 골라 확정하세요.</p>
       </div>
     </header>
 
@@ -28,7 +28,7 @@
             <!-- is_low_confidence일 때만 -->
             <span data-when="default pending approved" class="rounded-full bg-warn-soft px-2.5 py-0.5 text-sm font-semibold text-warn">신뢰도 낮음</span>
           </h2>
-          <p class="text-sm text-ink-3">앞으로 팔릴 양 × 레시피 × 현재 재고·입고 기간을 계산한 추천량이에요.</p>
+          <p class="text-sm text-ink-2">앞으로 팔릴 양 × 레시피 × 현재 재고·입고 기간을 계산한 추천량이에요.</p>
         </div>
       </div>
 
