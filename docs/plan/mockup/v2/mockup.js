@@ -341,8 +341,9 @@ body[data-mood="hero"] .bd-veil { opacity: 0; }
 .entering .bd-day .d-veil { animation: dveil 1s ease both; }
 @keyframes dveil { from { opacity: 0; } }
 
-/* 가게로 들어가기(시작 화면 → 가입·로그인) — 가게 창문 빛이 화면을 채우고, 다음 화면은 그 빛이 걷히며 나타난다 */
-.shop-light { position: fixed; inset: 0; z-index: 70; pointer-events: none; background: #fff1d2; }
+/* 가게로 들어가기(시작 화면 → 가입·로그인) — 그 순간의 창문 색 빛이 창문에서 원형으로 퍼져 화면을 채우고,
+   다음 화면은 같은 색 빛이 걷히며 나타난다 */
+.shop-light { position: fixed; inset: 0; z-index: 70; pointer-events: none; }
 .shop-light.out { animation: shop-out 0.9s ease 0.1s both; }
 @keyframes shop-out { to { opacity: 0; } }
 .going-shop main, .going-shop header { transition: opacity 0.3s ease; opacity: 0; }
@@ -570,7 +571,7 @@ const dayClock = (mf) => {
   const m = Math.round(mf) % 1440;
   return `${String(Math.floor(m / 60)).padStart(2, "0")}:${String(m % 60).padStart(2, "0")}`;
 };
-const DAY = { mf: 1290 };
+const DAY = { mf: 1290, win: [255, 210, 122] };
 
 function dayAt(mf) {
   const d = ((mf % 1440) + 1440) % 1440;
@@ -650,6 +651,7 @@ function drawDay(mf) {
   const town = bd.querySelector(".d-town");
   town.style.opacity = calm ? 0.3 : 1;
   for (const el of town.querySelectorAll(".d-fill")) el.setAttribute("fill", dayRgb(s.town));
+  DAY.win = s.win;
   for (const el of town.querySelectorAll(".d-win")) el.setAttribute("fill", dayRgb(s.win));
   if (!calm) {
     const root = document.documentElement.style;
@@ -695,10 +697,13 @@ function startDay() {
   }
 }
 
-// 가게로 들어가기 — 창문 자리에서 빛이 화면을 채운 뒤 넘어간다. 다음 화면은 ?enter=shop으로 빛이 걷히며 나타난다
+// 가게로 들어가기 — 창문 가운데서 창문 색 빛이 원형으로 퍼져 화면을 채운 뒤 넘어간다.
+// 다음 화면은 ?enter=shop&glow=색으로 같은 색 빛이 걷히며 나타난다
 function goShop(url) {
   const u = new URL(url, location.href);
+  const glow = DAY.win.map((v) => v.toString(16).padStart(2, "0")).join("");
   u.searchParams.set("enter", "shop");
+  u.searchParams.set("glow", glow);
   const win = document.querySelector(".bd-day .d-win");
   if (!win || matchMedia("(prefers-reduced-motion: reduce)").matches) {
     location.href = u.href;
@@ -708,15 +713,20 @@ function goShop(url) {
   const town = document.querySelector(".bd-day .d-town");
   const tr = town.getBoundingClientRect();
   town.style.transformOrigin = `${r.left + r.width / 2 - tr.left}px ${r.top + r.height / 2 - tr.top}px`;
+  // 원 — 창문 가운데에서 창문을 덮는 크기로 시작해 화면 가장 먼 모서리까지 퍼진다
+  const cx = r.left + r.width / 2;
+  const cy = r.top + r.height / 2;
+  const far = Math.hypot(Math.max(cx, innerWidth - cx), Math.max(cy, innerHeight - cy));
   const light = document.createElement("div");
   light.className = "shop-light";
-  light.style.clipPath = `inset(${r.top}px ${innerWidth - r.right}px ${innerHeight - r.bottom}px ${r.left}px round 4px)`;
+  light.style.background = `#${glow}`;
+  light.style.clipPath = `circle(${Math.hypot(r.width, r.height) / 2}px at ${cx}px ${cy}px)`;
   document.body.appendChild(light);
   document.body.classList.add("going-shop");
   requestAnimationFrame(() =>
     requestAnimationFrame(() => {
       light.style.transition = "clip-path 0.8s cubic-bezier(0.7, 0, 0.2, 1)";
-      light.style.clipPath = "inset(0 0 0 0 round 0)";
+      light.style.clipPath = `circle(${far}px at ${cx}px ${cy}px)`;
       town.style.transform = "scale(4)";
     }),
   );
@@ -966,6 +976,8 @@ document.addEventListener("DOMContentLoaded", () => {
       document.body.classList.add("arrive-shop");
       const light = document.createElement("div");
       light.className = "shop-light out";
+      const glow = params.get("glow");
+      light.style.background = /^[0-9a-f]{6}$/.test(glow ?? "") ? `#${glow}` : `${dayRgb(DAY.win)}`;
       document.body.appendChild(light);
       setTimeout(() => light.remove(), 1100);
     } else {
@@ -973,6 +985,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
     const u = new URL(location.href);
     u.searchParams.delete("enter");
+    u.searchParams.delete("glow");
     history.replaceState(null, "", u);
   }
   for (const el of document.querySelectorAll("[data-icon]")) {
