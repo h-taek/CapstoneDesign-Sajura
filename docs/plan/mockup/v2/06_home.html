@@ -112,54 +112,38 @@
           <p data-when="empty" class="mt-4 text-sm text-ink-3">예측이 나오면 보여 드려요</p>
         </section>
       </div>
-      <!-- 쿠팡 단가 추세 — 재고 재료와 연결된 쿠팡 상품의 공용 단가 최근 30일(재료 단위). 작은 선 그래프 + 지금 단가 + 30일 전 대비(오름 빨강·내림 파랑).
-           공용 단가는 지금 덮어쓰기만 하고 이력이 없다 — 이 카드는 공용 단가 이력 저장이 정해져야 쓸 수 있다(미정). 값은 09 단가와 맞춘 목업 -->
+      <!-- 쿠팡 단가 추세 — 재고 재료와 연결된 쿠팡 상품의 공용 단가 최근 30일(재료 단위). 30일 전 대비 변화 폭이 큰 순 4개를 카드로(변동 없는 재료는 뒤로).
+           카드마다 재료명 · 지금 단가 · 30일 전 대비(오름 빨강·내림 파랑) · 30일 선. 공용 단가 이력 저장이 정해져야 쓸 수 있다(미정). 값은 09 단가와 맞춘 목업 -->
       <section class="flex flex-col rounded-2xl p-5 glass-card">
         <div class="flex items-center justify-between gap-2">
           <h2 class="text-base font-bold text-ink">쿠팡 단가 추세</h2>
-          <span class="text-xs text-ink-3">최근 30일</span>
+          <span class="text-xs text-ink-3">최근 30일 · 변화 큰 순</span>
         </div>
-        <ul data-when="default aifail pos guide" class="mt-2 divide-y divide-white/60">
-            <li class="grid grid-cols-[minmax(0,1fr)_4.5rem_auto] items-center gap-3 py-2.5 lg:grid-cols-[minmax(0,1fr)_7.5rem_6.5rem_5rem]">
-              <span class="truncate text-sm font-semibold text-ink">모짜렐라 치즈</span>
-              <svg viewBox="0 0 120 32" class="h-8 w-full" preserveAspectRatio="none"><polyline points="3.0,29.0 25.8,22.5 48.6,16.0 71.4,11.7 94.2,5.2 117.0,3.0" fill="none" stroke="#6b4eff" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" vector-effect="non-scaling-stroke"/></svg>
-              <div class="flex flex-col items-end gap-0.5 lg:contents">
-                <span class="tabular text-right text-sm text-ink-2">16,000원/kg</span>
-                <span class="tabular text-right text-sm"><span class="inline-flex items-center gap-0.5 font-bold text-up"><span data-icon="arrowUp" class="size-3"></span>8.1%</span></span>
-              </div>
-            </li>
-            <li class="grid grid-cols-[minmax(0,1fr)_4.5rem_auto] items-center gap-3 py-2.5 lg:grid-cols-[minmax(0,1fr)_7.5rem_6.5rem_5rem]">
-              <span class="truncate text-sm font-semibold text-ink">페퍼로니</span>
-              <svg viewBox="0 0 120 32" class="h-8 w-full" preserveAspectRatio="none"><polyline points="3.0,29.0 25.8,20.3 48.6,16.9 71.4,9.9 94.2,3.0 117.0,3.0" fill="none" stroke="#6b4eff" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" vector-effect="non-scaling-stroke"/></svg>
-              <div class="flex flex-col items-end gap-0.5 lg:contents">
-                <span class="tabular text-right text-sm text-ink-2">25,000원/kg</span>
-                <span class="tabular text-right text-sm"><span class="inline-flex items-center gap-0.5 font-bold text-up"><span data-icon="arrowUp" class="size-3"></span>6.4%</span></span>
-              </div>
-            </li>
-            <li class="grid grid-cols-[minmax(0,1fr)_4.5rem_auto] items-center gap-3 py-2.5 lg:grid-cols-[minmax(0,1fr)_7.5rem_6.5rem_5rem]">
-              <span class="truncate text-sm font-semibold text-ink">루꼴라</span>
-              <svg viewBox="0 0 120 32" class="h-8 w-full" preserveAspectRatio="none"><polyline points="3.0,29.0 25.8,21.2 48.6,13.4 71.4,3.0 94.2,5.6 117.0,8.2" fill="none" stroke="#6b4eff" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" vector-effect="non-scaling-stroke"/></svg>
-              <div class="flex flex-col items-end gap-0.5 lg:contents">
-                <span class="tabular text-right text-sm text-ink-2">30,000원/kg</span>
-                <span class="tabular text-right text-sm"><span class="inline-flex items-center gap-0.5 font-bold text-up"><span data-icon="arrowUp" class="size-3"></span>15.4%</span></span>
-              </div>
-            </li>
-            <li class="grid grid-cols-[minmax(0,1fr)_4.5rem_auto] items-center gap-3 py-2.5 lg:grid-cols-[minmax(0,1fr)_7.5rem_6.5rem_5rem]">
-              <span class="truncate text-sm font-semibold text-ink">토마토 소스</span>
-              <svg viewBox="0 0 120 32" class="h-8 w-full" preserveAspectRatio="none"><polyline points="3.0,3.0 25.8,11.7 48.6,16.0 71.4,20.3 94.2,24.7 117.0,29.0" fill="none" stroke="#6b4eff" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" vector-effect="non-scaling-stroke"/></svg>
-              <div class="flex flex-col items-end gap-0.5 lg:contents">
-                <span class="tabular text-right text-sm text-ink-2">4,000원/kg</span>
-                <span class="tabular text-right text-sm"><span class="inline-flex items-center gap-0.5 font-bold text-down"><span data-icon="arrowDown" class="size-3"></span>7.0%</span></span>
-              </div>
-            </li>
-            <li class="grid grid-cols-[minmax(0,1fr)_4.5rem_auto] items-center gap-3 py-2.5 lg:grid-cols-[minmax(0,1fr)_7.5rem_6.5rem_5rem]">
-              <span class="truncate text-sm font-semibold text-ink">피자 도우</span>
-              <svg viewBox="0 0 120 32" class="h-8 w-full" preserveAspectRatio="none"><polyline points="3.0,16.0 25.8,16.0 48.6,16.0 71.4,16.0 94.2,16.0 117.0,16.0" fill="none" stroke="#6b4eff" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" vector-effect="non-scaling-stroke"/></svg>
-              <div class="flex flex-col items-end gap-0.5 lg:contents">
-                <span class="tabular text-right text-sm text-ink-2">500원/개</span>
-                <span class="tabular text-right text-sm"><span class="text-ink-3">변동 없음</span></span>
-              </div>
-            </li>
+        <ul data-when="default aifail pos guide" class="mt-4 grid grid-cols-2 gap-3 lg:grid-cols-4">
+          <li class="flex flex-col rounded-xl p-3.5 glass-card">
+            <span class="truncate text-sm font-semibold text-ink">루꼴라</span>
+            <span class="tabular mt-2 text-lg leading-none font-bold tracking-tight text-ink">30,000<span class="ml-0.5 text-xs font-medium text-ink-3">원/kg</span></span>
+            <span class="tabular mt-1.5 inline-flex items-center gap-0.5 text-sm font-bold text-up"><span data-icon="arrowUp" class="size-3"></span>15.4%</span>
+            <svg viewBox="0 0 120 36" class="mt-3 h-9 w-full" preserveAspectRatio="none"><polyline points="3.0,33.0 25.8,24.0 48.6,15.0 71.4,3.0 94.2,6.0 117.0,9.0" fill="none" stroke="#6b4eff" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" vector-effect="non-scaling-stroke"/></svg>
+          </li>
+          <li class="flex flex-col rounded-xl p-3.5 glass-card">
+            <span class="truncate text-sm font-semibold text-ink">모짜렐라 치즈</span>
+            <span class="tabular mt-2 text-lg leading-none font-bold tracking-tight text-ink">16,000<span class="ml-0.5 text-xs font-medium text-ink-3">원/kg</span></span>
+            <span class="tabular mt-1.5 inline-flex items-center gap-0.5 text-sm font-bold text-up"><span data-icon="arrowUp" class="size-3"></span>8.1%</span>
+            <svg viewBox="0 0 120 36" class="mt-3 h-9 w-full" preserveAspectRatio="none"><polyline points="3.0,33.0 25.8,25.5 48.6,18.0 71.4,13.0 94.2,5.5 117.0,3.0" fill="none" stroke="#6b4eff" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" vector-effect="non-scaling-stroke"/></svg>
+          </li>
+          <li class="flex flex-col rounded-xl p-3.5 glass-card">
+            <span class="truncate text-sm font-semibold text-ink">토마토 소스</span>
+            <span class="tabular mt-2 text-lg leading-none font-bold tracking-tight text-ink">4,000<span class="ml-0.5 text-xs font-medium text-ink-3">원/kg</span></span>
+            <span class="tabular mt-1.5 inline-flex items-center gap-0.5 text-sm font-bold text-down"><span data-icon="arrowDown" class="size-3"></span>7.0%</span>
+            <svg viewBox="0 0 120 36" class="mt-3 h-9 w-full" preserveAspectRatio="none"><polyline points="3.0,3.0 25.8,13.0 48.6,18.0 71.4,23.0 94.2,28.0 117.0,33.0" fill="none" stroke="#6b4eff" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" vector-effect="non-scaling-stroke"/></svg>
+          </li>
+          <li class="flex flex-col rounded-xl p-3.5 glass-card">
+            <span class="truncate text-sm font-semibold text-ink">페퍼로니</span>
+            <span class="tabular mt-2 text-lg leading-none font-bold tracking-tight text-ink">25,000<span class="ml-0.5 text-xs font-medium text-ink-3">원/kg</span></span>
+            <span class="tabular mt-1.5 inline-flex items-center gap-0.5 text-sm font-bold text-up"><span data-icon="arrowUp" class="size-3"></span>6.4%</span>
+            <svg viewBox="0 0 120 36" class="mt-3 h-9 w-full" preserveAspectRatio="none"><polyline points="3.0,33.0 25.8,23.0 48.6,19.0 71.4,11.0 94.2,3.0 117.0,3.0" fill="none" stroke="#6b4eff" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" vector-effect="non-scaling-stroke"/></svg>
+          </li>
         </ul>
         <p data-when="empty" class="mt-4 text-sm text-ink-3">쿠팡 담기를 하면 재료 단가가 쌓여요</p>
       </section>
