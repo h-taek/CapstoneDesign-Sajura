@@ -85,7 +85,7 @@ const THEME_CSS = `
   backdrop-filter: blur(20px) saturate(160%);
   border: 1px solid rgb(255 255 255 / 0.45);
   box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.6), inset 0 -1px 0 rgb(255 255 255 / 0.15),
-    0 20px 50px -20px rgb(0 0 0 / 0.35);
+    0 10px 28px -14px rgb(0 0 0 / 0.18);
 }
 /* 떠 있는 판 유리 — 상단 바·왼쪽 메뉴·하단 알약·앱 탭 막대. 본문 패널(glass)과 구분되게 남보라 기운을 살짝 얹어 한 단계 어둡게 */
 @utility glass-bar {
@@ -94,7 +94,7 @@ const THEME_CSS = `
   backdrop-filter: blur(20px) saturate(160%);
   border: 1px solid rgb(255 255 255 / 0.4);
   box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.5), inset 0 -1px 0 rgb(255 255 255 / 0.12),
-    0 20px 50px -20px rgb(0 0 0 / 0.35);
+    0 10px 28px -14px rgb(0 0 0 / 0.18);
 }
 /* 진한 유리 — 폼·대화 상자처럼 배경 위에 바로 놓이면서 글을 오래 읽는 판 */
 @utility glass-strong {
@@ -111,7 +111,7 @@ const THEME_CSS = `
   backdrop-filter: blur(16px) saturate(160%);
   border: 1px solid rgb(255 255 255 / 0.4);
   box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.45), inset 0 -1px 0 rgb(255 255 255 / 0.12),
-    0 14px 30px -14px rgb(107 78 255 / 0.6);
+    0 8px 20px -12px rgb(107 78 255 / 0.45);
 }
 /* 패널 안쪽 카드 — 이미 흐려진 패널 위라 흐림은 다시 걸지 않고 흰색만 더 올린다 */
 @utility glass-card {
@@ -923,10 +923,10 @@ function renderShell(el) {
     <a href="${href("notifications")}" class="mt-1 flex h-10 items-center justify-center rounded-2xl text-sm font-semibold text-ink-2 hover:bg-white/60">알림 설정</a>
   </div>
 
-  <!-- 메뉴 폭(58px)의 절반이 패널 왼쪽 가장자리(3rem)에 걸친다. 윗변은 제목 아래 첫 카드 줄 윗선(패널 위 5.25rem + 안쪽 여백 1.75rem + 제목 줄 68px) -->
-  <nav aria-label="주 메뉴" style="--d:0.1s" class="en en-left glass-bar fixed top-[calc(7rem+68px)] left-[calc(3rem-29px)] z-30 hidden flex-col items-center gap-2 rounded-full p-1.5 lg:flex">${sideNav}</nav>
+  <!-- 메뉴 폭(58px)의 절반이 패널 왼쪽 가장자리(3rem)에 걸친다. 윗변은 제목 줄 아랫선(패널 위 5.25rem + 안쪽 여백 1.25rem + 제목 줄 68px) -->
+  <nav aria-label="주 메뉴" style="--d:0.1s" class="en en-left glass-bar fixed top-[calc(6.5rem+68px)] left-[calc(3rem-29px)] z-30 hidden flex-col items-center gap-2 rounded-full p-1.5 lg:flex">${sideNav}</nav>
 
-  <main style="--d:0.15s" class="en glass fixed inset-x-3 top-[4.75rem] bottom-[5.75rem] z-20 overflow-y-auto rounded-[1.75rem] px-3 py-5 lg:top-[5.25rem] lg:right-4 lg:bottom-12 lg:left-12 lg:pr-5 lg:pl-[calc(29px+1.25rem)] lg:py-7">
+  <main style="--d:0.15s" class="en glass fixed inset-x-3 top-[4.75rem] bottom-[5.75rem] z-20 overflow-y-auto rounded-[1.75rem] px-3 py-5 lg:top-[5.25rem] lg:right-4 lg:bottom-12 lg:left-12 lg:pr-5 lg:pl-[calc(29px+1.25rem)] lg:py-5">
     ${content}
   </main>
 
