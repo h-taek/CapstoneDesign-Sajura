@@ -6,339 +6,266 @@
 <title>서비스 소개 — 사주라 목업 v2</title>
 <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4.0.17"></script>
 <script src="mockup.js" defer></script>
+<style>
+/* 컨셉 '사장님의 하루' — 스크롤하면 마감(21:30)부터 다음 날 저녁까지 시간이 흐른다.
+   하늘 색·별·달·해·가게 창문 불빛이 장면 시각을 따라 바뀌고, 유리는 장면마다 제품 화면 한 장에만 쓴다. */
+.sky, .stars, .moon, .sun, .town { position: fixed; pointer-events: none; }
+.sky { inset: 0; z-index: -5; background: #241a5e; }
+.stars { inset: 0; z-index: -4; width: 100%; height: 100%; }
+.stars circle { animation: tw 4s ease-in-out infinite alternate; }
+.stars circle:nth-child(3n) { animation-duration: 6s; animation-delay: -2s; }
+.stars circle:nth-child(4n) { animation-duration: 3s; animation-delay: -1s; }
+@keyframes tw { to { opacity: .25; } }
+.moon { z-index: -3; width: 88px; height: 88px; border-radius: 50%; translate: -50% -50%;
+  background: radial-gradient(circle at 38% 36%, #fffdf3, #e9e4ff 70%);
+  box-shadow: 0 0 60px 18px rgb(214 205 255 / .35), inset -14px -10px 0 rgb(170 160 230 / .35); }
+.sun { z-index: -3; width: 150px; height: 150px; border-radius: 50%; translate: -50% -50%;
+  background: radial-gradient(circle, #fff7e0 0 34%, #ffd9a0 46%, rgb(255 190 140 / 0) 70%); }
+.town { z-index: -2; left: 0; right: 0; bottom: 0; width: 100%; height: min(22vh, 190px); }
+
+/* 상단 바 — 장면이 밝아지면 글자색이 바뀐다(--fg) */
+/* 상단 바 — 첫 화면은 바탕 없이 로고만(시작·로그인 버튼은 본문에 있다), 스크롤하면 가운데 알약(로고·시계·시작하기)으로 바뀐다.
+   알약 유리는 그 시각 하늘색으로 물들고(--pill), 글자색(--fg)은 하늘 밝기를 따라 서서히 바뀐다 */
+.day-header { --fg: #fff; --fg-2: rgb(255 255 255 / .78); --pill: rgb(36 26 94 / .4); color: var(--fg); pointer-events: none; }
+.hd-top, .hd-pill { transition: opacity .5s ease, transform .5s cubic-bezier(.2,.7,.2,1); }
+.hd-pill { background: var(--pill); border: 1px solid rgb(255 255 255 / .22);
+  backdrop-filter: blur(20px) saturate(160%); -webkit-backdrop-filter: blur(20px) saturate(160%);
+  box-shadow: 0 10px 30px -12px rgb(20 10 70 / .35), inset 0 1px 0 rgb(255 255 255 / .25);
+  opacity: 0; transform: translate(-50%, -8px) scale(.94); }
+.day-header:not(.scrolled) .hd-top, .day-header:not(.scrolled) .hd-top a,
+.day-header.scrolled .hd-pill, .day-header.scrolled .hd-pill a { pointer-events: auto; }
+.day-header.scrolled .hd-top { opacity: 0; transform: translateY(-12px); }
+.day-header.scrolled .hd-pill { opacity: 1; transform: translate(-50%, 0); }
+
+.scene { position: relative; min-height: 115vh; display: grid; align-items: center; padding: 120px 6vw 22vh; }
+.scene[data-tone="dark"] { color: #fff; --sub: rgb(255 255 255 / .74); }
+.scene[data-tone="light"] { color: var(--color-ink); --sub: var(--color-ink-2); }
+.scene-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6vw; align-items: center; max-width: 1180px; width: 100%; margin: 0 auto; }
+.time { display: inline-flex; align-items: baseline; gap: 10px; margin-bottom: 18px; font-weight: 600; color: var(--sub); }
+.time b { font-size: 2.6rem; font-weight: 300; letter-spacing: -.02em; color: currentColor; font-variant-numeric: tabular-nums; }
+.scene h1, .scene h2 { font-weight: 800; letter-spacing: -.035em; line-height: 1.18; }
+.scene h1 { font-size: clamp(2.4rem, 5.6vw, 4.6rem); }
+.scene h2 { font-size: clamp(2rem, 3.6vw, 3rem); }
+.lead { margin-top: 20px; max-width: 30em; font-size: 1.12rem; line-height: 1.7; color: var(--sub); }
+.hint { margin-top: 64px; font-size: .85rem; color: var(--sub); }
+.hint::after { content: ""; display: block; width: 1px; height: 44px; margin: 12px auto 0;
+  background: linear-gradient(currentColor, transparent); animation: drop 2s ease-in-out infinite; }
+@keyframes drop { 0% { transform: scaleY(0); transform-origin: top; } 50% { transform: scaleY(1); transform-origin: top; }
+  51% { transform-origin: bottom; } 100% { transform: scaleY(0); transform-origin: bottom; } }
+
+/* 제품 화면 카드 */
+.shot { justify-self: center; width: min(100%, 440px); padding: 22px; border-radius: 28px; color: var(--color-ink);
+  background: rgb(255 255 255 / .74); border: 1px solid rgb(255 255 255 / .6);
+  backdrop-filter: blur(24px) saturate(160%); -webkit-backdrop-filter: blur(24px) saturate(160%);
+  box-shadow: 0 30px 80px -20px rgb(20 10 70 / .45), inset 0 1px 0 rgb(255 255 255 / .8); }
+.phone { justify-self: center; width: 290px; height: 520px; border-radius: 46px; padding: 14px; background: rgb(20 14 60 / .35);
+  border: 1px solid rgb(255 255 255 / .35); box-shadow: 0 30px 80px -20px rgb(40 20 80 / .5); position: relative; overflow: hidden; }
+.phone .shot { position: absolute; left: 12px; right: 12px; bottom: 120px; width: auto; padding: 16px; border-radius: 22px; }
+
+/* 장면이 들어올 때 */
+.reveal { opacity: 0; transform: translateY(28px); transition: opacity .9s ease, transform .9s cubic-bezier(.2,.7,.2,1); }
+.reveal.in { opacity: 1; transform: none; }
+.reveal.d1 { transition-delay: .12s; } .reveal.d2 { transition-delay: .24s; }
+@media (prefers-reduced-motion: reduce) { .reveal { opacity: 1; transform: none; transition: none; } .stars circle, .hint::after { animation: none; } }
+
+@media (max-width: 860px) {
+  .scene { min-height: auto; padding: 120px 20px 26vh; }
+  .scene.first { min-height: 100svh; }
+  .scene-grid { grid-template-columns: 1fr; gap: 40px; }
+  .time b { font-size: 2rem; }
+  .lead { font-size: 1.02rem; }
+  .moon { width: 60px; height: 60px; } .sun { width: 110px; height: 110px; }
+}
+</style>
 </head>
 <!-- 원본: Front/src/routes/intro.tsx(PR #37 7a508a7), components/pwa/install-banner.tsx(useStartInstall·InstallGuideSheet) -->
-<!-- 아이콘 굵기(strokeWidth)는 data-icon이 2로 고정이라 [stroke-width:N] 클래스로 덮어쓴다 -->
-<body data-page="intro" data-states="기본:default,모바일 메뉴 펼침:menu,FAQ 펼침:faq,설치 안내(안드로이드):guide-android,설치 안내(아이폰):guide-ios,설치 창 가능(크롬):prompt,이미 설치됨:installed" data-mood="hero">
-<div data-backdrop></div>
-<div class="min-h-dvh text-ink">
-  <!-- 상단 내비 -->
-  <header class="glass pt-safe sticky top-3 z-40 mx-3 mt-3 rounded-[1.75rem]">
-    <div class="mx-auto flex h-16 max-w-6xl items-center gap-6 px-4 sm:px-6">
-      <a href="01_intro.html" class="flex items-center gap-2" aria-label="사주라 소개">
-        <!-- /icon-192.png 대신 브랜드 사각형 -->
-        <span class="flex size-8 items-center justify-center rounded-lg bg-brand text-sm font-black text-white">사</span>
-        <span class="text-xl font-extrabold tracking-tight">사주라</span>
-      </a>
-      <nav aria-label="소개 메뉴" class="hidden gap-1 md:flex">
-        <a href="#features" class="rounded-lg px-3 py-2 text-[0.95rem] font-semibold text-ink-2 hover:bg-subtle hover:text-ink">주요 기능</a>
-        <a href="#how" class="rounded-lg px-3 py-2 text-[0.95rem] font-semibold text-ink-2 hover:bg-subtle hover:text-ink">이용 방법</a>
-        <a href="#app" class="rounded-lg px-3 py-2 text-[0.95rem] font-semibold text-ink-2 hover:bg-subtle hover:text-ink">앱 설치</a>
-        <a href="#faq" class="rounded-lg px-3 py-2 text-[0.95rem] font-semibold text-ink-2 hover:bg-subtle hover:text-ink">자주 묻는 질문</a>
-      </nav>
-      <div class="ml-auto flex items-center gap-2">
-        <a href="02_login.html" class="hidden h-10 items-center rounded-xl border border-line px-4 text-sm font-semibold text-ink-2 hover:bg-subtle sm:inline-flex">로그인</a>
-        <a href="03_register.html" class="inline-flex h-10 items-center rounded-xl bg-brand px-4 text-sm font-semibold text-white hover:bg-brand-strong">지금 시작하기</a>
-        <button type="button" data-toggle="#intro-menu" aria-label="메뉴 열기" class="flex size-10 items-center justify-center rounded-xl text-ink-2 hover:bg-subtle md:hidden">
-          <span data-icon="menu" class="size-6"></span>
-        </button>
+<!-- v2는 구성을 새로 잡았다. v1의 소개 구간(고민·주요 기능·이용 방법)은 시각별 장면으로 바뀌고, 앱 설치·FAQ·설치 안내 상태는 이어받는다 -->
+<body data-page="intro" data-states="기본:default,FAQ 펼침:faq,설치 안내(안드로이드):guide-android,설치 안내(아이폰):guide-ios,설치 창 가능(크롬):prompt,이미 설치됨:installed">
+<div class="sky" id="sky"></div>
+<svg class="stars" id="stars" aria-hidden="true"></svg>
+<div class="moon" id="moon" aria-hidden="true"></div>
+<div class="sun" id="sun" aria-hidden="true"></div>
+<!-- 동네 실루엣. 가운데 보라 차양이 사장님 가게, 창문 불빛이 시각마다 바뀐다(새벽엔 사주라가 일하는 보라 불) -->
+<svg class="town" viewBox="0 0 1440 190" preserveAspectRatio="xMidYMax slice" aria-hidden="true">
+  <g id="town-fill" fill="#1d1446">
+    <path d="M0 190V112h70V84h54v28h40V60h86v130zM250 190V96l46-30 46 30v94zM342 190V120h78V74h64v116z"/>
+    <path d="M484 190V130h60V100h46v90z"/>
+    <path d="M760 190V56h96v134zM856 190V108h58l30-24 30 24h40v82z"/>
+    <path d="M1014 190V92h120v98zM1134 190V124h70V70h80v120zM1284 190V100h60V80h96v110z"/>
+  </g>
+  <g transform="translate(162 0)">
+    <path id="shop" d="M484 190V88h170v102z" fill="#1d1446"/>
+    <path d="M478 92h182l-10 24H488z" fill="#6b4eff" opacity=".9"/>
+    <path d="M498 92l-6 24M528 92l-4 24M558 92l-2 24M588 92v24M618 92l2 24M648 92l4 24" stroke="#fff" stroke-opacity=".35" stroke-width="10"/>
+    <rect class="win" x="508" y="128" width="62" height="40" rx="4" fill="#ffd27a"/>
+    <rect class="win" x="586" y="128" width="40" height="62" rx="3" fill="#ffd27a"/>
+  </g>
+</svg>
+
+<header id="hd" class="day-header pt-safe fixed inset-x-0 top-0 z-40">
+  <div class="hd-top flex h-20 items-center gap-4 px-5 sm:px-8">
+    <a href="01_intro.html" class="flex items-center gap-2" aria-label="사주라 소개">
+      <span class="flex size-8 items-center justify-center rounded-lg bg-brand text-sm font-black text-white">사</span>
+      <span class="text-xl font-extrabold tracking-tight">사주라</span>
+    </a>
+  </div>
+  <div class="hd-pill absolute top-3 left-1/2 flex h-13 items-center gap-3 rounded-full pr-1.5 pl-1.5">
+    <a href="01_intro.html" aria-label="사주라 소개" class="flex size-10 items-center justify-center rounded-full bg-brand text-sm font-black text-white">사</a>
+    <p class="flex items-baseline gap-2 text-sm font-semibold whitespace-nowrap text-[var(--fg-2)]">사주라의 하루<b id="clock" class="text-lg font-bold tracking-wide text-[var(--fg)] tabular">21:30</b></p>
+    <a href="03_register.html" class="inline-flex h-10 items-center rounded-full bg-brand px-4 text-sm font-semibold whitespace-nowrap text-white hover:bg-brand-strong">시작하기</a>
+  </div>
+</header>
+
+<main>
+  <!-- 21:30 마감 — 첫 화면 -->
+  <section class="scene first" data-tone="dark" data-min="1290">
+    <div class="text-center">
+      <div class="time reveal"><b>21:30</b>마감</div>
+      <h1 class="reveal d1">사장님이 퇴근하면<br>사주라가 출근해요</h1>
+      <p class="lead reveal d2 mx-auto">밤사이 매출을 계산해서, 아침이면 오늘 시킬 재료를 알려 드려요. 주문은 사장님이 보고 확정하세요.</p>
+      <div class="reveal d2 mt-9 flex flex-col justify-center gap-3 sm:flex-row">
+        <a href="03_register.html" class="inline-flex h-14 items-center justify-center gap-2 rounded-2xl bg-brand px-7 text-lg font-bold text-white hover:bg-brand-strong">지금 시작하기 <span data-icon="arrowRight" class="size-5"></span></a>
+        <a href="02_login.html" class="inline-flex h-14 items-center justify-center rounded-2xl border border-white/60 px-7 text-lg font-bold text-white hover:bg-white/10">로그인</a>
+      </div>
+      <p class="hint">스크롤해서 사주라의 하루 보기</p>
+    </div>
+  </section>
+
+  <!-- 22:40 매출 올리기 -->
+  <section class="scene" data-tone="dark" data-min="1360">
+    <div class="scene-grid">
+      <div>
+        <div class="time reveal"><b>22:40</b>매출 올리기</div>
+        <h2 class="reveal d1">문 닫기 전에<br>매출 파일 하나만</h2>
+        <p class="lead reveal d2">POS에서 내려받은 매출 파일을 올리면 메뉴와 맞춰 저장해요. 같은 영수증은 두 번 저장하지 않아요.</p>
+      </div>
+      <div class="shot reveal d1">
+        <p class="flex items-center justify-between text-[0.95rem] font-bold">매출 파일 올리기 <span class="rounded-full bg-brand-soft px-2.5 py-1 text-xs font-bold text-brand">완료</span></p>
+        <div class="mt-4 flex items-center gap-3 rounded-2xl bg-white/70 p-3.5">
+          <span class="flex size-11 items-center justify-center rounded-xl bg-[#e8f7ee] text-xs font-extrabold text-[#16a34a]">CSV</span>
+          <div class="flex-1">
+            <p class="text-[0.92rem] font-bold">포스매출_1030.csv</p>
+            <p class="text-xs text-ink-3">영수증 248건 · 1.2MB</p>
+            <div class="mt-2 h-1.5 rounded-full bg-brand"></div>
+          </div>
+        </div>
+        <ul class="mt-4 space-y-2 text-sm text-ink-2">
+          <li class="flex gap-2"><span data-icon="check" class="size-4 shrink-0 text-brand"></span>새 영수증 248건 저장</li>
+          <li class="flex gap-2"><span data-icon="check" class="size-4 shrink-0 text-brand"></span>겹친 영수증 12건은 건너뜀</li>
+          <li class="flex gap-2"><span data-icon="check" class="size-4 shrink-0 text-brand"></span>새 메뉴 2개 발견 — 등록할지 골라 주세요</li>
+        </ul>
       </div>
     </div>
-    <!-- 모바일 메뉴 — 햄버거로 펼친다. 항목을 누르면 닫힌다 -->
-    <nav id="intro-menu" data-when="menu" aria-label="소개 메뉴" class="border-t border-line-soft px-4 py-2 md:hidden">
-      <a href="#features" data-set-state="default" class="block rounded-lg px-3 py-3 text-base font-semibold text-ink-2 active:bg-subtle">주요 기능</a>
-      <a href="#how" data-set-state="default" class="block rounded-lg px-3 py-3 text-base font-semibold text-ink-2 active:bg-subtle">이용 방법</a>
-      <a href="#app" data-set-state="default" class="block rounded-lg px-3 py-3 text-base font-semibold text-ink-2 active:bg-subtle">앱 설치</a>
-      <a href="#faq" data-set-state="default" class="block rounded-lg px-3 py-3 text-base font-semibold text-ink-2 active:bg-subtle">자주 묻는 질문</a>
-      <a href="02_login.html" class="block rounded-lg px-3 py-3 text-base font-semibold text-ink-2 active:bg-subtle">로그인</a>
-    </nav>
-  </header>
+  </section>
 
-  <main>
-    <!-- 히어로 -->
-    <section class="relative">
-      <!-- v2는 사진·보라 그라데이션 대신 공용 배경 위에 바로 놓는다 -->
-      <div aria-hidden="true" class="pointer-events-none absolute inset-0 text-brand/15">
-        <span data-icon="beef" class="absolute top-10 right-[46%] size-16 rotate-12 [stroke-width:1.25]"></span>
-        <span data-icon="egg" class="absolute bottom-12 left-[38%] size-12 -rotate-12 [stroke-width:1.25]"></span>
-        <span data-icon="receipt" class="absolute top-1/3 left-[48%] size-14 rotate-6 [stroke-width:1.25]"></span>
+  <!-- 02:00 AI 계산 -->
+  <section class="scene" data-tone="dark" data-min="1560">
+    <div class="scene-grid">
+      <div>
+        <div class="time reveal"><b>02:00</b>AI 계산</div>
+        <h2 class="reveal d1">모두 잠든 사이<br>앞으로 3일을 계산해요</h2>
+        <p class="lead reveal d2">지난 매출에 요일과 날씨를 함께 보고 내일·모레·사흘 뒤 매출을 미리 계산해요. 왜 그렇게 봤는지 한 문장으로 남겨요.</p>
       </div>
-      <div class="relative mx-auto grid max-w-6xl items-center gap-10 px-4 pt-12 pb-16 sm:px-6 lg:grid-cols-[1.1fr_1fr] lg:pt-20 lg:pb-24">
-        <div class="space-y-6">
-          <span class="glass inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-semibold text-ink-2">
-            <span data-icon="sparkles" class="size-4"></span> 외식업 사장님을 위한 AI 발주 도우미
-          </span>
-          <h1 class="text-[2.1rem] leading-tight font-extrabold tracking-tight sm:text-5xl lg:text-[3.4rem]">
-            내일 뭘 얼마나 시킬지,<br>
-            <span class="text-brand">사주라가 먼저</span> 알려드려요
-          </h1>
-          <p class="max-w-xl text-lg leading-relaxed text-ink-2">
-            매출 기록으로 앞으로 3일 매출을 예측하고, 레시피와 재고를 계산해 재료별 발주량을 추천합니다. 주문은 사장님이 보고 확정하세요.
-          </p>
-          <div class="flex flex-col gap-3 sm:flex-row">
-            <a href="03_register.html" class="inline-flex h-14 items-center justify-center gap-2 rounded-2xl bg-ink px-7 text-lg font-bold text-white hover:bg-ink-2">
-              지금 시작하기 <span data-icon="arrowRight" class="size-5"></span>
-            </a>
-            <!-- 이미 설치했으면 숨김. 설치 창을 띄울 수 있으면 브라우저 설치 창(목업 없음), 아니면 안내 시트 -->
-            <button type="button" data-when="default menu faq guide-android guide-ios" data-set-state="guide-android" class="inline-flex h-14 items-center justify-center gap-2 rounded-2xl px-7 text-lg font-bold text-ink glass hover:bg-white/40">
-              <span data-icon="smartphone" class="size-5"></span> 휴대폰에 앱 설치
-            </button>
-            <button type="button" data-when="prompt" class="inline-flex h-14 items-center justify-center gap-2 rounded-2xl px-7 text-lg font-bold text-ink glass hover:bg-white/40">
-              <span data-icon="smartphone" class="size-5"></span> 휴대폰에 앱 설치
-            </button>
+      <div class="shot reveal d1">
+        <p class="flex items-center justify-between text-[0.95rem] font-bold">앞으로 3일 예상 매출 <span class="rounded-full bg-brand-soft px-2.5 py-1 text-xs font-bold text-brand">AI</span></p>
+        <div class="mt-4 grid grid-cols-3 gap-2">
+          <div class="rounded-2xl bg-white/70 p-3 ring-2 ring-brand"><p class="text-xs text-ink-3">내일(금)</p><p class="text-lg font-extrabold tabular">91만원</p></div>
+          <div class="rounded-2xl bg-white/70 p-3"><p class="text-xs text-ink-3">모레(토)</p><p class="text-lg font-extrabold tabular">64만원</p></div>
+          <div class="rounded-2xl bg-white/70 p-3"><p class="text-xs text-ink-3">사흘 뒤(일)</p><p class="text-lg font-extrabold tabular">58만원</p></div>
+        </div>
+        <div class="mt-3 flex h-28 items-end gap-2 rounded-2xl bg-white/55 p-3">
+          <i class="h-[38%] flex-1 rounded-md bg-brand-tint"></i><i class="h-[46%] flex-1 rounded-md bg-brand-tint"></i><i class="h-[34%] flex-1 rounded-md bg-brand-tint"></i><i class="h-[52%] flex-1 rounded-md bg-brand-tint"></i>
+          <i class="h-[88%] flex-1 rounded-md bg-brand"></i><i class="h-[62%] flex-1 rounded-md bg-brand"></i><i class="h-[56%] flex-1 rounded-md bg-brand"></i>
+        </div>
+        <p class="mt-3 rounded-2xl bg-brand-soft px-3.5 py-3 text-sm leading-relaxed text-ink-2">금요일이고 저녁에 비 소식이 있어 지난 금요일보다 12% 높게 봤어요.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 07:30 아침 알림 -->
+  <section class="scene" data-tone="dark" data-min="1890">
+    <div class="scene-grid">
+      <div>
+        <div class="time reveal"><b>07:30</b>아침 알림</div>
+        <h2 class="reveal d1">눈 뜨면<br>할 일이 정리돼 있어요</h2>
+        <p class="lead reveal d2">예상 매출에 메뉴별 레시피와 지금 재고를 곱해서, 재료별로 몇 개 시킬지 알림으로 보내요.</p>
+      </div>
+      <div class="phone reveal d1" role="img" aria-label="휴대폰 잠금 화면의 사주라 알림">
+        <div class="pt-14 text-center text-white">
+          <p class="text-sm text-white/85">11월 1일 금요일</p>
+          <p class="text-[4.2rem] leading-tight font-light tracking-tight">7:30</p>
+        </div>
+        <div class="shot">
+          <p class="flex items-center gap-2 text-xs text-ink-3"><span class="flex size-5.5 items-center justify-center rounded-md bg-brand text-[0.6rem] font-black text-white">사</span>사주라<span class="ml-auto">지금</span></p>
+          <p class="mt-2 text-[0.95rem] font-bold">오늘 발주할 재료가 3개 있어요</p>
+          <p class="mt-1 text-sm text-ink-2">삼겹살 6.5kg · 맥주 24병 · 깻잎 2kg</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 10:00 발주 확정 -->
+  <section class="scene" data-tone="light" data-min="2040">
+    <div class="scene-grid">
+      <div>
+        <div class="time reveal"><b>10:00</b>발주 확정</div>
+        <h2 class="reveal d1">보고, 고치고,<br>확정은 사장님이</h2>
+        <p class="lead reveal d2">추천 수량은 제안일 뿐이에요. 고칠 건 고친 뒤 확정하세요. 재고가 넉넉한 재료는 0으로 나와요.</p>
+      </div>
+      <div class="shot reveal d1">
+        <p class="flex items-center justify-between text-[0.95rem] font-bold">오늘 발주 <span class="text-xs font-medium text-ink-3">11월 1일</span></p>
+        <ul class="mt-4 space-y-2">
+          <li class="flex items-center gap-3 rounded-2xl bg-white/70 px-3.5 py-3"><span class="flex size-5 items-center justify-center rounded-md bg-brand text-white"><span data-icon="check" class="size-3.5"></span></span><b>삼겹살</b><span class="ml-auto flex items-center gap-1.5 font-bold tabular"><span class="flex size-6.5 items-center justify-center rounded-lg bg-brand-soft text-brand">−</span>6.5kg<span class="flex size-6.5 items-center justify-center rounded-lg bg-brand-soft text-brand">+</span></span></li>
+          <li class="flex items-center gap-3 rounded-2xl bg-white/70 px-3.5 py-3"><span class="flex size-5 items-center justify-center rounded-md bg-brand text-white"><span data-icon="check" class="size-3.5"></span></span><b>맥주</b><span class="ml-auto flex items-center gap-1.5 font-bold tabular"><span class="flex size-6.5 items-center justify-center rounded-lg bg-brand-soft text-brand">−</span>24병<span class="flex size-6.5 items-center justify-center rounded-lg bg-brand-soft text-brand">+</span></span></li>
+          <li class="flex items-center gap-3 rounded-2xl bg-white/70 px-3.5 py-3"><span class="flex size-5 items-center justify-center rounded-md bg-brand text-white"><span data-icon="check" class="size-3.5"></span></span><b>깻잎</b><span class="ml-auto flex items-center gap-1.5 font-bold tabular"><span class="flex size-6.5 items-center justify-center rounded-lg bg-brand-soft text-brand">−</span>2kg<span class="flex size-6.5 items-center justify-center rounded-lg bg-brand-soft text-brand">+</span></span></li>
+          <li class="flex items-center gap-3 rounded-2xl bg-white/70 px-3.5 py-3 opacity-60"><span class="size-5 rounded-md border-2 border-ink-4"></span><b>대파</b><span class="ml-auto text-sm text-ink-3">충분해요 · 0단</span></li>
+        </ul>
+        <p class="mt-4 flex h-12 items-center justify-center rounded-2xl bg-ink font-bold text-white">3개 발주 확정</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 14:00 앱 설치 — 설치됨 / 설치 창 가능(지금 앱 설치하기) / 그 외(설치 방법 보기 → 안내 시트) -->
+  <section id="app" class="scene" data-tone="light" data-min="2280">
+    <div class="scene-grid">
+      <div>
+        <div class="time reveal"><b>14:00</b>어디서든</div>
+        <h2 class="reveal d1">앱스토어 없이<br>휴대폰 홈 화면에 바로</h2>
+        <p class="lead reveal d2">사주라는 웹앱(PWA)이에요. 한 번 설치하면 앱 아이콘으로 바로 열리고, 화면 아래 큰 글씨 메뉴로 홈·매출 예측·재고·발주를 오가요.</p>
+      </div>
+      <div class="shot reveal d1">
+        <p class="text-[0.95rem] font-bold">홈 화면에 추가</p>
+        <p data-when="installed" class="mt-4 flex items-center gap-2 rounded-2xl bg-brand-soft px-4 py-3.5 font-semibold text-brand-strong"><span data-icon="check" class="size-5"></span>이미 이 기기에 설치되어 있어요</p>
+        <button type="button" data-when="prompt" class="mt-4 inline-flex h-13 w-full items-center justify-center gap-2 rounded-2xl bg-brand text-lg font-bold text-white hover:bg-brand-strong"><span data-icon="smartphone" class="size-5"></span>지금 앱 설치하기</button>
+        <button type="button" data-when="default faq guide-android guide-ios" data-set-state="guide-android" class="mt-4 inline-flex h-13 w-full items-center justify-center gap-2 rounded-2xl bg-brand text-lg font-bold text-white hover:bg-brand-strong"><span data-icon="smartphone" class="size-5"></span>설치 방법 보기</button>
+        <div class="mt-3 grid gap-2 text-sm sm:grid-cols-2">
+          <div class="rounded-2xl bg-white/70 p-3.5">
+            <p class="font-bold">안드로이드 · PC 크롬</p>
+            <ol class="mt-1.5 space-y-0.5 text-ink-2"><li>1. 위 버튼을 누르세요</li><li>2. '설치'를 누르면 끝</li></ol>
           </div>
-          <ul class="flex flex-wrap gap-x-5 gap-y-2 text-[0.95rem] text-ink-2">
-            <li class="inline-flex items-center gap-1.5"><span data-icon="check" class="size-4 text-brand [stroke-width:3]"></span> 앱스토어 없이 바로 설치</li>
-            <li class="inline-flex items-center gap-1.5"><span data-icon="check" class="size-4 text-brand [stroke-width:3]"></span> POS 매출 파일로 시작</li>
-            <li class="inline-flex items-center gap-1.5"><span data-icon="check" class="size-4 text-brand [stroke-width:3]"></span> 발주 확정은 사장님이 직접</li>
-          </ul>
-        </div>
-
-        <!-- HeroPreview — 웹 대시보드 축소 미리보기(예시 화면) -->
-        <div class="relative" aria-label="사주라 화면 예시" role="img">
-          <!-- 구체 — AI 예측의 상징. 화면 예시 카드 뒤에 떠 있다 -->
-          <div class="orb absolute -top-12 -right-10" style="width:min(28vmin,220px)" aria-hidden="true"></div>
-          <div class="rounded-3xl border border-line p-5 glass-strong">
-            <div class="flex items-center justify-between">
-              <p class="text-sm font-bold text-ink">앞으로 3일 예상 매출</p>
-              <span class="rounded-full bg-brand-soft px-2.5 py-0.5 text-xs font-bold text-brand">AI</span>
-            </div>
-            <div class="mt-3 grid grid-cols-3 gap-2">
-              <div class="rounded-2xl border p-3 border-brand bg-brand-soft">
-                <p class="flex items-center gap-1 text-xs text-ink-3"><span data-icon="calendarDays" class="size-3.5"></span> 내일</p>
-                <p class="mt-1 text-lg font-extrabold text-ink">91만원</p>
-              </div>
-              <div class="rounded-2xl p-3 glass-card">
-                <p class="flex items-center gap-1 text-xs text-ink-3"><span data-icon="calendarDays" class="size-3.5"></span> 모레</p>
-                <p class="mt-1 text-lg font-extrabold text-ink">64만원</p>
-              </div>
-              <div class="rounded-2xl p-3 glass-card">
-                <p class="flex items-center gap-1 text-xs text-ink-3"><span data-icon="calendarDays" class="size-3.5"></span> 사흘 뒤</p>
-                <p class="mt-1 text-lg font-extrabold text-ink">58만원</p>
-              </div>
-            </div>
-            <div class="mt-4 flex h-28 items-end gap-2 rounded-2xl bg-subtle px-3 pt-3 pb-2">
-              <div class="flex-1 rounded-t-md bg-brand-tint" style="height: 42%"></div>
-              <div class="flex-1 rounded-t-md bg-brand-tint" style="height: 55%"></div>
-              <div class="flex-1 rounded-t-md bg-brand-tint" style="height: 38%"></div>
-              <div class="flex-1 rounded-t-md bg-brand-tint" style="height: 64%"></div>
-              <div class="flex-1 rounded-t-md bg-brand" style="height: 88%"></div>
-              <div class="flex-1 rounded-t-md bg-brand" style="height: 96%"></div>
-              <div class="flex-1 rounded-t-md bg-brand-tint" style="height: 35%"></div>
-            </div>
-            <div class="mt-4 space-y-2">
-              <div class="flex items-center justify-between rounded-xl px-4 py-2.5 glass-card">
-                <span class="flex items-center gap-2 text-sm font-bold text-ink"><span class="flex size-5 items-center justify-center rounded-md bg-brand text-white"><span data-icon="check" class="size-3.5 [stroke-width:3]"></span></span>삼겹살</span>
-                <span class="text-sm font-semibold text-brand">6.5kg 추천</span>
-              </div>
-              <div class="flex items-center justify-between rounded-xl px-4 py-2.5 glass-card">
-                <span class="flex items-center gap-2 text-sm font-bold text-ink"><span class="flex size-5 items-center justify-center rounded-md bg-brand text-white"><span data-icon="check" class="size-3.5 [stroke-width:3]"></span></span>맥주</span>
-                <span class="text-sm font-semibold text-brand">24병 추천</span>
-              </div>
-              <div class="flex items-center justify-between rounded-xl px-4 py-2.5 glass-card">
-                <span class="flex items-center gap-2 text-sm font-bold text-ink"><span class="flex size-5 items-center justify-center rounded-md bg-brand text-white"><span data-icon="check" class="size-3.5 [stroke-width:3]"></span></span>대파</span>
-                <span class="text-sm font-semibold text-brand">충분해요 · 0단</span>
-              </div>
-            </div>
-          </div>
-          <p class="mt-3 text-center text-xs text-ink-3">* 화면 예시입니다. 숫자는 실제 매장 데이터가 아닙니다.</p>
-        </div>
-      </div>
-    </section>
-
-    <!-- 사장님 고민 -->
-    <section class="mx-auto max-w-6xl px-4 py-16 sm:px-6 lg:py-20">
-      <div class="max-w-2xl space-y-3">
-        <p class="text-sm font-bold text-brand">이런 고민 있으셨죠?</p>
-        <h2 class="text-3xl leading-tight font-extrabold tracking-tight lg:text-4xl">발주, 아직도 감으로 하고 계신가요?</h2>
-      </div>
-      <div class="mt-10 grid gap-4 md:grid-cols-3">
-        <div class="relative overflow-hidden rounded-2xl border border-line bg-subtle p-6">
-          <span data-icon="clipboardList" class="absolute -right-4 -bottom-4 size-28 text-brand opacity-[0.08] [stroke-width:1.5]"></span>
-          <p class="text-sm font-bold text-brand">01</p>
-          <p class="mt-2 text-xl font-bold">매일 감으로 발주</p>
-          <p class="mt-2 text-[0.95rem] leading-relaxed text-ink-2">어제 얼마 팔렸는지 떠올리며 거래처에 주문을 넣고 계신가요?</p>
-        </div>
-        <div class="relative overflow-hidden rounded-2xl border border-line bg-subtle p-6">
-          <span data-icon="trash2" class="absolute -right-4 -bottom-4 size-28 text-brand opacity-[0.08] [stroke-width:1.5]"></span>
-          <p class="text-sm font-bold text-brand">02</p>
-          <p class="mt-2 text-xl font-bold">남아서 버리는 재료</p>
-          <p class="mt-2 text-[0.95rem] leading-relaxed text-ink-2">많이 시키면 소비기한이 지나 폐기, 그만큼 이익이 줄어듭니다.</p>
-        </div>
-        <div class="relative overflow-hidden rounded-2xl border border-line bg-subtle p-6">
-          <span data-icon="packageX" class="absolute -right-4 -bottom-4 size-28 text-brand opacity-[0.08] [stroke-width:1.5]"></span>
-          <p class="text-sm font-bold text-brand">03</p>
-          <p class="mt-2 text-xl font-bold">바쁜 날엔 재료 부족</p>
-          <p class="mt-2 text-[0.95rem] leading-relaxed text-ink-2">손님 많은 금·토요일에 재료가 떨어지면 팔 수 있는 것도 못 팝니다.</p>
-        </div>
-      </div>
-    </section>
-
-    <!-- 기능 -->
-    <section id="features" class="relative scroll-mt-20 overflow-hidden bg-canvas py-16 lg:py-24">
-      <div aria-hidden="true" class="pointer-events-none absolute inset-0 text-brand/[0.07]">
-        <span data-icon="cookingPot" class="absolute top-8 right-6 size-40 rotate-12 [stroke-width:1.25]"></span>
-        <span data-icon="carrot" class="absolute top-1/2 -left-6 size-32 -rotate-12 [stroke-width:1.25]"></span>
-        <span data-icon="fish" class="absolute right-1/4 bottom-6 size-28 rotate-6 [stroke-width:1.25]"></span>
-        <span data-icon="beer" class="absolute top-24 left-1/3 size-20 -rotate-6 [stroke-width:1.25]"></span>
-      </div>
-      <div class="relative mx-auto max-w-6xl px-4 sm:px-6">
-        <div class="max-w-2xl space-y-3">
-          <p class="text-sm font-bold text-brand">주요 기능</p>
-          <h2 class="text-3xl leading-tight font-extrabold tracking-tight lg:text-4xl">예측부터 발주까지 한 화면에서</h2>
-          <p class="text-lg text-ink-2">복잡한 표 대신, 오늘 해야 할 일과 숫자만 크게 보여드립니다.</p>
-        </div>
-        <div class="mt-10 grid gap-5 md:grid-cols-2">
-          <article class="rounded-3xl p-7 glass-strong">
-            <span class="flex size-12 items-center justify-center rounded-2xl bg-brand-soft text-brand"><span data-icon="trendingUp" class="size-6"></span></span>
-            <h3 class="mt-5 text-2xl font-bold">매출 예측</h3>
-            <p class="mt-2 text-[0.95rem] leading-relaxed text-ink-2">지난 매출과 요일 같은 요인을 함께 보고 앞으로 3일 매출을 미리 계산합니다.</p>
-            <ul class="mt-5 space-y-2">
-              <li class="flex items-start gap-2 text-[0.95rem] text-ink"><span data-icon="check" class="mt-0.5 size-5 shrink-0 text-brand [stroke-width:2.5]"></span>다음 날·이틀 뒤·사흘 뒤 예상 매출</li>
-              <li class="flex items-start gap-2 text-[0.95rem] text-ink"><span data-icon="check" class="mt-0.5 size-5 shrink-0 text-brand [stroke-width:2.5]"></span>예상 범위와 이유를 한 문장으로</li>
-              <li class="flex items-start gap-2 text-[0.95rem] text-ink"><span data-icon="check" class="mt-0.5 size-5 shrink-0 text-brand [stroke-width:2.5]"></span>신뢰도가 낮으면 따로 표시</li>
-            </ul>
-          </article>
-          <article class="rounded-3xl p-7 glass-strong">
-            <span class="flex size-12 items-center justify-center rounded-2xl bg-brand-soft text-brand"><span data-icon="clipboardList" class="size-6"></span></span>
-            <h3 class="mt-5 text-2xl font-bold">발주 추천</h3>
-            <p class="mt-2 text-[0.95rem] leading-relaxed text-ink-2">예측 매출 × 메뉴별 레시피 × 지금 재고를 계산해 재료별로 몇 개 시킬지 알려드립니다.</p>
-            <ul class="mt-5 space-y-2">
-              <li class="flex items-start gap-2 text-[0.95rem] text-ink"><span data-icon="check" class="mt-0.5 size-5 shrink-0 text-brand [stroke-width:2.5]"></span>재료마다 추천 수량과 계산 근거</li>
-              <li class="flex items-start gap-2 text-[0.95rem] text-ink"><span data-icon="check" class="mt-0.5 size-5 shrink-0 text-brand [stroke-width:2.5]"></span>필요 없으면 '0'으로 추천</li>
-              <li class="flex items-start gap-2 text-[0.95rem] text-ink"><span data-icon="check" class="mt-0.5 size-5 shrink-0 text-brand [stroke-width:2.5]"></span>확정은 사장님이 직접</li>
-            </ul>
-          </article>
-          <article class="rounded-3xl p-7 glass-strong">
-            <span class="flex size-12 items-center justify-center rounded-2xl bg-brand-soft text-brand"><span data-icon="boxes" class="size-6"></span></span>
-            <h3 class="mt-5 text-2xl font-bold">재고 관리</h3>
-            <p class="mt-2 text-[0.95rem] leading-relaxed text-ink-2">입고한 묶음(로트)마다 수량과 소비기한을 기록하고, 판매된 만큼 먼저 들어온 것부터 줄입니다.</p>
-            <ul class="mt-5 space-y-2">
-              <li class="flex items-start gap-2 text-[0.95rem] text-ink"><span data-icon="check" class="mt-0.5 size-5 shrink-0 text-brand [stroke-width:2.5]"></span>부족·소비기한 임박 알림</li>
-              <li class="flex items-start gap-2 text-[0.95rem] text-ink"><span data-icon="check" class="mt-0.5 size-5 shrink-0 text-brand [stroke-width:2.5]"></span>입고·실사 조정·폐기 기록</li>
-              <li class="flex items-start gap-2 text-[0.95rem] text-ink"><span data-icon="check" class="mt-0.5 size-5 shrink-0 text-brand [stroke-width:2.5]"></span>기준 수량 아래면 발주 목록에</li>
-            </ul>
-          </article>
-          <article class="rounded-3xl p-7 glass-strong">
-            <span class="flex size-12 items-center justify-center rounded-2xl bg-brand-soft text-brand"><span data-icon="fileSpreadsheet" class="size-6"></span></span>
-            <h3 class="mt-5 text-2xl font-bold">POS 매출 올리기</h3>
-            <p class="mt-2 text-[0.95rem] leading-relaxed text-ink-2">POS에서 내려받은 매출 파일(CSV)을 올리면 메뉴와 자동으로 맞춰 저장합니다.</p>
-            <ul class="mt-5 space-y-2">
-              <li class="flex items-start gap-2 text-[0.95rem] text-ink"><span data-icon="check" class="mt-0.5 size-5 shrink-0 text-brand [stroke-width:2.5]"></span>같은 영수증은 두 번 저장 안 함</li>
-              <li class="flex items-start gap-2 text-[0.95rem] text-ink"><span data-icon="check" class="mt-0.5 size-5 shrink-0 text-brand [stroke-width:2.5]"></span>새 메뉴 자동 등록 선택 가능</li>
-              <li class="flex items-start gap-2 text-[0.95rem] text-ink"><span data-icon="check" class="mt-0.5 size-5 shrink-0 text-brand [stroke-width:2.5]"></span>POS 자동 연동은 준비 중</li>
-            </ul>
-          </article>
-        </div>
-      </div>
-    </section>
-
-    <!-- 이용 방법 -->
-    <section id="how" class="mx-auto max-w-6xl scroll-mt-20 px-4 py-16 sm:px-6 lg:py-24">
-      <div class="max-w-2xl space-y-3">
-        <p class="text-sm font-bold text-brand">이용 방법</p>
-        <h2 class="text-3xl leading-tight font-extrabold tracking-tight lg:text-4xl">세 단계면 끝나요</h2>
-      </div>
-      <ol class="mt-10 grid gap-4 md:grid-cols-3">
-        <li class="relative rounded-3xl p-7 glass-strong">
-          <span class="text-sm font-bold text-brand">STEP 1</span>
-          <span class="mt-3 flex size-12 items-center justify-center rounded-2xl bg-brand text-white"><span data-icon="upload" class="size-6"></span></span>
-          <p class="mt-4 text-xl font-bold">매출 올리기</p>
-          <p class="mt-2 text-[0.95rem] leading-relaxed text-ink-2">POS 매출 파일을 올리고 메뉴별 레시피를 한 번만 등록하세요.</p>
-        </li>
-        <li class="relative rounded-3xl p-7 glass-strong">
-          <span class="text-sm font-bold text-brand">STEP 2</span>
-          <span class="mt-3 flex size-12 items-center justify-center rounded-2xl bg-brand text-white"><span data-icon="sparkles" class="size-6"></span></span>
-          <p class="mt-4 text-xl font-bold">AI가 계산</p>
-          <p class="mt-2 text-[0.95rem] leading-relaxed text-ink-2">매일 밤 앞으로 3일 매출과 재료별 필요량을 계산합니다.</p>
-        </li>
-        <li class="relative rounded-3xl p-7 glass-strong">
-          <span class="text-sm font-bold text-brand">STEP 3</span>
-          <span class="mt-3 flex size-12 items-center justify-center rounded-2xl bg-brand text-white"><span data-icon="clipboardCheck" class="size-6"></span></span>
-          <p class="mt-4 text-xl font-bold">확인하고 확정</p>
-          <p class="mt-2 text-[0.95rem] leading-relaxed text-ink-2">아침에 추천 수량을 보고, 고칠 건 고친 뒤 발주를 확정하세요.</p>
-        </li>
-      </ol>
-      <div class="mt-8 flex items-start gap-3 rounded-2xl bg-brand-soft p-5 text-[0.95rem] leading-relaxed text-ink-2">
-        <span data-icon="shieldCheck" class="mt-0.5 size-6 shrink-0 text-brand"></span>
-        <p><strong class="text-ink">결정은 사장님이 합니다.</strong> 사주라는 발주를 부추기지 않고 필요한 만큼만 제안합니다. 재고가 넉넉하면 추천 수량은 0개로 나옵니다.</p>
-      </div>
-    </section>
-
-    <!-- 앱 설치 -->
-    <section id="app" class="relative mx-3 scroll-mt-20 overflow-hidden rounded-[2rem] bg-ink/85 py-16 text-white backdrop-blur-xl lg:py-24">
-      <div class="absolute inset-0 bg-gradient-to-r from-ink via-ink/90 to-brand-strong/60"></div>
-      <div class="relative mx-auto grid max-w-6xl items-center gap-12 px-4 sm:px-6 lg:grid-cols-2">
-        <div class="space-y-6">
-          <p class="text-sm font-bold text-brand-tint">앱 설치</p>
-          <h2 class="text-3xl leading-tight font-extrabold tracking-tight lg:text-4xl">앱스토어 없이,<br>휴대폰 홈 화면에 바로</h2>
-          <p class="text-lg leading-relaxed text-white/80">
-            사주라는 웹앱(PWA)입니다. 한 번 설치하면 앱 아이콘을 눌러 바로 열리고, 화면 아래 큰 글씨 메뉴로 홈·매출 예측·재고·발주를 오갈 수 있어요.
-          </p>
-          <!-- 설치됨 / 설치 창 가능(지금 앱 설치하기) / 그 외(설치 방법 보기 → 안내 시트) -->
-          <p data-when="installed" class="inline-flex items-center gap-2 rounded-2xl bg-white/10 px-5 py-4 text-base font-semibold">
-            <span data-icon="check" class="size-5"></span> 이미 이 기기에 설치되어 있어요
-          </p>
-          <button type="button" data-when="prompt" class="inline-flex h-14 items-center gap-2 rounded-2xl bg-white px-7 text-lg font-bold text-ink hover:bg-brand-soft">
-            <span data-icon="smartphone" class="size-5"></span>지금 앱 설치하기
-          </button>
-          <button type="button" data-when="default menu faq guide-android guide-ios" data-set-state="guide-android" class="inline-flex h-14 items-center gap-2 rounded-2xl bg-white px-7 text-lg font-bold text-ink hover:bg-brand-soft">
-            <span data-icon="smartphone" class="size-5"></span>설치 방법 보기
-          </button>
-          <div class="grid gap-3 sm:grid-cols-2">
-            <div class="rounded-2xl bg-white/5 p-5 ring-1 ring-white/10">
-              <p class="font-bold">안드로이드 · PC 크롬</p>
-              <ol class="mt-2 space-y-1 text-[0.95rem] text-white/75">
-                <li>1. 위 버튼을 누르세요</li>
-                <li>2. '설치'를 누르면 끝</li>
-              </ol>
-            </div>
-            <div class="rounded-2xl bg-white/5 p-5 ring-1 ring-white/10">
-              <p class="font-bold">아이폰 · 아이패드</p>
-              <ol class="mt-2 space-y-1 text-[0.95rem] text-white/75">
-                <li>1. 사파리로 이 페이지 열기</li>
-                <li>2. 공유 → '홈 화면에 추가'</li>
-              </ol>
-            </div>
-          </div>
-        </div>
-
-        <!-- PhonePreview — 휴대폰 화면 예시(하단 탭 포함) -->
-        <div class="mx-auto w-full max-w-[300px]" role="img" aria-label="사주라 앱 화면 예시">
-          <div class="rounded-[2.5rem] bg-white/10 p-3 ring-1 ring-white/15">
-            <div class="overflow-hidden rounded-[2rem] bg-[#f4f2ff] text-ink">
-              <div class="bg-white px-5 pt-6 pb-3">
-                <p class="text-xs text-ink-3">김사장님, 안녕하세요</p>
-                <p class="text-lg font-extrabold">우리 가게</p>
-              </div>
-              <div class="space-y-3 p-4">
-                <div class="rounded-2xl bg-brand p-4 text-white">
-                  <p class="text-xs text-white/80">오늘 할 일</p>
-                  <p class="mt-0.5 font-bold">발주가 필요한 재료가 3개 있어요</p>
-                  <p class="mt-3 rounded-xl bg-white py-2 text-center text-sm font-bold text-brand-strong">발주하러 가기</p>
-                </div>
-                <div class="grid grid-cols-2 gap-2">
-                  <div class="rounded-2xl p-3 glass-strong">
-                    <p class="text-xs text-ink-3">오늘 매출</p>
-                    <p class="mt-1 text-lg font-extrabold">84만원</p>
-                  </div>
-                  <div class="rounded-2xl p-3 glass-strong">
-                    <p class="text-xs text-ink-3">판매건수</p>
-                    <p class="mt-1 text-lg font-extrabold">37건</p>
-                  </div>
-                </div>
-                <div class="h-16 rounded-2xl glass-strong"></div>
-              </div>
-              <div class="grid grid-cols-5 border-t border-line bg-white py-2">
-                <div class="flex flex-col items-center gap-0.5 text-[10px] font-bold text-brand"><span data-icon="home" class="size-5"></span>홈</div>
-                <div class="flex flex-col items-center gap-0.5 text-[10px] font-bold text-ink-3"><span data-icon="trendingUp" class="size-5"></span>매출 예측</div>
-                <div class="flex flex-col items-center gap-0.5 text-[10px] font-bold text-ink-3"><span data-icon="boxes" class="size-5"></span>재고</div>
-                <div class="flex flex-col items-center gap-0.5 text-[10px] font-bold text-ink-3"><span data-icon="clipboardList" class="size-5"></span>발주</div>
-                <div class="flex flex-col items-center gap-0.5 text-[10px] font-bold text-ink-3"><span data-icon="menu" class="size-5"></span>더보기</div>
-              </div>
-            </div>
+          <div class="rounded-2xl bg-white/70 p-3.5">
+            <p class="font-bold">아이폰 · 아이패드</p>
+            <ol class="mt-1.5 space-y-0.5 text-ink-2"><li>1. 사파리로 이 페이지 열기</li><li>2. 공유 → '홈 화면에 추가'</li></ol>
           </div>
         </div>
       </div>
-    </section>
+    </div>
+  </section>
 
-    <!-- FAQ — 접힌 목록은 클릭으로 하나씩 펼친다. FAQ 펼침 상태는 전부 펼친 목록을 보인다 -->
-    <section id="faq" class="mx-auto max-w-3xl scroll-mt-20 px-4 py-16 sm:px-6 lg:py-24">
-      <div class="max-w-2xl space-y-3">
-        <p class="text-sm font-bold text-brand">자주 묻는 질문</p>
-        <h2 class="text-3xl leading-tight font-extrabold tracking-tight lg:text-4xl">궁금한 점이 있으신가요?</h2>
+  <!-- 19:00 다시 저녁 — 시작 버튼과 FAQ. FAQ는 클릭으로 하나씩 펼치고, FAQ 펼침 상태는 전부 펼친다 -->
+  <section id="faq" class="scene !min-h-0 !pb-[26vh]" data-tone="light" data-min="2580">
+    <div class="mx-auto w-full max-w-3xl">
+      <div class="text-center">
+        <div class="time reveal"><b>19:00</b>다시 저녁</div>
+        <h2 class="reveal d1">오늘 밤부터<br>사주라에게 맡겨 보세요</h2>
+        <p class="lead reveal d2 mx-auto">가입하고 사업자 인증을 마치면 오늘 매출 파일로 바로 시작할 수 있어요.</p>
+        <div class="reveal d2 mt-8 flex flex-col justify-center gap-3 sm:flex-row">
+          <a href="03_register.html" class="inline-flex h-14 items-center justify-center gap-2 rounded-2xl bg-brand px-7 text-lg font-bold text-white hover:bg-brand-strong">지금 시작하기 <span data-icon="arrowRight" class="size-5"></span></a>
+          <a href="02_login.html" class="inline-flex h-14 items-center justify-center rounded-2xl border border-ink/30 px-7 text-lg font-bold text-ink hover:bg-white/40">로그인</a>
+        </div>
       </div>
-      <div data-when="default menu guide-android guide-ios prompt installed" class="mt-10 divide-y divide-line rounded-3xl glass-strong">
+      <h3 class="mt-20 text-sm font-bold text-ink-2">자주 묻는 질문</h3>
+      <div data-when="default guide-android guide-ios prompt installed" class="mt-3 divide-y divide-line rounded-3xl glass-strong">
         <details class="group px-6 py-5 [&_summary::-webkit-details-marker]:hidden">
           <summary class="flex cursor-pointer list-none items-center justify-between gap-4 text-lg font-bold">앱스토어에서 받아야 하나요?<span data-icon="chevronDown" class="size-5 shrink-0 text-ink-3 transition-transform group-open:rotate-180"></span></summary>
           <p class="mt-3 text-[0.95rem] leading-relaxed text-ink-2">아니요. 사주라는 웹앱(PWA)이라 인터넷 주소로 들어와 '홈 화면에 추가'만 하면 휴대폰에 앱 아이콘이 생깁니다. 안드로이드는 설치 버튼 한 번, 아이폰은 사파리의 공유 → 홈 화면에 추가로 설치합니다.</p>
@@ -360,7 +287,7 @@
           <p class="mt-3 text-[0.95rem] leading-relaxed text-ink-2">매장마다 다르고 매출 기록이 쌓일수록 좋아집니다. 판매 기록이 너무 적으면(10일 미만) 예측 대신 안내를 보여주고, 불확실한 날은 '신뢰도 낮음'으로 표시합니다.</p>
         </details>
       </div>
-      <div data-when="faq" class="mt-10 divide-y divide-line rounded-3xl glass-strong">
+      <div data-when="faq" class="mt-3 divide-y divide-line rounded-3xl glass-strong">
         <details open class="group px-6 py-5 [&_summary::-webkit-details-marker]:hidden">
           <summary class="flex cursor-pointer list-none items-center justify-between gap-4 text-lg font-bold">앱스토어에서 받아야 하나요?<span data-icon="chevronDown" class="size-5 shrink-0 text-ink-3 transition-transform group-open:rotate-180"></span></summary>
           <p class="mt-3 text-[0.95rem] leading-relaxed text-ink-2">아니요. 사주라는 웹앱(PWA)이라 인터넷 주소로 들어와 '홈 화면에 추가'만 하면 휴대폰에 앱 아이콘이 생깁니다. 안드로이드는 설치 버튼 한 번, 아이폰은 사파리의 공유 → 홈 화면에 추가로 설치합니다.</p>
@@ -382,38 +309,10 @@
           <p class="mt-3 text-[0.95rem] leading-relaxed text-ink-2">매장마다 다르고 매출 기록이 쌓일수록 좋아집니다. 판매 기록이 너무 적으면(10일 미만) 예측 대신 안내를 보여주고, 불확실한 날은 '신뢰도 낮음'으로 표시합니다.</p>
         </details>
       </div>
-    </section>
-
-    <!-- 마지막 CTA -->
-    <section class="px-4 pb-16 sm:px-6 lg:pb-24">
-      <div class="relative mx-auto flex max-w-6xl flex-col items-start gap-6 overflow-hidden rounded-3xl bg-gradient-to-br from-brand to-brand-strong p-8 text-white sm:p-12 lg:flex-row lg:items-center lg:justify-between">
-        <div class="absolute inset-0 bg-gradient-to-r from-brand-strong/70 to-brand/40"></div>
-        <div class="relative">
-          <p class="text-2xl font-extrabold sm:text-3xl">오늘 매출 파일 하나로 시작해 보세요</p>
-          <p class="mt-2 text-lg text-white/80">가입하고 사업자 인증을 마치면 바로 쓸 수 있어요.</p>
-        </div>
-        <div class="relative flex w-full flex-col gap-3 sm:w-auto sm:flex-row">
-          <a href="03_register.html" class="inline-flex h-14 items-center justify-center rounded-2xl bg-white px-7 text-lg font-bold text-brand-strong hover:bg-brand-soft">지금 시작하기</a>
-          <a href="02_login.html" class="inline-flex h-14 items-center justify-center rounded-2xl border border-white/40 px-7 text-lg font-bold text-white hover:bg-white/10">로그인</a>
-        </div>
-      </div>
-    </section>
-  </main>
-
-  <footer class="border-t border-line bg-subtle">
-    <div class="mx-auto flex max-w-6xl flex-col gap-3 px-4 py-10 text-sm text-ink-3 sm:px-6 md:flex-row md:items-center md:justify-between">
-      <div class="flex items-center gap-2">
-        <span class="flex size-7 items-center justify-center rounded-md bg-brand text-xs font-black text-white">사</span>
-        <span class="font-bold text-ink-2">사주라</span>
-        <span>· 홍익대학교 소프트웨어융합전공 캡스톤디자인 1조</span>
-      </div>
-      <div class="flex gap-4">
-        <a href="02_login.html" class="hover:text-ink">로그인</a>
-        <a href="03_register.html" class="hover:text-ink">회원가입</a>
-      </div>
+      <p class="mt-16 text-center text-sm text-ink-2">사주라 · 홍익대학교 소프트웨어융합전공 캡스톤디자인 1조</p>
     </div>
-  </footer>
-</div>
+  </section>
+</main>
 
 <!-- InstallGuideSheet — 하단 시트(데스크톱은 가운데 창) -->
 <div data-when="guide-android guide-ios" class="fixed inset-0 z-50 flex items-end justify-center bg-ink/40 sm:items-center">
@@ -436,5 +335,83 @@
     <button type="button" data-set-state="default" class="mt-6 inline-flex h-14 w-full shrink-0 items-center justify-center gap-2 rounded-2xl bg-brand px-6 text-lg font-semibold whitespace-nowrap text-white transition-colors hover:bg-brand-strong">확인했어요</button>
   </div>
 </div>
+
+<script>
+// 별
+(() => {
+  let s = "";
+  for (let i = 0; i < 140; i++) {
+    const x = Math.random() * 100, y = Math.random() * 70, r = Math.random() * 1.3 + 0.3;
+    s += `<circle cx="${x}%" cy="${y}%" r="${r}" fill="#fff" opacity="${(Math.random() * 0.6 + 0.4).toFixed(2)}"/>`;
+  }
+  document.getElementById("stars").innerHTML = s;
+})();
+
+(() => {
+// 장면별 하늘 — 위·가운데·아래 색, 별 투명도, 동네 색, 가게 창문 색, 상단 바 글자 밝기(0 흰색 → 1 진한 글자)
+const SKY = [
+  { sky: ["#241a5e", "#6a46c4", "#f2988c"], stars: .35, town: "#1d1446", win: "#ffd27a", fg: 0 }, // 21:30 마감
+  { sky: ["#110b36", "#24195f", "#4a368f"], stars: .8,  town: "#0f0a2c", win: "#ffd27a", fg: 0 }, // 22:40
+  { sky: ["#05031a", "#110b3a", "#2a1d6a"], stars: 1,   town: "#07051a", win: "#8f7bff", fg: 0 }, // 02:00
+  { sky: ["#3e36a8", "#ac86d8", "#ffc6a6"], stars: .12, town: "#3a2c78", win: "#3a2c78", fg: 0.2 }, // 07:30
+  { sky: ["#8ea6ff", "#c8c2ff", "#f3efff"], stars: 0,   town: "#b9b0f0", win: "#fff3c4", fg: 1 }, // 10:00
+  { sky: ["#a6b8ff", "#dcd7ff", "#faf8ff"], stars: 0,   town: "#d4cdfb", win: "#fff3c4", fg: 1 }, // 14:00
+  { sky: ["#a9a6f4", "#e7d3f4", "#ffd6bf"], stars: 0,   town: "#c9b9ec", win: "#ffd27a", fg: 1 }, // 19:00
+];
+const hex = (h) => [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16));
+const mix = (a, b, t) => { const A = hex(a), B = hex(b); return `rgb(${A.map((v, i) => Math.round(v + (B[i] - v) * t)).join(" ")})`; };
+const lerp = (a, b, t) => a + (b - a) * t;
+const ease = (t) => t * t * (3 - 2 * t);
+
+function drawSky() {
+  const secs = [...document.querySelectorAll("main .scene")];
+  const mid = scrollY + innerHeight / 2;
+  const c = secs.map((el) => el.offsetTop + el.offsetHeight / 2);
+  let i = 0;
+  while (i < c.length - 2 && mid > c[i + 1]) i++;
+  const t = ease(Math.min(1, Math.max(0, (mid - c[i]) / (c[i + 1] - c[i]))));
+  const a = SKY[i], b = SKY[i + 1];
+  document.getElementById("sky").style.background =
+    `linear-gradient(180deg, ${mix(a.sky[0], b.sky[0], t)} 0%, ${mix(a.sky[1], b.sky[1], t)} 55%, ${mix(a.sky[2], b.sky[2], t)} 100%)`;
+  document.getElementById("stars").style.opacity = lerp(a.stars, b.stars, t);
+  // 시각 — 장면 시각 사이를 이어서 흐른다(분 단위, 자정을 넘으면 1440을 넘긴다)
+  const mf = lerp(+secs[i].dataset.min, +secs[i + 1].dataset.min, t);
+  // 달·해 — 시각으로 위치를 정해 같은 호를 같은 방향(오른쪽 → 왼쪽)으로 넘어간다.
+  // 왼쪽 글 칸을 피해 뜨는 쪽을 제품 화면이 있는 오른쪽에 둔다. 앱 폭에서는 위쪽 띠 안에서만 움직인다
+  const narrow = innerWidth < 860;
+  const arc = (el, f) => {
+    const p = Math.min(1, Math.max(0, f));
+    let y = 84 - 70 * Math.sin(Math.PI * p);
+    if (narrow) y = 6 + (y - 6) * 0.35;
+    el.style.left = 92 - 84 * p + "vw";
+    el.style.top = y + "vh";
+    el.style.opacity = f > 0 && f < 1 ? Math.min(1, p / 0.06, (1 - p) / 0.06) * (narrow ? 0.5 : 1) : 0;
+  };
+  arc(document.getElementById("sun"), ((mf % 1440) - 390) / 780); // 06:30 뜨고 19:30 진다
+  arc(document.getElementById("moon"), ((mf - 1170) % 1440) / 720); // 19:30 뜨고 07:30 진다
+  const town = mix(a.town, b.town, t);
+  document.getElementById("town-fill").setAttribute("fill", town);
+  document.getElementById("shop").setAttribute("fill", town);
+  const win = mix(a.win, b.win, t);
+  for (const w of document.querySelectorAll(".town .win")) w.setAttribute("fill", win);
+  // 시계
+  const m = Math.round(mf) % 1440;
+  document.getElementById("clock").textContent = `${String(Math.floor(m / 60)).padStart(2, "0")}:${String(m % 60).padStart(2, "0")}`;
+  const hd = document.getElementById("hd");
+  const fg = lerp(a.fg, b.fg, t);
+  hd.style.setProperty("--fg", mix("#ffffff", "#111827", fg));
+  hd.style.setProperty("--fg-2", mix("#dcd8f2", "#374151", fg));
+  hd.style.setProperty("--pill", mix(a.sky[0], b.sky[0], t).replace(")", " / .42)"));
+  hd.classList.toggle("scrolled", scrollY > innerHeight * 0.3);
+}
+addEventListener("scroll", () => requestAnimationFrame(drawSky), { passive: true });
+addEventListener("resize", drawSky);
+addEventListener("load", drawSky);
+drawSky();
+
+const io = new IntersectionObserver((es) => es.forEach((e) => e.isIntersecting && e.target.classList.add("in")), { threshold: 0.2 });
+document.querySelectorAll(".reveal").forEach((el) => io.observe(el));
+})();
+</script>
 </body>
 </html>
