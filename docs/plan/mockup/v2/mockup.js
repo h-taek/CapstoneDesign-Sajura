@@ -992,7 +992,7 @@ function renderShell(el) {
 }
 
 // RevenueBarChart(components/dashboard/revenue-chart.tsx) 모양
-// <div data-chart="bar|area|dashed-line" data-labels="10/1,10/2,…" data-values="…" data-metric="revenue|sales_count" [data-forecast="N"(bar·area)] [data-font="축 글자 px"] [data-ref="기준선 값"] [data-smooth(area 곡선)] style="height:240px">
+// <div data-chart="bar|area|dashed-line" data-labels="10/1,10/2,…" data-values="…" data-metric="revenue|sales_count" [data-forecast="N"(bar·area)] [data-font="축 글자 px"] [data-ref="기준선 값"] [data-smooth(area 곡선)] [data-predicted="날짜별 예측값, 빈 칸은 없음"] style="height:240px">
 const CHART = { brand: "#6b4eff", grid: "#eef0f3", tick: "#6b7280", line: "#e3e6eb" };
 
 function renderChart(el) {
@@ -1011,7 +1011,11 @@ function renderChart(el) {
   const auto = el.dataset.min === "auto";
   const span = Math.max(...values) - Math.min(...values) || Math.max(...values) * 0.1 || 1;
   const lo = auto ? Math.min(...values) - span * 0.35 : 0;
-  const max = auto ? Math.max(...values) + span * 0.25 : Math.max(...values, ref ?? 0) * 1.15 || 1;
+  // data-predicted="v,v,,v" — 날짜마다 그날의 예측값(빈 칸은 없음)을 회색 점선으로 겹친다(예측 대비 실제)
+  const predicted = el.dataset.predicted ? el.dataset.predicted.split(",").map((v) => (v === "" ? null : Number(v))) : [];
+  const max = auto
+    ? Math.max(...values) + span * 0.25
+    : Math.max(...values, ref ?? 0, ...predicted.filter((v) => v != null)) * 1.15 || 1;
   const fmt = (v) => (isRevenue ? `${Math.round(v / 10000)}만` : String(Math.round(v)));
   // 세로축 숫자 형식은 PR(만 단위) 그대로 두고, 칸 폭만 가장 긴 숫자에 맞춘다
   const fs = Number(el.dataset.font ?? 13); // 축 글자 크기(data-font, 기본 13px)
@@ -1090,6 +1094,16 @@ function renderChart(el) {
   } else {
     body += `<polyline points="${pts.join(" ")}" fill="none" stroke="${CHART.brand}" stroke-width="2.5" stroke-dasharray="6 4"/>`;
     body += values.map((v, i) => `<circle cx="${x(i)}" cy="${y(v)}" r="4" fill="${CHART.brand}"/>`).join("");
+  }
+  if (predicted.length) {
+    let run = [];
+    const flush = () => {
+      if (run.length > 1) body += `<polyline points="${run.join(" ")}" fill="none" stroke="${CHART.tick}" stroke-width="1.5" stroke-dasharray="4 3"/>`;
+      run = [];
+    };
+    predicted.forEach((v, i) => (v == null ? flush() : run.push(`${x(i)},${y(v)}`)));
+    flush();
+    body += predicted.map((v, i) => (v == null ? "" : `<circle cx="${x(i)}" cy="${y(v)}" r="2.5" fill="#fff" stroke="${CHART.tick}" stroke-width="1.5"/>`)).join("");
   }
   el.innerHTML = `<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" class="h-full w-full">${body}</svg>`;
 }

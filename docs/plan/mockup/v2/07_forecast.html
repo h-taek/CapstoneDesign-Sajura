@@ -26,6 +26,7 @@
   <div class="grid gap-4">
     <div class="grid grid-cols-1 gap-4 lg:grid-cols-3">
       <!-- 기간 매출 — 주(7일씩)·월·년(최근 12개월, 월별 막대)을 고르고 ‹ ›로 지난 기간을 넘겨 첫 판매까지 본다(GET /api/dashboard/forecast-vs-actual start_date·end_date).
+           실제 막대 위에 그날 예측(predicted_sales)을 회색 점선으로 겹치고, 왼쪽에 이 기간 예측 정확도를 둔다.
            왼쪽은 고른 기간 합계와 직전 같은 길이 기간 대비. 마지막 판매가 든 기간이면 끝에 오늘·내일·모레 예상 막대(점선)를 붙인다 -->
       <section class="flex flex-col rounded-2xl p-4 glass-card lg:col-span-2">
         <div class="flex flex-1 flex-col gap-5 lg:flex-row">
@@ -37,6 +38,7 @@
             </div>
             <p id="range-total" class="tabular mt-2 text-[2.25rem] leading-none font-bold tracking-tight text-ink"></p>
             <p id="range-count" class="tabular mt-2.5 text-sm text-ink-3"></p>
+            <p id="range-acc" title="날짜마다 1 − |예측 − 실제| ÷ 실제의 평균" class="tabular mt-1 text-sm text-ink-2"></p>
             <div class="mt-6 lg:mt-auto">
               <div id="range-bar" class="h-2 rounded-full bg-brand/15"><div class="h-full rounded-full bg-brand"></div></div>
               <p id="range-compare" class="tabular mt-2 text-sm text-ink-3"></p>
@@ -44,7 +46,7 @@
           </div>
           <div class="flex min-w-0 flex-1 flex-col">
             <div class="flex h-6 items-center justify-between gap-2 text-xs">
-              <p class="flex items-center gap-3 text-ink-3"><span id="range-unit" class="font-semibold text-ink-2"></span><span class="inline-flex items-center gap-1"><span class="size-2.5 rounded-sm bg-brand"></span>실제</span><span data-when="default d2 d3"><span id="legend-forecast" class="inline-flex items-center gap-1"><span class="size-2.5 rounded-sm border border-dashed border-brand bg-brand/20"></span>예상</span></span></p>
+              <p class="flex items-center gap-3 text-ink-3"><span id="range-unit" class="font-semibold text-ink-2"></span><span class="inline-flex items-center gap-1"><span class="size-2.5 rounded-sm bg-brand"></span>실제</span><span class="inline-flex items-center gap-1"><span class="w-3 border-t-2 border-dashed border-ink-3"></span>그날 예측</span><span data-when="default d2 d3"><span id="legend-forecast" class="inline-flex items-center gap-1"><span class="size-2.5 rounded-sm border border-dashed border-brand bg-brand/20"></span>예상</span></span></p>
               <div role="tablist" aria-label="그래프 기간" class="inline-flex rounded-lg bg-white/50 p-0.5"><button type="button" role="tab" data-range="week" class="rounded-md px-2.5 py-0.5 text-xs font-semibold transition-colors">주</button><button type="button" role="tab" data-range="month" class="rounded-md px-2.5 py-0.5 text-xs font-semibold transition-colors">월</button><button type="button" role="tab" data-range="year" class="rounded-md px-2.5 py-0.5 text-xs font-semibold transition-colors">년</button></div>
             </div>
             <div id="chart-fc" data-when="default d2 d3" data-chart="bar" data-font="11" data-metric="revenue" class="mt-2 h-48 w-full" data-labels="" data-values="0"></div>
@@ -323,6 +325,11 @@
   const day = (i) => new Date(2026, 8, 1 + i); // DAILY[0] = 9월 1일
   const MONTHLY = [28500000,34200000,27100000,26400000,29800000,30500000,33100000,31800000,34600000,35200000,31900000,22924000]; // 2025-11 ~ 2026-10(10/19까지)
   const FORECAST = [1080000,1140000,1210000];
+  // 그날 예측(forecast_results, 대상일마다 마지막 예측) — 목업은 실제에서 ±10% 안으로 흔든 값. 10/19는 홈 '어제 예측 121만원'과 같게
+  const ERR = [0.05,-0.08,0.03,-0.04,0.09,-0.02,0.06,-0.07,0.01,0.04,-0.06,0.08,-0.03,0.02,-0.09,0.05,-0.01,0.07,-0.05,0.03,-0.04,0.06,-0.02,0.1,-0.06];
+  const PRED = DAILY.map((v, i) => Math.round((v * (1 + ERR[i % ERR.length])) / 1000) * 1000);
+  PRED[PRED.length - 1] = 1210000;
+  const MONTHLY_PRED = MONTHLY.map((v, i) => Math.round((v * (1 + ERR[(i * 3) % ERR.length] * 0.6)) / 10000) * 10000);
   const won = (v) => {
     const man = Math.round(v / 10000), eok = Math.floor(man / 10000), rest = man % 10000;
     return eok ? `${eok}억${rest ? ` ${rest.toLocaleString()}만` : ""}원` : `${man.toLocaleString()}만원`;
@@ -338,16 +345,16 @@
       const prev = start - 7 >= 0 ? sum(DAILY.slice(start - 7, start)) : null;
       return { label: `${md(day(start))} ~ ${md(day(end))}`, unit: "일별 매출", values: DAILY.slice(start, end + 1),
         labels: DAILY.slice(start, end + 1).map((_, i) => { const d = day(start + i); return `${d.getMonth() + 1}/${d.getDate()}`; }),
-        prev, prevName: "직전 7일", latest: back === 0, canBack: start - 7 >= 0 };
+        predicted: PRED.slice(start, end + 1), prev, prevName: "직전 7일", latest: back === 0, canBack: start - 7 >= 0 };
     }
     if (range === "month") {
       const [start, end, m] = back === 0 ? [30, last, 10] : [0, 29, 9];
       return { label: `2026년 ${m}월`, unit: "일별 매출", values: DAILY.slice(start, end + 1),
-        labels: DAILY.slice(start, end + 1).map((_, i) => `${m}/${i + 1}`),
+        labels: DAILY.slice(start, end + 1).map((_, i) => `${m}/${i + 1}`), predicted: PRED.slice(start, end + 1),
         prev: MONTHLY[back === 0 ? 10 : 9], prevName: back === 0 ? "9월" : "8월", latest: back === 0, canBack: back === 0 };
     }
     return { label: "2025년 11월 ~ 2026년 10월", unit: "월별 매출", values: MONTHLY,
-      labels: ["11월","12월","1월","2월","3월","4월","5월","6월","7월","8월","9월","10월"],
+      labels: ["11월","12월","1월","2월","3월","4월","5월","6월","7월","8월","9월","10월"], predicted: MONTHLY_PRED,
       prev: null, avg: sum(MONTHLY) / 12, latest: false, canBack: false };
   }
 
@@ -357,6 +364,9 @@
     document.getElementById("range-unit").textContent = v.unit;
     document.getElementById("range-total").textContent = won(total);
     document.getElementById("range-count").textContent = `판매 ${Math.round(total / 22000).toLocaleString()}건`;
+    // 예측 정확도 — 날짜(년은 달)마다 1 − |예측 − 실제| ÷ 실제의 평균
+    const acc = v.values.reduce((a, x, i) => a + (1 - Math.abs(v.predicted[i] - x) / x), 0) / v.values.length;
+    document.getElementById("range-acc").innerHTML = `예측 정확도 <span class="font-semibold text-brand">${Math.round(acc * 100)}%</span>`;
     const bar = document.getElementById("range-bar"), cmp = document.getElementById("range-compare");
     if (v.prev) {
       const pct = Math.round((total / v.prev) * 100);
@@ -368,7 +378,8 @@
       cmp.textContent = v.avg ? `월 평균 ${won(v.avg)}` : "비교할 직전 기간이 없어요";
     }
     const fc = document.getElementById("chart-fc"), plain = document.getElementById("chart-plain");
-    plain.dataset.labels = v.labels.join(","); plain.dataset.values = v.values.join(",");
+    plain.dataset.labels = v.labels.join(","); plain.dataset.values = v.values.join(","); plain.dataset.predicted = v.predicted.join(",");
+    fc.dataset.predicted = (v.latest ? [...v.predicted, "", "", ""] : v.predicted).join(",");
     fc.dataset.labels = (v.latest ? [...v.labels, "오늘", "내일", "모레"] : v.labels).join(",");
     fc.dataset.values = (v.latest ? [...v.values, ...FORECAST] : v.values).join(",");
     if (v.latest) fc.dataset.forecast = "3"; else delete fc.dataset.forecast;
