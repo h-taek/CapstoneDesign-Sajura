@@ -121,6 +121,12 @@ const THEME_CSS = `
   border: 1px solid rgb(255 255 255 / 0.5);
   box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.7);
 }
+/* 앱 상단 바(열린 배치) — 스크롤하면 한 판의 왼쪽 끝이 오른쪽으로 줄어 알림·계정만 남는다. 점포 정보는 흐려지며 사라진다 */
+header[data-shrink] { transition: left 0.4s cubic-bezier(0.2, 0.8, 0.2, 1); overflow: hidden; }
+header[data-shrink] .shrink-hide { transition: opacity 0.2s; }
+header[data-shrink].is-shrunk { left: calc(100% - 0.75rem - var(--shrink-w, 6.5rem)); }
+header[data-shrink].is-shrunk { gap: 0; }
+header[data-shrink].is-shrunk .shrink-hide { opacity: 0; pointer-events: none; flex: 0 0 0; width: 0; min-width: 0; padding: 0; overflow: hidden; }
 /* 안쪽 판 — 이미 흐려진 판 위라 흐림을 다시 걸지 않는다 */
 :is(.glass, .glass-card, .glass-strong, .glass-brand) .glass-card {
   -webkit-backdrop-filter: none;
@@ -912,13 +918,13 @@ function renderShell(el) {
   ${backdropHtml(currentBackdrop())}
 
   ${open ? webHeader : ""}
-  <header class="en en-top glass-bar pt-safe fixed inset-x-3 top-3 z-30 flex h-14${open ? " lg:hidden" : ""} items-center gap-2 rounded-full pr-2 pl-2 lg:top-4 lg:right-4 lg:left-12 lg:gap-3 lg:pl-5">
-    ${back ? `<a href="${back}" aria-label="뒤로 가기" class="flex size-10 items-center justify-center rounded-full text-ink hover:bg-white/40 lg:hidden">${icon("chevronLeft", "size-6")}</a>` : ""}
+  <header${open ? " data-shrink" : ""} class="en en-top glass-bar pt-safe fixed inset-x-3 top-3 z-30 flex h-14${open ? " lg:hidden" : ""} items-center gap-2 rounded-full pr-2 pl-2 lg:top-4 lg:right-4 lg:left-12 lg:gap-3 lg:pl-5">
+    ${back ? `<a href="${back}" aria-label="뒤로 가기" class="shrink-hide flex size-10 shrink-0 items-center justify-center rounded-full text-ink hover:bg-white/40 lg:hidden">${icon("chevronLeft", "size-6")}</a>` : ""}
     <a href="${href("home")}" class="hidden items-center gap-2 lg:flex" aria-label="사주라 홈">
       <span class="flex size-8 items-center justify-center rounded-lg bg-ink text-sm font-black text-white">S</span>
       <span class="text-lg font-extrabold tracking-tight text-ink">사주라</span>
     </a>
-    <div class="min-w-0 flex-1 pl-2 leading-tight lg:hidden">
+    <div class="shrink-hide min-w-0 flex-1 pl-2 leading-tight lg:hidden">
       ${subtitle ? `<p class="text-xs text-ink-3">${subtitle}</p>` : ""}
       <p class="truncate text-[1.05rem] font-bold text-ink">${title}</p>
     </div>
@@ -929,7 +935,7 @@ function renderShell(el) {
       ${icon("sparkles", "size-4")}<span>입력창 자리 — 연결할 기능 미정</span>
     </div>`}
 
-    <div class="flex items-center gap-1 lg:gap-2">
+    <div data-shrink-keep class="ml-auto flex shrink-0 items-center gap-1 lg:gap-2">
       <!-- 알림 — 지나간 알림 기록은 홈 본문이 아니라 여기서 연다(홈 '확인할 재료'는 지금 상태) -->
       <button type="button" data-toggle="#noti-pop" aria-expanded="false" aria-label="알림, 안 읽음 3개" class="relative flex size-10 items-center justify-center rounded-full text-ink-2 hover:bg-white/40">
         ${icon("bell")}<span class="absolute top-2 right-2 size-2 rounded-full bg-danger ring-2 ring-white"></span>
@@ -1212,6 +1218,18 @@ document.addEventListener("DOMContentLoaded", () => {
   document.head.appendChild(bdStyle);
   for (const el of document.querySelectorAll("[data-backdrop]")) el.outerHTML = backdropHtml(el.dataset.backdrop || currentBackdrop());
   for (const el of document.querySelectorAll("[data-shell]")) renderShell(el);
+  // 앱 상단 바 줄어들기 — 조금이라도 내리면 줄인다. 남길 폭(알림·계정 + 좌우 여백)은 줄이기 직전에 잰다(처음 그릴 때는 Tailwind 클래스가 아직 안 붙어 폭이 틀리다)
+  const shrink = document.querySelector("header[data-shrink]");
+  if (shrink) {
+    const keep = shrink.querySelector("[data-shrink-keep]");
+    const onScroll = () => {
+      const on = window.scrollY > 24;
+      if (on && !shrink.classList.contains("is-shrunk")) shrink.style.setProperty("--shrink-w", `${keep.offsetWidth + 16}px`);
+      shrink.classList.toggle("is-shrunk", on);
+    };
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+  }
   syncBackdropPhase();
   startDay();
   if (params.get("enter")) {
