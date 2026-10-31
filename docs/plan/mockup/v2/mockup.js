@@ -908,14 +908,13 @@ function renderShell(el) {
   <!-- 메뉴 폭(58px)의 절반이 패널 왼쪽 가장자리(3rem)에 걸친다. 윗변은 제목 아래 첫 카드 줄 윗선(패널 위 5.25rem + 안쪽 여백 1.75rem + 제목 줄 68px) -->
   <nav aria-label="주 메뉴" style="--d:0.1s" class="en en-left glass fixed top-[calc(7rem+68px)] left-[calc(3rem-29px)] z-30 hidden flex-col items-center gap-2 rounded-full p-1.5 lg:flex">${sideNav}</nav>
 
-  <!-- 본문 패널 — 화면 맨 아래까지 이어진다(아래 모서리 각지게). 하단 알약·탭 막대는 패널 위에 뜨고, 아래 여백은 그 높이만큼 둔다 -->
-  <main style="--d:0.15s" class="en glass fixed inset-x-3 top-[4.75rem] bottom-0 z-20 overflow-y-auto rounded-t-[1.75rem] rounded-b-none border-b-0 px-4 pt-5 pb-[6.25rem] lg:top-[5.25rem] lg:right-4 lg:left-12 lg:pt-7 lg:pr-8 lg:pb-[5.5rem] lg:pl-[calc(29px+2rem)]">
+  <main style="--d:0.15s" class="en glass fixed inset-x-3 top-[4.75rem] bottom-[5.75rem] z-20 overflow-y-auto rounded-[1.75rem] px-4 py-5 lg:top-[5.25rem] lg:right-4 lg:bottom-12 lg:left-12 lg:pr-8 lg:pl-[calc(29px+2rem)] lg:py-7">
     ${content}
   </main>
 
   <!-- 웹 하단 알약 — 시작 화면의 시계 알약을 이어 '사주라의 하루' 시계 + 밤사이 계산 상태(GET /api/pipeline/status) + 매출 올리기.
-       패널 안 아래쪽에 뜨고, 가로는 패널 가운데 -->
-  <div style="--d:0.25s" class="en glass fixed bottom-4 left-[calc(50%+1rem)] z-30 hidden -translate-x-1/2 items-center gap-3 rounded-full p-1.5 lg:flex">
+       높이(54px)의 절반이 패널 아래 가장자리(3rem)에 걸치고, 가로는 패널 가운데 -->
+  <div style="--d:0.25s" class="en glass fixed bottom-[calc(3rem-27px)] left-[calc(50%+1rem)] z-30 hidden -translate-x-1/2 items-center gap-3 rounded-full p-1.5 lg:flex">
     <a href="${href("home")}" aria-label="홈" class="flex size-10 items-center justify-center rounded-full bg-brand text-sm font-black text-white">사</a>
     <p class="flex items-baseline gap-2 text-sm font-semibold whitespace-nowrap text-ink-2">사주라의 하루<b data-sky-clock class="text-lg font-bold tracking-wide text-ink tabular">--:--</b></p>
     <span class="h-5 w-px bg-ink/15" aria-hidden="true"></span>
