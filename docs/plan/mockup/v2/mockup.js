@@ -698,23 +698,11 @@ function startDay() {
   } else {
     const [h, m] = mode.split(":").map(Number);
     DAY.redraw = () => drawDay(h * 60 + m);
-    // 가게로 들어가기로 왔으면 빛이 걷히는 동안 누른 시각에서 이 화면의 시각까지 앞으로만 흐른다(달·해가 거꾸로 가지 않게)
+    // 가게로 들어가기로 왔으면 시작 화면에서 흐르던 하늘을 이어받아 빛이 걷히는 동안 끝까지 흐른다
     const q = new URLSearchParams(location.search);
-    const from = Number(q.get("from"));
-    if (q.get("enter") === "shop" && q.has("from") && from >= 0 && !matchMedia("(prefers-reduced-motion: reduce)").matches) {
-      let to = h * 60 + m;
-      while (to < from) to += 1440;
-      const run = ++DAY.run;
-      let t0 = 0;
-      const step = (ts) => {
-        if (run !== DAY.run) return;
-        t0 ||= ts;
-        const p = Math.min(1, (ts - t0) / 1100);
-        drawDay(from + (to - from) * (1 - (1 - p) ** 3));
-        if (p < 1) requestAnimationFrame(step);
-      };
-      drawDay(from);
-      requestAnimationFrame(step);
+    const [from, to, p] = ["from", "to", "p"].map((k) => Number(q.get(k)));
+    if (q.get("enter") === "shop" && q.has("to") && to > from && p < 1 && !matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      flowSky(from, to, p, 1, SHOP_ARRIVE_MS, ++DAY.run);
     } else {
       DAY.redraw();
     }
@@ -728,6 +716,30 @@ const SHOP_RINGS = [
 ];
 // 두 원이 겹친 밝기 — 다음 화면의 빛이 이 밝기에서 걷힌다
 const SHOP_GLOW_OPACITY = 1 - SHOP_RINGS.reduce((a, [o]) => a * (1 - o), 1);
+// 하늘 흐름 — 빛이 퍼지는 순간 시작해 시작 화면(950ms)과 다음 화면(1100ms)에 걸쳐 하나의 곡선으로 흐른다.
+// 도착 시각은 가입·로그인 화면 하늘(21:30)
+const SHOP_SKY = 1290;
+const SHOP_LEAVE_MS = 950;
+const SHOP_ARRIVE_MS = 1100;
+const SHOP_SPLIT = SHOP_LEAVE_MS / (SHOP_LEAVE_MS + SHOP_ARRIVE_MS);
+// 출발이 너무 느리면 빛과 같이 시작하는 느낌이 안 나서 완만한 곡선(사인)을 쓴다
+const shopEase = (p) => (1 - Math.cos(Math.PI * p)) / 2;
+
+// 진행률 p0 → p1을 ms 동안 그린다. run이 바뀌면(뒤로 가기 등) 멈춘다
+function flowSky(from, to, p0, p1, ms, run) {
+  let t0 = 0;
+  const step = (ts) => {
+    if (run !== DAY.run) return;
+    t0 ||= ts;
+    const k = Math.min(1, (ts - t0) / ms);
+    DAY.flowP = p0 + (p1 - p0) * k;
+    drawDay(from + (to - from) * shopEase(DAY.flowP));
+    if (k < 1) requestAnimationFrame(step);
+  };
+  DAY.flowP = p0;
+  drawDay(from + (to - from) * shopEase(p0));
+  requestAnimationFrame(step);
+}
 
 // 뒤로 가기로 돌아오면 브라우저가 떠나던 순간의 모습(빛이 덮은 화면, 돌던 시계)을 그대로 보여 준다.
 // 그때는 나가던 연출을 걷어 내고 하늘을 이 화면의 시각으로 다시 그린다
@@ -740,13 +752,18 @@ addEventListener("pageshow", (e) => {
 });
 
 // 가게로 들어가기 — 창문 가운데서 창문 색 빛이 두 겹 원으로 퍼진 뒤 넘어간다.
-// 다음 화면은 ?enter=shop&glow=색&from=분으로 같은 색 빛이 걷히고, 그동안 하늘이 누른 시각에서 그 화면의 시각으로 흐른다
+// 하늘은 빛과 함께 누른 시각에서 21:30으로 흐르기 시작하고, 다음 화면은 ?enter=shop&glow=색&from=분&to=분&p=진행률로
+// 같은 색 빛이 걷히는 동안 그 흐름을 이어받는다(시간은 앞으로만 — 달·해가 거꾸로 가지 않게)
 function goShop(url) {
   const u = new URL(url, location.href);
   const glow = DAY.win.map((v) => v.toString(16).padStart(2, "0")).join("");
   u.searchParams.set("enter", "shop");
   u.searchParams.set("glow", glow);
-  u.searchParams.set("from", String(Math.round(DAY.mf) % 1440));
+  const from = Math.round(DAY.mf) % 1440;
+  let to = SHOP_SKY;
+  while (to < from) to += 1440;
+  u.searchParams.set("from", String(from));
+  u.searchParams.set("to", String(to));
   const win = document.querySelector(".bd-day .d-win");
   if (!win || matchMedia("(prefers-reduced-motion: reduce)").matches) {
     location.href = u.href;
@@ -770,6 +787,7 @@ function goShop(url) {
   });
   document.body.classList.add("going-shop");
   const run = ++DAY.run;
+  if (to > from) flowSky(from, to, 0, SHOP_SPLIT, SHOP_LEAVE_MS, run);
   requestAnimationFrame(() =>
     requestAnimationFrame(() => {
       for (const el of rings) {
@@ -779,8 +797,10 @@ function goShop(url) {
     }),
   );
   setTimeout(() => {
-    if (run === DAY.run) location.href = u.href;
-  }, 950);
+    if (run !== DAY.run) return;
+    u.searchParams.set("p", (DAY.flowP ?? SHOP_SPLIT).toFixed(3));
+    location.href = u.href;
+  }, SHOP_LEAVE_MS);
 }
 
 function renderShell(el) {
@@ -1036,6 +1056,8 @@ document.addEventListener("DOMContentLoaded", () => {
     u.searchParams.delete("enter");
     u.searchParams.delete("glow");
     u.searchParams.delete("from");
+    u.searchParams.delete("to");
+    u.searchParams.delete("p");
     history.replaceState(null, "", u);
   }
   for (const el of document.querySelectorAll("[data-icon]")) {
