@@ -17,6 +17,7 @@ class PageElement(BaseModel):
     role: str = Field(max_length=30)
     text: str
     depth: int = Field(ge=0)
+    clickable: bool = False
     product_id: str | None = Field(default=None, pattern=_DIGITS)
     item_id: str | None = Field(default=None, pattern=_DIGITS)
     vendor_item_id: str | None = Field(default=None, pattern=_DIGITS)

@@ -29,6 +29,16 @@ describe("클릭", () => {
     });
   });
 
+  it("누를 수 있음 표시가 없는 요소면 누르지 않는다", async () => {
+    const doc = load("product");
+    const ref = refOf(doc, PRODUCT_URL, (t) => t === "중량 × 수량");
+    expect(await click(doc, PRODUCT_URL, ref)).toEqual({
+      ok: false,
+      message: "누를 수 없는 요소",
+      cart_added: null,
+    });
+  });
+
   it("링크는 새 탭 속성을 지우고 누른다", async () => {
     const doc = load("search");
     const ref = refOf(doc, SEARCH_URL, (t, r) => r === "link" && t.startsWith("국내산 울팜"));

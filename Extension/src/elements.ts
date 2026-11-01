@@ -159,7 +159,9 @@ function describe(el: Element): { role: string; text: string; name?: true } | nu
   const title = clip(el.getAttribute("title") ?? "");
   if (tag === "a" && el.hasAttribute("href")) return { role: "link", text: label || own || title };
   if (tag === "button" || el.getAttribute("role") === "button") {
-    return { role: "button", text: label || own || title };
+    // 글자가 안쪽 요소에만 있는 버튼('바로구매')도 이름이 있다. 이름 없는 버튼(찜·공유 아이콘)은 담지 않는다
+    const name = label || own || clip(el.textContent ?? "") || title;
+    return name ? { role: "button", text: name } : null;
   }
   if (own) {
     if (/^h[1-6]$/.test(tag)) return { role: "heading", text: own };
@@ -170,6 +172,35 @@ function describe(el: Element): { role: string; text: string; name?: true } | nu
     if (icon) return { role: "image", text: icon, name: true };
   }
   return null;
+}
+
+// 스스로 누를 수 있는 요소 — 그 자신이나 조상이 이것이면 누를 수 있다 (04_fe.md §12.4)
+const INTERACTIVE = [
+  "a[href]",
+  "button",
+  "input",
+  "select",
+  "textarea",
+  "label",
+  "summary",
+  ...["button", "link", "option", "radio", "checkbox", "tab", "menuitem"].map((r) => `[role=${r}]`),
+  "[tabindex]:not([tabindex^='-'])",
+].join(",");
+
+/** 계산된 커서가 pointer인가 — 클릭 처리기를 단 옵션 항목 등. 화면 계산이 커서를 물려주지 않으면 조상을 본다. */
+function pointer(el: Element | null, seen: Map<Element, boolean>): boolean {
+  if (!el) return false;
+  const known = seen.get(el);
+  if (known !== undefined) return known;
+  let cursor = "";
+  try {
+    cursor = getComputedStyle(el).cursor;
+  } catch {
+    // 화면 계산을 못 하면 조상을 본다
+  }
+  const v = cursor === "pointer" || ((cursor === "" || cursor === "auto") && pointer(el.parentElement, seen));
+  seen.set(el, v);
+  return v;
 }
 
 /** 상품 카드 링크인가 — 상품명 칸이나 설명 글이 있는 상품 사진을 감싼다. */
@@ -220,9 +251,11 @@ export function buildElements(doc: Document, url: string): Snapshot {
   const product = productPage(doc, url);
   const zone = headerNameZone(doc);
 
+  const pointers = new Map<Element, boolean>();
   const emit = (el: Element, role: string, text: string, depth: number, extra = {}): number => {
     const ref = String(elements.length + 1);
-    elements.push({ ref, role, text, depth, ...extra });
+    const clickable = el.closest(INTERACTIVE) !== null || pointer(el, pointers);
+    elements.push({ ref, role, text, depth, ...(clickable ? { clickable: true as const } : {}), ...extra });
     refs.set(ref, el);
     return elements.length - 1;
   };
@@ -278,7 +311,9 @@ export function buildElements(doc: Document, url: string): Snapshot {
     }
     const at = emit(el, info.role, text, depth);
     if (info.name) names.add(elements[at].ref);
-    for (const c of el.children) walk(c, depth + 1, maskChildren, dup);
+    // 버튼 이름이 안쪽 글자면 그 글자를 다시 담지 않는다
+    const childDup = info.role === "button" ? text : dup;
+    for (const c of el.children) walk(c, depth + 1, maskChildren, childDup);
   };
 
   if (doc.body) walk(doc.body, 0, false, null);

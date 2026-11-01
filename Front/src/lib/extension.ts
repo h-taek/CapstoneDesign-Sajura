@@ -9,6 +9,7 @@ export interface PageElement {
   role: string;
   text: string;
   depth: number;
+  clickable?: boolean;
   product_id?: string | null;
   item_id?: string | null;
   vendor_item_id?: string | null;

@@ -100,6 +100,9 @@ export async function click(
 ): Promise<ClickResult> {
   const found = target(ref);
   if (!found) return { ok: false, message: "요소 없음", cart_added: null };
+  if (!snapshot?.elements.find((e) => e.ref === ref)?.clickable) {
+    return { ok: false, message: "누를 수 없는 요소", cart_added: null };
+  }
   // 링크·버튼 안의 글자를 골랐으면 그 링크·버튼을 누른다 — 카드 안 '할인' 글자는 눌러도 열리지 않았다
   const el = found.closest("button, a[href], [role=button]") ?? found;
   // 링크는 새 탭으로 열리지 않게 한다

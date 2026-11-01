@@ -41,6 +41,7 @@ CONV_LIMIT = 40
 STORE_DAY_LIMIT = 300
 TOTAL_DAY_LIMIT = 3000
 ATTEMPTS = 4  # 처음 1회 + 다시 보내기 3회. 다시 보낸 호출은 호출 횟수에 세지 않는다
+REPEAT_STOP_REASON = "같은 동작을 되풀이해 멈췄습니다"
 
 
 def _conv_key(conversation_id: str) -> str:
@@ -107,6 +108,30 @@ async def _ask(
     return call, args
 
 
+def _repeats(actions: list[str]) -> bool:
+    """같은 동작 묶음(2~6개)이 연달아 두 번 나왔는가 (§2.4.4).
+
+    한 동작만 거듭하는 것(수량 버튼)은 묶음이 아니다.
+    """
+    for n in range(2, 7):
+        if len(actions) < 2 * n:
+            break
+        block = actions[-n:]
+        if block == actions[-2 * n : -n] and len(set(block)) > 1:
+            return True
+    return False
+
+
+def _actions(messages: list[dict[str, Any]]) -> list[str]:
+    """대화에서 LLM이 요청한 동작 — 요소 목록 보기는 뺀다."""
+    out = []
+    for m in messages:
+        for c in m.get("tool_calls") or []:
+            if c["function"]["name"] != "read_elements":
+                out.append(f'{c["function"]["name"]} {c["function"]["arguments"]}')
+    return out
+
+
 async def step(req: StepRequest) -> dict[str, Any]:
     redis = get_redis()
     key = _conv_key(req.conversation_id)
@@ -153,6 +178,16 @@ async def step(req: StepRequest) -> dict[str, Any]:
     if call.name in DONE_TOOLS:
         await redis.delete(key)
         return {"done": {"tool": call.name, "args": args}}
+    if (
+        conv["kind"] == "item"
+        and call.name != "read_elements"
+        and _repeats(
+            [*_actions(conv["messages"]), f"{call.name} {json.dumps(args, ensure_ascii=False)}"]
+        )
+    ):
+        log.info("repeat_stop store_id=%s order_id=%s", req.store_id, req.order_id)
+        await redis.delete(key)
+        return {"done": {"tool": "finish_item", "args": {"reason": REPEAT_STOP_REASON}}}
     conv["messages"].append(
         {
             "role": "assistant",

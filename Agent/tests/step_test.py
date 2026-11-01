@@ -312,3 +312,53 @@ async def test_open_url_must_be_product_page(client: AsyncClient, fake_llm: Fake
 def test_guard_enabled_without_model_does_not_start() -> None:
     with pytest.raises(ValueError, match="LLM_GUARD"):
         Settings(LLM_GUARD_ENABLED=True, LLM_GUARD_BASE_URL="", LLM_GUARD_MODEL="")
+
+
+async def test_clickable_elements_marked(client: AsyncClient, fake_llm: FakeLLM) -> None:
+    await start(client)
+    result = {
+        "kind": "elements",
+        "url": "https://www.coupang.com/vp/products/111?itemId=222",
+        "elements": [
+            {"ref": "1", "role": "text", "text": "3Kg 소 × 1박스", "depth": 0},
+            {"ref": "2", "role": "button", "text": "장바구니 담기", "depth": 0, "clickable": True},
+        ],
+    }
+    await step(client, result=result)
+    sent = fake_llm.calls[-1]
+    page = sent["messages"][-1]["content"]
+    assert '[1] text "3Kg 소 × 1박스"\n' in page
+    assert '[2] button "장바구니 담기" 누름' in page
+    assert "'누름'이 붙은 요소만 누를 수 있다" in sent["messages"][0]["content"]
+
+
+async def test_same_action_block_twice_stops_item(
+    client: AsyncClient, fake_llm: FakeLLM, redis: FakeAsyncRedis
+) -> None:
+    # 주소 열기 → 글자 클릭 → 찜 클릭을 되풀이하던 담기 (research/backend/16 §6.14)
+    url = "https://www.coupang.com/vp/products/111?itemId=222"
+    fake_llm.answers = [tool("open_url", url=url)]
+    await start(client)
+    cycle = [tool("click", ref="106"), tool("click", ref="91"), tool("open_url", url=url)]
+    fake_llm.answers = [*cycle, *cycle]
+    last = None
+    for _ in range(6):
+        last = await step(client, result=ACTION_OK)
+        if "done" in last.json():
+            break
+    assert last is not None
+    assert last.json() == {
+        "done": {"tool": "finish_item", "args": {"reason": "같은 동작을 되풀이해 멈췄습니다"}}
+    }
+    assert await redis.get(f"agent:conv:{CONV}") is None
+
+
+async def test_same_button_many_times_is_not_a_repeat(
+    client: AsyncClient, fake_llm: FakeLLM
+) -> None:
+    # 수량 버튼을 여러 번 누르는 것은 정상이다
+    fake_llm.answers = [tool("click", ref="7") for _ in range(6)]
+    r = await start(client)
+    for _ in range(5):
+        r = await step(client, result=ACTION_OK)
+    assert r.json() == {"action": {"tool": "click", "args": {"ref": "7"}}}

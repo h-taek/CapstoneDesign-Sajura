@@ -59,11 +59,11 @@ describe("검색 결과", () => {
     );
   });
 
-  it("광고 표시와 글자 없는 버튼도 담는다", () => {
+  it("광고 표시는 담고, 이름 없는 버튼은 담지 않는다", () => {
     const [, i] = cards[2];
     const roles = below(elements, i).map((e) => `${e.role}:${e.text}`);
     expect(roles).toContain("text:광고");
-    expect(roles).toContain("button:");
+    expect(roles).not.toContain("button:");
   });
 
   it("숨긴 요소는 빼고, 번호는 1부터 차례로", () => {
@@ -74,7 +74,7 @@ describe("검색 결과", () => {
 
   it("검색창·검색 버튼", () => {
     expect(elements).toContainEqual(expect.objectContaining({ role: "textbox", text: "양파" }));
-    expect(elements).toContainEqual(expect.objectContaining({ role: "button", text: "" }));
+    expect(elements).toContainEqual(expect.objectContaining({ role: "button", text: "검색" }));
   });
 
   it("와우 할인 카드만, 같은 itemId는 한 번", () => {
@@ -154,6 +154,25 @@ describe("상품 페이지", () => {
   it("수량 버튼·담기 버튼", () => {
     const buttons = elements.filter((e) => e.role === "button").map((e) => e.text);
     expect(buttons).toEqual(expect.arrayContaining(["수량빼기", "수량더하기", "장바구니 담기"]));
+  });
+
+  it("누를 수 있음 — 링크·버튼과 커서가 pointer인 옵션 항목만", () => {
+    const by = (text: string) => elements.find((e) => e.text === text);
+    expect(by("장바구니 담기")?.clickable).toBe(true);
+    expect(by("전체")?.clickable).toBe(true);
+    expect(by("양파(중) 10kg × 1개")?.clickable).toBe(true);
+    expect(by("13,800원")?.clickable).toBe(true);
+    // 고른 옵션 머리글·제목·가격 영역 글자는 누를 수 없다
+    expect(by("중량 × 수량")?.clickable).toBeUndefined();
+    expect(elements.find((e) => e.role === "heading")?.clickable).toBeUndefined();
+    expect(by("(100g당 491원)")?.clickable).toBeUndefined();
+  });
+
+  it("이름 없는 버튼(찜 아이콘)은 담지 않고, 글자가 안쪽에만 있는 버튼은 그 글자로 한 번", () => {
+    expect(elements.some((e) => e.role === "button" && e.text === "")).toBe(false);
+    expect(elements.filter((e) => e.text === "바로구매")).toEqual([
+      expect.objectContaining({ role: "button", clickable: true }),
+    ]);
   });
 });
 

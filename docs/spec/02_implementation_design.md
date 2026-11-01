@@ -1751,12 +1751,13 @@ Authorization: Bearer <access_token>
   "kind": "elements",
   "url": "https://www.coupang.com/np/search?q=…",
   "elements": [
-    { "ref": "12", "role": "link", "text": "곰곰 무항생제 신선한 대란, 30구, 1개", "depth": 3,
+    { "ref": "12", "role": "link", "text": "곰곰 무항생제 신선한 대란, 30구, 1개", "depth": 3, "clickable": true,
       "product_id": "1271064981", "item_id": "…", "vendor_item_id": "70272921582" },   // 검색 결과 화면은 카드 링크, 상품 페이지는 상품명 요소에 붙는다. vendor_item_id는 주소에 없으면 뺀다
     { "ref": "13", "role": "deletion", "text": "11,900원", "depth": 4 },   // 취소선 가격
     { "ref": "14", "role": "text", "text": "8,390원", "depth": 4 },   // 상품 페이지의 상품명 요소에는 non_wow_price(페이지 데이터의 nonWowMemberPrice)도 붙는다
     { "ref": "15", "role": "image", "text": "logo_fresh_medium.png", "depth": 4 }   // 글자 없는 그림은 파일 이름
   ]
+  // clickable: 누를 수 있는 요소에만 true. 없으면 false다 (04_fe.md §12.4)
 }
 // result — 동작 결과 (click·type_text·scroll의 결과)
 { "kind": "action", "ok": true, "page_changed": true, "message": null,   // 실패면 ok false, message "요소 없음" 등

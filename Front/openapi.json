@@ -7032,6 +7032,11 @@
             "minimum": 0.0,
             "title": "Depth"
           },
+          "clickable": {
+            "type": "boolean",
+            "title": "Clickable",
+            "default": false
+          },
           "product_id": {
             "anyOf": [
               {

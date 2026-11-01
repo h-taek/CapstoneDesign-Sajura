@@ -11,6 +11,7 @@ export interface PageElement {
   role: string;
   text: string;
   depth: number;
+  clickable?: true; // 누를 수 있는 요소만 (§12.4)
   product_id?: string;
   item_id?: string;
   vendor_item_id?: string;

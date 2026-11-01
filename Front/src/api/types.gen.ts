@@ -1926,6 +1926,11 @@ export interface components {
             text: string;
             /** Depth */
             depth: number;
+            /**
+             * Clickable
+             * @default false
+             */
+            clickable?: boolean;
             /** Product Id */
             product_id?: string | null;
             /** Item Id */

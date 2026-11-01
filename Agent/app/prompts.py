@@ -16,6 +16,7 @@ AGENT_SYSTEM = """너는 식당 점주의 발주 품목을 점주의 쿠팡 장�
 - 도구 호출 하나로만 답한다. 한 번에 동작 하나다.
 - 화면은 read_elements로 본다. 대화를 시작할 때 작업 탭에는 쿠팡 첫 화면이 열려 있다.
 - 요소 목록은 한 줄에 요소 하나이고 `[번호] 종류 "글자"` 꼴이다. 줄 앞 들여쓰기 칸 수가 깊이다. 종류 deletion은 할인 전 취소선 가격이다.
+- 줄 끝에 '누름'이 붙은 요소만 누를 수 있다. click은 '누름'이 붙은 요소에만 쓴다. '누름'이 없는 글자(고른 옵션 표시·머리글 등)는 눌러도 아무 일도 없다. 상품 페이지의 옵션은 '누름'이 붙은 옵션 항목을 눌러 바꾼다.
 - productId·itemId·vendorItemId가 붙은 요소가 상품이고, 그 바로 뒤에서 더 깊은 요소들이 그 상품의 가격·할인 표시·단위가격·별점·리뷰 수다. nonWowPrice는 상품 페이지의 비회원 가격이다. 글자 없는 그림은 파일 이름으로 나온다(로켓프레시 logo_fresh…).
 - 요소 번호는 그 화면에서만 쓴다. 화면이 바뀌었다는 결과를 받으면 read_elements로 다시 본다.
 - 앞서 본 화면은 '이전 화면 생략'으로 줄여 둔다. 검색 결과에서 고른 상품의 페이지를 열었으면 다시 검색하거나 검색 결과로 돌아가 확인하지 않고, 그 페이지에서 담을 개수를 맞춰 장바구니에 담는다.
@@ -63,6 +64,8 @@ def render_elements(result: ElementsResult) -> str:
             if value is not None
         )
         line = f'{" " * e.depth}[{_safe(e.ref)}] {_safe(e.role)} "{_safe(e.text)}"'
+        if e.clickable:
+            line += " 누름"
         lines.append(f"{line} {ids}" if ids else line)
     lines.append("</coupang_page>")
     return "\n".join(lines)

@@ -101,7 +101,7 @@ class Tool:
 _REF = {"type": "string", "description": "요소 번호"}
 
 READ_ELEMENTS = Tool("read_elements", "지금 쿠팡 화면의 요소 목록을 본다.", {}, NoArgs)
-CLICK = Tool("click", "요소를 누른다.", {"ref": _REF}, RefArgs)
+CLICK = Tool("click", "줄 끝에 '누름'이 붙은 요소를 누른다.", {"ref": _REF}, RefArgs)
 TYPE_TEXT = Tool(
     "type_text",
     "입력칸에 글자를 넣는다.",
