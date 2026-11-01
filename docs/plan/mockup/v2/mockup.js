@@ -15,15 +15,11 @@ const PAGES = {
   orders: { file: "09_orders.html", route: "/orders", name: "발주추천" },
   menus: { file: "10_menus.html", route: "/menus", name: "메뉴 관리" },
   settings: { file: "11_settings.html", route: "/settings", name: "설정(앱: 더보기)" },
-  pos: { file: "12_settings-pos.html", route: "/settings/pos", name: "POS 연동 설정" },
-  notifications: { file: "13_settings-notifications.html", route: "/settings/notifications", name: "알림 설정" },
-  account: { file: "14_settings-account.html", route: "/settings/account", name: "계정 정보" },
-  appinfo: { file: "15_settings-app-info.html", route: "/settings/app-info", name: "앱 정보" },
-  upload: { file: "16_sales-upload.html", route: "/sales/upload", name: "매출 CSV 업로드" },
-  admin: { file: "17_admin-verifications.html", route: "/admin/verifications", name: "관리자 심사" },
+  admin: { file: "12_admin-verifications.html", route: "/admin/verifications", name: "관리자 심사" },
 };
 
-const href = (key) => PAGES[key]?.file ?? "#";
+// "키?상태"면 그 화면을 그 상태로 연다(설정의 판 — 계정 정보·매출 올리기 등)
+const href = (key) => { const [k, q] = key.split("?"); return (PAGES[k]?.file ?? "#") + (q ? `?${q}` : ""); };
 
 const MOCK_USER = { name: "김사주", store: "사주라 화덕피자 성수점" };
 
@@ -31,7 +27,7 @@ const MOCK_USER = { name: "김사주", store: "사주라 화덕피자 성수점"
 const NOTIS = [
   { title: "소비기한 D-1 임박", body: "리코타 치즈가 내일 만료돼요.", at: "06:00", dot: "bg-danger", to: "inventory" },
   { title: "재고 부족", body: "루꼴라 재고를 확인해 주세요.", at: "어제 22:41", dot: "bg-warn", to: "inventory" },
-  { title: "이상치 감지", body: "10월 19일 매출에서 이상치 2건이 나왔어요.", at: "어제 22:40", dot: "bg-warn", to: "upload" },
+  { title: "이상치 감지", body: "10월 19일 매출에서 이상치 2건이 나왔어요.", at: "어제 22:40", dot: "bg-warn", to: "settings?state=uploaded" },
   { title: "예측 완료", body: "오늘 예상 매출과 발주 추천이 나왔어요.", at: "02:10", read: true, to: "orders" },
 ];
 
@@ -196,6 +192,10 @@ const ICON_PATHS = {
   trash2: '<path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/><line x1="10" x2="10" y1="11" y2="17"/><line x1="14" x2="14" y1="11" y2="17"/>',
   trendingDown: '<polyline points="22 17 13.5 8.5 8.5 13.5 2 7"/><polyline points="16 17 22 17 22 11"/>',
   trendingUp: '<polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/>',
+  download: '<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/>',
+  shoppingCart: '<circle cx="8" cy="21" r="1"/><circle cx="19" cy="21" r="1"/><path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"/>',
+  helpCircle: '<circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/>',
+  arrowUpRight: '<path d="M7 7h10v10"/><path d="M7 17 17 7"/>',
   upload: '<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" x2="12" y1="3" y2="15"/>',
   user: '<path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>',
   wallet: '<path d="M19 7V4a1 1 0 0 0-1-1H5a2 2 0 0 0 0 4h15a1 1 0 0 1 1 1v4h-3a2 2 0 0 0 0 4h3a1 1 0 0 0 1-1v-2a1 1 0 0 0-1-1"/><path d="M3 5v14a2 2 0 0 0 2 2h15a1 1 0 0 0 1-1v-4"/>',
@@ -210,7 +210,7 @@ function icon(name, cls = "size-5", strokeWidth = 2) {
 }
 
 // 유리 셸 — <div data-shell="활성키" data-title="패널 제목" data-back="뒤로 갈 목업 파일">본문</div>
-// 웹(lg 이상): 상단 바(알림·설정·계정) + 왼쪽 알약 메뉴 + 본문 패널. 매출 올리기 입구는 설정 > POS 연동 관리(spec 04 §4.9)
+// 웹(lg 이상): 상단 바(알림·설정·계정) + 왼쪽 알약 메뉴 + 본문 패널. 매출 올리기 입구는 설정 > POS 연동(spec 04 §4.9)
 // 앱(lg 미만): 상단 바 + 본문 패널 + 하단 알약 탭
 const WEB_NAV = [
   { key: "home", label: "홈", icon: "home" },
@@ -891,7 +891,7 @@ function renderShell(el) {
         ${icon("bell")}<span class="absolute top-3 right-3 size-2 rounded-full bg-danger ring-2 ring-white"></span>
       </button>
       <a href="${href("settings")}" aria-label="설정" class="glass-bar flex size-12 items-center justify-center rounded-full text-ink-2 hover:text-ink">${icon("settings")}</a>
-      <a href="${href("account")}" aria-label="계정" class="glass-bar flex h-12 items-center gap-2 rounded-full px-1.5 xl:pr-4">
+      <a href="${href("settings?state=account")}" aria-label="계정" class="glass-bar flex h-12 items-center gap-2 rounded-full px-1.5 xl:pr-4">
         <span class="flex size-9 items-center justify-center rounded-full bg-white/80 text-sm font-bold text-ink">${MOCK_USER.name.slice(0, 1)}</span>
         <span class="hidden leading-tight xl:block">
           <span class="block text-sm font-semibold text-ink">${MOCK_USER.store}</span>
@@ -942,7 +942,7 @@ function renderShell(el) {
         ${icon("bell")}<span class="absolute top-2 right-2 size-2 rounded-full bg-danger ring-2 ring-white"></span>
       </button>
       <a href="${href("settings")}" aria-label="설정" class="hidden size-10 items-center justify-center rounded-full text-ink-2 hover:bg-white/40 lg:flex">${icon("settings")}</a>
-      <a href="${href("account")}" aria-label="계정" class="flex items-center gap-2 rounded-full p-1 hover:bg-white/40 lg:pr-3">
+      <a href="${href("settings?state=account")}" aria-label="계정" class="flex items-center gap-2 rounded-full p-1 hover:bg-white/40 lg:pr-3">
         <span class="flex size-9 items-center justify-center rounded-full bg-white/80 text-sm font-bold text-ink">${MOCK_USER.name.slice(0, 1)}</span>
         <span class="hidden leading-tight lg:block">
           <span class="block text-sm font-semibold text-ink">${MOCK_USER.store}</span>
@@ -959,7 +959,7 @@ function renderShell(el) {
       <button type="button" class="text-sm font-semibold text-brand hover:text-brand-strong">모두 읽음</button>
     </div>
     <!-- POS 연동 끊김 — 알림이 아니라 상태(GET /api/store/pos/status ERROR·DISCONNECTED)라 맨 위 고정 항목으로. 홈 '연동 끊김' 상태에서 보인다 -->
-    <a data-when="pos" href="${href("pos")}" class="mb-1 flex gap-3 rounded-2xl bg-danger-soft/70 px-3 py-2.5 hover:bg-danger-soft">
+    <a data-when="pos" href="${href("settings?state=pos-error")}" class="mb-1 flex gap-3 rounded-2xl bg-danger-soft/70 px-3 py-2.5 hover:bg-danger-soft">
       <span class="mt-0.5 shrink-0 text-danger">${icon("alertTriangle", "size-4")}</span>
       <span class="min-w-0 flex-1">
         <span class="block text-[0.95rem] font-semibold text-ink">POS 연동이 끊겼어요</span>
@@ -973,7 +973,7 @@ function renderShell(el) {
         <span class="block text-sm text-ink-3">${n.body}</span>
       </span>
     </a></li>`).join("")}</ul>
-    <a href="${href("notifications")}" class="mt-1 flex h-10 items-center justify-center rounded-2xl text-sm font-semibold text-ink-2 hover:bg-white/60">알림 설정</a>
+    <a href="${href("settings")}" class="mt-1 flex h-10 items-center justify-center rounded-2xl text-sm font-semibold text-ink-2 hover:bg-white/60">알림 설정</a>
   </div>
 
   <!-- 메뉴 폭(58px)의 절반이 패널 왼쪽 가장자리(3rem)에 걸친다. 윗변은 제목 줄 아랫선(패널 위 5.25rem + 안쪽 여백 1.25rem + 제목 줄 68px) -->

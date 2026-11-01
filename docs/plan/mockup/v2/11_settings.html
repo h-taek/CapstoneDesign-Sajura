@@ -6,76 +6,310 @@
 <title>설정 — 사주라 목업 v2</title>
 <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4.0.17"></script>
 <script src="mockup.js" defer></script>
+<style>
+  /* 앱 폭 — 기본·상태 확인용 상태에서는 목록만 보인다(줄을 누르면 판이 전체 화면) */
+  @media (max-width: 63.99rem) {
+    body[data-state="default"] [data-panel], body[data-state="connected"] [data-panel], body[data-state="pos-error"] [data-panel], body[data-state="guide-android"] [data-panel], body[data-state="guide-ios"] [data-panel] { display: none; }
+  }
+  /* 웹 — 판이 늘 열려 있고, 판에 보이는 항목의 줄을 포인트 색 테두리로(10 메뉴 관리의 고른 카드와 같다) */
+  @media (min-width: 64rem) {
+    body[data-state="default"] [data-row="pos"],
+    body[data-state="posopen"] [data-row="pos"],
+    body[data-state="connected"] [data-row="pos"],
+    body[data-state="pos-error"] [data-row="pos"],
+    body[data-state="guide-android"] [data-row="pos"],
+    body[data-state="guide-ios"] [data-row="pos"],
+    body[data-state="upload"] [data-row="pos"],
+    body[data-state="uploading"] [data-row="pos"],
+    body[data-state="uploaded"] [data-row="pos"],
+    body[data-state="needs"] [data-row="pos"],
+    body[data-state="upfail"] [data-row="pos"],
+    body[data-state="account"] [data-row="account"],
+    body[data-state="saved"] [data-row="account"],
+    body[data-state="withdraw"] [data-row="account"],
+    body[data-state="notify"] [data-row="notify"],
+    body[data-state="store"] [data-row="store"],
+    body[data-state="store-saved"] [data-row="store"],
+    body[data-state="coupang"] [data-row="coupang"],
+    body[data-state="coupang-none"] [data-row="coupang"],
+    body[data-state="appinfo"] [data-row="appinfo"] { outline: 2px solid var(--color-brand); outline-offset: -2px; border-radius: 1rem; }
+  }
+</style>
 </head>
-<!-- 원본: Front/src/routes/settings/index.tsx, components/pwa/install-banner.tsx(InstallMenuButton·InstallGuideSheet) -->
-<body data-page="settings" data-states="기본:default,설치 안내(안드로이드):guide-android,설치 안내(아이폰):guide-ios">
+<!-- 원본: Front/src/routes/settings/index.tsx·pos.tsx·account.tsx·app-info.tsx, routes/sales/upload.tsx, components/pwa/install-banner.tsx -->
+<!-- 태블릿 설정처럼 웹은 왼쪽 목록 + 오른쪽 상세 판(처음엔 POS 연동). 앱은 목록만, 줄을 누르면 판이 전체 화면.
+     목록은 자주 바꾸지 않는 것만 두고, 줄 아래 글은 계정 카드에만 둔다(상태는 판에서). 항목은 계정(내 계정·알림) / 매장(매장 정보·POS 연동·쿠팡 담기 확장) / 앱(설치·앱 정보·이용 안내) 묶음.
+     매출 올리기는 POS 연동 판 안에서 이어서 열린다(판 위 뒤로 버튼으로 POS 연동) -->
+<body data-page="settings" data-states="기본:default,POS 연동:posopen,POS 연결됨:connected,연동 끊김:pos-error,매출 올리기:upload,업로드 중:uploading,업로드 완료:uploaded,재고 확인 필요:needs,업로드 실패:upfail,내 계정:account,저장 완료:saved,탈퇴 확인:withdraw,알림:notify,매장 정보:store,매장 저장 완료:store-saved,쿠팡 확장 연결됨:coupang,쿠팡 확장 없음:coupang-none,앱 정보:appinfo,설치 안내(안드로이드):guide-android,설치 안내(아이폰):guide-ios">
 <div data-shell="settings" data-layout="open">
-  <div class="mx-auto max-w-3xl space-y-6">
-    <h1 class="hidden text-[1.75rem] font-bold tracking-tight text-ink lg:block">설정</h1>
+  <header class="mb-5 hidden lg:block">
+    <h1 class="text-[1.75rem] font-bold tracking-tight text-ink">설정</h1>
+  </header>
+  <div class="grid grid-cols-1 items-start gap-6 lg:grid-cols-5">
+    <div class="flex min-w-0 flex-col gap-6 lg:col-span-2">
+      <!-- 계정 -->
+        <!-- 매장 카드 — 내 계정 입구 -->
+        <button type="button" data-row="account" data-set-state="account" class="flex w-full items-center gap-4 rounded-2xl p-5 text-left transition-colors hover:bg-white/50 glass-card">
+          <span class="flex size-14 shrink-0 items-center justify-center rounded-full bg-brand text-xl font-bold text-white">김</span>
+          <span class="min-w-0 flex-1">
+            <span class="block truncate text-lg font-bold text-ink">김사주님</span>
+            <span class="block truncate text-[0.95rem] text-ink-2">owner@sajura.kr · 이메일 로그인</span>
+          </span>
+          <span data-icon="chevronRight" class="size-5 shrink-0 text-ink-4"></span>
+        </button>
+      <!-- 알림 -->
+        <ul class="divide-y divide-line-soft overflow-hidden rounded-2xl glass-card">
+          <li><button type="button" data-row="notify" data-set-state="notify" class="w-full text-left flex items-center gap-3.5 px-5 py-2.5 transition-colors hover:bg-white/40"><span class="flex size-9 shrink-0 items-center justify-center rounded-full bg-brand-soft text-brand"><span data-icon="bell" class="size-[1.125rem]"></span></span><span class="min-w-0 flex-1"><span class="block text-[1.05rem] font-semibold text-ink">알림</span></span><span data-icon="chevronRight" class="size-5 shrink-0 text-ink-4"></span></button></li>
+        </ul>
+      <!-- 매장 -->
+        <ul class="divide-y divide-line-soft overflow-hidden rounded-2xl glass-card">
+          <li><button type="button" data-row="store" data-set-state="store" class="w-full text-left flex items-center gap-3.5 px-5 py-2.5 transition-colors hover:bg-white/40"><span class="flex size-9 shrink-0 items-center justify-center rounded-full bg-brand-soft text-brand"><span data-icon="store" class="size-[1.125rem]"></span></span><span class="min-w-0 flex-1"><span class="block text-[1.05rem] font-semibold text-ink">매장 정보</span></span><span data-icon="chevronRight" class="size-5 shrink-0 text-ink-4"></span></button></li>
+          <!-- POS 연동 — 줄 전체가 POS 연동 판 입구. 앱 폭은 판이 안 보이므로 CSV 모드면 줄 안에 매출 올리기 알약. 웹은 판의 버튼만 -->
+          <li data-row="pos" class="relative flex items-center gap-3.5 px-5 py-2.5 transition-colors hover:bg-white/40">
+            <button type="button" data-set-state="posopen" aria-label="POS 연동" class="absolute inset-0"></button>
+            <span class="flex size-9 shrink-0 items-center justify-center rounded-full bg-brand-soft text-brand"><span data-icon="receipt" class="size-[1.125rem]"></span></span>
+            <span class="min-w-0 flex-1">
+              <span class="block text-[1.05rem] font-semibold text-ink">POS 연동</span>
+              <!-- 좁은 폭은 알약을 상태 글 아래 줄로 -->
+              <button type="button" data-when="default posopen guide-android guide-ios upload uploading uploaded needs upfail account saved withdraw notify store store-saved coupang coupang-none appinfo" data-set-state="upload" class="relative mt-3 h-10 px-4 sm:hidden inline-flex shrink-0 items-center justify-center gap-1.5 rounded-full bg-brand text-[0.95rem] font-semibold whitespace-nowrap text-white transition-colors hover:bg-brand-strong disabled:cursor-not-allowed disabled:bg-ink-3/40"><span data-icon="upload" class="size-4"></span>매출 올리기</button>
+            </span>
+            <button type="button" data-when="default posopen guide-android guide-ios upload uploading uploaded needs upfail account saved withdraw notify store store-saved coupang coupang-none appinfo" data-set-state="upload" class="relative hidden h-10 px-4 sm:inline-flex lg:hidden shrink-0 items-center justify-center gap-1.5 rounded-full bg-brand text-[0.95rem] font-semibold whitespace-nowrap text-white transition-colors hover:bg-brand-strong disabled:cursor-not-allowed disabled:bg-ink-3/40"><span data-icon="upload" class="size-4"></span>매출 올리기</button>
+            <span data-icon="chevronRight" class="size-5 shrink-0 text-ink-4"></span>
+          </li>
+          <li><button type="button" data-row="coupang" data-set-state="coupang" class="w-full text-left flex items-center gap-3.5 px-5 py-2.5 transition-colors hover:bg-white/40"><span class="flex size-9 shrink-0 items-center justify-center rounded-full bg-brand-soft text-brand"><span data-icon="shoppingCart" class="size-[1.125rem]"></span></span><span class="min-w-0 flex-1"><span class="block text-[1.05rem] font-semibold text-ink">쿠팡 담기 확장</span></span><span data-icon="chevronRight" class="size-5 shrink-0 text-ink-4"></span></button></li>
+          <!-- 메뉴 관리 — 앱 하단 탭에 자리가 없어 앱 폭에서만. 웹은 상단 주 메뉴에 있다 -->
+          <li class="lg:hidden"><a href="10_menus.html" class="flex items-center gap-3.5 px-5 py-2.5 transition-colors hover:bg-white/40"><span class="flex size-9 shrink-0 items-center justify-center rounded-full bg-brand-soft text-brand"><span data-icon="chefHat" class="size-[1.125rem]"></span></span><span class="min-w-0 flex-1 text-[1.05rem] font-semibold text-ink">메뉴 관리</span><span data-icon="chevronRight" class="size-5 shrink-0 text-ink-4"></span></a></li>
+        </ul>
+      <!-- 앱 -->
+        <ul class="divide-y divide-line-soft overflow-hidden rounded-2xl glass-card">
+          <!-- InstallMenuButton — 설치했으면 숨김. 안드로이드·PC 크롬은 설치 창, 그 외는 안내 시트 -->
+          <li><button type="button" data-set-state="guide-android" class="w-full text-left flex items-center gap-3.5 px-5 py-2.5 transition-colors hover:bg-white/40"><span class="flex size-9 shrink-0 items-center justify-center rounded-full bg-brand-soft text-brand"><span data-icon="smartphone" class="size-[1.125rem]"></span></span><span class="min-w-0 flex-1 text-[1.05rem] font-semibold text-ink">홈 화면에 설치</span><span data-icon="chevronRight" class="size-5 shrink-0 text-ink-4"></span></button></li>
+          <li><button type="button" data-row="appinfo" data-set-state="appinfo" class="w-full text-left flex items-center gap-3.5 px-5 py-2.5 transition-colors hover:bg-white/40"><span class="flex size-9 shrink-0 items-center justify-center rounded-full bg-brand-soft text-brand"><span data-icon="info" class="size-[1.125rem]"></span></span><span class="min-w-0 flex-1"><span class="block text-[1.05rem] font-semibold text-ink">앱 정보</span></span><span class="tabular shrink-0 text-sm text-ink-2">0.1.0</span><span data-icon="chevronRight" class="size-5 shrink-0 text-ink-4"></span></button></li>
+          <!-- 이용 안내 — 서비스 소개 화면(/intro)으로 나간다 -->
+          <li><a href="01_intro.html" class="flex items-center gap-3.5 px-5 py-2.5 transition-colors hover:bg-white/40"><span class="flex size-9 shrink-0 items-center justify-center rounded-full bg-brand-soft text-brand"><span data-icon="helpCircle" class="size-[1.125rem]"></span></span><span class="min-w-0 flex-1 text-[1.05rem] font-semibold text-ink">이용 안내</span><span data-icon="arrowUpRight" class="size-5 shrink-0 text-ink-4"></span></a></li>
+        </ul>
 
-    <div class="flex items-center gap-4 rounded-2xl p-5 glass-card">
-      <span class="flex size-14 shrink-0 items-center justify-center rounded-full bg-brand text-xl font-bold text-white">김</span>
-      <div class="min-w-0">
-        <p class="truncate text-lg font-bold text-ink">사주라 화덕피자 성수점</p>
-        <p class="truncate text-[0.95rem] text-ink-3">김사주님 · owner@sajura.kr</p>
-      </div>
+      <a href="02_login.html" class="flex h-14 w-full items-center justify-center gap-2 rounded-full text-base font-semibold text-ink-2 transition-colors hover:bg-white/50 glass-card">
+        <span data-icon="logOut" class="size-5"></span> 로그아웃
+      </a>
     </div>
 
-    <!-- 자주 쓰는 메뉴 — 앱 하단 탭에 없는 업무 화면. 웹은 상단 메뉴에 있으니 앱에서만 보인다 -->
-    <section class="space-y-2 lg:hidden">
-      <h2 class="px-1 text-sm font-semibold text-ink-2">자주 쓰는 메뉴</h2>
-      <div class="overflow-hidden rounded-2xl glass-card">
-        <ul class="divide-y divide-line-soft">
-          <li><a href="16_sales-upload.html" class="flex items-center gap-4 px-5 py-4 transition-colors hover:bg-subtle active:bg-subtle">
-            <span class="flex size-11 shrink-0 items-center justify-center rounded-full bg-brand-soft text-brand"><span data-icon="upload" class="size-5"></span></span>
-            <span class="min-w-0 flex-1"><span class="block text-[1.05rem] font-bold text-ink">매출 올리기</span><span class="block text-sm text-ink-3">POS에서 받은 매출 CSV 파일 올리기</span></span>
-            <span data-icon="chevronRight" class="size-5 shrink-0 text-ink-4"></span>
-          </a></li>
-          <li><a href="10_menus.html" class="flex items-center gap-4 px-5 py-4 transition-colors hover:bg-subtle active:bg-subtle">
-            <span class="flex size-11 shrink-0 items-center justify-center rounded-full bg-brand-soft text-brand"><span data-icon="chefHat" class="size-5"></span></span>
-            <span class="min-w-0 flex-1"><span class="block text-[1.05rem] font-bold text-ink">메뉴 관리</span><span class="block text-sm text-ink-3">메뉴 판매가와 레시피</span></span>
-            <span data-icon="chevronRight" class="size-5 shrink-0 text-ink-4"></span>
-          </a></li>
+    <aside data-when="default posopen connected pos-error guide-android guide-ios" data-panel="pos" aria-label="POS 연동" class="fixed inset-0 z-50 overflow-y-auto lg:relative lg:inset-auto lg:z-auto lg:col-span-3">
+      <div class="min-h-full px-4 pt-[5.25rem] pb-28 glass-card lg:min-h-0 lg:rounded-2xl lg:p-6">
+        <div class="flex items-center gap-2">
+          <button type="button" data-set-state="default" aria-label="뒤로" class="flex lg:hidden -ml-2 size-10 items-center justify-center rounded-full text-ink-2 hover:bg-white/60"><span data-icon="chevronLeft" class="size-6"></span></button>
+          <h2 class="min-w-0 flex-1 truncate text-xl font-bold text-ink">POS 연동</h2>
+        </div>
+        <!-- GET /api/store/pos/status — 모드·상태·마지막 동기화 -->
+        <div class="mt-4">
+          <p data-when="default posopen guide-android guide-ios" class="text-lg font-bold text-ink">CSV 모드</p>
+          <p data-when="default posopen guide-android guide-ios" class="mt-0.5 text-sm text-ink-2">마지막 업로드 10월 19일 21:42</p>
+          <p data-when="connected" class="text-lg font-bold text-ink">토스플레이스 <span class="font-semibold text-ok">연결됨</span></p>
+          <p data-when="connected" class="mt-0.5 text-sm text-ink-2">마지막 동기화 10월 19일 21:42</p>
+          <p data-when="pos-error" class="text-lg font-bold text-ink">토스플레이스 <span class="font-semibold text-danger">연동 끊김</span></p>
+          <p data-when="pos-error" class="mt-0.5 text-sm text-ink-2">10월 19일 21:42부터 새 매출이 들어오지 않아요</p>
+        </div>
+        <div class="mt-4 flex flex-wrap gap-2">
+          <button type="button" data-when="default posopen guide-android guide-ios" data-set-state="upload" class="inline-flex h-11 shrink-0 items-center justify-center gap-1.5 rounded-full bg-brand px-5 text-[0.95rem] font-semibold whitespace-nowrap text-white transition-colors hover:bg-brand-strong disabled:cursor-not-allowed disabled:bg-ink-3/40"><span data-icon="upload" class="size-4"></span>매출 올리기</button>
+          <button type="button" data-when="default posopen guide-android guide-ios" class="inline-flex h-11 shrink-0 items-center justify-center gap-1.5 rounded-full border border-white/80 px-5 text-[0.95rem] font-semibold whitespace-nowrap text-ink-2 transition-colors hover:bg-white/30"><span data-icon="download" class="size-4"></span>CSV 양식 받기</button>
+          <button type="button" data-when="pos-error" class="inline-flex h-11 shrink-0 items-center justify-center gap-1.5 rounded-full bg-brand px-5 text-[0.95rem] font-semibold whitespace-nowrap text-white transition-colors hover:bg-brand-strong disabled:cursor-not-allowed disabled:bg-ink-3/40">다시 연동</button>
+          <button type="button" data-when="connected" class="inline-flex h-11 shrink-0 items-center justify-center gap-1.5 rounded-full border border-white/80 px-5 text-[0.95rem] font-semibold whitespace-nowrap text-ink-2 transition-colors hover:bg-white/30">다시 연동</button>
+        </div>
+        <section data-when="default posopen guide-android guide-ios" class="mt-6 border-t border-white/70 pt-5">
+          <h3 class="text-sm font-bold text-ink">POS API 연동</h3>
+          <p class="mt-1 text-sm text-ink-2">토스플레이스·키움페이·OKPOS 연동은 준비 중이에요</p>
+        </section>
+      </div>
+    </aside>
+    <aside data-when="upload uploading uploaded needs upfail" data-panel="upload" aria-label="매출 올리기" class="fixed inset-0 z-50 overflow-y-auto lg:relative lg:inset-auto lg:z-auto lg:col-span-3">
+      <div class="min-h-full px-4 pt-[5.25rem] pb-28 glass-card lg:min-h-0 lg:rounded-2xl lg:p-6">
+        <div class="flex items-center gap-2">
+          <button type="button" data-set-state="posopen" aria-label="뒤로" class="flex -ml-2 size-10 items-center justify-center rounded-full text-ink-2 hover:bg-white/60"><span data-icon="chevronLeft" class="size-6"></span></button>
+          <h2 class="min-w-0 flex-1 truncate text-xl font-bold text-ink">매출 올리기</h2>
+        </div>
+        <!-- POST /api/sales/upload — 파일, 컬럼 이름(필수 4 + 영수증번호 선택), 없는 메뉴 자동 등록 -->
+        <div role="button" tabindex="0" class="mt-4 flex h-32 cursor-pointer flex-col items-center justify-center gap-1 rounded-2xl border-2 border-dashed border-white/80 text-center transition-colors hover:bg-white/30">
+          <span data-icon="fileSpreadsheet" class="size-6 text-brand"></span>
+          <p data-when="upload" class="text-[0.95rem] font-semibold text-ink">CSV 파일을 끌어다 놓거나 눌러서 고르기</p>
+          <p data-when="upload" class="text-sm text-ink-2">UTF-8 · 최대 50MB</p>
+          <p data-when="uploading uploaded needs upfail" class="text-[0.95rem] font-semibold text-ink">sales_2026-10.csv</p>
+          <p data-when="uploading uploaded needs upfail" class="text-sm text-ink-2">842.6KB · 눌러서 바꾸기</p>
+        </div>
+        <input type="file" accept=".csv,text/csv" class="sr-only">
+
+        <!-- 컬럼 이름 — 사주라 양식이면 바꿀 일이 없어 접어 둔다. 찾지 못한 컬럼이 있으면 펼친다 -->
+        <details data-when="upload uploading uploaded needs" class="group mt-4">
+          <summary class="flex cursor-pointer list-none items-center gap-2 py-1 text-sm font-bold text-ink">컬럼 이름<span class="font-normal text-ink-2">· 사주라 양식</span><span data-icon="chevronDown" class="ml-auto size-4 text-ink-2 transition-transform group-open:rotate-180"></span></summary>
+          <div class="mt-3 grid grid-cols-2 gap-3">
+            <label class="flex flex-col gap-1 text-sm font-semibold text-ink-2 ">날짜<input type="text" value="기간" class="h-11 w-full rounded-full border border-white/80 bg-[rgb(46_32_120/0.065)] px-4 text-base font-normal text-ink focus:border-brand focus:ring-4 focus:ring-brand-soft focus:outline-none placeholder:text-ink-3"></label>
+            <label class="flex flex-col gap-1 text-sm font-semibold text-ink-2 ">메뉴명<input type="text" value="상품명" class="h-11 w-full rounded-full border border-white/80 bg-[rgb(46_32_120/0.065)] px-4 text-base font-normal text-ink focus:border-brand focus:ring-4 focus:ring-brand-soft focus:outline-none placeholder:text-ink-3"></label>
+            <label class="flex flex-col gap-1 text-sm font-semibold text-ink-2 ">수량<input type="text" value="판매건수" class="h-11 w-full rounded-full border border-white/80 bg-[rgb(46_32_120/0.065)] px-4 text-base font-normal text-ink focus:border-brand focus:ring-4 focus:ring-brand-soft focus:outline-none placeholder:text-ink-3"></label>
+            <label class="flex flex-col gap-1 text-sm font-semibold text-ink-2 ">금액<input type="text" value="실 판매 금액 (할인, 옵션 포함)" class="h-11 w-full rounded-full border border-white/80 bg-[rgb(46_32_120/0.065)] px-4 text-base font-normal text-ink focus:border-brand focus:ring-4 focus:ring-brand-soft focus:outline-none placeholder:text-ink-3"></label>
+            <label class="flex flex-col gap-1 text-sm font-semibold text-ink-2 col-span-2"><span>영수증번호 (선택) <span title="비워 두면 메뉴와 판매 시각으로 같은 판매를 걸러요. 영수증 단위로는 구분하지 못해요." class="inline-flex cursor-help align-middle text-ink-3"><span data-icon="info" class="size-4"></span></span></span><input type="text" value="" class="h-11 w-full rounded-full border border-white/80 bg-[rgb(46_32_120/0.065)] px-4 text-base font-normal text-ink focus:border-brand focus:ring-4 focus:ring-brand-soft focus:outline-none placeholder:text-ink-3"></label>
+          </div>
+        </details>
+        <details data-when="upfail" open class="group mt-4">
+          <summary class="flex cursor-pointer list-none items-center gap-2 py-1 text-sm font-bold text-ink">컬럼 이름<span class="font-semibold text-danger">· '기간' 없음</span><span data-icon="chevronDown" class="ml-auto size-4 text-ink-2 transition-transform group-open:rotate-180"></span></summary>
+          <div class="mt-3 grid grid-cols-2 gap-3">
+            <label class="flex flex-col gap-1 text-sm font-semibold text-ink-2">날짜<input type="text" value="기간" class="h-11 w-full rounded-full border border-danger bg-[rgb(46_32_120/0.065)] px-4 text-base font-normal text-ink focus:border-brand focus:ring-4 focus:ring-brand-soft focus:outline-none placeholder:text-ink-3"></label>
+            <label class="flex flex-col gap-1 text-sm font-semibold text-ink-2 ">메뉴명<input type="text" value="상품명" class="h-11 w-full rounded-full border border-white/80 bg-[rgb(46_32_120/0.065)] px-4 text-base font-normal text-ink focus:border-brand focus:ring-4 focus:ring-brand-soft focus:outline-none placeholder:text-ink-3"></label>
+            <label class="flex flex-col gap-1 text-sm font-semibold text-ink-2 ">수량<input type="text" value="판매건수" class="h-11 w-full rounded-full border border-white/80 bg-[rgb(46_32_120/0.065)] px-4 text-base font-normal text-ink focus:border-brand focus:ring-4 focus:ring-brand-soft focus:outline-none placeholder:text-ink-3"></label>
+            <label class="flex flex-col gap-1 text-sm font-semibold text-ink-2 ">금액<input type="text" value="실 판매 금액 (할인, 옵션 포함)" class="h-11 w-full rounded-full border border-white/80 bg-[rgb(46_32_120/0.065)] px-4 text-base font-normal text-ink focus:border-brand focus:ring-4 focus:ring-brand-soft focus:outline-none placeholder:text-ink-3"></label>
+            <label class="flex flex-col gap-1 text-sm font-semibold text-ink-2 col-span-2"><span>영수증번호 (선택) <span title="비워 두면 메뉴와 판매 시각으로 같은 판매를 걸러요. 영수증 단위로는 구분하지 못해요." class="inline-flex cursor-help align-middle text-ink-3"><span data-icon="info" class="size-4"></span></span></span><input type="text" value="" class="h-11 w-full rounded-full border border-white/80 bg-[rgb(46_32_120/0.065)] px-4 text-base font-normal text-ink focus:border-brand focus:ring-4 focus:ring-brand-soft focus:outline-none placeholder:text-ink-3"></label>
+          </div>
+        </details>
+
+        <div class="mt-4 flex items-center justify-between gap-4">
+          <p class="text-sm font-bold text-ink">없는 메뉴 자동 등록 <span title="CSV에만 있는 메뉴를 카테고리 '자동등록'으로 메뉴 관리에 더해요. 판매가는 금액÷수량, 재고 차감은 꺼진 채로 들어가요." class="inline-flex cursor-help align-middle text-ink-3"><span data-icon="info" class="size-4"></span></span></p>
+          <span data-when="upload upfail"><button type="button" role="switch" aria-checked="false" aria-label="없는 메뉴 자동 등록" class="relative h-7 w-12 shrink-0 rounded-full p-1 transition-colors bg-ink-3/40"><span class="block size-5 rounded-full bg-white shadow transition-transform translate-x-0"></span></button></span>
+          <span data-when="uploading uploaded needs"><button type="button" role="switch" aria-checked="true" aria-label="없는 메뉴 자동 등록" class="relative h-7 w-12 shrink-0 rounded-full p-1 transition-colors bg-brand"><span class="block size-5 rounded-full bg-white shadow transition-transform translate-x-5"></span></button></span>
+        </div>
+
+        <button type="button" disabled data-when="upload" class="mt-5 w-full inline-flex h-11 shrink-0 items-center justify-center gap-1.5 rounded-full bg-brand px-5 text-[0.95rem] font-semibold whitespace-nowrap text-white transition-colors hover:bg-brand-strong disabled:cursor-not-allowed disabled:bg-ink-3/40">올리기</button>
+        <button type="button" disabled data-when="uploading" class="mt-5 w-full inline-flex h-11 shrink-0 items-center justify-center gap-1.5 rounded-full bg-brand px-5 text-[0.95rem] font-semibold whitespace-nowrap text-white transition-colors hover:bg-brand-strong disabled:cursor-not-allowed disabled:bg-ink-3/40">올리는 중…</button>
+        <button type="button" data-when="uploaded needs upfail" data-set-state="uploaded" class="mt-5 w-full inline-flex h-11 shrink-0 items-center justify-center gap-1.5 rounded-full bg-brand px-5 text-[0.95rem] font-semibold whitespace-nowrap text-white transition-colors hover:bg-brand-strong disabled:cursor-not-allowed disabled:bg-ink-3/40">올리기</button>
+        <p data-when="uploading" role="status" class="mt-2 text-center text-sm text-ink-2">큰 파일은 1~2분 걸려요</p>
+        <p data-when="upfail" role="alert" class="mt-2 text-center text-sm font-semibold text-danger">CSV에서 '기간' 컬럼을 찾지 못했어요</p>
+
+        <!-- 결과(UploadResult) -->
+        <section data-when="uploaded needs" class="mt-6 border-t border-white/70 pt-5">
+          <h3 class="text-sm font-bold text-ink">결과</h3>
+          <dl class="mt-3 grid grid-cols-2 gap-x-4 gap-y-3 sm:grid-cols-4">
+            <div><dt class="text-sm text-ink-2">저장</dt><dd class="tabular text-2xl font-bold text-ink">1,240<span class="ml-0.5 text-sm font-semibold text-ink-2">건</span></dd></div>
+            <div><dt class="text-sm text-ink-2">제외</dt><dd class="tabular text-2xl font-bold text-warn">4<span class="ml-0.5 text-sm font-semibold text-ink-2">건</span></dd></div>
+            <div><dt class="text-sm text-ink-2">자동 등록 메뉴</dt><dd class="tabular text-2xl font-bold text-ink">3<span class="ml-0.5 text-sm font-semibold text-ink-2">개</span></dd></div>
+            <div><dt class="text-sm text-ink-2">이상치</dt><dd class="tabular text-2xl font-bold text-ink">0<span class="ml-0.5 text-sm font-semibold text-ink-2">건</span></dd></div>
+          </dl>
+          <p class="mt-3 text-sm text-ink-2">재고 차감에 반영한 판매 1,238건</p>
+          <p data-when="needs" class="mt-2 text-sm"><span class="font-semibold text-warn">재고 확인 필요 · 루꼴라, 바질</span> <span class="text-ink-2">기록된 재고보다 많이 팔렸어요</span></p>
+          <details class="group mt-3">
+            <summary class="flex cursor-pointer list-none items-center gap-2 text-sm font-semibold text-ink-2">제외된 행 4건<span data-icon="chevronDown" class="size-4 transition-transform group-open:rotate-180"></span></summary>
+            <ul class="mt-2 space-y-1 text-sm text-ink-2">
+              <li><span class="tabular font-semibold text-ink">18행</span> 수량이 0 이하예요</li>
+              <li><span class="tabular font-semibold text-ink">241행</span> 날짜를 읽지 못했어요 (2026/13/02)</li>
+              <li><span class="tabular font-semibold text-ink">702행</span> 메뉴명이 비어 있어요</li>
+              <li><span class="tabular font-semibold text-ink">1033행</span> 금액이 숫자가 아니에요</li>
+            </ul>
+          </details>
+        </section>
+      </div>
+    </aside>
+    <aside data-when="account saved withdraw" data-panel="account" aria-label="내 계정" class="fixed inset-0 z-50 overflow-y-auto lg:relative lg:inset-auto lg:z-auto lg:col-span-3">
+      <div class="min-h-full px-4 pt-[5.25rem] pb-28 glass-card lg:min-h-0 lg:rounded-2xl lg:p-6">
+        <div class="flex items-center gap-2">
+          <button type="button" data-set-state="default" aria-label="뒤로" class="flex lg:hidden -ml-2 size-10 items-center justify-center rounded-full text-ink-2 hover:bg-white/60"><span data-icon="chevronLeft" class="size-6"></span></button>
+          <h2 class="min-w-0 flex-1 truncate text-xl font-bold text-ink">내 계정</h2>
+        </div>
+        <p class="mt-1 text-sm text-ink-2">owner@sajura.kr · 이메일 로그인</p>
+        <form class="mt-5">
+          <h3 class="text-sm font-bold text-ink">이름</h3>
+          <div class="mt-3 flex items-end gap-3">
+            <label class="flex flex-col gap-1 text-sm font-semibold text-ink-2 flex-1"><span class="sr-only">이름</span><input type="text" value="김사주" class="h-11 w-full rounded-full border border-white/80 bg-[rgb(46_32_120/0.065)] px-4 text-base font-normal text-ink focus:border-brand focus:ring-4 focus:ring-brand-soft focus:outline-none placeholder:text-ink-3"></label>
+            <button type="submit" data-set-state="saved" class="inline-flex h-11 shrink-0 items-center justify-center gap-1.5 rounded-full border border-white/80 px-5 text-[0.95rem] font-semibold whitespace-nowrap text-ink-2 transition-colors hover:bg-white/30">저장</button>
+          </div>
+          <p data-when="saved" role="status" class="mt-2 text-sm font-semibold text-ok">저장했어요</p>
+        </form>
+        <!-- 비밀번호 바꾸기 — 이메일 가입(LOCAL)만. 구글·카카오 로그인 계정은 이 묶음이 없다 -->
+        <form class="mt-6 border-t border-white/70 pt-5">
+          <h3 class="text-sm font-bold text-ink">비밀번호 바꾸기</h3>
+          <div class="mt-3 grid grid-cols-2 gap-3">
+            <label class="flex flex-col gap-1 text-sm font-semibold text-ink-2 col-span-2">현재 비밀번호<input type="password" value="" class="h-11 w-full rounded-full border border-white/80 bg-[rgb(46_32_120/0.065)] px-4 text-base font-normal text-ink focus:border-brand focus:ring-4 focus:ring-brand-soft focus:outline-none placeholder:text-ink-3" autocomplete="current-password"></label>
+            <label class="flex flex-col gap-1 text-sm font-semibold text-ink-2 ">새 비밀번호<input type="password" value="" class="h-11 w-full rounded-full border border-white/80 bg-[rgb(46_32_120/0.065)] px-4 text-base font-normal text-ink focus:border-brand focus:ring-4 focus:ring-brand-soft focus:outline-none placeholder:text-ink-3" autocomplete="new-password"></label>
+            <label class="flex flex-col gap-1 text-sm font-semibold text-ink-2 ">새 비밀번호 확인<input type="password" value="" class="h-11 w-full rounded-full border border-white/80 bg-[rgb(46_32_120/0.065)] px-4 text-base font-normal text-ink focus:border-brand focus:ring-4 focus:ring-brand-soft focus:outline-none placeholder:text-ink-3" autocomplete="new-password"></label>
+          </div>
+          <div class="mt-3 flex justify-end"><button type="submit" class="inline-flex h-10 shrink-0 items-center justify-center gap-1.5 rounded-full border border-white/80 px-5 text-[0.95rem] font-semibold whitespace-nowrap text-ink-2 transition-colors hover:bg-white/30">비밀번호 바꾸기</button></div>
+        </form>
+        <!-- 회원 탈퇴 — 이메일 가입(LOCAL) 계정이라 비밀번호 확인칸이 보인다 -->
+        <section class="mt-6 border-t border-white/70 pt-5">
+          <h3 class="text-sm font-bold text-ink">회원 탈퇴</h3>
+          <p class="mt-1 text-sm text-ink-2">탈퇴하면 바로 로그인할 수 없어요. 30일 뒤 매장의 모든 데이터와 사업자등록증이 지워지고, 그때까지 같은 계정으로 다시 가입할 수 없어요.</p>
+          <label data-when="account saved" class="flex flex-col gap-1 text-sm font-semibold text-ink-2 mt-3">비밀번호 확인<input type="password" value="" autocomplete="current-password" class="h-11 w-full rounded-full border border-white/80 bg-[rgb(46_32_120/0.065)] px-4 text-base font-normal text-ink focus:border-brand focus:ring-4 focus:ring-brand-soft focus:outline-none placeholder:text-ink-3"></label>
+          <label data-when="withdraw" class="flex flex-col gap-1 text-sm font-semibold text-ink-2 mt-3">비밀번호 확인<input type="password" value="password1234" autocomplete="current-password" class="h-11 w-full rounded-full border border-white/80 bg-[rgb(46_32_120/0.065)] px-4 text-base font-normal text-ink focus:border-brand focus:ring-4 focus:ring-brand-soft focus:outline-none placeholder:text-ink-3"></label>
+          <label class="mt-3 flex items-center gap-2 text-sm text-ink">
+            <input data-when="account saved" type="checkbox" class="size-4 accent-[var(--color-brand)]">
+            <input data-when="withdraw" type="checkbox" checked class="size-4 accent-[var(--color-brand)]">
+            30일 뒤 모든 데이터가 지워지는 것을 확인했어요
+          </label>
+          <button type="button" disabled data-when="account saved" class="mt-3 inline-flex h-10 items-center rounded-full bg-danger px-5 text-[0.95rem] font-semibold text-white disabled:cursor-not-allowed disabled:bg-ink-3/40">회원 탈퇴</button>
+          <button type="button" data-when="withdraw" data-go="02_login.html?state=withdrawn" class="mt-3 inline-flex h-10 items-center rounded-full bg-danger px-5 text-[0.95rem] font-semibold text-white hover:opacity-90">회원 탈퇴</button>
+        </section>
+      </div>
+    </aside>
+    <aside data-when="notify" data-panel="notify" aria-label="알림" class="fixed inset-0 z-50 overflow-y-auto lg:relative lg:inset-auto lg:z-auto lg:col-span-3">
+      <div class="min-h-full px-4 pt-[5.25rem] pb-28 glass-card lg:min-h-0 lg:rounded-2xl lg:p-6">
+        <div class="flex items-center gap-2">
+          <button type="button" data-set-state="default" aria-label="뒤로" class="flex lg:hidden -ml-2 size-10 items-center justify-center rounded-full text-ink-2 hover:bg-white/60"><span data-icon="chevronLeft" class="size-6"></span></button>
+          <h2 class="min-w-0 flex-1 truncate text-xl font-bold text-ink">알림</h2>
+        </div>
+        <!-- 01 §4.5 네 묶음, 기본값 모두 켬. 끈 묶음은 인앱·푸시 모두 만들지 않는다. 누르면 바로 반영 -->
+        <ul class="mt-4 divide-y divide-white/70">
+          <li class="flex items-center justify-between gap-4 py-3"><span class="text-[0.95rem] font-semibold text-ink">소비기한 임박</span><button type="button" role="switch" aria-checked="true" aria-label="소비기한 임박" class="relative h-7 w-12 shrink-0 rounded-full p-1 transition-colors bg-brand"><span class="block size-5 rounded-full bg-white shadow transition-transform translate-x-5"></span></button></li>
+          <li class="flex items-center justify-between gap-4 py-3"><span class="text-[0.95rem] font-semibold text-ink">재고 부족</span><button type="button" role="switch" aria-checked="true" aria-label="재고 부족" class="relative h-7 w-12 shrink-0 rounded-full p-1 transition-colors bg-brand"><span class="block size-5 rounded-full bg-white shadow transition-transform translate-x-5"></span></button></li>
+          <li class="flex items-center justify-between gap-4 py-3"><span class="text-[0.95rem] font-semibold text-ink">예측 완료</span><button type="button" role="switch" aria-checked="true" aria-label="예측 완료" class="relative h-7 w-12 shrink-0 rounded-full p-1 transition-colors bg-brand"><span class="block size-5 rounded-full bg-white shadow transition-transform translate-x-5"></span></button></li>
+          <li class="flex items-center justify-between gap-4 py-3"><span class="text-[0.95rem] font-semibold text-ink">이상치 감지</span><button type="button" role="switch" aria-checked="false" aria-label="이상치 감지" class="relative h-7 w-12 shrink-0 rounded-full p-1 transition-colors bg-ink-3/40"><span class="block size-5 rounded-full bg-white shadow transition-transform translate-x-0"></span></button></li>
+        </ul>
+        <!-- 이 기기 푸시 — POST /api/notifications/subscribe(Web Push). 끄면 인앱 알림만 -->
+        <section class="mt-6 border-t border-white/70 pt-5">
+          <div class="flex items-center justify-between gap-4"><span class="text-[0.95rem] font-semibold text-ink">이 기기로 푸시 받기</span><button type="button" role="switch" aria-checked="true" aria-label="이 기기로 푸시 받기" class="relative h-7 w-12 shrink-0 rounded-full p-1 transition-colors bg-brand"><span class="block size-5 rounded-full bg-white shadow transition-transform translate-x-5"></span></button></div>
+        </section>
+      </div>
+    </aside>
+    <aside data-when="store store-saved" data-panel="store" aria-label="매장 정보" class="fixed inset-0 z-50 overflow-y-auto lg:relative lg:inset-auto lg:z-auto lg:col-span-3">
+      <div class="min-h-full px-4 pt-[5.25rem] pb-28 glass-card lg:min-h-0 lg:rounded-2xl lg:p-6">
+        <div class="flex items-center gap-2">
+          <button type="button" data-set-state="default" aria-label="뒤로" class="flex lg:hidden -ml-2 size-10 items-center justify-center rounded-full text-ink-2 hover:bg-white/60"><span data-icon="chevronLeft" class="size-6"></span></button>
+          <h2 class="min-w-0 flex-1 truncate text-xl font-bold text-ink">매장 정보</h2>
+        </div>
+        <!-- 온보딩 2단계에서 받은 값(01 §5.2.1). 주소는 날씨 조회 좌표로 바뀐다 -->
+        <form class="mt-5">
+          <div class="grid grid-cols-2 gap-3">
+            <label class="flex flex-col gap-1 text-sm font-semibold text-ink-2 col-span-2">매장명<input type="text" value="사주라 화덕피자 성수점" class="h-11 w-full rounded-full border border-white/80 bg-[rgb(46_32_120/0.065)] px-4 text-base font-normal text-ink focus:border-brand focus:ring-4 focus:ring-brand-soft focus:outline-none placeholder:text-ink-3"></label>
+            <label class="flex flex-col gap-1 text-sm font-semibold text-ink-2 ">업종<span class="relative block"><select class="h-11 w-full rounded-full border border-white/80 bg-[rgb(46_32_120/0.065)] px-4 text-base font-normal text-ink focus:border-brand focus:ring-4 focus:ring-brand-soft focus:outline-none placeholder:text-ink-3 appearance-none pr-10"><option>카페</option><option>한식</option><option selected>양식</option><option>분식</option><option>주점</option><option>기타</option></select><span data-icon="chevronDown" class="pointer-events-none absolute top-1/2 right-4 size-4 -translate-y-1/2 text-ink-2"></span></span></label>
+            <label class="flex flex-col gap-1 text-sm font-semibold text-ink-2 ">연락처<input type="text" value="02-000-0000" class="h-11 w-full rounded-full border border-white/80 bg-[rgb(46_32_120/0.065)] px-4 text-base font-normal text-ink focus:border-brand focus:ring-4 focus:ring-brand-soft focus:outline-none placeholder:text-ink-3"></label>
+            <label class="flex flex-col gap-1 text-sm font-semibold text-ink-2 col-span-2">주소<input type="text" value="서울특별시 성동구 연무장길 00" class="h-11 w-full rounded-full border border-white/80 bg-[rgb(46_32_120/0.065)] px-4 text-base font-normal text-ink focus:border-brand focus:ring-4 focus:ring-brand-soft focus:outline-none placeholder:text-ink-3"></label>
+            <label class="flex flex-col gap-1 text-sm font-semibold text-ink-2 ">매장 규모<span class="relative block"><select class="h-11 w-full rounded-full border border-white/80 bg-[rgb(46_32_120/0.065)] px-4 text-base font-normal text-ink focus:border-brand focus:ring-4 focus:ring-brand-soft focus:outline-none placeholder:text-ink-3 appearance-none pr-10"><option>소형 (~10석)</option><option selected>중형 (11~30석)</option><option>대형 (31석~)</option></select><span data-icon="chevronDown" class="pointer-events-none absolute top-1/2 right-4 size-4 -translate-y-1/2 text-ink-2"></span></span></label>
+            <label class="flex flex-col gap-1 text-sm font-semibold text-ink-2 ">운영 형태<span class="relative block"><select class="h-11 w-full rounded-full border border-white/80 bg-[rgb(46_32_120/0.065)] px-4 text-base font-normal text-ink focus:border-brand focus:ring-4 focus:ring-brand-soft focus:outline-none placeholder:text-ink-3 appearance-none pr-10"><option>홀</option><option>배달</option><option selected>홀+배달</option></select><span data-icon="chevronDown" class="pointer-events-none absolute top-1/2 right-4 size-4 -translate-y-1/2 text-ink-2"></span></span></label>
+          </div>
+          <div class="mt-3 flex items-center justify-end gap-3">
+            <p data-when="store-saved" role="status" class="text-sm font-semibold text-ok">저장했어요</p>
+            <button type="submit" data-set-state="store-saved" class="inline-flex h-10 shrink-0 items-center justify-center gap-1.5 rounded-full border border-white/80 px-5 text-[0.95rem] font-semibold whitespace-nowrap text-ink-2 transition-colors hover:bg-white/30">저장</button>
+          </div>
+        </form>
+        <!-- 사업자 인증 — business_status. 심사 중(PENDING)·반려(REJECTED, 사유)면 그 상태와 다시 검증 -->
+        <section class="mt-6 border-t border-white/70 pt-5">
+          <h3 class="text-sm font-bold text-ink">사업자 인증</h3>
+          <p class="mt-1 text-[0.95rem]"><span class="tabular text-ink">123-45-67890</span> <span class="font-semibold text-ok">인증됨</span></p>
+        </section>
+      </div>
+    </aside>
+    <aside data-when="coupang coupang-none" data-panel="coupang" aria-label="쿠팡 담기 확장" class="fixed inset-0 z-50 overflow-y-auto lg:relative lg:inset-auto lg:z-auto lg:col-span-3">
+      <div class="min-h-full px-4 pt-[5.25rem] pb-28 glass-card lg:min-h-0 lg:rounded-2xl lg:p-6">
+        <div class="flex items-center gap-2">
+          <button type="button" data-set-state="default" aria-label="뒤로" class="flex lg:hidden -ml-2 size-10 items-center justify-center rounded-full text-ink-2 hover:bg-white/60"><span data-icon="chevronLeft" class="size-6"></span></button>
+          <h2 class="min-w-0 flex-1 truncate text-xl font-bold text-ink">쿠팡 담기 확장</h2>
+        </div>
+        <!-- 확장 ping(04 §12) — 답이 오면 연결됨과 버전, 없으면 설치 안 됨(휴대폰 포함) -->
+        <div class="mt-4">
+          <p data-when="coupang" class="text-lg font-bold text-ink">사주라 확장 <span class="font-semibold text-ok">연결됨</span></p>
+          <p data-when="coupang" class="mt-0.5 text-sm text-ink-2">버전 0.1.0 · 이 브라우저에서 [쿠팡 담기]를 쓸 수 있어요</p>
+          <p data-when="coupang-none" class="text-lg font-bold text-ink">사주라 확장 <span class="font-semibold text-warn">설치 안 됨</span></p>
+          <p data-when="coupang-none" class="mt-0.5 text-sm text-ink-2">PC 크롬에 사주라 확장을 설치하면 추천발주에서 쿠팡 장바구니에 바로 담을 수 있어요</p>
+        </div>
+      </div>
+    </aside>
+    <aside data-when="appinfo" data-panel="appinfo" aria-label="앱 정보" class="fixed inset-0 z-50 overflow-y-auto lg:relative lg:inset-auto lg:z-auto lg:col-span-3">
+      <div class="min-h-full px-4 pt-[5.25rem] pb-28 glass-card lg:min-h-0 lg:rounded-2xl lg:p-6">
+        <div class="flex items-center gap-2">
+          <button type="button" data-set-state="default" aria-label="뒤로" class="flex lg:hidden -ml-2 size-10 items-center justify-center rounded-full text-ink-2 hover:bg-white/60"><span data-icon="chevronLeft" class="size-6"></span></button>
+          <h2 class="min-w-0 flex-1 truncate text-xl font-bold text-ink">앱 정보</h2>
+        </div>
+        <ul class="mt-4 divide-y divide-white/70">
+          <li class="flex items-center justify-between py-3"><span class="text-[0.95rem] font-semibold text-ink">버전</span><span class="tabular text-sm text-ink-2">0.1.0</span></li>
+          <li class="flex items-center justify-between py-3"><span class="text-[0.95rem] font-semibold text-ink">이용약관</span><span class="text-sm text-ink-2">준비 중</span></li>
+          <li class="flex items-center justify-between py-3"><span class="text-[0.95rem] font-semibold text-ink">개인정보처리방침</span><span class="text-sm text-ink-2">준비 중</span></li>
         </ul>
       </div>
-    </section>
-
-    <section class="space-y-2">
-      <h2 class="px-1 text-sm font-semibold text-ink-2">설정</h2>
-      <div class="overflow-hidden rounded-2xl glass-card">
-        <ul class="divide-y divide-line-soft">
-          <li><a href="12_settings-pos.html" class="flex items-center gap-4 px-5 py-4 transition-colors hover:bg-subtle active:bg-subtle">
-            <span class="flex size-11 shrink-0 items-center justify-center rounded-full bg-brand-soft text-brand"><span data-icon="store" class="size-5"></span></span>
-            <span class="min-w-0 flex-1"><span class="block text-[1.05rem] font-bold text-ink">POS 연동 관리</span><span class="block text-sm text-ink-3">POS 연동 상태 확인, CSV 템플릿 다운로드·업로드</span></span>
-            <span data-icon="chevronRight" class="size-5 shrink-0 text-ink-4"></span>
-          </a></li>
-          <li><a href="13_settings-notifications.html" class="flex items-center gap-4 px-5 py-4 transition-colors hover:bg-subtle active:bg-subtle">
-            <span class="flex size-11 shrink-0 items-center justify-center rounded-full bg-brand-soft text-brand"><span data-icon="bell" class="size-5"></span></span>
-            <span class="min-w-0 flex-1"><span class="block text-[1.05rem] font-bold text-ink">알림 설정</span><span class="block text-sm text-ink-3">재고 부족·발주 알림 수신 설정</span></span>
-            <span data-icon="chevronRight" class="size-5 shrink-0 text-ink-4"></span>
-          </a></li>
-          <li><a href="14_settings-account.html" class="flex items-center gap-4 px-5 py-4 transition-colors hover:bg-subtle active:bg-subtle">
-            <span class="flex size-11 shrink-0 items-center justify-center rounded-full bg-brand-soft text-brand"><span data-icon="user" class="size-5"></span></span>
-            <span class="min-w-0 flex-1"><span class="block text-[1.05rem] font-bold text-ink">계정 정보</span><span class="block text-sm text-ink-3">이름, 매장 정보, 비밀번호 변경</span></span>
-            <span data-icon="chevronRight" class="size-5 shrink-0 text-ink-4"></span>
-          </a></li>
-          <li><a href="15_settings-app-info.html" class="flex items-center gap-4 px-5 py-4 transition-colors hover:bg-subtle active:bg-subtle">
-            <span class="flex size-11 shrink-0 items-center justify-center rounded-full bg-brand-soft text-brand"><span data-icon="info" class="size-5"></span></span>
-            <span class="min-w-0 flex-1"><span class="block text-[1.05rem] font-bold text-ink">앱 정보</span><span class="block text-sm text-ink-3">버전, 이용약관, 개인정보처리방침</span></span>
-            <span data-icon="chevronRight" class="size-5 shrink-0 text-ink-4"></span>
-          </a></li>
-        </ul>
-      </div>
-    </section>
-
-    <!-- InstallMenuButton — 이미 설치했으면 숨김. 안드로이드·PC 크롬은 설치 창, 그 외는 안내 시트 -->
-    <button type="button" data-set-state="guide-android" class="flex h-14 w-full items-center justify-center gap-2 rounded-2xl bg-brand text-base font-semibold text-white hover:bg-brand-strong">
-      <span data-icon="smartphone" class="size-5"></span> 홈 화면에 앱으로 설치하기
-    </button>
-
-    <a href="02_login.html" class="flex h-14 w-full items-center justify-center gap-2 rounded-2xl text-base font-semibold text-ink-2 hover:bg-subtle glass-card">
-      <span data-icon="logOut" class="size-5"></span> 로그아웃
-    </a>
+    </aside>
   </div>
 </div>
 
@@ -100,5 +334,16 @@
     <button type="button" data-set-state="default" class="mt-6 inline-flex h-14 w-full shrink-0 items-center justify-center gap-2 rounded-2xl bg-brand px-6 text-lg font-semibold whitespace-nowrap text-white transition-colors hover:bg-brand-strong">확인했어요</button>
   </div>
 </div>
+<script>
+// 스위치 — 누르면 바로 켜고 끈다
+document.addEventListener("click", (e) => {
+  const b = e.target.closest('[role="switch"]');
+  if (!b) return;
+  const on = b.getAttribute("aria-checked") !== "true";
+  b.setAttribute("aria-checked", on);
+  b.classList.toggle("bg-brand", on); b.classList.toggle("bg-ink-3/40", !on);
+  b.firstElementChild.classList.toggle("translate-x-5", on); b.firstElementChild.classList.toggle("translate-x-0", !on);
+});
+</script>
 </body>
 </html>
