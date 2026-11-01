@@ -123,96 +123,65 @@ export function PosPanel({ onBack, onOpenUpload }: PosPanelProps) {
       className="lg:col-span-3"
       {...(onBack ? { onClose: onBack } : {})}
     >
-      <div className="mt-4">
-        {status === "CSV_MODE" && (
-          <>
-            <p className="text-lg font-bold text-ink">CSV 모드</p>
-            {lastSync ? (
-              <p className="mt-0.5 text-sm text-ink-2">마지막 업로드 {lastSync}</p>
-            ) : null}
-          </>
-        )}
-        {status === "CONNECTED" && (
-          <>
-            <p className="text-lg font-bold text-ink">
-              토스플레이스 <span className="font-semibold text-ok">연결됨</span>
-            </p>
-            {receiving ? (
-              <p className="mt-0.5 text-sm text-ink-2">판매 데이터를 받는 중이에요</p>
-            ) : lastSync ? (
-              <p className="mt-0.5 text-sm text-ink-2">마지막 동기화 {lastSync}</p>
-            ) : null}
-          </>
-        )}
-        {status === "ERROR" && (
-          <>
-            <p className="text-lg font-bold text-ink">
-              토스플레이스 <span className="font-semibold text-danger">연동 끊김</span>
-            </p>
-            <p className="mt-0.5 text-sm text-ink-2">
-              {posStatus?.error_message ||
-                (lastSync
-                  ? `${lastSync}부터 새 매출이 들어오지 않아요`
-                  : "새 매출이 들어오지 않아요")}
-            </p>
-          </>
-        )}
-        {status === "DISCONNECTED" && (
-          <>
-            <p className="text-lg font-bold text-ink">미연동</p>
-            <p className="mt-0.5 text-sm text-ink-2">POS가 연결되지 않았어요</p>
-          </>
-        )}
-      </div>
+      {/* POS 연동 — 토스플레이스 연결·동기화 */}
+      {status === "CONNECTED" && (
+        <div className="mt-4">
+          <p className="text-lg font-bold text-ink">
+            토스플레이스 <span className="font-semibold text-ok">연결됨</span>
+          </p>
+          {receiving ? (
+            <p className="mt-0.5 text-sm text-ink-2">판매 데이터를 받는 중이에요</p>
+          ) : lastSync ? (
+            <p className="mt-0.5 text-sm text-ink-2">마지막 동기화 {lastSync}</p>
+          ) : null}
+        </div>
+      )}
+      {status === "ERROR" && (
+        <div className="mt-4">
+          <p className="text-lg font-bold text-ink">
+            토스플레이스 <span className="font-semibold text-danger">연동 끊김</span>
+          </p>
+          <p className="mt-0.5 text-sm text-ink-2">
+            {posStatus?.error_message ||
+              (lastSync
+                ? `${lastSync}부터 새 매출이 들어오지 않아요`
+                : "새 매출이 들어오지 않아요")}
+          </p>
+        </div>
+      )}
+      {status === "DISCONNECTED" && (
+        <div className="mt-4">
+          <p className="text-lg font-bold text-ink">미연동</p>
+          <p className="mt-0.5 text-sm text-ink-2">POS가 연결되지 않았어요</p>
+        </div>
+      )}
 
       <div className="mt-4 flex flex-wrap gap-2">
-        {status === "CSV_MODE" || status === "DISCONNECTED" ? (
-          <>
-            {status === "CSV_MODE" ? (
-              <button type="button" onClick={openConnectForm} className={TOSS_BTN}>
-                <img src={tossLogo} alt="토스" className="h-[18px] w-auto" />
-                연결
-              </button>
-            ) : null}
-            <button
-              type="button"
-              onClick={onOpenUpload}
-              className="inline-flex h-11 shrink-0 items-center justify-center gap-1.5 rounded-full bg-brand px-5 text-[0.95rem] font-semibold whitespace-nowrap text-white transition-colors hover:bg-brand-strong disabled:cursor-not-allowed disabled:bg-ink-3/40"
-            >
-              <Upload className="size-4" />
-              매출 올리기
-            </button>
-            <button type="button" onClick={downloadSalesCsvTemplate} className={SECONDARY_BTN}>
-              <Download className="size-4" />
-              CSV 양식 받기
-            </button>
-            {status === "DISCONNECTED" ? (
-              <button type="button" onClick={openConnectForm} className={SECONDARY_BTN}>
-                다시 연동
-              </button>
-            ) : null}
-          </>
+        {status === "CSV_MODE" ? (
+          <button type="button" onClick={openConnectForm} className={TOSS_BTN}>
+            <img src={tossLogo} alt="토스" className="h-[18px] w-auto" />
+            연결
+          </button>
         ) : null}
-
         {status === "CONNECTED" || status === "ERROR" ? (
-          <>
-            <button
-              type="button"
-              onClick={() => sync.mutate()}
-              disabled={sync.isPending || receiving}
-              className={status === "ERROR" ? SECONDARY_BTN : PRIMARY_BTN}
-            >
-              <RefreshCw className="size-4" />
-              {sync.isPending ? "받는 중…" : "지금 동기화"}
-            </button>
-            <button
-              type="button"
-              onClick={openConnectForm}
-              className={status === "ERROR" ? PRIMARY_BTN : SECONDARY_BTN}
-            >
-              다시 연동
-            </button>
-          </>
+          <button
+            type="button"
+            onClick={() => sync.mutate()}
+            disabled={sync.isPending || receiving}
+            className={status === "ERROR" ? SECONDARY_BTN : PRIMARY_BTN}
+          >
+            <RefreshCw className="size-4" />
+            {sync.isPending ? "받는 중…" : "지금 동기화"}
+          </button>
+        ) : null}
+        {status !== "CSV_MODE" ? (
+          <button
+            type="button"
+            onClick={openConnectForm}
+            className={status === "CONNECTED" ? SECONDARY_BTN : PRIMARY_BTN}
+          >
+            다시 연동
+          </button>
         ) : null}
       </div>
 
@@ -251,9 +220,27 @@ export function PosPanel({ onBack, onOpenUpload }: PosPanelProps) {
         </form>
       ) : null}
 
+      <p className="mt-3 text-sm text-ink-2">키움페이·OKPOS 연동은 준비 중이에요</p>
+
+      {/* CSV 모드 — POS 연결과 상관없이 올릴 수 있다. POS 매출이 있는 날은 건너뛴다(01_basic_design.md §3.4.7) */}
       <section className="mt-6 border-t border-white/70 pt-5">
-        <h3 className="text-sm font-bold text-ink">POS API 연동</h3>
-        <p className="mt-1 text-sm text-ink-2">키움페이·OKPOS 연동은 준비 중이에요</p>
+        <h3 className="text-lg font-bold text-ink">CSV 모드</h3>
+        {status === "CSV_MODE" && lastSync ? (
+          <p className="mt-0.5 text-sm text-ink-2">마지막 업로드 {lastSync}</p>
+        ) : null}
+        {status === "CONNECTED" || status === "ERROR" ? (
+          <p className="mt-0.5 text-sm text-ink-2">토스 매출이 있는 날은 건너뛰고 올려요</p>
+        ) : null}
+        <div className="mt-4 flex flex-wrap gap-2">
+          <button type="button" onClick={onOpenUpload} className={PRIMARY_BTN}>
+            <Upload className="size-4" />
+            매출 올리기
+          </button>
+          <button type="button" onClick={downloadSalesCsvTemplate} className={SECONDARY_BTN}>
+            <Download className="size-4" />
+            CSV 양식 받기
+          </button>
+        </div>
       </section>
     </FollowPanel>
   );
