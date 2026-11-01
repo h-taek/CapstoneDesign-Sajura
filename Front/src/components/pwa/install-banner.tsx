@@ -1,18 +1,21 @@
-// 홈 화면 설치 안내 — 앱(모바일) 홈 상단 배너 + 더보기 메뉴 항목.
-// 안드로이드는 버튼 한 번으로 설치 창, 아이폰은 그림 순서대로 따라 하는 안내 창.
+// 홈 화면 설치 안내 — 앱(모바일) 홈 상단 배너 + 설정/더보기 메뉴 항목.
+// 안드로이드·PC 크롬은 설치 창(canPrompt), 비지원 브라우저는 OS별(iOS vs Android/기타) 안내 시트.
 import { MoreVertical, PlusSquare, Share, Smartphone, X } from "lucide-react";
 import { useState } from "react";
 import { createPortal } from "react-dom";
 import { dismissInstallBanner, promptInstall, useInstallState } from "../../lib/pwa-install";
 import { Button } from "../ui/button";
 
-/** 설치를 시작한다 — 안드로이드는 설치 창, 아이폰·그 외는 안내 창. */
+/** 설치를 시작한다 — canPrompt면 설치 창, 지원하지 않거나 실패하면 안내 창 */
 export function useStartInstall() {
   const state = useInstallState();
   const [guideOpen, setGuideOpen] = useState(false);
   const start = async () => {
     if (state.canPrompt) {
-      await promptInstall();
+      const ok = await promptInstall();
+      if (!ok && !state.installed) {
+        setGuideOpen(true);
+      }
       return;
     }
     setGuideOpen(true);
@@ -22,27 +25,28 @@ export function useStartInstall() {
 
 export function InstallBanner() {
   const { state, start, guideOpen, closeGuide } = useStartInstall();
-  if (state.installed || state.dismissed || (!state.canPrompt && !state.ios)) return null;
+  if (state.installed || state.dismissed) return null;
 
   return (
     <>
-      <div className="relative flex items-center gap-4 rounded-2xl border border-brand-tint bg-brand-soft p-4 pr-12 lg:hidden">
-        <img src="/icon-192.png" alt="" className="size-14 shrink-0 rounded-2xl shadow-card" />
-        <div className="min-w-0 flex-1 space-y-2">
-          <p className="text-base leading-snug font-bold text-ink">
-            사주라를 휴대폰 홈 화면에 추가하세요
-          </p>
-          <p className="text-sm text-ink-2">앱처럼 아이콘을 눌러 바로 열 수 있어요.</p>
-          <Button size="md" onClick={start}>
-            <Smartphone className="size-5" />
+      <div
+        id="install-banner"
+        className="relative mb-4 flex items-center gap-3 rounded-2xl px-4 py-3 pr-12 glass-card lg:hidden"
+      >
+        <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-brand text-lg font-black text-white">
+          사
+        </span>
+        <div className="min-w-0 flex-1">
+          <p className="text-[0.95rem] leading-snug font-bold text-ink">홈 화면에 사주라 추가</p>
+          <button type="button" onClick={start} className="text-sm font-semibold text-brand">
             {state.canPrompt ? "홈 화면에 설치" : "설치 방법 보기"}
-          </Button>
+          </button>
         </div>
         <button
           type="button"
           onClick={dismissInstallBanner}
           aria-label="설치 안내 닫기"
-          className="absolute top-2 right-2 flex size-10 items-center justify-center rounded-full text-ink-3 hover:bg-white"
+          className="absolute top-1/2 right-2 flex size-10 -translate-y-1/2 items-center justify-center rounded-full text-ink-3 hover:bg-white/60"
         >
           <X className="size-5" />
         </button>
@@ -52,20 +56,56 @@ export function InstallBanner() {
   );
 }
 
-/** 더보기·설정 화면용 — 이미 설치했으면 숨긴다. */
-export function InstallMenuButton() {
+/** 더보기·설정 화면용 — 이미 설치했으면 숨긴다 */
+export function InstallMenuButton({ onOpenGuide }: { onOpenGuide?: () => void }) {
   const { state, start, guideOpen, closeGuide } = useStartInstall();
   if (state.installed) return null;
+
+  const handleClick = () => {
+    if (onOpenGuide) {
+      if (state.canPrompt) {
+        promptInstall().then((ok) => {
+          if (!ok && !state.installed) onOpenGuide();
+        });
+      } else {
+        onOpenGuide();
+      }
+      return;
+    }
+    start();
+  };
+
   return (
     <>
-      <button
-        type="button"
-        onClick={start}
-        className="flex h-14 w-full items-center justify-center gap-2 rounded-2xl bg-brand text-base font-semibold text-white hover:bg-brand-strong"
-      >
-        <Smartphone className="size-5" /> 홈 화면에 앱으로 설치하기
-      </button>
-      {guideOpen && <InstallGuideSheet ios={state.ios} onClose={closeGuide} />}
+      <li>
+        <button
+          type="button"
+          onClick={handleClick}
+          className="flex w-full items-center gap-3.5 px-5 py-2.5 text-left transition-colors hover:bg-white/40"
+        >
+          <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-brand-soft text-brand">
+            <Smartphone className="size-[1.125rem]" />
+          </span>
+          <span className="min-w-0 flex-1 text-[1.05rem] font-semibold text-ink">
+            홈 화면에 설치
+          </span>
+          <span className="size-5 shrink-0 text-ink-4">
+            <svg
+              className="size-5"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              aria-hidden="true"
+            >
+              <path d="m9 18 6-6-6-6" />
+            </svg>
+          </span>
+        </button>
+      </li>
+      {!onOpenGuide && guideOpen && <InstallGuideSheet ios={state.ios} onClose={closeGuide} />}
     </>
   );
 }
@@ -82,15 +122,14 @@ export function InstallGuideSheet({ ios, onClose }: { ios: boolean; onClose: () 
         { icon: PlusSquare, text: "'홈 화면에 추가' 또는 '앱 설치'를 누르세요." },
         { icon: Smartphone, text: "'설치'를 누르면 홈 화면에 사주라가 생겨요." },
       ];
+
   return createPortal(
     <div className="fixed inset-0 z-50 flex items-end justify-center bg-ink/40 sm:items-center">
-      {/* biome-ignore lint/a11y/useSemanticElements: <dialog>의 UA 기본 배치가 하단 시트와 맞지 않아 div로 둔다 */}
-      <div
-        role="dialog"
+      <dialog
+        open
         aria-modal="true"
         aria-labelledby="install-guide-title"
-        className="w-full max-w-md rounded-t-3xl bg-white px-6 pt-6 shadow-pop sm:rounded-3xl"
-        style={{ paddingBottom: "calc(1.5rem + env(safe-area-inset-bottom))" }}
+        className="m-0 w-full max-w-md border-0 bg-transparent p-0 px-6 pt-6 pb-6 rounded-t-3xl sm:rounded-3xl glass-strong"
       >
         <div className="mb-5 flex items-center justify-between">
           <h2 id="install-guide-title" className="text-xl font-bold text-ink">
@@ -126,10 +165,15 @@ export function InstallGuideSheet({ ios, onClose }: { ios: boolean; onClose: () 
             );
           })}
         </ol>
-        <Button size="xl" className="mt-6 w-full" onClick={onClose}>
+        <Button
+          type="button"
+          size="xl"
+          className="mt-6 w-full rounded-2xl text-lg font-semibold"
+          onClick={onClose}
+        >
           확인했어요
         </Button>
-      </div>
+      </dialog>
     </div>,
     document.body,
   );

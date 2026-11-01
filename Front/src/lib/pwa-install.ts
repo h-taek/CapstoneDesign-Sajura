@@ -56,11 +56,18 @@ export function isIOS(): boolean {
   return /iPhone|iPad|iPod/.test(ua) || (ua.includes("Mac") && navigator.maxTouchPoints > 1);
 }
 
-interface InstallState {
+export function isAndroid(): boolean {
+  if (typeof navigator === "undefined") return false;
+  return /Android/.test(navigator.userAgent);
+}
+
+export interface InstallState {
   /** 안드로이드·PC 크롬에서 설치 창을 바로 띄울 수 있다 */
   canPrompt: boolean;
   /** 아이폰·아이패드 — 수동 안내가 필요하다 */
   ios: boolean;
+  /** 안드로이드 기기 여부 */
+  android: boolean;
   /** 이미 홈 화면 앱으로 실행 중이거나 방금 설치했다 */
   installed: boolean;
   /** 사용자가 배너를 닫았다 */
@@ -72,6 +79,7 @@ function getSnapshot(): InstallState {
   const next: InstallState = {
     canPrompt: deferred !== null,
     ios: isIOS(),
+    android: isAndroid(),
     installed: installed || isStandalone(),
     dismissed,
   };
@@ -79,6 +87,7 @@ function getSnapshot(): InstallState {
     snapshot &&
     snapshot.canPrompt === next.canPrompt &&
     snapshot.ios === next.ios &&
+    snapshot.android === next.android &&
     snapshot.installed === next.installed &&
     snapshot.dismissed === next.dismissed
   ) {
@@ -97,16 +106,22 @@ export function useInstallState(): InstallState {
   return useSyncExternalStore(subscribe, getSnapshot, getSnapshot);
 }
 
-/** 설치 창 띄우기 — 설치했으면 true */
+/** 설치 창 띄우기 — 예외가 발생하거나 실패하면 false 반환, 성공 시 true */
 export async function promptInstall(): Promise<boolean> {
   if (!deferred) return false;
   const event = deferred;
-  await event.prompt();
-  const { outcome } = await event.userChoice;
-  deferred = null;
-  if (outcome === "accepted") installed = true;
-  emit();
-  return outcome === "accepted";
+  try {
+    await event.prompt();
+    const { outcome } = await event.userChoice;
+    deferred = null;
+    if (outcome === "accepted") installed = true;
+    emit();
+    return outcome === "accepted";
+  } catch {
+    deferred = null;
+    emit();
+    return false;
+  }
 }
 
 export function dismissInstallBanner() {

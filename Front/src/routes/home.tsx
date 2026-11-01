@@ -16,7 +16,6 @@ import { getPriceTrends, listInventory } from "../api/endpoints/inventory";
 import { listOrders } from "../api/endpoints/orders";
 import { getSalesSummary, getSalesTrends } from "../api/endpoints/sales";
 import { HomeAreaChart } from "../components/home/home-area-chart";
-import { HomeInstallBanner } from "../components/home/home-install-banner";
 import {
   formatChartLabel,
   formatExpiryDday,
@@ -31,6 +30,7 @@ import { MiniPriceChart } from "../components/home/mini-price-chart";
 import { MonthProgressDonut } from "../components/home/month-progress-donut";
 import { RecentOrderTile } from "../components/home/recent-order-tile";
 import { isExpiryWarning, isStockWarning } from "../components/inventory/stock-status";
+import { InstallBanner } from "../components/pwa/install-banner";
 import { MainShell } from "../components/shell";
 import { accuracyRatio } from "../lib/accuracy";
 import { formatQty, formatWonShort } from "../lib/format";
@@ -228,7 +228,7 @@ export default function HomePage() {
       </header>
 
       {/* 설치 안내 배너 */}
-      <HomeInstallBanner />
+      <InstallBanner />
 
       {/* 웹은 두 열 — 왼쪽 7칸 / 오른쪽 5칸 */}
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-12">

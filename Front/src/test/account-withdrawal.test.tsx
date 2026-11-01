@@ -6,7 +6,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import * as authApi from "../api/endpoints/auth";
 import * as storeApi from "../api/endpoints/store";
 import LoginPage from "../routes/login";
-import AccountSettingsPage from "../routes/settings/account";
+import SettingsHubPage from "../routes/settings/index";
 import { type AuthUser, useAuthStore } from "../stores/auth-store";
 
 const user: AuthUser = {
@@ -28,7 +28,7 @@ function renderAt(path: string) {
     <QueryClientProvider client={client}>
       <MemoryRouter initialEntries={[path]}>
         <Routes>
-          <Route path="/settings/account" element={<AccountSettingsPage />} />
+          <Route path="/settings/*" element={<SettingsHubPage />} />
           <Route path="/login" element={<LoginPage />} />
         </Routes>
       </MemoryRouter>
@@ -56,7 +56,7 @@ describe("회원 탈퇴", () => {
     const button = screen.getByRole("button", { name: "회원 탈퇴" });
     expect(button).toBeDisabled();
     fireEvent.change(screen.getByLabelText("비밀번호 확인"), { target: { value: "Passw0rd!" } });
-    fireEvent.click(screen.getByLabelText(/영구 삭제/));
+    fireEvent.click(screen.getByLabelText(/모든 데이터가 지워지는 것을 확인/));
     fireEvent.click(button);
 
     await waitFor(() => expect(del).toHaveBeenCalledWith("Passw0rd!"));
@@ -70,7 +70,7 @@ describe("회원 탈퇴", () => {
     renderAt("/settings/account");
 
     expect(screen.queryByLabelText("비밀번호 확인")).not.toBeInTheDocument();
-    fireEvent.click(screen.getByLabelText(/영구 삭제/));
+    fireEvent.click(screen.getByLabelText(/모든 데이터가 지워지는 것을 확인/));
     fireEvent.click(screen.getByRole("button", { name: "회원 탈퇴" }));
     await waitFor(() => expect(del).toHaveBeenCalledWith(""));
   });

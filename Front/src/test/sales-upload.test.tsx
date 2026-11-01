@@ -1,23 +1,30 @@
 // M4.F2 + M4.F3 unit — 업로드 폼 & 결과 표시.
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { MemoryRouter } from "react-router";
+import { MemoryRouter, Route, Routes } from "react-router";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import * as salesApi from "../api/endpoints/sales";
-import SalesUploadPage from "../routes/sales/upload";
+import SettingsHubPage from "../routes/settings/index";
 
 function renderPage() {
-  const client = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } });
+  const client = new QueryClient({
+    defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
+  });
   return render(
     <QueryClientProvider client={client}>
-      <MemoryRouter initialEntries={["/sales/upload"]}>
-        <SalesUploadPage />
+      <MemoryRouter initialEntries={["/settings/pos/upload"]}>
+        <Routes>
+          <Route path="/settings/*" element={<SettingsHubPage />} />
+        </Routes>
       </MemoryRouter>
     </QueryClientProvider>,
   );
 }
 
-function csvFile(name = "sales.csv", content = "날짜,메뉴명,수량,금액,영수증번호\n2026-01-15,a,1,100,r1\n") {
+function csvFile(
+  name = "sales.csv",
+  content = "날짜,메뉴명,수량,금액,영수증번호\n2026-01-15,a,1,100,r1\n",
+) {
   return new File([content], name, { type: "text/csv" });
 }
 
@@ -59,19 +66,19 @@ describe("SalesUploadPage", () => {
       target: { files: [csvFile()] },
     });
     await waitFor(() => expect(screen.getByText("sales.csv")).toBeInTheDocument());
-    fireEvent.click(screen.getByRole("button", { name: "업로드 시작" }));
+    fireEvent.click(screen.getByRole("button", { name: "올리기" }));
 
     const result = await screen.findByTestId("upload-result");
     expect(result).toHaveTextContent("12");
     expect(result).toHaveTextContent("3");
-    expect(screen.getByText(/제외된 행 2건 보기/)).toBeInTheDocument();
-    expect(result).toHaveTextContent("재고 차감에 반영된 판매 10건");
+    expect(screen.getByText(/제외된 행 2건/)).toBeInTheDocument();
+    expect(result).toHaveTextContent("재고 차감에 반영한 판매 10건");
     expect(screen.getByTestId("needs-check")).toHaveTextContent("원두");
   });
 
   it("파일 미선택 시 업로드 버튼은 비활성화된다", async () => {
     renderPage();
-    expect(screen.getByRole("button", { name: "업로드 시작" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "올리기" })).toBeDisabled();
   });
 
   it("자동 등록 체크 시 auto_create_menus=true가 전달되고 결과에 표시된다", async () => {
@@ -90,15 +97,13 @@ describe("SalesUploadPage", () => {
     await waitFor(() => expect(screen.getByText("sales.csv")).toBeInTheDocument());
 
     fireEvent.click(screen.getByTestId("auto-create-menus"));
-    fireEvent.click(screen.getByRole("button", { name: "업로드 시작" }));
+    fireEvent.click(screen.getByRole("button", { name: "올리기" }));
 
     await screen.findByTestId("upload-result");
-    expect(spy).toHaveBeenCalledWith(
-      expect.any(File),
-      expect.any(Object),
-      { auto_create_menus: true },
-    );
-    expect(screen.getByText("자동 등록된 메뉴")).toBeInTheDocument();
+    expect(spy).toHaveBeenCalledWith(expect.any(File), expect.any(Object), {
+      auto_create_menus: true,
+    });
+    expect(screen.getByText("자동 등록 메뉴")).toBeInTheDocument();
     expect(screen.getByText("3")).toBeInTheDocument();
   });
 });

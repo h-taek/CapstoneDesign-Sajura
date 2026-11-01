@@ -2,7 +2,7 @@
 // vite-plugin-pwa injectManifest — 04_fe.md §6 PWA.
 // - 정적 자산 precache(CacheFirst) + 화면 이동은 오프라인이어도 index.html로 열리게 한다.
 // - API(/api/*)는 캐시하지 않는다(NetworkOnly — 캐시는 TanStack Query 담당).
-// - 새 버전 배포 시 바로 교체(registerType: autoUpdate).
+// - 새 버전은 열린 탭을 모두 닫은 뒤 교체된다 — 입력 중에 화면이 새로 고쳐지지 않게 skipWaiting을 부르지 않는다.
 // - push 페이로드 처리는 Phase 11 dashboard·알림에서 채워 넣는다.
 import { clientsClaim } from "workbox-core";
 import {
@@ -14,7 +14,6 @@ import { NavigationRoute, registerRoute } from "workbox-routing";
 
 declare const self: ServiceWorkerGlobalScope;
 
-self.skipWaiting();
 clientsClaim();
 
 precacheAndRoute(self.__WB_MANIFEST);

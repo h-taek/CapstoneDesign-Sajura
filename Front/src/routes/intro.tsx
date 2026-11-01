@@ -1,15 +1,7 @@
-import {
-  ArrowRight,
-  Check,
-  ChevronDown,
-  MoreVertical,
-  PlusSquare,
-  Share,
-  Smartphone,
-  X,
-} from "lucide-react";
+import { ArrowRight, Check, ChevronDown, Smartphone } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router";
+import { InstallGuideSheet } from "../components/pwa/install-banner";
 import { goShop, useSky } from "../components/sky";
 import { promptInstall, useInstallState } from "../lib/pwa-install";
 
@@ -558,104 +550,8 @@ export default function IntroPage() {
         </section>
       </main>
 
-      {/* InstallGuideSheet — 하단 시트(데스크톱은 가운데 창) */}
       {guideType !== null && (
-        <div className="fixed inset-0 z-50 flex items-end justify-center bg-ink/40 sm:items-center">
-          {/* biome-ignore lint/a11y/useSemanticElements: custom modal sheet */}
-          <div
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="install-guide-title"
-            className="w-full max-w-md rounded-t-3xl px-6 pt-6 pb-6 sm:rounded-3xl glass-strong"
-          >
-            <div className="mb-5 flex items-center justify-between">
-              <h2 id="install-guide-title" className="text-xl font-bold text-ink">
-                홈 화면에 추가하는 방법
-              </h2>
-              <button
-                type="button"
-                onClick={() => setGuideType(null)}
-                aria-label="닫기"
-                className="flex size-10 items-center justify-center rounded-full text-ink-3 hover:bg-subtle"
-              >
-                <X className="size-6" />
-              </button>
-            </div>
-            {guideType === "ios" ? (
-              <>
-                <p className="mb-4 rounded-xl bg-warn-soft px-4 py-3 text-[0.95rem] text-warn">
-                  아이폰은 <strong>사파리(Safari)</strong>에서 열어야 추가할 수 있어요.
-                </p>
-                <ol className="space-y-4">
-                  <li className="flex items-center gap-4">
-                    <span className="flex size-12 shrink-0 items-center justify-center rounded-2xl bg-brand-soft text-brand">
-                      <Share className="size-6" />
-                    </span>
-                    <p className="text-base leading-snug text-ink">
-                      <strong className="mr-1 text-brand">1.</strong>화면 아래(아이패드는 위)의 공유
-                      버튼을 누르세요.
-                    </p>
-                  </li>
-                  <li className="flex items-center gap-4">
-                    <span className="flex size-12 shrink-0 items-center justify-center rounded-2xl bg-brand-soft text-brand">
-                      <PlusSquare className="size-6" />
-                    </span>
-                    <p className="text-base leading-snug text-ink">
-                      <strong className="mr-1 text-brand">2.</strong>목록을 내려 '홈 화면에 추가'를
-                      누르세요.
-                    </p>
-                  </li>
-                  <li className="flex items-center gap-4">
-                    <span className="flex size-12 shrink-0 items-center justify-center rounded-2xl bg-brand-soft text-brand">
-                      <Smartphone className="size-6" />
-                    </span>
-                    <p className="text-base leading-snug text-ink">
-                      <strong className="mr-1 text-brand">3.</strong>오른쪽 위 '추가'를 누르면 홈
-                      화면에 사주라가 생겨요.
-                    </p>
-                  </li>
-                </ol>
-              </>
-            ) : (
-              <ol className="space-y-4">
-                <li className="flex items-center gap-4">
-                  <span className="flex size-12 shrink-0 items-center justify-center rounded-2xl bg-brand-soft text-brand">
-                    <MoreVertical className="size-6" />
-                  </span>
-                  <p className="text-base leading-snug text-ink">
-                    <strong className="mr-1 text-brand">1.</strong>브라우저 오른쪽 위 점 세 개(⋮)
-                    메뉴를 누르세요.
-                  </p>
-                </li>
-                <li className="flex items-center gap-4">
-                  <span className="flex size-12 shrink-0 items-center justify-center rounded-2xl bg-brand-soft text-brand">
-                    <PlusSquare className="size-6" />
-                  </span>
-                  <p className="text-base leading-snug text-ink">
-                    <strong className="mr-1 text-brand">2.</strong>'홈 화면에 추가' 또는 '앱 설치'를
-                    누르세요.
-                  </p>
-                </li>
-                <li className="flex items-center gap-4">
-                  <span className="flex size-12 shrink-0 items-center justify-center rounded-2xl bg-brand-soft text-brand">
-                    <Smartphone className="size-6" />
-                  </span>
-                  <p className="text-base leading-snug text-ink">
-                    <strong className="mr-1 text-brand">3.</strong>'설치'를 누르면 홈 화면에
-                    사주라가 생겨요.
-                  </p>
-                </li>
-              </ol>
-            )}
-            <button
-              type="button"
-              onClick={() => setGuideType(null)}
-              className="mt-6 inline-flex h-14 w-full shrink-0 items-center justify-center gap-2 rounded-2xl bg-brand px-6 text-lg font-semibold whitespace-nowrap text-white transition-colors hover:bg-brand-strong"
-            >
-              확인했어요
-            </button>
-          </div>
-        </div>
+        <InstallGuideSheet ios={guideType === "ios"} onClose={() => setGuideType(null)} />
       )}
     </>
   );
