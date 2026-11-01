@@ -1421,6 +1421,7 @@ Authorization: Bearer <access_token>
   "this_month_sales_count": 1200,
   "today_revenue": 320000,
   "today_sales_count": 85,
+  "first_sale_at": "2025-08-01T11:20:00", // 첫 판매 시각. 판매가 없으면 null
   "last_sale_at": "2026-01-31T21:10:00"  // 판매가 없으면 null
 }
 ```

@@ -210,11 +210,12 @@ class SaleService:
                 select(
                     func.coalesce(func.sum(SaleRecord.total_price), 0),
                     func.count(SaleRecord.sale_id),
+                    func.min(SaleRecord.sold_at),
                     func.max(SaleRecord.sold_at),
                 ).where(SaleRecord.store_id == store_id)
             )
         ).one()
-        total_revenue, total_sales_count, last_sale_at = totals
+        total_revenue, total_sales_count, first_sale_at, last_sale_at = totals
 
         now = last_sale_at if last_sale_at is not None else datetime.now(UTC).replace(tzinfo=None)
         month_start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
@@ -252,6 +253,7 @@ class SaleService:
             this_month_sales_count=this_month_sales_count,
             today_revenue=today_revenue,
             today_sales_count=today_sales_count,
+            first_sale_at=first_sale_at,
             last_sale_at=last_sale_at,
         )
 

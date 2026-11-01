@@ -176,6 +176,14 @@ async def test_sales_upload_happy_path(client: AsyncClient) -> None:
     assert body["imported"] == 2
     assert body["skipped"] == 0
 
+    r = await client.get("/api/sales/summary", headers=auth)
+    assert r.status_code == 200, r.text
+    summary = r.json()
+    assert (summary["first_sale_at"], summary["last_sale_at"]) == (
+        "2026-01-15T14:30:00",
+        "2026-01-16T10:00:00",
+    )
+
 
 @pytest.mark.asyncio
 async def test_sales_upload_skips_unmapped_menu_grouped(client: AsyncClient) -> None:

@@ -134,6 +134,7 @@ describe("B4 판매 데이터 화면 (SalesPage)", () => {
       this_month_sales_count: 706,
       today_revenue: 1284000,
       today_sales_count: 95,
+      first_sale_at: "2026-08-01T11:00:00",
       last_sale_at: "2026-10-19T22:41:00",
     });
 

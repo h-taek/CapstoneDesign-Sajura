@@ -263,6 +263,7 @@ describe("HomePage 컴포넌트", () => {
     vi.spyOn(salesApi, "getSalesSummary").mockResolvedValue({
       total_revenue: 100000000,
       total_sales_count: 500,
+      first_sale_at: "2026-08-01T11:00:00",
       last_sale_at: "2026-10-19T21:00:00",
       today_revenue: 1284000,
       today_sales_count: 68,
@@ -445,6 +446,7 @@ describe("HomePage 컴포넌트", () => {
     vi.spyOn(salesApi, "getSalesSummary").mockResolvedValue({
       total_revenue: 100000000,
       total_sales_count: 500,
+      first_sale_at: "2026-08-01T11:00:00",
       last_sale_at: "2026-10-19T21:00:00",
       today_revenue: 1284000,
       today_sales_count: 68,
@@ -504,6 +506,7 @@ describe("HomePage 컴포넌트", () => {
     vi.spyOn(salesApi, "getSalesSummary").mockResolvedValue({
       total_revenue: 0,
       total_sales_count: 0,
+      first_sale_at: null,
       last_sale_at: null,
       today_revenue: 0,
       today_sales_count: 0,

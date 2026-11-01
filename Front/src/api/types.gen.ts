@@ -2195,6 +2195,8 @@ export interface components {
             today_revenue: number;
             /** Today Sales Count */
             today_sales_count: number;
+            /** First Sale At */
+            first_sale_at: string | null;
             /** Last Sale At */
             last_sale_at: string | null;
         };

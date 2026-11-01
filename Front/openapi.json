@@ -7761,6 +7761,18 @@
             "type": "integer",
             "title": "Today Sales Count"
           },
+          "first_sale_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "First Sale At"
+          },
           "last_sale_at": {
             "anyOf": [
               {
@@ -7782,6 +7794,7 @@
           "this_month_sales_count",
           "today_revenue",
           "today_sales_count",
+          "first_sale_at",
           "last_sale_at"
         ],
         "title": "SalesSummaryResponse",

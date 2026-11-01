@@ -99,19 +99,30 @@ describe("매출 예측 순수 계산 함수 (forecast-logic)", () => {
   describe("년 보기 (buildPeriodView year)", () => {
     const ref = new Date(2026, 9, 19);
     it("정확도는 예측이 있는 날끼리만 달마다 비교한다", () => {
-      const view = buildPeriodView("year", 0, ref, [
-        { date: "2026-10-01", actual_sales: 1000, predicted_sales: null },
-        { date: "2026-10-02", actual_sales: 100, predicted_sales: 90 },
-      ] as never);
+      const view = buildPeriodView(
+        "year",
+        0,
+        ref,
+        [
+          { date: "2026-10-01", actual_sales: 1000, predicted_sales: null },
+          { date: "2026-10-02", actual_sales: 100, predicted_sales: 90 },
+        ] as never,
+        null,
+      );
       expect(view.values.at(-1)).toBe(1100);
       expect(view.accuracy).toBe(90);
     });
-    it("앞 12개월에 판매가 있으면 이전 기간으로 넘길 수 있다", () => {
+    it("첫 판매일이 기간 시작보다 앞이면 이전 기간으로 넘길 수 있다", () => {
       const bounds = getPeriodBounds("year", 0, ref);
-      expect(bounds.queryStart).toEqual(new Date(2024, 10, 1));
-      const view = buildPeriodView("year", 0, ref, [
-        { date: "2025-03-05", actual_sales: 500, predicted_sales: null },
-      ] as never);
+      expect(bounds.queryStart).toEqual(new Date(2025, 10, 1));
+      expect(buildPeriodView("year", 0, ref, [], new Date(2025, 2, 5)).canBack).toBe(true);
+      expect(buildPeriodView("year", 0, ref, [], new Date(2025, 10, 10)).canBack).toBe(false);
+      expect(buildPeriodView("year", 0, ref, [], null).canBack).toBe(false);
+    });
+    it("바로 앞 기간 판매가 0이어도 첫 판매일이 더 앞이면 넘길 수 있다", () => {
+      // 주 보기 10/13~10/19, 직전 7일 판매 없음, 첫 판매 8/1
+      const view = buildPeriodView("week", 0, ref, [], new Date(2026, 7, 1));
+      expect(view.prev).toBeNull();
       expect(view.canBack).toBe(true);
     });
   });
@@ -230,7 +241,7 @@ describe("매출 예측 순수 계산 함수 (forecast-logic)", () => {
     ];
 
     it("일별 포인트로부터 주간 합계 및 라벨을 구성한다", () => {
-      const view = buildPeriodView("week", 0, ref, mockPoints);
+      const view = buildPeriodView("week", 0, ref, mockPoints, null);
       expect(view.unit).toBe("일별 매출");
       expect(view.labels).toHaveLength(7);
       expect(view.total).toBe(370_000);
@@ -250,6 +261,7 @@ describe("ForecastPage 화면 렌더링 및 인터랙션", () => {
       this_month_sales_count: 500,
       today_revenue: 1_280_000,
       today_sales_count: 45,
+      first_sale_at: "2026-08-01T11:00:00",
       last_sale_at: "2026-10-19T22:00:00",
     });
 

@@ -77,8 +77,9 @@ export default function ForecastPage() {
 
   // 기간 매출 뷰 모델
   const periodView = useMemo(() => {
-    return buildPeriodView(range, back, refDate, points);
-  }, [range, back, refDate, points]);
+    const firstSale = summary?.first_sale_at ? parseLocalDate(summary.first_sale_at) : null;
+    return buildPeriodView(range, back, refDate, points, firstSale);
+  }, [range, back, refDate, points, summary?.first_sale_at]);
 
   // 차트 데이터 구성 (latest인 경우 끝에 오늘·내일·모레 예상 막대 추가)
   const chartProps = useMemo(() => {

@@ -37,6 +37,7 @@ class SalesSummaryResponse(BaseModel):
     this_month_sales_count: int
     today_revenue: int
     today_sales_count: int
+    first_sale_at: datetime | None  # 매장 현지 시각 — 매출 예측 이전 기간 넘김의 끝
     last_sale_at: datetime | None
 
 

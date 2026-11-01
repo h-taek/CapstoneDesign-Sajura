@@ -1,4 +1,4 @@
-// 매출 예측 화면 순수 계산 — 기간(주·월·년) 범위·이전 기간 넘김 끝·예측 정확도(일별/월별)·메뉴 비중.
+// 매출 예측 화면 순수 계산 — 기간(주·월·년) 범위·이전 기간 넘김·예측 정확도(일별/월별)·메뉴 비중.
 import { HTTPError } from "ky";
 import type { ForecastActualPoint } from "../../api/endpoints/dashboard";
 import type { DailyPrediction } from "../../api/endpoints/forecast";
@@ -116,8 +116,7 @@ export function getPeriodBounds(range: PeriodRange, back: number, refDate: Date)
     end,
     prevStart: null,
     prevEnd: null,
-    // 앞 12개월도 받는다 — 그 안에 판매가 있어야 이전 기간으로 넘길 수 있다
-    queryStart: new Date(start.getFullYear() - 1, start.getMonth(), 1),
+    queryStart: start,
     queryEnd: end,
     label: `${start.getFullYear()}년 ${start.getMonth() + 1}월 ~ ${endMonth.getFullYear()}년 ${endMonth.getMonth() + 1}월`,
     unit: "월별 매출",
@@ -162,14 +161,19 @@ export interface PeriodView {
   end: Date;
 }
 
-/** 일별 예측·실제 매출 데이터로 주·월·년 기간 매출 뷰와 이전 기간 넘김 가능 여부를 만든다. */
+/**
+ * 일별 예측·실제 매출 데이터로 주·월·년 기간 매출 뷰를 만든다.
+ * 이전 기간 넘김은 매장 첫 판매일(`first_sale_at`)이 지금 기간보다 앞일 때만.
+ */
 export function buildPeriodView(
   range: PeriodRange,
   back: number,
   refDate: Date,
   points: readonly ForecastActualPoint[],
+  firstSaleDate: Date | null,
 ): PeriodView {
   const bounds = getPeriodBounds(range, back, refDate);
+  const canBack = firstSaleDate !== null && firstSaleDate < bounds.start;
   const byDate = new Map<string, ForecastActualPoint>();
   for (const p of points) {
     byDate.set(p.date.slice(0, 10), p);
@@ -197,15 +201,10 @@ export function buildPeriodView(
 
     const startIso = toIsoDate(bounds.start);
     const endIso = toIsoDate(bounds.end);
-    let hasEarlierSales = false;
 
     for (const p of points) {
       const iso = p.date.slice(0, 10);
-      if (iso < startIso) {
-        if ((p.actual_sales ?? 0) > 0) hasEarlierSales = true;
-        continue;
-      }
-      if (iso > endIso) continue;
+      if (iso < startIso || iso > endIso) continue;
       const idx = monthIndex.get(iso.slice(0, 7));
       if (idx === undefined) continue;
       values[idx] = (values[idx] ?? 0) + (p.actual_sales ?? 0);
@@ -229,7 +228,7 @@ export function buildPeriodView(
       prevName: null,
       avg: total / 12,
       latest: false,
-      canBack: hasEarlierSales,
+      canBack,
       start: bounds.start,
       end: bounds.end,
     };
@@ -283,7 +282,7 @@ export function buildPeriodView(
     prevName: bounds.prevName,
     avg: null,
     latest: bounds.latest,
-    canBack: prev !== null,
+    canBack,
     start: bounds.start,
     end: bounds.end,
   };
