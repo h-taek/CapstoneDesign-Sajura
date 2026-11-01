@@ -19,19 +19,22 @@ export const DEFAULT_COLUMNS: CSVUploadColumns = {
   external_sale_id_column: "",
 };
 
-async function extractApiMessage(err: unknown): Promise<string> {
+export async function extractApiMessage(
+  err: unknown,
+  fallback = "업로드에 실패했습니다.",
+): Promise<string> {
   if (typeof err === "object" && err !== null && "response" in err) {
     const res = (err as { response?: Response }).response;
     if (res) {
       try {
         const body = (await res.clone().json()) as { message?: string; error?: string };
-        return body.message ?? body.error ?? "업로드에 실패했습니다.";
+        return body.message ?? body.error ?? fallback;
       } catch {
         // ignore
       }
     }
   }
-  return err instanceof Error ? err.message : "업로드에 실패했습니다.";
+  return err instanceof Error ? err.message : fallback;
 }
 
 export function UploadPanel({ onBack }: { onBack?: () => void }) {

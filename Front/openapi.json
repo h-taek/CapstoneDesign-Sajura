@@ -7282,20 +7282,28 @@
             "title": "Pos Type"
           },
           "api_key": {
-            "type": "string",
-            "maxLength": 150,
-            "minLength": 1,
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 150,
+                "minLength": 1
+              },
+              {
+                "type": "null"
+              }
+            ],
             "title": "Api Key"
           },
           "store_code": {
             "type": "string",
+            "maxLength": 50,
+            "minLength": 1,
             "title": "Store Code"
           }
         },
         "type": "object",
         "required": [
           "pos_type",
-          "api_key",
           "store_code"
         ],
         "title": "PosCreateRequest"
@@ -7426,7 +7434,9 @@
           "store_code": {
             "anyOf": [
               {
-                "type": "string"
+                "type": "string",
+                "maxLength": 50,
+                "minLength": 1
               },
               {
                 "type": "null"

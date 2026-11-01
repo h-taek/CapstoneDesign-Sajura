@@ -1,4 +1,4 @@
-"""/api/store/pos/* — 연동 정보 저장은 구현, 동기화는 회사별 어댑터 전까지 stub.
+"""/api/store/pos/* — 연동 정보 저장, 동기화는 TOSSPLACE만 구현(키움페이·OKPOS는 stub).
 
 api_key는 AES-256-GCM 암호화 저장 (03_be.md §10.1).
 """
@@ -8,14 +8,14 @@ from datetime import UTC, datetime
 from typing import Literal
 
 from fastapi import APIRouter, Depends, Response, status
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 from sqlalchemy import select
 
 from app.api.deps import CurrentUserDep, SessionDep, require_business_access
 from app.core import crypto, errors
 from app.models.pos_connection import PosConnection, PosStatus
 from app.schemas.types import UtcDatetime
-from app.services.pos_sync_service import PosSyncService
+from app.services.pos_sync_service import PosSyncService, enqueue_sync
 from app.services.store_service import StoreService
 
 router = APIRouter(
@@ -30,14 +30,22 @@ PosType = Literal["TOSSPLACE", "KIWOOM", "OKPOS"]
 # api_key 150자 = 암호문 base64가 VARCHAR(255)에 들어가는 상한 (03_be.md §10.1)
 class PosCreateRequest(BaseModel):
     pos_type: PosType
-    api_key: str = Field(min_length=1, max_length=150)
-    store_code: str
+    # TOSSPLACE는 사주라 앱 키로 조회해 점주 키를 받지 않는다 — 빈 값으로 저장
+    # (01_basic_design.md §3.4.3)
+    api_key: str | None = Field(default=None, min_length=1, max_length=150)
+    store_code: str = Field(min_length=1, max_length=50)
+
+    @model_validator(mode="after")
+    def _api_key_unless_tossplace(self) -> PosCreateRequest:
+        if self.pos_type != "TOSSPLACE" and not self.api_key:
+            raise ValueError("API 키를 입력하세요.")
+        return self
 
 
 class PosUpdateRequest(BaseModel):
     pos_type: PosType | None = None
     api_key: str | None = Field(default=None, min_length=1, max_length=150)
-    store_code: str | None = None
+    store_code: str | None = Field(default=None, min_length=1, max_length=50)
 
 
 class PosResponse(BaseModel):
@@ -96,12 +104,14 @@ async def create_pos(
         )
     pos = PosConnection(
         store_id=store.store_id, pos_type=payload.pos_type,
-        api_key=crypto.encrypt(payload.api_key, aad=store.store_id), store_code=payload.store_code,
-        status=PosStatus.CONNECTED,
+        api_key=crypto.encrypt(payload.api_key or "", aad=store.store_id),
+        store_code=payload.store_code, status=PosStatus.CONNECTED,
     )
     session.add(pos)
     await session.commit()
     await session.refresh(pos)
+    if pos.pos_type == "TOSSPLACE":
+        await enqueue_sync(store.store_id)
     return _to_dto(pos)
 
 
@@ -113,14 +123,23 @@ async def update_pos(
     pos = await session.scalar(select(PosConnection).where(PosConnection.store_id == store.store_id))
     if pos is None:
         raise errors.DomainError(status_code=404, error_code="NOT_FOUND", message="POS 연동 정보가 없습니다.")
+    # 다른 POS·매장을 가리키게 되면 전체 이력을 다시 받는다 (01_basic_design.md §3.4.3)
+    resync = (payload.pos_type not in (None, pos.pos_type)
+              or payload.store_code not in (None, pos.store_code))
     if payload.pos_type is not None:
         pos.pos_type = payload.pos_type
     if payload.api_key is not None:
         pos.api_key = crypto.encrypt(payload.api_key, aad=store.store_id)
     if payload.store_code is not None:
         pos.store_code = payload.store_code
+    if resync:
+        pos.last_synced_at = None
+        pos.status = PosStatus.CONNECTED
+        pos.error_message = None
     await session.commit()
     await session.refresh(pos)
+    if resync and pos.pos_type == "TOSSPLACE":
+        await enqueue_sync(store.store_id)
     return _to_dto(pos)
 
 

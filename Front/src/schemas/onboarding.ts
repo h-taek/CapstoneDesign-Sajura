@@ -40,10 +40,16 @@ export const posStepSchema = z
     api_key: z.string().optional(),
     store_code: z.string().optional(),
   })
+  // 토스플레이스는 사주라 앱 키로 조회해 가맹점 ID만 받는다 (01_basic_design.md §3.4.3)
+  .refine((val) => val.pos_type !== "TOSSPLACE" || !!val.store_code, {
+    message: "토스 가맹점 ID를 입력하세요.",
+    path: ["store_code"],
+  })
   .refine(
     (val) =>
       val.pos_type === "CSV_ONLY" ||
-      (val.api_key && val.api_key.length > 0 && val.store_code && val.store_code.length > 0),
+      val.pos_type === "TOSSPLACE" ||
+      (!!val.api_key && !!val.store_code),
     {
       message: "POS API 키와 매장 코드를 입력하세요.",
       path: ["api_key"],

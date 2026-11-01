@@ -30,8 +30,9 @@ export async function updatePos(payload: PosUpdateRequest): Promise<PosResponse>
   return api.patch("store/pos", { json: payload }).json<PosResponse>();
 }
 
+// 첫 동기화 전이면 전체 이력을 받아 오래 걸린다 — CSV 업로드와 같은 제한 시간
 export async function syncPos(): Promise<PosSyncResponse> {
-  return api.post("store/pos/sync").json<PosSyncResponse>();
+  return api.post("store/pos/sync", { timeout: 120_000 }).json<PosSyncResponse>();
 }
 
 export async function getPosStatus(): Promise<PosStatus> {

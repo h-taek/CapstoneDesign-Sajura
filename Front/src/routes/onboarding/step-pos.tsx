@@ -27,6 +27,7 @@ export default function PosStep() {
 
   const posType = watch("pos_type");
   const isCsvOnly = posType === "CSV_ONLY";
+  const isToss = posType === "TOSSPLACE";
 
   const onSubmit = (values: PosStepValues) => {
     setPos(values);
@@ -109,26 +110,28 @@ export default function PosStep() {
           </p>
         ) : (
           <div className="space-y-3">
-            <div className="flex flex-col gap-1.5">
-              <label htmlFor="api_key" className="text-sm font-semibold text-white/90">
-                POS API 키
-              </label>
-              <input
-                id="api_key"
-                type="text"
-                autoComplete="off"
-                className="h-12 w-full rounded-xl border border-white/15 bg-[#0d0a26]/45 px-4 text-base text-white placeholder:text-white/70 backdrop-blur-md [color-scheme:dark] focus:border-[#b3a4ff] focus:ring-4 focus:ring-[#b3a4ff]/25 focus:outline-none"
-                {...register("api_key")}
-              />
-              {errors.api_key?.message && (
-                <p className="px-1 text-sm font-semibold text-[#ffd6d6]" role="alert">
-                  {errors.api_key.message}
-                </p>
-              )}
-            </div>
+            {isToss ? null : (
+              <div className="flex flex-col gap-1.5">
+                <label htmlFor="api_key" className="text-sm font-semibold text-white/90">
+                  POS API 키
+                </label>
+                <input
+                  id="api_key"
+                  type="text"
+                  autoComplete="off"
+                  className="h-12 w-full rounded-xl border border-white/15 bg-[#0d0a26]/45 px-4 text-base text-white placeholder:text-white/70 backdrop-blur-md [color-scheme:dark] focus:border-[#b3a4ff] focus:ring-4 focus:ring-[#b3a4ff]/25 focus:outline-none"
+                  {...register("api_key")}
+                />
+                {errors.api_key?.message && (
+                  <p className="px-1 text-sm font-semibold text-[#ffd6d6]" role="alert">
+                    {errors.api_key.message}
+                  </p>
+                )}
+              </div>
+            )}
             <div className="flex flex-col gap-1.5">
               <label htmlFor="store_code" className="text-sm font-semibold text-white/90">
-                매장 코드
+                {isToss ? "토스 가맹점 ID" : "매장 코드"}
               </label>
               <input
                 id="store_code"

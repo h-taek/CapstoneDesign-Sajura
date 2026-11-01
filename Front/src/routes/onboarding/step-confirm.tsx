@@ -33,7 +33,7 @@ export default function ConfirmStep() {
       if (pos.pos_type !== "CSV_ONLY") {
         await createPos({
           pos_type: pos.pos_type,
-          api_key: pos.api_key ?? "",
+          ...(pos.pos_type === "TOSSPLACE" ? {} : { api_key: pos.api_key ?? "" }),
           store_code: pos.store_code ?? "",
         });
       }

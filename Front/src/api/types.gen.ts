@@ -2007,7 +2007,7 @@ export interface components {
              */
             pos_type: "TOSSPLACE" | "KIWOOM" | "OKPOS";
             /** Api Key */
-            api_key: string;
+            api_key?: string | null;
             /** Store Code */
             store_code: string;
         };

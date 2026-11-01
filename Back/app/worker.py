@@ -49,11 +49,18 @@ async def sync_pos_sales(ctx: dict) -> int:
         return await PosSyncService(session).sync_all()
 
 
+async def sync_pos_store(ctx: dict, store_id: str) -> int:
+    """POS 연동 등록·변경 직후 동기화 — 전체 이력 (01_basic_design.md §3.4.3). BE가 넣는다."""
+    async with app_db.SessionLocal() as session:
+        return await PosSyncService(session).sync_store(store_id)
+
+
 class WorkerSettings:
     redis_settings = _redis_settings()
     timezone = KST
     functions: list = [
         check_expiry, purge_withdrawn_accounts, clear_coupang_store_prices, sync_pos_sales,
+        sync_pos_store,
     ]
     cron_jobs: list = [
         cron(clear_coupang_store_prices, hour=0, minute=0),

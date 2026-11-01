@@ -30,7 +30,7 @@ from io import BytesIO
 from typing import Iterator
 
 import pandas as pd
-from sqlalchemy import asc, desc, func, select
+from sqlalchemy import asc, delete, desc, func, select
 from sqlalchemy.dialects.mysql import insert as mysql_insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -74,6 +74,7 @@ class UploadResult:
     _unmapped_counts: dict[str, int] = field(default_factory=dict)
     _dup_in_chunk_counts: dict[str, int] = field(default_factory=dict)
     _dup_in_db_total: int = 0
+    _pos_day_total: int = 0  # POS API 판매가 있는 날이라 건너뛴 CSV 행 (01_basic_design.md §3.4.7)
     _auto_create_limit_hit: bool = False  # 사용자에게 알릴 안내 한 줄 트리거
 
     @property
@@ -87,6 +88,8 @@ class UploadResult:
             out.append(f"같은 파일 안에서 중복(영수증번호 또는 상품+판매일 기준): {', '.join(parts)}")
         if self._dup_in_db_total > 0:
             out.append(f"이미 저장된 판매 기록과 중복(영수증번호 또는 상품+판매일 기준): {self._dup_in_db_total}건")
+        if self._pos_day_total > 0:
+            out.append(f"POS 연동 판매가 있는 날: {self._pos_day_total}건")
         if self._auto_create_limit_hit:
             out.append(
                 "메뉴 자동 등록 상한에 도달했습니다 — "
@@ -115,6 +118,7 @@ class SaleService:
         menu_map = await self._load_menu_map(store_id=store_id)
         current_menu_count = len(menu_map)
         deduction = await InventoryService(self.session).deduction_context(store_id=store_id)
+        pos_days = await self._pos_sale_days(store_id=store_id)
 
         # pandas read_csv는 sync I/O. async 핸들러에서 직접 호출하면 이벤트 루프가
         # 행 수 × 파싱시간 동안 막힌다. 워커 스레드에 위임.
@@ -150,6 +154,8 @@ class SaleService:
             sales, sale_row_indices, global_row_index = await asyncio.to_thread(
                 _normalize_chunk, chunk, adapter, global_row_index, result
             )
+            if pos_days:
+                sales, sale_row_indices = _drop_pos_days(sales, sale_row_indices, pos_days, result)
 
             if auto_create_menus:
                 created = await self._auto_create_missing_menus(
@@ -189,6 +195,7 @@ class SaleService:
         """POS 어댑터가 변환한 판매를 저장 (source=POS).
 
         CSV 업로드와 같은 메뉴 매핑·중복 방지·재고 차감 경로를 탄다.
+        받은 판매가 있는 날의 CSV 판매는 지운다(01_basic_design.md §3.4.7).
 
         cancelled_prefixes: 취소된 주문의 external_sale_id 접두어. 이미 저장된 행을 지운다.
         재고 차감은 되돌리지 않는다(취소분 재고 복원은 후속 과제).
@@ -200,6 +207,7 @@ class SaleService:
             await self._delete_pos_sales(store_id=store_id, prefixes=cancelled_prefixes)
         if not sales:
             return result
+        await self._delete_csv_on_days(store_id=store_id, days={s.sold_at.date() for s in sales})
         menu_map = await self._load_menu_map(store_id=store_id)
         current_menu_count = len(menu_map)
         deduction = await InventoryService(self.session).deduction_context(store_id=store_id)
@@ -238,6 +246,31 @@ class SaleService:
             removed += len(rows)
         await self.session.commit()
         return removed
+
+    async def _pos_sale_days(self, *, store_id: str) -> set[date]:
+        """POS API 판매가 있는 날 — CSV 업로드가 그날 행을 건너뛴다 (01_basic_design.md §3.4.7)."""
+        rows = await self.session.scalars(
+            select(func.date(SaleRecord.sold_at))
+            .where(SaleRecord.store_id == store_id, SaleRecord.source == SaleSource.POS)
+            .distinct()
+        )
+        return set(rows.all())
+
+    async def _delete_csv_on_days(self, *, store_id: str, days: set[date]) -> int:
+        """POS API로 받은 판매가 있는 날의 CSV 판매를 지운다 (01_basic_design.md §3.4.7).
+
+        재고 차감은 되돌리지 않는다 — 같은 날 POS 판매는 차감 기준 시각 이전이면
+        다시 차감하지 않는다.
+        """
+        res = await self.session.execute(
+            delete(SaleRecord).where(
+                SaleRecord.store_id == store_id,
+                SaleRecord.source == SaleSource.CSV,
+                func.date(SaleRecord.sold_at).in_(sorted(days)),
+            )
+        )
+        await self.session.commit()
+        return res.rowcount or 0
 
     async def _notify(self, *, store_id: str, result: UploadResult) -> None:
         """업로드 결과 알림 — 이상치는 업로드당 한 건, 재고 부족은 새로 확인 필요가 된 품목마다."""
@@ -665,6 +698,17 @@ def _period(start_date: date, end_date: date) -> list:
 # ----------------------------------------------------------------------
 # 워커 스레드에서 실행되는 sync 헬퍼들 — 이벤트 루프 보호.
 # ----------------------------------------------------------------------
+
+
+def _drop_pos_days(
+    sales: list[CommonSale], row_indices: list[int], pos_days: set[date], result: UploadResult
+) -> tuple[list[CommonSale], list[int]]:
+    kept = [(s, i) for s, i in zip(sales, row_indices, strict=True)
+            if s.sold_at.date() not in pos_days]
+    dropped = len(sales) - len(kept)
+    result.skipped += dropped
+    result._pos_day_total += dropped
+    return [s for s, _ in kept], [i for _, i in kept]
 
 
 def _open_csv_iter(file_bytes: bytes, chunk_size: int) -> Iterator[pd.DataFrame]:
