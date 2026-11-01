@@ -7,7 +7,7 @@
 //   PENDING·VERIFIED + 온보딩 완료   → /  (앱)
 //   role !== ADMIN 이 /admin/* 접근  → 본인 단계(온보딩 완료 시 /)
 import { type ReactNode, useSyncExternalStore } from "react";
-import { Navigate } from "react-router";
+import { Navigate, useLocation } from "react-router";
 import { isMorningTransitioning, subscribeMorningTransition } from "../components/sky/day";
 import type { AuthUser } from "../stores/auth-store";
 import { useAuthStore } from "../stores/auth-store";
@@ -63,9 +63,11 @@ export function RequireStage({ stage, children }: { stage: Stage; children: Reac
   const token = useAuthStore((s) => s.accessToken);
   const user = useAuthStore((s) => s.user);
   const morningActive = useMorningActive();
+  const { pathname } = useLocation();
   if (!bootstrapped) return <SplashScreen />;
   if (morningActive) return <>{children}</>;
-  if (!token || !user) return <Navigate to="/login" replace />;
+  // 첫 접속(/)은 서비스 소개, 특정 화면 주소로 들어오면 로그인 (04_fe.md §3)
+  if (!token || !user) return <Navigate to={pathname === "/" ? "/intro" : "/login"} replace />;
   if (!isStageAllowed(stage, user)) return <Navigate to={landingPath(user)} replace />;
   return <>{children}</>;
 }

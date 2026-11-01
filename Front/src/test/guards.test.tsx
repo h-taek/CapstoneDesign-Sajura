@@ -180,7 +180,7 @@ describe("가드 목적지 (상태 넷 × 경로)", () => {
     vi.useRealTimers();
   });
 
-  it("1) 미인증 상태: /intro·/login·/register는 허용하고, 나머지 경로는 /login으로 보낸다", () => {
+  it("1) 미인증 상태: /intro·/login·/register는 허용하고, /는 /intro로, 나머지 경로는 /login으로 보낸다", () => {
     for (const allowed of ["/intro", "/login", "/register"]) {
       const { unmount } = renderGuardedPath(allowed);
       expect(screen.getByTestId("path")).toHaveTextContent(allowed);
@@ -190,7 +190,6 @@ describe("가드 목적지 (상태 넷 × 경로)", () => {
     const protectedPaths = [
       "/verify-business",
       "/onboarding/1",
-      "/",
       "/forecast",
       "/inventory",
       "/menus",
@@ -205,6 +204,10 @@ describe("가드 목적지 (상태 넷 × 경로)", () => {
       expect(screen.getByTestId("path")).toHaveTextContent("/login");
       unmount();
     }
+
+    const { unmount } = renderGuardedPath("/");
+    expect(screen.getByTestId("path")).toHaveTextContent("/intro");
+    unmount();
   });
 
   it("2) 사업자 미인증·반려(UNVERIFIED·REJECTED): /intro와 /verify-business 외 모든 경로를 /verify-business로 보낸다", () => {
