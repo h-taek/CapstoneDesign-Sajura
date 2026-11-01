@@ -14,6 +14,13 @@ import {
   updateMenu,
   upsertRecipe,
 } from "../api/endpoints/menus";
+import {
+  BulkDeleteButton,
+  BulkDeleteToolbar,
+  SelectMark,
+  deleteMany,
+  useBulkSelection,
+} from "../components/bulk/bulk-delete";
 import { type MenuFilter, groupAndFilterMenus } from "../components/menus/menu-logic";
 import { FollowPanel } from "../components/shell";
 import { MainShell } from "../components/shell";
@@ -44,6 +51,27 @@ export default function MenusPage() {
   );
 
   const isPanelOpen = selectedId !== null;
+
+  // 일괄 삭제 — '전체 선택'은 지금 검색·보기 조건에 걸린 메뉴 전부
+  const bulk = useBulkSelection();
+  const visibleIds = useMemo(() => groups.flatMap((g) => g.items.map((m) => m.menu_id)), [groups]);
+  const bulkMutation = useMutation({
+    mutationFn: (ids: string[]) => deleteMany(ids, deleteMenu),
+    onSuccess: ({ deleted, failed }) => {
+      queryClient.invalidateQueries({ queryKey: ["menus-all"] });
+      bulk.exit();
+      if (failed.length > 0) {
+        window.alert(`${deleted}개를 삭제했어요. ${failed.length}개는 삭제하지 못했어요.`);
+      }
+    },
+  });
+  const handleBulkDelete = () => {
+    const ids = [...bulk.selected];
+    if (ids.length === 0) return;
+    if (window.confirm(`선택한 메뉴 ${ids.length}개를 삭제할까요?`)) {
+      bulkMutation.mutate(ids);
+    }
+  };
 
   // 웹 판과 카테고리 구분선 높이 겹침 계산 (목업 11_menus.html script)
   const wrapRef = useRef<HTMLDivElement | null>(null);
@@ -134,16 +162,36 @@ export default function MenusPage() {
           </div>
         </div>
 
-        {/* 2줄: 메뉴 추가 */}
+        {/* 2줄: 메뉴 추가 · 삭제 (삭제를 누르면 골라서 한 번에 지우는 줄로 바뀜) */}
         <div className="mb-4">
-          <button
-            type="button"
-            onClick={() => setSelectedId(NEW)}
-            className="inline-flex h-11 items-center gap-1.5 rounded-full bg-brand px-7 text-[0.95rem] font-semibold text-white hover:bg-brand-strong"
-          >
-            <Plus className="size-5" />
-            메뉴 추가
-          </button>
+          {bulk.active ? (
+            <BulkDeleteToolbar
+              count={bulk.selected.size}
+              allSelected={visibleIds.length > 0 && visibleIds.every((id) => bulk.selected.has(id))}
+              onToggleAll={() => bulk.toggleAll(visibleIds)}
+              onCancel={bulk.exit}
+              onDelete={handleBulkDelete}
+              pending={bulkMutation.isPending}
+            />
+          ) : (
+            <div className="flex flex-wrap items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setSelectedId(NEW)}
+                className="inline-flex h-11 items-center gap-1.5 rounded-full bg-brand px-7 text-[0.95rem] font-semibold text-white hover:bg-brand-strong"
+              >
+                <Plus className="size-5" />
+                메뉴 추가
+              </button>
+              <BulkDeleteButton
+                disabled={menus.length === 0}
+                onClick={() => {
+                  setSelectedId(null);
+                  bulk.start();
+                }}
+              />
+            </div>
+          )}
         </div>
 
         {/* 웹 격자 및 편집 판 구조 */}
@@ -190,20 +238,30 @@ export default function MenusPage() {
                     }`}
                   >
                     {group.items.map((menu) => {
-                      const isSelected = selectedId === menu.menu_id;
+                      const isSelected = bulk.active
+                        ? bulk.selected.has(menu.menu_id)
+                        : selectedId === menu.menu_id;
                       return (
                         <li key={menu.menu_id}>
                           <button
                             type="button"
-                            onClick={() => setSelectedId(menu.menu_id)}
+                            onClick={() =>
+                              bulk.active ? bulk.toggle(menu.menu_id) : setSelectedId(menu.menu_id)
+                            }
+                            aria-pressed={bulk.active ? isSelected : undefined}
                             style={
                               isSelected
                                 ? { outline: "2px solid var(--color-brand)", outlineOffset: "-2px" }
                                 : undefined
                             }
-                            className="flex aspect-[4/3] w-full flex-col justify-between rounded-2xl p-4 text-left glass-card hover:bg-white/50"
+                            className="relative flex aspect-[4/3] w-full flex-col justify-between rounded-2xl p-4 text-left glass-card hover:bg-white/50"
                           >
-                            <span className="line-clamp-2 text-[0.95rem] font-bold break-keep text-ink">
+                            {bulk.active && <SelectMark checked={isSelected} />}
+                            <span
+                              className={`line-clamp-2 text-[0.95rem] font-bold break-keep text-ink ${
+                                bulk.active ? "pr-8" : ""
+                              }`}
+                            >
                               {menu.name}
                             </span>
                             <span>

@@ -113,6 +113,35 @@ describe("MenusPage", () => {
     expect(upsert).not.toHaveBeenCalled();
   });
 
+  it("삭제를 누르면 메뉴를 골라 한 번에 지운다", async () => {
+    const cola = { ...pizza, menu_id: "m-2", name: "제로콜라", category: "음료" };
+    const fries = { ...pizza, menu_id: "m-3", name: "감자튀김", category: "사이드" };
+    vi.spyOn(menusApi, "listMenus").mockResolvedValue({
+      items: [pizza, cola, fries],
+      total: 3,
+      page: 1,
+      size: 100,
+      total_pages: 1,
+    });
+    vi.spyOn(window, "confirm").mockReturnValue(true);
+    const del = vi.spyOn(menusApi, "deleteMenu").mockResolvedValue();
+    renderPage();
+    await screen.findByText("마르게리타");
+
+    fireEvent.click(screen.getByRole("button", { name: "삭제" }));
+    fireEvent.click(screen.getByText("마르게리타"));
+    fireEvent.click(screen.getByText("제로콜라"));
+    expect(screen.getByText("2개 선택")).toBeInTheDocument();
+    // 고르는 중에는 편집 판이 열리지 않는다
+    expect(screen.queryByLabelText(/판매가/)).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "2개 삭제" }));
+    await waitFor(() => expect(del).toHaveBeenCalledTimes(2));
+    expect(del).toHaveBeenCalledWith("m-1");
+    expect(del).toHaveBeenCalledWith("m-2");
+    expect(del).not.toHaveBeenCalledWith("m-3");
+  });
+
   it("메뉴를 삭제한다", async () => {
     vi.spyOn(window, "confirm").mockReturnValue(true);
     const del = vi.spyOn(menusApi, "deleteMenu").mockResolvedValue();
