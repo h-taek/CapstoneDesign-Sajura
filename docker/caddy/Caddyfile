@@ -1,30 +1,26 @@
-# Phase 2 Caddyfile — 로컬/스테이징 기본형.
-# 본격적인 CSP/보안 헤더(docs/research/backend/05_auth_security.md §3.5)는
-# docs/plan/01_be.md M3 단계에서 채워 넣는다.
+# 리버스 프록시 + PWA 정적 파일 (03_be.md §15.1).
+# SITE_ADDRESS가 도메인이면 Caddy가 Let's Encrypt 인증서를 받아 HTTPS로 서빙한다(443만 열어도 TLS-ALPN으로 발급).
+# 비우면 :80 평문 — 로컬 개발.
 {
     admin off
-    auto_https off
 }
 
-:80 {
+(app) {
     encode zstd gzip
-
-    # PWA 정적 파일 (FE dist) — Phase 2 시점에는 빈 디렉터리 가능
     root * /srv
 
-    # /api/* → BE upstream
+    # /api/* → BE. FE 요청 제한 시간(업로드·예측 실행 120초)보다 길게
     @api path /api/*
     handle @api {
         reverse_proxy be:8000 {
             transport http {
                 keepalive 5s
-                read_timeout 65s
-                write_timeout 65s
+                read_timeout 130s
+                write_timeout 130s
             }
         }
     }
 
-    # /health → BE
     handle /health {
         reverse_proxy be:8000
     }
@@ -34,4 +30,13 @@
         try_files {path} /index.html
         file_server
     }
+}
+
+{$SITE_ADDRESS::80} {
+    import app
+}
+
+# 컨테이너 안 healthcheck용 — 도메인을 쓸 때도 http://localhost/health가 응답하게
+http://localhost {
+    import app
 }

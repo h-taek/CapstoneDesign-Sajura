@@ -168,8 +168,13 @@ services:
     build:
       context: .
       dockerfile: docker/caddy/Dockerfile
+      args:
+        VITE_VAPID_PUBLIC_KEY: ${VAPID_PUBLIC_KEY:-}
+        VITE_EXTENSION_ID: ${VITE_EXTENSION_ID:-cbplmciiejdjhhogkjhehfhdipocmdkf}
     container_name: sajura-caddy
     restart: unless-stopped
+    environment:
+      SITE_ADDRESS: ${SITE_ADDRESS:-:80}   # 운영은 도메인 — Caddy 자동 HTTPS
     depends_on:
       be:
         condition: service_healthy
