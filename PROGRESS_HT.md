@@ -8,6 +8,14 @@
 
 ## 1. 개발 이력
 
+### 1차 배포 — 맥미니 브리지 VM, sajura.htaeky.duckdns.org — 845326b·06660b3 (2026-11-02)
+
+- caddy 이미지에 FE 빌드 포함(node 단계 → `/srv`), `SITE_ADDRESS`가 도메인이면 Let's Encrypt 자동 HTTPS(443만 열어 TLS-ALPN). API 제한 시간 130초. 쓰이지 않던 `docker/fe/Dockerfile` 제거. 확장 `externally_connectable`에 배포 주소 추가
+- 맥미니: 9월 dev 사본 스택(옛 cloudflared 임시 터널 포함)을 main으로 교체. DB 백업 `~/sajura-backup-20261102.sql.gz`, 옛 설정 `~/sajura-old-config-20261102/`. 운영 `.env`는 로컬 값 + 서버의 DB 계정·AES·JWT 키 유지 + 배포 주소·`APP_ENV=production`·마스터 코드
+- DB 마이그레이션 `0006` → `0018`, 매장 위치 채움(4곳 중 2곳, 2곳은 주소 오류), n8n DB 계정·예측 워크플로우 설치
+- 실제 접속 IP — 기존 Colima VM은 포트 중계가 발신 주소를 게이트웨이로 바꿔 IP별 Rate Limit이 전원 공유됐다. 사주라를 브리지 모드 Colima 프로필 `sajura`(192.168.0.64, `preferredRoute`)로 옮김. socket_vmnet·`/etc/sudoers.d/colima`(644)는 관리자 설치. 이미지(n8n 2.39.8·mysql·redis)와 볼륨 6개를 그대로 복사, 공유기 443 → 192.168.0.64
+- 검증: 외부 HTTPS 화면·SPA 경로 200, `/health` ok, 로그인 Rate Limit 키가 접속자 공인 IP로 기록됨, DB 행 수(users 21·stores 21·sale_records 11,210)·`alembic current` 0018, NetBird·포트폴리오 200
+
 ### 토스플레이스 POS 연동 — 등록 직후 첫 동기화, 같은 날 CSV·POS는 POS 우선, 설정 토스 연결 — be881cc..a155e89 (2026-11-02)
 
 - PR #39(청야, 토스플레이스 판매 동기화·매일 01:00 cron) 리뷰 후 스쿼시 머지
