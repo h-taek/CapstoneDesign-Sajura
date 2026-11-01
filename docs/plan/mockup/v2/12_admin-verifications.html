@@ -10,31 +10,57 @@
 <!-- 원본: Front/src/routes/admin/verifications.tsx, components/ui/button.tsx, components/ui/field.tsx (셸 없음, 네비 링크 없이 직접 진입) -->
 <body data-page="admin" data-sky="now" data-states="목록:default,등록증 보기:cert,반려 입력:reject,대기 없음:empty">
 <div data-backdrop></div>
-<main class="glass mx-3 my-6 max-w-3xl rounded-[1.75rem] p-6 sm:mx-auto">
+<main class="glass mx-3 my-6 max-w-3xl rounded-[1.75rem] p-5 sm:mx-auto sm:p-6">
   <h1 class="mb-4 text-2xl font-semibold text-ink">사업자 검증 심사</h1>
 
-  <p data-when="empty" class="text-sm text-ink-3">심사 대기 중인 항목이 없습니다.</p>
+  <p data-when="empty" class="text-sm text-ink-2">심사 대기 중인 신청이 없어요</p>
 
-  <ul data-when="default cert reject" class="space-y-4">
-    <li class="rounded-lg p-4 glass-card">
-      <div class="flex items-center justify-between">
-        <div>
-          <p class="font-medium text-ink">owner@sajura.kr</p>
-          <p class="text-sm text-ink-3">사업자번호: 123-45-67890</p>
+  <!-- business_status = PENDING 매장. 신청 일시 오래된 순(04 §4.10) -->
+  <ul data-when="default cert reject" class="space-y-3">
+    <li class="rounded-2xl p-4 glass-card">
+      <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div class="min-w-0">
+          <p class="truncate font-semibold text-ink">사주라 화덕피자 성수점</p>
+          <p class="text-sm text-ink-2"><span class="tabular">123-45-67890</span> · 신청 <span class="tabular">10월 17일 14:02</span></p>
         </div>
-        <div class="flex gap-2">
-          <button type="button" data-set-state="cert" class="inline-flex h-9 shrink-0 items-center justify-center gap-2 rounded-lg px-3.5 text-sm font-semibold whitespace-nowrap text-ink-2 transition-colors hover:border-ink-4 hover:bg-subtle disabled:cursor-not-allowed disabled:opacity-60 glass-card">등록증 보기</button>
-          <button type="button" data-set-state="empty" class="inline-flex h-9 shrink-0 items-center justify-center gap-2 rounded-lg bg-brand px-3.5 text-sm font-semibold whitespace-nowrap text-white transition-colors hover:bg-brand-strong disabled:cursor-not-allowed disabled:bg-ink-4">승인</button>
-          <button type="button" data-set-state="reject" class="inline-flex h-9 shrink-0 items-center justify-center gap-2 rounded-lg px-3.5 text-sm font-semibold whitespace-nowrap text-ink-2 transition-colors hover:border-ink-4 hover:bg-subtle disabled:cursor-not-allowed disabled:opacity-60 glass-card">반려</button>
+        <div class="flex flex-wrap gap-2">
+          <button type="button" data-set-state="cert" class="inline-flex h-9 shrink-0 items-center justify-center rounded-full border border-white/80 px-4 text-sm font-semibold whitespace-nowrap text-ink-2 transition-colors hover:bg-white/30">등록증 보기</button>
+          <button type="button" data-set-state="empty" class="inline-flex h-9 shrink-0 items-center justify-center rounded-full bg-brand px-4 text-sm font-semibold whitespace-nowrap text-white transition-colors hover:bg-brand-strong">승인</button>
+          <button type="button" data-set-state="reject" class="inline-flex h-9 shrink-0 items-center justify-center rounded-full border border-white/80 px-4 text-sm font-semibold whitespace-nowrap text-ink-2 transition-colors hover:bg-white/30">반려</button>
         </div>
       </div>
-
       <!-- 등록증 이미지 자리 — 실제 화면은 img(max-h-64) 또는 PDF iframe(h-96) -->
-      <div data-when="cert" class="mt-3 grid h-64 w-full place-items-center rounded border border-line bg-subtle text-sm text-ink-4">사업자등록증 미리보기 (이미지 또는 PDF)</div>
-
-      <div data-when="reject" class="mt-3 flex gap-2">
-        <input id="reject-reason-1" placeholder="반려 사유" value="사업자등록증 이미지가 흐려 번호를 확인할 수 없습니다" class="h-12 w-full rounded-xl border border-line bg-white/70 px-4 text-base text-ink placeholder:text-ink-4 focus:border-brand focus:ring-4 focus:ring-brand-soft focus:outline-none disabled:bg-subtle disabled:text-ink-3">
-        <button type="button" data-set-state="empty" class="inline-flex h-9 shrink-0 items-center justify-center gap-2 rounded-lg bg-brand px-3.5 text-sm font-semibold whitespace-nowrap text-white transition-colors hover:bg-brand-strong disabled:cursor-not-allowed disabled:bg-ink-4">반려 확정</button>
+      <div data-when="cert" class="mt-3 grid h-64 w-full place-items-center rounded-2xl border border-white/80 bg-[rgb(46_32_120/0.065)] text-sm text-ink-2">사업자등록증 미리보기 (이미지 또는 PDF)</div>
+      <!-- 반려 — 사유 필수, 점주의 사업자 검증 화면에 그대로 보인다 -->
+      <div data-when="reject" class="mt-3 flex flex-col gap-2 sm:flex-row">
+        <input id="reject-reason-1" placeholder="반려 사유" value="사업자등록증 이미지가 흐려 번호를 확인할 수 없습니다" class="h-11 w-full min-w-0 rounded-full border border-white/80 bg-[rgb(46_32_120/0.065)] px-4 text-base text-ink placeholder:text-ink-3 focus:border-brand focus:ring-4 focus:ring-brand-soft focus:outline-none">
+        <button type="button" data-set-state="empty" class="inline-flex h-11 shrink-0 items-center justify-center rounded-full bg-danger px-5 text-sm font-semibold whitespace-nowrap text-white transition-colors hover:opacity-90">반려 확정</button>
+      </div>
+    </li>
+    <li class="rounded-2xl p-4 glass-card">
+      <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div class="min-w-0">
+          <p class="truncate font-semibold text-ink">골목 분식</p>
+          <p class="text-sm text-ink-2"><span class="tabular">214-86-11223</span> · 신청 <span class="tabular">10월 18일 09:41</span></p>
+        </div>
+        <div class="flex flex-wrap gap-2">
+          <button type="button" class="inline-flex h-9 shrink-0 items-center justify-center rounded-full border border-white/80 px-4 text-sm font-semibold whitespace-nowrap text-ink-2 transition-colors hover:bg-white/30">등록증 보기</button>
+          <button type="button" data-set-state="empty" class="inline-flex h-9 shrink-0 items-center justify-center rounded-full bg-brand px-4 text-sm font-semibold whitespace-nowrap text-white transition-colors hover:bg-brand-strong">승인</button>
+          <button type="button" class="inline-flex h-9 shrink-0 items-center justify-center rounded-full border border-white/80 px-4 text-sm font-semibold whitespace-nowrap text-ink-2 transition-colors hover:bg-white/30">반려</button>
+        </div>
+      </div>
+    </li>
+    <li class="rounded-2xl p-4 glass-card">
+      <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div class="min-w-0">
+          <p class="truncate font-semibold text-ink">한빛 카페</p>
+          <p class="text-sm text-ink-2"><span class="tabular">305-21-44871</span> · 신청 <span class="tabular">10월 19일 20:15</span></p>
+        </div>
+        <div class="flex flex-wrap gap-2">
+          <button type="button" class="inline-flex h-9 shrink-0 items-center justify-center rounded-full border border-white/80 px-4 text-sm font-semibold whitespace-nowrap text-ink-2 transition-colors hover:bg-white/30">등록증 보기</button>
+          <button type="button" data-set-state="empty" class="inline-flex h-9 shrink-0 items-center justify-center rounded-full bg-brand px-4 text-sm font-semibold whitespace-nowrap text-white transition-colors hover:bg-brand-strong">승인</button>
+          <button type="button" class="inline-flex h-9 shrink-0 items-center justify-center rounded-full border border-white/80 px-4 text-sm font-semibold whitespace-nowrap text-ink-2 transition-colors hover:bg-white/30">반려</button>
+        </div>
       </div>
     </li>
   </ul>
