@@ -11,11 +11,12 @@ const PAGES = {
   onboarding: { file: "05_onboarding.html", route: "/onboarding/1~4", name: "매장 온보딩" },
   home: { file: "06_home.html", route: "/", name: "홈" },
   forecast: { file: "07_forecast.html", route: "/forecast", name: "매출예측" },
-  inventory: { file: "08_inventory.html", route: "/inventory", name: "재고관리" },
-  orders: { file: "09_orders.html", route: "/orders", name: "발주추천" },
-  menus: { file: "10_menus.html", route: "/menus", name: "메뉴 관리" },
-  settings: { file: "11_settings.html", route: "/settings", name: "설정(앱: 더보기)" },
-  admin: { file: "12_admin-verifications.html", route: "/admin/verifications", name: "관리자 심사" },
+  sales: { file: "08_sales.html", route: "/sales", name: "판매 데이터" },
+  inventory: { file: "09_inventory.html", route: "/inventory", name: "재고관리" },
+  orders: { file: "10_orders.html", route: "/orders", name: "발주추천" },
+  menus: { file: "11_menus.html", route: "/menus", name: "메뉴 관리" },
+  settings: { file: "12_settings.html", route: "/settings", name: "설정(앱: 더보기)" },
+  admin: { file: "13_admin-verifications.html", route: "/admin/verifications", name: "관리자 심사" },
 };
 
 // "키?상태"면 그 화면을 그 상태로 연다(설정의 판 — 계정 정보·매출 올리기 등)
@@ -27,7 +28,7 @@ const MOCK_USER = { name: "김사주", store: "사주라 화덕피자 성수점"
 const NOTIS = [
   { title: "소비기한 D-1 임박", body: "리코타 치즈가 내일 만료돼요.", at: "06:00", dot: "bg-danger", to: "inventory" },
   { title: "재고 부족", body: "루꼴라 재고를 확인해 주세요.", at: "어제 22:41", dot: "bg-warn", to: "inventory" },
-  { title: "이상치 감지", body: "10월 19일 매출에서 이상치 2건이 나왔어요.", at: "어제 22:40", dot: "bg-warn", to: "settings?state=uploaded" },
+  { title: "이상치 감지", body: "10월 19일 매출에서 이상치 2건이 나왔어요.", at: "어제 22:40", dot: "bg-warn", to: "sales" },
   { title: "예측 완료", body: "오늘 예상 매출과 발주 추천이 나왔어요.", at: "02:10", read: true, to: "orders" },
 ];
 
@@ -215,6 +216,7 @@ function icon(name, cls = "size-5", strokeWidth = 2) {
 const WEB_NAV = [
   { key: "home", label: "홈", icon: "home" },
   { key: "forecast", label: "매출 예측", icon: "trendingUp" },
+  { key: "sales", label: "판매 데이터", icon: "wallet" },
   { key: "inventory", label: "재고 관리", icon: "boxes" },
   { key: "orders", label: "추천발주", icon: "clipboardList" },
   { key: "menus", label: "메뉴 관리", icon: "chefHat" },
@@ -234,6 +236,7 @@ const APP_TITLE = {
   inventory: "재고",
   orders: "발주",
   menus: "메뉴 관리",
+  sales: "판매 데이터",
   settings: "더보기",
 };
 
@@ -866,10 +869,10 @@ function goShop(url) {
 
 function renderShell(el) {
   const active = el.dataset.shell;
-  const appTabKey = active === "menus" ? "settings" : active;
+  const appTabKey = active === "menus" || active === "sales" ? "settings" : active;
   const title = el.dataset.title ?? (active === "home" ? MOCK_USER.store : APP_TITLE[active]);
   const subtitle = active === "home" && !el.dataset.title ? `${MOCK_USER.name}님, 안녕하세요` : "";
-  const back = el.dataset.back ?? (active === "menus" ? PAGES.settings.file : "");
+  const back = el.dataset.back ?? (active === "menus" || active === "sales" ? PAGES.settings.file : "");
   const content = el.innerHTML;
   // 열린 배치(data-layout="open") — 본문 유리 패널과 왼쪽 메뉴 없이 카드가 배경 위에 바로 놓이고, 주 메뉴는 상단 바 가운데 글자 알약으로 올라간다
   const open = el.dataset.layout === "open";
