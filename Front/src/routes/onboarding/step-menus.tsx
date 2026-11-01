@@ -1,19 +1,15 @@
-// M3.F5 — 온보딩 3스텝: 메뉴 등록 (동적 배열, 02_implementation_design.md §3.4 POST /api/menus/bulk).
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Plus, Trash2 } from "lucide-react";
 import { useFieldArray, useForm } from "react-hook-form";
 import { Navigate, useNavigate } from "react-router";
-import { Button } from "../../components/ui/button";
-import { FormField, Input } from "../../components/ui/field";
 import { type MenusStepValues, menusStepSchema } from "../../schemas/onboarding";
 import { useOnboardingStore } from "../../stores/onboarding-store";
 
-const EMPTY_MENU = {
-  name: "",
-  category: "음료",
-  price: 0,
-  is_active: true,
-};
+const DEFAULT_MENUS = [
+  { name: "마르게리타 화덕피자", category: "피자", price: 16000, is_active: true },
+  { name: "페페로니 듬뿍 화덕피자", category: "피자", price: 18000, is_active: true },
+  { name: "콜라", category: "음료", price: 2500, is_active: true },
+];
 
 export default function MenusStep() {
   const navigate = useNavigate();
@@ -21,19 +17,22 @@ export default function MenusStep() {
   const drafts = useOnboardingStore((s) => s.menus);
   const setMenus = useOnboardingStore((s) => s.setMenus);
 
-  if (!pos) return <Navigate to="/onboarding/2" replace />;
-
   const {
     register,
     handleSubmit,
     control,
-    formState: { errors, isSubmitting },
+    formState: { errors },
   } = useForm<MenusStepValues>({
     resolver: zodResolver(menusStepSchema),
-    defaultValues: { menus: drafts.length > 0 ? drafts : [{ ...EMPTY_MENU }] },
+    defaultValues: {
+      menus: drafts.length > 0 ? drafts : DEFAULT_MENUS,
+    },
     mode: "onBlur",
   });
+
   const { fields, append, remove } = useFieldArray({ control, name: "menus" });
+
+  if (!pos) return <Navigate to="/onboarding/2" replace />;
 
   const onSubmit = (values: MenusStepValues) => {
     setMenus(values.menus);
@@ -41,122 +40,98 @@ export default function MenusStep() {
   };
 
   return (
-    <form className="space-y-6" onSubmit={handleSubmit(onSubmit)} noValidate>
-      <div className="space-y-1">
-        <h2 className="text-2xl font-semibold text-ink">메뉴 등록</h2>
-        <p className="text-base text-ink-2">판매하는 메뉴를 등록해주세요.</p>
-        <p className="text-sm text-ink-3">
-          재고 차감은 레시피를 등록한 뒤 레시피 관리에서 켤 수 있습니다.
-        </p>
-      </div>
-
-      <div className="space-y-3">
+    <div>
+      <h1 className="mt-9 text-[1.75rem] font-extrabold tracking-tight">
+        판매하는 메뉴를 알려 주세요
+      </h1>
+      <p className="mt-2 text-base text-white/75">재고 차감은 레시피를 등록한 뒤 켤 수 있어요</p>
+      <form className="mt-8 space-y-2.5 text-left" onSubmit={handleSubmit(onSubmit)} noValidate>
         {fields.map((field, idx) => {
-          const rowErrors = errors.menus?.[idx];
           return (
             <div
               key={field.id}
-              className="grid grid-cols-12 items-start gap-3 rounded-xl border border-line p-4"
+              className="space-y-2 rounded-2xl border border-white/15 p-3"
               data-testid={`menu-row-${idx}`}
             >
-              <div className="col-span-4">
-                <FormField
-                  label="메뉴명"
-                  htmlFor={`menus.${idx}.name`}
-                  error={rowErrors?.name?.message}
-                >
-                  <Input
-                    id={`menus.${idx}.name`}
-                    className="h-11 rounded-xl border-line bg-subtle"
-                    {...register(`menus.${idx}.name`)}
-                  />
-                </FormField>
-              </div>
-              <div className="col-span-3">
-                <FormField
-                  label="카테고리"
-                  htmlFor={`menus.${idx}.category`}
-                  error={rowErrors?.category?.message}
-                >
-                  <Input
-                    id={`menus.${idx}.category`}
-                    className="h-11 rounded-xl border-line bg-subtle"
-                    {...register(`menus.${idx}.category`)}
-                  />
-                </FormField>
-              </div>
-              <div className="col-span-3">
-                <FormField
-                  label="단가(원)"
-                  htmlFor={`menus.${idx}.price`}
-                  error={rowErrors?.price?.message}
-                >
-                  <Input
-                    id={`menus.${idx}.price`}
-                    inputMode="numeric"
-                    type="number"
-                    min={0}
-                    className="h-11 rounded-xl border-line bg-subtle"
-                    {...register(`menus.${idx}.price`)}
-                  />
-                </FormField>
-              </div>
-              <div className="col-span-2 flex justify-end pt-7">
-                <Button
-                  type="button"
-                  variant="ghost"
-                  aria-label="메뉴 삭제"
-                  disabled={fields.length === 1}
-                  onClick={() => remove(idx)}
-                  className="h-11 rounded-full text-ink-3 hover:bg-red-50 hover:text-red-600"
-                >
-                  <Trash2 className="size-4" />
-                </Button>
-              </div>
-              <div className="col-span-12 flex gap-4 text-sm text-ink-2">
-                <label className="flex items-center gap-2">
+              <input
+                id={`menus.${idx}.name`}
+                aria-label="메뉴명"
+                placeholder="메뉴명"
+                className="h-12 w-full rounded-xl border border-white/15 bg-[#0d0a26]/45 px-4 text-base text-white placeholder:text-white/70 backdrop-blur-md [color-scheme:dark] focus:border-[#b3a4ff] focus:ring-4 focus:ring-[#b3a4ff]/25 focus:outline-none"
+                {...register(`menus.${idx}.name`)}
+              />
+              <div className="flex items-center gap-2">
+                <input
+                  id={`menus.${idx}.category`}
+                  aria-label="카테고리"
+                  placeholder="카테고리"
+                  className="h-12 rounded-xl border border-white/15 bg-[#0d0a26]/45 px-3 text-base text-white placeholder:text-white/70 backdrop-blur-md [color-scheme:dark] focus:border-[#b3a4ff] focus:ring-4 focus:ring-[#b3a4ff]/25 focus:outline-none w-20 shrink-0"
+                  {...register(`menus.${idx}.category`)}
+                />
+                <input
+                  id={`menus.${idx}.price`}
+                  aria-label="단가(원)"
+                  placeholder="단가(원)"
+                  type="number"
+                  min="0"
+                  inputMode="numeric"
+                  className="[appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none h-12 rounded-xl border border-white/15 bg-[#0d0a26]/45 px-3 text-base text-white placeholder:text-white/70 backdrop-blur-md [color-scheme:dark] focus:border-[#b3a4ff] focus:ring-4 focus:ring-[#b3a4ff]/25 focus:outline-none min-w-0 flex-1"
+                  {...register(`menus.${idx}.price`)}
+                />
+                <label className="flex shrink-0 items-center gap-1 text-sm text-white/90 cursor-pointer">
                   <input
                     type="checkbox"
-                    className="accent-brand"
+                    className="size-4 accent-[#b3a4ff]"
                     {...register(`menus.${idx}.is_active`)}
-                  />{" "}
-                  판매 활성
+                  />
+                  판매
                 </label>
+                <button
+                  type="button"
+                  aria-label="메뉴 삭제"
+                  onClick={() => remove(idx)}
+                  className="flex size-9 shrink-0 items-center justify-center rounded-lg text-white/75 hover:bg-white/10"
+                >
+                  <Trash2 className="size-4" />
+                </button>
               </div>
             </div>
           );
         })}
-      </div>
-      {errors.menus?.root?.message ? (
-        <p className="text-sm text-red-600" role="alert">
-          {errors.menus.root.message}
-        </p>
-      ) : null}
-      <Button
-        type="button"
-        onClick={() => append({ ...EMPTY_MENU })}
-        data-testid="menu-add"
-        className="h-10 rounded-full border border-line bg-white px-4 text-sm text-ink-2 hover:bg-subtle"
-      >
-        <Plus className="size-4" /> 메뉴 추가
-      </Button>
-      <div className="flex justify-between pt-2">
-        <Button
+
+        {errors.menus?.root?.message && (
+          <p className="px-1 text-sm font-semibold text-[#ffd6d6]" role="alert">
+            {errors.menus.root.message}
+          </p>
+        )}
+
+        <button
           type="button"
-          onClick={() => navigate("/onboarding/2")}
-          className="h-11 rounded-full border border-line bg-white px-6 text-ink-2 hover:bg-subtle"
+          onClick={() => append({ name: "", category: "기타", price: 0, is_active: true })}
+          data-testid="menu-add"
+          className="flex h-12 w-full items-center justify-center gap-1.5 rounded-xl border border-dashed border-white/35 text-[0.95rem] font-semibold text-white hover:bg-white/10"
         >
-          이전
-        </Button>
-        <Button
-          type="submit"
-          disabled={isSubmitting}
-          data-testid="menus-next"
-          className="h-11 rounded-full bg-brand px-8 font-semibold hover:bg-brand-strong"
-        >
-          다음
-        </Button>
-      </div>
-    </form>
+          <Plus className="size-4" />
+          메뉴 추가
+        </button>
+
+        <div className="flex gap-2 pt-4">
+          <button
+            type="button"
+            onClick={() => navigate("/onboarding/2")}
+            className="inline-flex h-[52px] w-28 shrink-0 items-center justify-center rounded-xl bg-white/15 px-5 text-lg font-semibold text-white backdrop-blur-md transition-colors hover:bg-white/25"
+          >
+            이전
+          </button>
+          <button
+            type="submit"
+            data-testid="menus-next"
+            className="inline-flex h-[52px] flex-1 items-center justify-center rounded-xl bg-brand px-5 text-lg font-bold text-white transition-colors hover:bg-brand-strong"
+          >
+            다음
+          </button>
+        </div>
+      </form>
+    </div>
   );
 }

@@ -1,29 +1,30 @@
-// M3.F10 — 관리자 사업자 검증 심사 큐 (role=ADMIN, 02_implementation_design.md §3.3).
-// PENDING 목록 + 등록증 미리보기 + 승인/반려. 종합 관리도구는 [후속].
+// M3.F10 — 관리자 사업자 검증 심사 큐 (role=ADMIN, 13_admin-verifications.html, 04_fe.md §4.10).
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
-  approveVerification,
   type CertObject,
+  approveVerification,
   fetchCertObjectUrl,
   listVerifications,
   rejectVerification,
 } from "../../api/endpoints/admin";
-import { Button } from "../../components/ui/button";
-import { Input } from "../../components/ui/field";
+import { formatSubmittedAt, sortVerifications } from "../../components/admin/admin-logic";
+import { useSky } from "../../components/sky";
 
 export default function AdminVerificationsPage() {
+  useSky("now");
   const qc = useQueryClient();
   const [certs, setCerts] = useState<Record<string, CertObject>>({});
   const [rejectId, setRejectId] = useState<string | null>(null);
   const [reason, setReason] = useState("");
 
-  // unmount 시 모든 ObjectURL 해제 — ref로 최신 certs를 추적해 stale closure 회피.
   const certsRef = useRef(certs);
   certsRef.current = certs;
   useEffect(() => {
     return () => {
-      for (const c of Object.values(certsRef.current)) URL.revokeObjectURL(c.url);
+      if (typeof URL.revokeObjectURL === "function") {
+        for (const c of Object.values(certsRef.current)) URL.revokeObjectURL(c.url);
+      }
     };
   }, []);
 
@@ -38,9 +39,10 @@ export default function AdminVerificationsPage() {
     mutationFn: (storeId: string) => approveVerification(storeId),
     onSuccess: refresh,
   });
+
   const reject = useMutation({
-    mutationFn: ({ storeId, reason }: { storeId: string; reason: string }) =>
-      rejectVerification(storeId, reason),
+    mutationFn: ({ storeId, reasonText }: { storeId: string; reasonText: string }) =>
+      rejectVerification(storeId, reasonText),
     onSuccess: () => {
       setRejectId(null);
       setReason("");
@@ -51,103 +53,117 @@ export default function AdminVerificationsPage() {
   const showCert = async (storeId: string) => {
     const cert = await fetchCertObjectUrl(storeId);
     setCerts((c) => {
-      // 같은 항목을 다시 열면 기존 URL은 해제하고 새 것으로 교체.
       const prev = c[storeId];
-      if (prev) URL.revokeObjectURL(prev.url);
+      if (prev && typeof URL.revokeObjectURL === "function") URL.revokeObjectURL(prev.url);
       return { ...c, [storeId]: cert };
     });
   };
 
-  const items = data?.items ?? [];
+  const rawItems = data?.items ?? [];
+  const items = useMemo(() => sortVerifications(rawItems), [rawItems]);
 
   return (
-    <main className="mx-auto max-w-3xl p-6">
+    <main className="glass mx-3 my-6 max-w-3xl rounded-[1.75rem] p-5 sm:mx-auto sm:p-6">
       <h1 className="mb-4 text-2xl font-semibold text-ink">사업자 검증 심사</h1>
+
       {isLoading ? (
-        <p className="text-sm text-ink-3">불러오는 중…</p>
+        <p className="text-sm text-ink-2">불러오는 중…</p>
       ) : items.length === 0 ? (
-        <p className="text-sm text-ink-3" data-testid="admin-empty">
-          심사 대기 중인 항목이 없습니다.
+        <p data-testid="admin-empty" className="text-sm text-ink-2">
+          심사 대기 중인 신청이 없어요
         </p>
       ) : (
-        <ul className="space-y-4">
-          {items.map((it) => (
-            <li
-              key={it.store_id}
-              className="rounded-lg border border-line p-4"
-              data-testid="verification-row"
-            >
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="font-medium text-ink">{it.user_email}</p>
-                  <p className="text-sm text-ink-3">사업자번호: {it.business_no ?? "-"}</p>
-                </div>
-                <div className="flex gap-2">
-                  <Button
-                    type="button"
-                    size="sm"
-                    variant="secondary"
-                    onClick={() => showCert(it.store_id)}
-                  >
-                    등록증 보기
-                  </Button>
-                  <Button
-                    type="button"
-                    size="sm"
-                    onClick={() => approve.mutate(it.store_id)}
-                    disabled={approve.isPending}
-                  >
-                    승인
-                  </Button>
-                  <Button
-                    type="button"
-                    size="sm"
-                    variant="secondary"
-                    onClick={() => setRejectId(it.store_id)}
-                  >
-                    반려
-                  </Button>
-                </div>
-              </div>
+        <ul className="space-y-3">
+          {items.map((it) => {
+            const cert = certs[it.store_id];
+            const isRejectOpen = rejectId === it.store_id;
 
-              {(() => {
-                const cert = certs[it.store_id];
-                if (!cert) return null;
-                return cert.mime === "application/pdf" ? (
-                  <iframe
-                    src={cert.url}
-                    title="사업자등록증 PDF"
-                    className="mt-3 h-96 w-full rounded border border-line"
-                  />
-                ) : (
-                  <img
-                    src={cert.url}
-                    alt="사업자등록증"
-                    className="mt-3 max-h-64 rounded border border-line"
-                  />
-                );
-              })()}
-
-              {rejectId === it.store_id ? (
-                <div className="mt-3 flex gap-2">
-                  <Input
-                    id={`reject-reason-${it.store_id}`}
-                    placeholder="반려 사유"
-                    value={reason}
-                    onChange={(e) => setReason(e.target.value)}
-                  />
-                  <Button
-                    type="button"
-                    size="sm"
-                    onClick={() => reason.trim() && reject.mutate({ storeId: it.store_id, reason })}
-                    disabled={reject.isPending}
-                  >
-                    반려 확정
-                  </Button>
+            return (
+              <li
+                key={it.store_id}
+                data-testid="verification-row"
+                className="rounded-2xl p-4 glass-card"
+              >
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="min-w-0">
+                    <p className="truncate font-semibold text-ink">{it.user_email}</p>
+                    <p className="text-sm text-ink-2">
+                      <span className="tabular">{it.business_no ?? "-"}</span> · 신청{" "}
+                      <span className="tabular">{formatSubmittedAt(it.submitted_at)}</span>
+                    </p>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      onClick={() => showCert(it.store_id)}
+                      className="inline-flex h-9 shrink-0 items-center justify-center rounded-full border border-white/80 px-4 text-sm font-semibold whitespace-nowrap text-ink-2 transition-colors hover:bg-white/30"
+                    >
+                      등록증 보기
+                    </button>
+                    <button
+                      type="button"
+                      disabled={approve.isPending}
+                      onClick={() => approve.mutate(it.store_id)}
+                      className="inline-flex h-9 shrink-0 items-center justify-center rounded-full bg-brand px-4 text-sm font-semibold whitespace-nowrap text-white transition-colors hover:bg-brand-strong disabled:opacity-50"
+                    >
+                      승인
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setRejectId((prev) => (prev === it.store_id ? null : it.store_id));
+                        setReason("");
+                      }}
+                      className="inline-flex h-9 shrink-0 items-center justify-center rounded-full border border-white/80 px-4 text-sm font-semibold whitespace-nowrap text-ink-2 transition-colors hover:bg-white/30"
+                    >
+                      반려
+                    </button>
+                  </div>
                 </div>
-              ) : null}
-            </li>
-          ))}
+
+                {cert && (
+                  <div className="mt-3">
+                    {cert.mime === "application/pdf" ? (
+                      <iframe
+                        src={cert.url}
+                        title="사업자등록증 PDF"
+                        className="h-96 w-full rounded-2xl border border-white/80"
+                      />
+                    ) : (
+                      <img
+                        src={cert.url}
+                        alt="사업자등록증 미리보기"
+                        className="max-h-64 w-full rounded-2xl border border-white/80 object-contain"
+                      />
+                    )}
+                  </div>
+                )}
+
+                {isRejectOpen && (
+                  <div className="mt-3 flex flex-col gap-2 sm:flex-row">
+                    <input
+                      id={`reject-reason-${it.store_id}`}
+                      placeholder="반려 사유"
+                      value={reason}
+                      onChange={(e) => setReason(e.target.value)}
+                      className="h-11 w-full min-w-0 rounded-full border border-white/80 bg-[rgb(46_32_120/0.065)] px-4 text-base text-ink placeholder:text-ink-3 focus:border-brand focus:ring-4 focus:ring-brand-soft focus:outline-none"
+                    />
+                    <button
+                      type="button"
+                      disabled={!reason.trim() || reject.isPending}
+                      onClick={() =>
+                        reason.trim() &&
+                        reject.mutate({ storeId: it.store_id, reasonText: reason.trim() })
+                      }
+                      className="inline-flex h-11 shrink-0 items-center justify-center rounded-full bg-danger px-5 text-sm font-semibold whitespace-nowrap text-white transition-colors hover:opacity-90 disabled:opacity-50"
+                    >
+                      반려 확정
+                    </button>
+                  </div>
+                )}
+              </li>
+            );
+          })}
         </ul>
       )}
     </main>

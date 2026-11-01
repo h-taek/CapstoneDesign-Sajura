@@ -28,9 +28,7 @@ export const storeStepSchema = z.object({
     message: "운영 형태를 선택하세요.",
   }),
   address: z.string().min(1, "주소를 입력하세요.").max(200),
-  phone: z
-    .string()
-    .regex(PHONE_REGEX, "전화번호 형식: 02-1234-5678 또는 010-1234-5678"),
+  phone: z.string().regex(PHONE_REGEX, "전화번호 형식이 올바르지 않아요."),
 });
 export type StoreStepValues = z.infer<typeof storeStepSchema>;
 
@@ -77,8 +75,7 @@ export function formatPhone(raw: string): string {
   if (digits.length < 4) return digits;
   if (digits.startsWith("02")) {
     if (digits.length <= 6) return `${digits.slice(0, 2)}-${digits.slice(2)}`;
-    if (digits.length <= 9)
-      return `${digits.slice(0, 2)}-${digits.slice(2, 5)}-${digits.slice(5)}`;
+    if (digits.length <= 9) return `${digits.slice(0, 2)}-${digits.slice(2, 5)}-${digits.slice(5)}`;
     return `${digits.slice(0, 2)}-${digits.slice(2, 6)}-${digits.slice(6, 10)}`;
   }
   if (digits.length <= 7) return `${digits.slice(0, 3)}-${digits.slice(3)}`;

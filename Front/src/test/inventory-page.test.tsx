@@ -1,4 +1,4 @@
-// 재고 화면 — 경고 글씨·입고 대기 카드·로트 목록·입고·수정·폐기 (02_implementation_design.md §3.5).
+// 재고 화면 — 경고 글씨·입고 대기 카드·로트 목록·입고·수정·폐기 (04_fe.md §4.6, 09_inventory.html).
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { MemoryRouter } from "react-router";
@@ -44,9 +44,7 @@ const lot: inventoryApi.Lot = {
   purchase_price: 28000,
 };
 
-function lotList(
-  pending: inventoryApi.PendingOrderItem[] = [],
-): inventoryApi.LotList {
+function lotList(pending: inventoryApi.PendingOrderItem[] = []): inventoryApi.LotList {
   return { item_id: "bean", item_name: "원두", lots: [lot], pending_orders: pending };
 }
 
@@ -62,32 +60,43 @@ describe("InventoryPage", () => {
   beforeEach(() => {
     vi.spyOn(inventoryApi, "listInventory").mockResolvedValue([bean]);
     vi.spyOn(inventoryApi, "listLots").mockResolvedValue(lotList());
+    vi.spyOn(inventoryApi, "getPriceTrends").mockResolvedValue({
+      start_date: "2026-09-20",
+      end_date: "2026-10-20",
+      items: [],
+    });
   });
   afterEach(() => {
     vi.restoreAllMocks();
   });
 
-  it("확인 필요 재료는 배지 없이 수량 글씨가 빨갛고, 펼치면 로트와 안내가 나온다", async () => {
+  it("확인 필요 재료는 배지 없이 수량 글씨가 빨갛고, 누르면 상세 판(로트와 안내)이 열린다", async () => {
     renderPage();
-    const toggle = await screen.findByRole("button", { name: /원두/ });
-    expect(screen.getByText("2,000 g")).toHaveClass("text-danger");
+    const cardBtn = await screen.findByRole("button", { name: /원두/ });
+    expect(screen.getByText("2,000")).toHaveClass("text-danger");
     expect(screen.queryByText("재고 확인 필요")).not.toBeInTheDocument();
 
-    fireEvent.click(toggle);
-    expect(await screen.findByText("28,000원")).toBeInTheDocument();
-    expect(screen.getByText(/기록상 재고 없이 판매가 차감됐습니다/)).toBeInTheDocument();
+    fireEvent.click(cardBtn);
+
+    expect(
+      await screen.findByText(
+        /기록상 재고 없이 판매가 차감됐어요\. 입고를 등록하거나 로트 수정으로 수량을 맞추세요\./,
+      ),
+    ).toBeInTheDocument();
   });
 
   it("입고를 등록한다", async () => {
     const add = vi.spyOn(inventoryApi, "addLot").mockResolvedValue(lot);
     renderPage();
     fireEvent.click(await screen.findByRole("button", { name: /원두/ }));
-    await screen.findByText("28,000원");
+    await screen.findByText(/28,000원/);
+
+    fireEvent.click(screen.getByRole("button", { name: /입고 등록/ }));
 
     fireEvent.change(screen.getByLabelText(/입고 수량/), { target: { value: "1000" } });
     fireEvent.change(screen.getByLabelText(/입고일/), { target: { value: "2026-10-19" } });
     fireEvent.change(screen.getByLabelText(/구매 금액/), { target: { value: "5600" } });
-    fireEvent.click(screen.getByRole("button", { name: "입고 등록" }));
+    fireEvent.click(screen.getByRole("button", { name: "등록" }));
 
     await waitFor(() => expect(add).toHaveBeenCalledTimes(1));
     expect(add).toHaveBeenCalledWith("bean", {
@@ -119,7 +128,7 @@ describe("InventoryPage", () => {
     const dispose = vi.spyOn(inventoryApi, "disposeLot").mockResolvedValue();
     renderPage();
     fireEvent.click(await screen.findByRole("button", { name: /원두/ }));
-    const row = (await screen.findByText("28,000원")).closest("tr") as HTMLElement;
+    const row = (await screen.findByText(/28,000원/)).closest("li") as HTMLElement;
     fireEvent.click(within(row).getByRole("button", { name: "폐기" }));
 
     const input = screen.getByLabelText(/폐기 수량/);
@@ -130,6 +139,7 @@ describe("InventoryPage", () => {
     expect(submit).toBeDisabled();
 
     fireEvent.change(input, { target: { value: "500" } });
+    expect(submit).not.toBeDisabled();
     fireEvent.click(submit);
     await waitFor(() => expect(dispose).toHaveBeenCalledTimes(1));
     expect(dispose).toHaveBeenCalledWith("bean", { lot_id: "lot-1", quantity: 500, reason: null });
@@ -149,7 +159,7 @@ describe("InventoryPage", () => {
     expect(await screen.findByText("수량이 있으면 구매 금액을 입력하세요.")).toBeInTheDocument();
     expect(create).not.toHaveBeenCalled();
 
-    fireEvent.change(screen.getByLabelText("구매 금액 (원)"), { target: { value: "3000" } });
+    fireEvent.change(screen.getByLabelText(/구매 금액/), { target: { value: "3000" } });
     fireEvent.click(screen.getByRole("button", { name: "저장" }));
     await waitFor(() => expect(create).toHaveBeenCalledTimes(1));
     expect(create).toHaveBeenCalledWith(

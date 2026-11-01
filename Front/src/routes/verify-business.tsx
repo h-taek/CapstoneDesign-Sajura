@@ -1,112 +1,114 @@
-// M3.F9 — 사업자 검증 화면 (온보딩 진입 전 게이트, 02_implementation_design.md §3.3).
-// 사업자번호 + 사업자등록증 업로드 → POST /api/store/business/verify (multipart).
-import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useRef, useState } from "react";
-import { useForm } from "react-hook-form";
 import { useNavigate } from "react-router";
 import { authErrorMessage, fetchMe, verifyBusiness } from "../api/endpoints/auth";
 import { getStore } from "../api/endpoints/store";
-import { Button } from "../components/ui/button";
-import { FormField, Input } from "../components/ui/field";
-import { type VerifyBusinessValues, formatBusinessNo, verifyBusinessSchema } from "../schemas/auth";
+import { VERIFY_SKY, useSky } from "../components/sky";
+import { formatBusinessNo } from "../schemas/auth";
 import { useAuthStore } from "../stores/auth-store";
 import { landingPath } from "./guards";
 
 export default function VerifyBusinessPage() {
   const navigate = useNavigate();
+  useSky(VERIFY_SKY);
+
   const user = useAuthStore((s) => s.user);
   const setUser = useAuthStore((s) => s.setUser);
+
+  const [businessNo, setBusinessNo] = useState(
+    user?.business_no ? formatBusinessNo(user.business_no) : "",
+  );
   const [cert, setCert] = useState<File | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
-  // 반려 상태면 사유 표시 (GET /api/store).
+  const isRejected = user?.business_status === "REJECTED";
+
+  // 반려 상태면 사유 표시 (GET /api/store)
   const { data: store } = useQuery({
     queryKey: ["store"],
     queryFn: getStore,
-    enabled: user?.business_status === "REJECTED",
-  });
-
-  const {
-    register,
-    handleSubmit,
-    setValue,
-    formState: { errors },
-  } = useForm<VerifyBusinessValues>({
-    resolver: zodResolver(verifyBusinessSchema),
-    defaultValues: { business_no: "" },
-    mode: "onBlur",
+    enabled: isRejected,
   });
 
   const mutation = useMutation({
-    mutationFn: async (values: VerifyBusinessValues) => {
-      await verifyBusiness(values.business_no, cert);
+    mutationFn: async () => {
+      await verifyBusiness(businessNo, cert);
       const me = await fetchMe();
       setUser(me);
       return me;
     },
-    onSuccess: (me) => navigate(landingPath(me), { replace: true }),
+    onSuccess: (me) => {
+      navigate(landingPath(me), { replace: true });
+    },
     onError: async (error) => {
       setFormError(await authErrorMessage(error, "사업자 검증에 실패했습니다."));
     },
   });
 
-  const onSubmit = (values: VerifyBusinessValues) => {
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
     setFormError(null);
     if (!cert) {
       setFormError("사업자등록증 파일을 첨부하세요.");
       return;
     }
-    mutation.mutate(values);
+    mutation.mutate();
   };
 
+  const rejectReason =
+    store?.business_reject_reason ||
+    "등록증 이미지가 흐려 번호를 확인할 수 없어요. 다시 올려 주세요";
+
   return (
-    <main className="grid min-h-dvh place-items-center bg-subtle p-6">
-      <section className="w-full max-w-[560px] space-y-8 rounded-2xl bg-white p-10 shadow-sm">
-        <header className="space-y-2">
-          <h1 className="text-3xl font-semibold text-ink">매장 인증을 완료해주세요</h1>
-          <p className="text-base text-ink-2">
-            사업자등록번호와 등록증을 제출하면 검증 후 다음 단계로 진행합니다.
-          </p>
-        </header>
+    <>
+      <p className="fixed top-6 left-6 z-10 text-[1.75rem] leading-none font-extrabold tracking-tight text-[#b3a4ff] sm:top-8 sm:left-10">
+        Sajura
+      </p>
 
-        {user?.business_status === "REJECTED" && store?.business_reject_reason ? (
-          <output className="block rounded-xl bg-red-50 p-3 text-sm text-red-700">
-            반려됨: {store.business_reject_reason} — 확인 후 다시 제출해주세요.
-          </output>
-        ) : null}
+      <main className="min-h-dvh px-5 pt-[13vh] pb-10 text-center text-white">
+        <section className="mx-auto w-full max-w-[400px]">
+          <h1 className="text-[1.75rem] font-extrabold tracking-tight">매장 인증을 해 주세요</h1>
 
-        <form className="space-y-6" onSubmit={handleSubmit(onSubmit)} noValidate>
-          <FormField
-            label="사업자등록번호"
-            htmlFor="business_no"
-            error={errors.business_no?.message}
-            hint="123-45-67890"
-          >
-            <Input
+          {isRejected ? (
+            <p className="mt-2 text-base font-semibold text-[#ffd6d6]" role="alert">
+              반려됐어요. {rejectReason}
+            </p>
+          ) : formError ? (
+            <p className="mt-2 text-base font-semibold text-[#ffd6d6]" role="alert">
+              {formError}
+            </p>
+          ) : (
+            <p className="mt-2 text-base text-white/75">
+              사업자등록번호와 등록증을 올리면
+              <br />
+              확인 후 다음 단계로 넘어가요
+            </p>
+          )}
+
+          <form className="mt-8 space-y-3 text-left" onSubmit={handleSubmit} noValidate>
+            <input
               id="business_no"
               inputMode="numeric"
-              placeholder="사업자등록번호를 입력해 주세요."
-              className="h-[58px] rounded-xl border-line bg-subtle px-4 text-base"
-              {...register("business_no", {
-                onChange: (e) => setValue("business_no", formatBusinessNo(e.target.value)),
-              })}
+              aria-label="사업자등록번호"
+              placeholder="사업자등록번호 (숫자 10자리)"
+              value={businessNo}
+              onChange={(e) => setBusinessNo(formatBusinessNo(e.target.value))}
+              className="h-[52px] w-full rounded-xl border border-white/15 bg-[#0d0a26]/45 px-4 text-base text-white placeholder:text-white/70 backdrop-blur-md focus:border-[#b3a4ff] focus:ring-4 focus:ring-[#b3a4ff]/25 focus:outline-none"
             />
-          </FormField>
-
-          <FormField label="사업자등록증" htmlFor="cert" hint="이미지(jpg/png) 또는 PDF, 최대 10MB">
-            <div className="flex items-center gap-3">
-              <div className="flex h-[58px] flex-1 items-center rounded-xl border border-line bg-subtle px-4 text-base text-ink-3">
-                {cert ? cert.name : "사업자등록증(파일을 첨부해주세요)"}
+            <div className="flex items-center gap-2">
+              <div className="flex h-[52px] min-w-0 flex-1 items-center rounded-xl border border-white/15 bg-[#0d0a26]/45 px-4 text-base backdrop-blur-md">
+                <span className={`truncate ${cert ? "text-white" : "text-white/70"}`}>
+                  {cert ? cert.name : "사업자등록증 파일"}
+                </span>
               </div>
-              <Button
+              <button
                 type="button"
                 onClick={() => fileRef.current?.click()}
-                className="h-[58px] shrink-0 rounded-xl bg-ink px-6 text-base font-medium hover:bg-ink"
+                className="inline-flex h-[52px] shrink-0 items-center justify-center rounded-xl border border-white/15 bg-white/15 bg-clip-padding px-4 text-base font-semibold text-white backdrop-blur-md transition-colors hover:bg-white/25"
               >
                 파일 찾기
-              </Button>
+              </button>
               <input
                 id="cert"
                 ref={fileRef}
@@ -116,23 +118,17 @@ export default function VerifyBusinessPage() {
                 className="hidden"
               />
             </div>
-          </FormField>
-
-          {formError ? (
-            <p className="text-sm text-red-600" role="alert">
-              {formError}
-            </p>
-          ) : null}
-
-          <Button
-            type="submit"
-            disabled={mutation.isPending}
-            className="h-[68px] w-full rounded-full bg-brand text-xl font-semibold hover:bg-brand-strong"
-          >
-            {mutation.isPending ? "검증 중…" : "제출하기"}
-          </Button>
-        </form>
-      </section>
-    </main>
+            <p className="px-1 text-sm text-white/85">이미지(jpg·png) 또는 PDF, 최대 10MB</p>
+            <button
+              type="submit"
+              disabled={mutation.isPending}
+              className="mt-6 inline-flex h-[52px] w-full items-center justify-center rounded-xl bg-brand px-5 text-lg font-bold text-white transition-colors hover:bg-brand-strong disabled:opacity-60"
+            >
+              {mutation.isPending ? "검증 중…" : "제출하기"}
+            </button>
+          </form>
+        </section>
+      </main>
+    </>
   );
 }

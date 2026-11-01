@@ -102,6 +102,9 @@ export const GUARD_REJECTED_TITLE = "요청이 거부되었습니다";
 export const DEFAULT_EXTENSION_TIMEOUT_MS = 90_000;
 export const PING_TIMEOUT_MS = 3_000;
 
+// 점주가 쿠팡 작업 탭을 닫았을 때 확장이 돌려주는 오류 (Extension/src/background.ts)
+export const TAB_CLOSED_ERROR = "작업 탭이 없습니다";
+
 export interface ExtensionCallOptions {
   extensionId?: string;
   timeoutMs?: number;

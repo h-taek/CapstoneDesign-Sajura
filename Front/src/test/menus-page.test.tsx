@@ -1,4 +1,4 @@
-// 메뉴 관리 — 메뉴 칸과 레시피를 한 번에 저장, 메뉴 추가·삭제 (02_implementation_design.md §3.4).
+// 메뉴 관리 — 메뉴 칸과 레시피를 한 번에 저장, 메뉴 추가·삭제 (02_implementation_design.md §3.4, 04_fe.md §4.5).
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter } from "react-router";
@@ -71,7 +71,11 @@ describe("MenusPage", () => {
       .spyOn(menusApi, "upsertRecipe")
       .mockResolvedValue({} as menusApi.RecipeResponse);
     renderPage();
-    expect(await screen.findByText("15,900원")).toBeInTheDocument();
+    expect(await screen.findByText(/15,900/)).toBeInTheDocument();
+
+    // 카드를 눌러 편집 판을 연다
+    fireEvent.click(screen.getByText("마르게리타"));
+
     const priceInput = await screen.findByLabelText(/판매가/);
     await waitFor(() => expect(screen.getByDisplayValue("1")).toBeInTheDocument()); // 레시피 행
 
@@ -96,10 +100,10 @@ describe("MenusPage", () => {
     });
     const upsert = vi.spyOn(menusApi, "upsertRecipe");
     renderPage();
-    await screen.findByText("15,900원");
+    await screen.findByText(/15,900/);
 
     fireEvent.click(screen.getByRole("button", { name: /메뉴 추가/ }));
-    expect(screen.getByText("새 메뉴")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "새 메뉴" })).toBeInTheDocument();
     fireEvent.change(screen.getByLabelText(/메뉴명/), { target: { value: "제로콜라" } });
     fireEvent.change(screen.getByLabelText(/판매가/), { target: { value: "3000" } });
     fireEvent.click(screen.getByRole("button", { name: "저장" }));
@@ -113,6 +117,7 @@ describe("MenusPage", () => {
     vi.spyOn(window, "confirm").mockReturnValue(true);
     const del = vi.spyOn(menusApi, "deleteMenu").mockResolvedValue();
     renderPage();
+    fireEvent.click(await screen.findByText("마르게리타"));
     fireEvent.click(await screen.findByRole("button", { name: "메뉴 삭제" }));
     await waitFor(() => expect(del).toHaveBeenCalledWith("m-1"));
   });

@@ -1,19 +1,9 @@
-// M3.F4 — 온보딩 2스텝: POS 연동 (BE M3.B6 stub 200 응답 사용).
-// Figma "POS 연동"(node 5:413) 라디오 선택 패턴 + "사용자 계정 인증 완료"(node 5:400) 웰컴 문구 반영.
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { Navigate, useNavigate } from "react-router";
-import { Button } from "../../components/ui/button";
-import { FormField, Input } from "../../components/ui/field";
-import { cn } from "../../lib/utils";
-import { POS_TYPE_LABEL, type PosStepValues, posStepSchema } from "../../schemas/onboarding";
+import { type PosStepValues, posStepSchema } from "../../schemas/onboarding";
 import { useAuthStore } from "../../stores/auth-store";
 import { useOnboardingStore } from "../../stores/onboarding-store";
-
-const POS_TYPES = (Object.keys(POS_TYPE_LABEL) as PosStepValues["pos_type"][]).map((value) => ({
-  value,
-  label: POS_TYPE_LABEL[value],
-}));
 
 export default function PosStep() {
   const navigate = useNavigate();
@@ -22,21 +12,21 @@ export default function PosStep() {
   const draft = useOnboardingStore((s) => s.pos);
   const setPos = useOnboardingStore((s) => s.setPos);
 
-  // 1스텝 미완료 시 진입 차단.
-  if (!store) return <Navigate to="/onboarding/1" replace />;
-
   const {
     register,
     handleSubmit,
     watch,
-    formState: { errors, isSubmitting },
+    formState: { errors },
   } = useForm<PosStepValues>({
     resolver: zodResolver(posStepSchema),
     defaultValues: draft ?? { pos_type: "CSV_ONLY", api_key: "", store_code: "" },
     mode: "onBlur",
   });
+
+  if (!store) return <Navigate to="/onboarding/1" replace />;
+
   const posType = watch("pos_type");
-  const csvOnly = posType === "CSV_ONLY";
+  const isCsvOnly = posType === "CSV_ONLY";
 
   const onSubmit = (values: PosStepValues) => {
     setPos(values);
@@ -44,88 +34,135 @@ export default function PosStep() {
   };
 
   return (
-    <form className="space-y-6" onSubmit={handleSubmit(onSubmit)} noValidate>
-      <div className="space-y-1">
-        <h2 className="text-2xl font-semibold text-ink">
-          {userName ? `${userName}님, ` : ""}Sajura에 오신 걸 환영합니다
-        </h2>
-        <p className="text-base text-ink-2">POS 데이터를 연동해주세요.</p>
-      </div>
-
-      <div className="space-y-2">
-        <span className="text-sm font-medium text-ink-2">POS 종류</span>
-        <div className="grid grid-cols-2 gap-3" role="radiogroup" aria-label="POS 종류">
-          {POS_TYPES.map((t) => {
-            const active = posType === t.value;
-            return (
-              <label
-                key={t.value}
-                className={cn(
-                  "flex cursor-pointer items-center gap-3 rounded-xl border px-4 py-3 text-sm font-medium transition-colors",
-                  active
-                    ? "border-brand bg-brand-soft text-ink"
-                    : "border-line bg-white text-ink-2 hover:bg-subtle",
-                )}
-              >
-                <input
-                  type="radio"
-                  value={t.value}
-                  className="size-4 accent-brand"
-                  {...register("pos_type")}
-                />
-                {t.label}
-              </label>
-            );
-          })}
+    <div>
+      <h1 className="mt-9 text-[1.75rem] font-extrabold tracking-tight">POS를 연결해 주세요</h1>
+      <p className="mt-2 text-base text-white/75">
+        {userName ? `${userName}님, ` : ""}환영해요. 매출을 가져올 방법을 골라 주세요
+      </p>
+      <form className="mt-8 space-y-3 text-left" onSubmit={handleSubmit(onSubmit)} noValidate>
+        <div className="grid grid-cols-2 gap-2.5" role="radiogroup" aria-label="POS 종류">
+          <label
+            className={`flex cursor-pointer items-center gap-2.5 rounded-xl border border-white/15 px-4 py-3.5 text-[0.95rem] font-semibold backdrop-blur-md transition-colors ${
+              posType === "TOSSPLACE"
+                ? "border-[#b3a4ff] bg-[#b3a4ff]/20 text-white"
+                : "bg-[#0d0a26]/45 text-white/90 hover:bg-white/10"
+            }`}
+          >
+            <input
+              type="radio"
+              value="TOSSPLACE"
+              className="size-4 accent-[#b3a4ff]"
+              {...register("pos_type")}
+            />
+            토스플레이스
+          </label>
+          <label
+            className={`flex cursor-pointer items-center gap-2.5 rounded-xl border border-white/15 px-4 py-3.5 text-[0.95rem] font-semibold backdrop-blur-md transition-colors ${
+              posType === "KIWOOM"
+                ? "border-[#b3a4ff] bg-[#b3a4ff]/20 text-white"
+                : "bg-[#0d0a26]/45 text-white/90 hover:bg-white/10"
+            }`}
+          >
+            <input
+              type="radio"
+              value="KIWOOM"
+              className="size-4 accent-[#b3a4ff]"
+              {...register("pos_type")}
+            />
+            키움페이
+          </label>
+          <label
+            className={`flex cursor-pointer items-center gap-2.5 rounded-xl border border-white/15 px-4 py-3.5 text-[0.95rem] font-semibold backdrop-blur-md transition-colors ${
+              posType === "OKPOS"
+                ? "border-[#b3a4ff] bg-[#b3a4ff]/20 text-white"
+                : "bg-[#0d0a26]/45 text-white/90 hover:bg-white/10"
+            }`}
+          >
+            <input
+              type="radio"
+              value="OKPOS"
+              className="size-4 accent-[#b3a4ff]"
+              {...register("pos_type")}
+            />
+            OKPOS
+          </label>
+          <label
+            className={`flex cursor-pointer items-center gap-2.5 rounded-xl border border-white/15 px-4 py-3.5 text-[0.95rem] font-semibold backdrop-blur-md transition-colors ${
+              posType === "CSV_ONLY"
+                ? "border-[#b3a4ff] bg-[#b3a4ff]/20 text-white"
+                : "bg-[#0d0a26]/45 text-white/90 hover:bg-white/10"
+            }`}
+          >
+            <input
+              type="radio"
+              value="CSV_ONLY"
+              className="size-4 accent-[#b3a4ff]"
+              {...register("pos_type")}
+            />
+            CSV 업로드만 사용
+          </label>
         </div>
-        {errors.pos_type ? (
-          <p className="text-sm text-red-600" role="alert">
-            {errors.pos_type.message}
+
+        {isCsvOnly ? (
+          <p className="px-1 text-sm text-white/85">
+            CSV 업로드는 API 키 없이 진행해요. 매출 파일은 나중에 올리면 돼요.
           </p>
-        ) : null}
-      </div>
+        ) : (
+          <div className="space-y-3">
+            <div className="flex flex-col gap-1.5">
+              <label htmlFor="api_key" className="text-sm font-semibold text-white/90">
+                POS API 키
+              </label>
+              <input
+                id="api_key"
+                type="text"
+                autoComplete="off"
+                className="h-12 w-full rounded-xl border border-white/15 bg-[#0d0a26]/45 px-4 text-base text-white placeholder:text-white/70 backdrop-blur-md [color-scheme:dark] focus:border-[#b3a4ff] focus:ring-4 focus:ring-[#b3a4ff]/25 focus:outline-none"
+                {...register("api_key")}
+              />
+              {errors.api_key?.message && (
+                <p className="px-1 text-sm font-semibold text-[#ffd6d6]" role="alert">
+                  {errors.api_key.message}
+                </p>
+              )}
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <label htmlFor="store_code" className="text-sm font-semibold text-white/90">
+                매장 코드
+              </label>
+              <input
+                id="store_code"
+                type="text"
+                autoComplete="off"
+                className="h-12 w-full rounded-xl border border-white/15 bg-[#0d0a26]/45 px-4 text-base text-white placeholder:text-white/70 backdrop-blur-md [color-scheme:dark] focus:border-[#b3a4ff] focus:ring-4 focus:ring-[#b3a4ff]/25 focus:outline-none"
+                {...register("store_code")}
+              />
+              {errors.store_code?.message && (
+                <p className="px-1 text-sm font-semibold text-[#ffd6d6]" role="alert">
+                  {errors.store_code.message}
+                </p>
+              )}
+            </div>
+          </div>
+        )}
 
-      <FormField
-        label="POS API 키"
-        htmlFor="api_key"
-        error={errors.api_key?.message}
-        hint={csvOnly ? "CSV 업로드 모드는 자격증명 없이 진행합니다." : undefined}
-      >
-        <Input
-          id="api_key"
-          autoComplete="off"
-          disabled={csvOnly}
-          className="h-11 rounded-xl border-line bg-subtle"
-          {...register("api_key")}
-        />
-      </FormField>
-      <FormField label="매장 코드" htmlFor="store_code" error={errors.store_code?.message}>
-        <Input
-          id="store_code"
-          autoComplete="off"
-          disabled={csvOnly}
-          className="h-11 rounded-xl border-line bg-subtle"
-          {...register("store_code")}
-        />
-      </FormField>
-
-      <div className="flex justify-between pt-2">
-        <Button
-          type="button"
-          onClick={() => navigate("/onboarding/1")}
-          className="h-11 rounded-full border border-line bg-white px-6 text-ink-2 hover:bg-subtle"
-        >
-          이전
-        </Button>
-        <Button
-          type="submit"
-          disabled={isSubmitting}
-          data-testid="pos-next"
-          className="h-11 rounded-full bg-brand px-8 font-semibold hover:bg-brand-strong"
-        >
-          다음
-        </Button>
-      </div>
-    </form>
+        <div className="flex gap-2 pt-4">
+          <button
+            type="button"
+            onClick={() => navigate("/onboarding/1")}
+            className="inline-flex h-[52px] w-28 shrink-0 items-center justify-center rounded-xl bg-white/15 px-5 text-lg font-semibold text-white backdrop-blur-md transition-colors hover:bg-white/25"
+          >
+            이전
+          </button>
+          <button
+            type="submit"
+            data-testid="pos-next"
+            className="inline-flex h-[52px] flex-1 items-center justify-center rounded-xl bg-brand px-5 text-lg font-bold text-white transition-colors hover:bg-brand-strong"
+          >
+            다음
+          </button>
+        </div>
+      </form>
+    </div>
   );
 }
