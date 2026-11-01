@@ -8,6 +8,13 @@
 
 ## 1. 개발 이력
 
+### 화면 실데이터 확인 + 쿠팡 담기 누를 수 있음 표시 — a67be11..c56db56 (2026-11-01)
+
+- dev(mysql·redis·be·agent)·Claude in Chrome으로 웹 1440px·앱 390px 화면을 목업과 대조. 매출 예측의 평소 대비·요인 비율을 %로(홈과 같은 값), 메뉴 검색 아이콘 z-10. `Front/.env.local`에 개발용 확장 ID(git 제외)
+- 쿠팡 담기 한 번(양파 1,000g)에서 에이전트가 '주소 열기 → 고른 옵션 글자 클릭 → 이름 없는 찜 버튼 클릭'을 되풀이해 중지. 원인은 요소 목록에 누를 수 있는지가 없던 것(research 16 §6.14). 시험 발주 12건 삭제
+- 확장이 HTML·CSS(링크·버튼·입력칸·label·누르는 role·tabindex·커서 pointer)로 `clickable`을 붙이고, 에이전트 화면 표시는 '누름', 지시문은 '누름' 요소만. 가드 — 누름 아닌 요소 클릭 거부, 이름 없는 버튼 제외(안쪽 글자 이름 인정), 같은 동작 묶음 두 번이면 `finish_item`. spec 02·03·04
+- 검증: 확장 Vitest 70, agent pytest 31·ruff, BE 담기·발주 pytest 30(새 코드로 다시 빌드한 be 컨테이너), FE Vitest 190·typecheck. 실제 담기 재확인은 안 함(쿠팡 차단으로 접근 중지)
+
 ### Front v2 이식 라운드 A·B — e77bb6a..6f41ef2 (2026-11-01)
 
 - plan `10_v2_front.md`대로 agy 서브 열한 개(라운드 A 셋·B 여덟, 각자 worktree)로 병렬 구현, 묶음마다 diff 리뷰 뒤 합침. 라운드 B 중간에 agy 토큰 소진으로 여덟 모두 빈 턴 — 사용자가 모델을 Gemini 3.8 Flash로 바꾼 뒤 재개
