@@ -12,5 +12,7 @@
   "action": { "default_title": "사주라 — 쿠팡 담기 진행" },
   "host_permissions": ["*://*.coupang.com/*"],
   "permissions": ["storage", "activeTab", "scripting"],
-  "externally_connectable": { "matches": ["http://localhost:5173/*"] }
+  "externally_connectable": {
+    "matches": ["http://localhost:5173/*", "https://sajura.htaeky.duckdns.org/*"]
+  }
 }
