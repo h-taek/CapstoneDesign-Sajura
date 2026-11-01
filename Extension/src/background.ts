@@ -22,6 +22,7 @@ const LOAD_TIMEOUT_MS = 20_000;
 const NAV_GRACE_MS = 1500; // 클릭 뒤 이 안에 화면이 바뀌기 시작하면 바뀐 것으로 본다
 const SETTLE_MS = 800; // 다 뜬 뒤 화면 그리기를 기다린다
 const REPLY_TIMEOUT_MS = 15_000; // 탭 명령 하나의 답 — 클릭 뒤 담기 완료 기다리기(4초)보다 길게
+const BLOCK_RELOADS = 2; // 차단 화면이면 새로고침해 다시 읽는 횟수 — 새로고침하면 풀리곤 했다(research 16 §6.15)
 
 const sleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
 
@@ -141,8 +142,17 @@ async function run(tabId: number, a: Action, q: NonWowQueue): Promise<ElementsRe
   const before = (await tabState(tabId))?.url;
   switch (a.tool) {
     case "read_elements": {
+      type Page = ElementsResult & { wowCards: WowCard[]; blocked: boolean };
       await waitComplete(tabId);
-      const page = await send<ElementsResult & { wowCards: WowCard[] }>(tabId, { cmd: "read" });
+      let page = await send<Page>(tabId, { cmd: "read" });
+      for (let i = 0; page.blocked && i < BLOCK_RELOADS; i++) {
+        await editLog((l) => l.entries.push({ k: "action", text: "막힌 화면이라 새로고침하는 중이에요", at: Date.now() }));
+        await chrome.tabs.reload(tabId);
+        await sleep(300);
+        await waitComplete(tabId);
+        await sleep(SETTLE_MS);
+        page = await send<Page>(tabId, { cmd: "read" });
+      }
       q.add(page.wowCards);
       return { kind: "elements", url: page.url, elements: page.elements };
     }

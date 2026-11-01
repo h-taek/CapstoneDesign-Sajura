@@ -162,3 +162,27 @@ it("누르기 직전에 커서 옮기기를 부른다", async () => {
   });
   expect(order).toEqual(["point", "click"]);
 });
+
+it("화면 읽기 — 쿠팡 차단 화면이면 blocked", () => {
+  const blocked = new DOMParser().parseFromString(
+    "<body><h1>요청하신 페이지의 사용권한이 없습니다.</h1><a href='/'>홈으로</a></body>",
+    "text/html",
+  );
+  expect(readPage(blocked, PRODUCT_URL).blocked).toBe(true);
+  expect(readPage(load("product"), PRODUCT_URL).blocked).toBe(false);
+});
+
+it("javascript: 링크는 직접 누르지 않고 페이지 쪽에 대신 눌러 달라고 한다", async () => {
+  const doc = new DOMParser().parseFromString(
+    "<body><a href='javascript:history.back()'>이전 화면으로</a></body>",
+    "text/html",
+  );
+  const ref = refOf(doc, PRODUCT_URL, (t) => t === "이전 화면으로");
+  const a = doc.querySelector("a") as HTMLAnchorElement;
+  const direct = vi.spyOn(a, "click");
+  const asked: string[] = [];
+  doc.addEventListener("sajura-click", () => asked.push(a.dataset.sajuraClick ?? ""));
+  expect(await click(doc, PRODUCT_URL, ref)).toEqual({ ok: true, message: null, cart_added: null });
+  expect(direct).not.toHaveBeenCalled();
+  expect(asked).toEqual(["1"]);
+});

@@ -1,6 +1,7 @@
 // 작업 탭의 알림·확인 창 (research/backend/16 §6.12 — 알림 창이 뜨면 탭 스크립트가 멈춘다)
 
 import { installDialogGuard } from "../src/dialogGuard";
+import { installMainClick, requestMainClick } from "../src/mainClick";
 import { claimWorkTab, click, readPage, takeDialogs } from "../src/page";
 import { PRODUCT_URL, SEARCH_URL, load } from "./helpers";
 
@@ -75,4 +76,17 @@ it("카드 안 글자를 골라도 카드 링크를 누른다", async () => {
   });
   await click(doc, SEARCH_URL, discount);
   expect(clicked).toEqual([a]);
+});
+
+it("페이지 쪽 대신 누르기 — 표시한 요소를 누르고 표시를 지운다", () => {
+  installMainClick(window);
+  const a = document.createElement("a");
+  a.setAttribute("href", "javascript:void(0)");
+  document.body.append(a);
+  const clicked = vi.fn((e: Event) => e.preventDefault());
+  a.addEventListener("click", clicked);
+  requestMainClick(document, a);
+  expect(clicked).toHaveBeenCalledTimes(1);
+  expect(a.dataset.sajuraClick).toBeUndefined();
+  a.remove();
 });

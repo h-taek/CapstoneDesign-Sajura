@@ -4,7 +4,7 @@
 // 작업 탭: 기록이 X로 닫히지 않았으면 패널, 담기 중이면 테두리 빛·커서.
 // 다른 탭: 확장 버튼으로 연 동안만 패널(기록 보기). 빛·커서는 그리지 않는다.
 
-import { type Log, emptyLog } from "./log";
+import { type Log, emptyLog, viewLog } from "./log";
 import { type PanelUi, createUi } from "./panel";
 
 /** content script → background 메시지 (확장 안쪽만). */
@@ -33,8 +33,9 @@ function link(): PanelLink {
   let shownHere = false; // 다른 탭에서 확장 버튼으로 열었다
 
   const sync = () => {
+    const view = viewLog(log, Date.now());
     const open = work ? !log.closed : shownHere;
-    const glow = work && log.running;
+    const glow = work && view.running;
     if (!open && !glow && !ui) return;
     ui ??= createUi(document, () => {
       if (work) void send({ panel: "close" });
@@ -45,8 +46,12 @@ function link(): PanelLink {
     });
     ui.setOpen(open);
     ui.setGlow(glow);
-    if (open) ui.render(log);
+    if (open) ui.render(view);
   };
+  // 기록이 바뀌지 않아도 기다린 시간이 지나면 끊김으로 다시 그린다
+  setInterval(() => {
+    if (log.running) sync();
+  }, 5_000);
 
   chrome.storage.onChanged.addListener((changes, area) => {
     if (area !== "session" || !("log" in changes)) return;

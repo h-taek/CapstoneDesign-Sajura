@@ -4,6 +4,7 @@
 import { DIALOGS, WORK_FLAG } from "./dialogGuard";
 import { type Snapshot, buildElements, pageProduct, parseNonWowPrice } from "./elements";
 import type { ClickTarget } from "./log";
+import { requestMainClick } from "./mainClick";
 import type { CartAdded, ElementsResult } from "./messages";
 import { PRODUCT_URL_PREFIX } from "./messages";
 import { type FetchResult, isBlockedPage } from "./nonwow";
@@ -48,7 +49,10 @@ export function takeDialogs(doc: Document = document): string[] {
 
 const hasDialogs = (doc: Document) => Boolean(doc.documentElement.dataset[DIALOGS]);
 
-export function readPage(doc: Document, url: string): ElementsResult & { wowCards: Snapshot["wowCards"] } {
+export function readPage(
+  doc: Document,
+  url: string,
+): ElementsResult & { wowCards: Snapshot["wowCards"]; blocked: boolean } {
   snapshot = buildElements(doc, url);
   // 앞선 동작 뒤에 뜬 알림 창은 목록 끝에 '알림' 요소로 붙인다. 번호는 누를 수 없는 이름
   const alerts = takeDialogs(doc).map((text, i) => ({ ref: `알림${i + 1}`, role: "alert", text, depth: 0 }));
@@ -57,6 +61,7 @@ export function readPage(doc: Document, url: string): ElementsResult & { wowCard
     url: url.slice(0, 2000),
     elements: [...snapshot.elements, ...alerts],
     wowCards: snapshot.wowCards,
+    blocked: isBlockedPage(pageText(doc)), // 쿠팡 차단 화면 — background가 새로고침한다
   };
 }
 
@@ -113,7 +118,9 @@ export async function click(
   await point?.(el);
   const waitCart = url.startsWith(PRODUCT_URL_PREFIX) && isCartButton(el);
   const before = waitCart ? pageText(doc) : "";
-  (el as HTMLElement).click();
+  // `javascript:` 링크는 여기서 누르면 확장 CSP가 막는다 — 페이지 쪽에서 누른다
+  if (/^\s*javascript:/i.test(el.getAttribute("href") ?? "")) requestMainClick(doc, el as HTMLElement);
+  else (el as HTMLElement).click();
   if (!waitCart) return { ok: true, message: null, cart_added: null };
   for (let t = 0; t < CART_WAIT_MS; t += POLL_MS) {
     await sleep(POLL_MS);

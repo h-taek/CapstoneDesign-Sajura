@@ -1,6 +1,6 @@
 // 진행 패널 기록 — 동작 문장·말풍선 묶기 (04_fe.md §12.8)
 
-import { type Entry, type Log, clock, emptyLog, layout, sentence } from "../src/log";
+import { type Entry, IDLE_MS, type Log, clock, emptyLog, layout, sentence, viewLog } from "../src/log";
 
 describe("동작 문장", () => {
   it("동작마다 정해진 문장", () => {
@@ -122,5 +122,35 @@ describe("말풍선 묶기", () => {
 
   it("기록이 없고 담기 중이 아니면 비어 있다", () => {
     expect(layout(emptyLog())).toEqual([]);
+  });
+});
+
+describe("연결 끊김 (사주라 화면이 끝 알림 없이 멈춤)", () => {
+  const base = (over: Partial<Log>): Log => ({
+    ...emptyLog(),
+    startedAt: 1000,
+    running: true,
+    entries: [{ k: "action", text: "화면을 읽는 중이에요", at: 2000 }],
+    ...over,
+  });
+
+  it("동작 없이 기다린 지 IDLE_MS가 지나면 끝난 기록으로 보고 알림을 붙인다", () => {
+    const v = viewLog(base({}), 2000 + IDLE_MS);
+    expect(v.running).toBe(false);
+    expect(v.entries.at(-1)).toEqual({
+      k: "notice",
+      title: "사주라 화면과 연결이 끊겼어요",
+      detail: "담기 결과는 사주라 화면에서 확인하세요",
+      at: 2000 + IDLE_MS,
+    });
+  });
+
+  it("아직 기다리는 중이거나 동작 실행 중이거나 담기 중이 아니면 그대로", () => {
+    const waiting = base({});
+    expect(viewLog(waiting, 2000 + IDLE_MS - 1)).toBe(waiting);
+    const busy = base({ busy: true });
+    expect(viewLog(busy, 2000 + IDLE_MS * 2)).toBe(busy);
+    const done = base({ running: false });
+    expect(viewLog(done, 2000 + IDLE_MS * 2)).toBe(done);
   });
 });

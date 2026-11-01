@@ -26,6 +26,25 @@ export interface Log {
 
 export const emptyLog = (): Log => ({ startedAt: null, running: false, busy: false, closed: false, entries: [] });
 
+/** 동작 없이 사주라 화면의 다음 지시를 이만큼 기다렸으면 연결이 끊긴 것으로 본다 — AI 한 걸음은 길어야 십몇 초 */
+export const IDLE_MS = 60_000;
+
+/**
+ * 패널에 그릴 기록. 담는 중인데 동작 없이 IDLE_MS 넘게 기다렸으면 끝난 기록으로 보고 끊김 알림을 붙인다.
+ * 사주라 화면이 끝 알림 없이 멈춰도 기다림 점·테두리 빛이 남지 않게 한다. 저장한 기록은 고치지 않는다.
+ */
+export function viewLog(log: Log, now: number): Log {
+  const last = log.entries.at(-1)?.at ?? log.startedAt;
+  if (!log.running || log.busy || last === null || now - last < IDLE_MS) return log;
+  const notice: Entry = {
+    k: "notice",
+    title: "사주라 화면과 연결이 끊겼어요",
+    detail: "담기 결과는 사주라 화면에서 확인하세요",
+    at: last + IDLE_MS,
+  };
+  return { ...log, running: false, entries: [...log.entries, notice] };
+}
+
 const clip = (text: string): string => {
   const chars = [...text.replace(/\s+/g, " ").trim()];
   return chars.length > LABEL_MAX ? `${chars.slice(0, LABEL_MAX).join("")}…` : chars.join("");

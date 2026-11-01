@@ -64,7 +64,7 @@ export type Request =
   | { type: "run"; action: Action | AgentCall }
   | { type: "take_non_wow_prices"; wait: boolean }
   | { type: "notice"; title: string; detail: string | null }
-  | { type: "progress"; progress: Progress };
+  | ({ type: "progress" } & Progress); // 필드를 바로 붙인다 (04_fe.md §12.3)
 
 export interface ErrorResponse {
   ok: false;
@@ -271,10 +271,7 @@ export function sendExtensionProgress(
   progressPayload: Progress,
   options?: ExtensionCallOptions,
 ): Promise<AckResponse> {
-  return sendExtensionMessage<AckResponse>(
-    { type: "progress", progress: progressPayload },
-    options,
-  );
+  return sendExtensionMessage<AckResponse>({ type: "progress", ...progressPayload }, options);
 }
 
 export const reportProgress = sendExtensionProgress;

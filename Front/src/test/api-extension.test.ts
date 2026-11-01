@@ -191,5 +191,12 @@ describe("extension 다리 (src/lib/extension.ts)", () => {
       { type: "take_non_wow_prices", wait: true },
       expect.any(Function),
     );
+    // progress는 필드를 바로 붙인다 — 확장의 parseRequest가 이 모양만 받는다 (04_fe.md §12.3)
+    expect(sendMessage).toHaveBeenNthCalledWith(
+      6,
+      TEST_EXT_ID,
+      { type: "progress", kind: "result", status: "ADDED", reason: null },
+      expect.any(Function),
+    );
   });
 });
