@@ -1,7 +1,7 @@
 // 설정 허브(SettingsHubPage) — 04_fe.md §4.9, mockup v2 12_settings.html.
 // 웹: 왼쪽 2열 목록 + 오른쪽 3열 판(FollowPanel). 기본은 POS 연동.
 // 앱: 목록만 보이다가 항목을 누르면 해당 판이 전체 화면(FollowPanel).
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Bell,
   ChefHat,
@@ -26,6 +26,7 @@ import { PosPanel } from "../../components/settings/pos-panel";
 import { StorePanel } from "../../components/settings/store-panel";
 import { UploadPanel } from "../../components/settings/upload-panel";
 import { MainShell } from "../../components/shell/main-shell";
+import { signOut } from "../../features/auth/sign-out";
 import { useAuthStore } from "../../stores/auth-store";
 
 export type SettingsPanelKey =
@@ -43,7 +44,7 @@ export default function SettingsHubPage() {
   const splat = (params["*"] ?? "").replace(/^\/+|\/+$/g, "") as SettingsPanelKey | "";
 
   const user = useAuthStore((s) => s.user);
-  const clearAuth = useAuthStore((s) => s.clear);
+  const queryClient = useQueryClient();
   const userName = user?.name ?? "사장";
   const userInitial = userName.slice(0, 1);
   const userEmail = user?.email ?? "owner@sajura.kr";
@@ -68,8 +69,8 @@ export default function SettingsHubPage() {
     navigate("/settings");
   };
 
-  const handleLogout = () => {
-    clearAuth();
+  const handleLogout = async () => {
+    await signOut(queryClient);
     navigate("/login", { replace: true });
   };
 

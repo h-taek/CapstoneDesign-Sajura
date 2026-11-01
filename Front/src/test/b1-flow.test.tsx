@@ -1,5 +1,6 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { HTTPError } from "ky";
 import { MemoryRouter, Route, Routes } from "react-router";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import * as authApi from "../api/endpoints/auth";
@@ -131,6 +132,75 @@ describe("B1 시작·인증·온보딩 화면 흐름", () => {
 
       fireEvent.click(screen.getByRole("button", { name: "제출하기" }));
       expect(screen.getByText("사업자등록증 파일을 첨부하세요.")).toBeInTheDocument();
+    });
+
+    const unverifiedUser = {
+      user_id: "u1",
+      email: "owner@test.kr",
+      name: "사장님",
+      auth_provider: "LOCAL" as const,
+      role: "OWNER" as const,
+      store_name: "테스트매장",
+      business_no: null,
+      business_status: "UNVERIFIED" as const,
+      onboarding_completed: false,
+      created_at: "2026-01-01T00:00:00",
+    };
+
+    function renderVerifyWithLogin() {
+      return renderWithClient(
+        <Routes>
+          <Route path="/verify-business" element={<VerifyBusinessPage />} />
+          <Route path="/login" element={<p>로그인 화면</p>} />
+        </Routes>,
+        "/verify-business",
+      );
+    }
+
+    it("'다른 계정으로 로그인'은 서버 로그아웃 후 /login으로 보낸다", async () => {
+      useAuthStore.setState({ accessToken: "tok", user: unverifiedUser });
+      const logoutSpy = vi.spyOn(authApi, "logout").mockResolvedValue();
+
+      renderVerifyWithLogin();
+      expect(screen.getByText("owner@test.kr")).toBeInTheDocument();
+      fireEvent.click(screen.getByRole("button", { name: "다른 계정으로 로그인" }));
+
+      await waitFor(() => expect(screen.getByText("로그인 화면")).toBeInTheDocument());
+      expect(logoutSpy).toHaveBeenCalledTimes(1);
+      expect(useAuthStore.getState().accessToken).toBeNull();
+      expect(useAuthStore.getState().user).toBeNull();
+    });
+
+    it("이미 등록된 사업자번호(409)면 안내 문구와 '그 계정으로 로그인하기'를 보여 준다", async () => {
+      useAuthStore.setState({ accessToken: "tok", user: unverifiedUser });
+      const response = new Response(
+        JSON.stringify({
+          error: "AUTH_BUSINESS_NO_DUPLICATE",
+          message: "이미 등록된 사업자등록번호입니다.",
+        }),
+        { status: 409, headers: { "Content-Type": "application/json" } },
+      );
+      vi.spyOn(authApi, "verifyBusiness").mockRejectedValue(
+        new HTTPError(response, new Request("http://localhost/api/store/verify"), {} as never),
+      );
+      const logoutSpy = vi.spyOn(authApi, "logout").mockResolvedValue();
+
+      renderVerifyWithLogin();
+      fireEvent.change(screen.getByLabelText("사업자등록번호"), {
+        target: { value: "1234567890" },
+      });
+      const file = new File(["x"], "cert.png", { type: "image/png" });
+      fireEvent.change(document.getElementById("cert") as HTMLInputElement, {
+        target: { files: [file] },
+      });
+      fireEvent.click(screen.getByRole("button", { name: "제출하기" }));
+
+      expect(await screen.findByText(/이미 가입된 사업자등록번호예요/)).toBeInTheDocument();
+      fireEvent.click(screen.getByRole("button", { name: "그 계정으로 로그인하기" }));
+
+      await waitFor(() => expect(screen.getByText("로그인 화면")).toBeInTheDocument());
+      expect(logoutSpy).toHaveBeenCalledTimes(1);
+      expect(useAuthStore.getState().user).toBeNull();
     });
   });
 
