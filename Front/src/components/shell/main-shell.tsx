@@ -109,7 +109,8 @@ export function MainShell({ active, title, back, children, className }: MainShel
   const toggleNotif = () => setNotifOpen((prev) => !prev);
 
   return (
-    <div className="min-h-screen">
+    // flow-root — 본문 위 여백이 틀 밖으로 빠져 최소 높이(화면) 위에 더해지지 않게
+    <div className="flow-root min-h-screen">
       {/* 웹 중앙 알약 메뉴 — 스크롤해도 화면 상단 가운데에 고정 */}
       <nav
         aria-label="주 메뉴"

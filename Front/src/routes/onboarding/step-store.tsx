@@ -1,4 +1,5 @@
 import { zodResolver } from "@hookform/resolvers/zod";
+import { ChevronDown } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { useNavigate } from "react-router";
 import { type StoreStepValues, formatPhone, storeStepSchema } from "../../schemas/onboarding";
@@ -63,17 +64,20 @@ export default function StoreStep() {
           <label htmlFor="business_type" className="text-sm font-semibold text-white/90">
             업종
           </label>
-          <select
-            id="business_type"
-            className="h-12 w-full rounded-xl border border-white/15 bg-[#0d0a26]/45 px-4 text-base text-white placeholder:text-white/70 backdrop-blur-md [color-scheme:dark] focus:border-[#b3a4ff] focus:ring-4 focus:ring-[#b3a4ff]/25 focus:outline-none pr-8"
-            {...register("business_type")}
-          >
-            {BUSINESS_TYPES.map((b) => (
-              <option key={b} value={b} className="bg-[#110b36] text-white">
-                {b}
-              </option>
-            ))}
-          </select>
+          <span className="relative block">
+            <select
+              id="business_type"
+              className="h-12 w-full rounded-xl border border-white/15 bg-[#0d0a26]/45 px-4 text-base text-white placeholder:text-white/70 backdrop-blur-md [color-scheme:dark] focus:border-[#b3a4ff] focus:ring-4 focus:ring-[#b3a4ff]/25 focus:outline-none appearance-none pr-10"
+              {...register("business_type")}
+            >
+              {BUSINESS_TYPES.map((b) => (
+                <option key={b} value={b} className="bg-[#110b36] text-white">
+                  {b}
+                </option>
+              ))}
+            </select>
+            <ChevronDown className="pointer-events-none absolute top-1/2 right-4 size-4 -translate-y-1/2 text-white/80" />
+          </span>
           {errors.business_type?.message && (
             <p className="px-1 text-sm font-semibold text-[#ffd6d6]" role="alert">
               {errors.business_type.message}
@@ -86,41 +90,47 @@ export default function StoreStep() {
             <label htmlFor="store_size" className="text-sm font-semibold text-white/90">
               매장 규모
             </label>
-            <select
-              id="store_size"
-              className="h-12 w-full rounded-xl border border-white/15 bg-[#0d0a26]/45 px-4 text-base text-white placeholder:text-white/70 backdrop-blur-md [color-scheme:dark] focus:border-[#b3a4ff] focus:ring-4 focus:ring-[#b3a4ff]/25 focus:outline-none pr-8"
-              {...register("store_size")}
-            >
-              <option value="SMALL" className="bg-[#110b36] text-white">
-                소형 (~10석)
-              </option>
-              <option value="MEDIUM" className="bg-[#110b36] text-white">
-                중형 (11~30석)
-              </option>
-              <option value="LARGE" className="bg-[#110b36] text-white">
-                대형 (31석~)
-              </option>
-            </select>
+            <span className="relative block">
+              <select
+                id="store_size"
+                className="h-12 w-full rounded-xl border border-white/15 bg-[#0d0a26]/45 px-4 text-base text-white placeholder:text-white/70 backdrop-blur-md [color-scheme:dark] focus:border-[#b3a4ff] focus:ring-4 focus:ring-[#b3a4ff]/25 focus:outline-none appearance-none pr-10"
+                {...register("store_size")}
+              >
+                <option value="SMALL" className="bg-[#110b36] text-white">
+                  소형 (~10석)
+                </option>
+                <option value="MEDIUM" className="bg-[#110b36] text-white">
+                  중형 (11~30석)
+                </option>
+                <option value="LARGE" className="bg-[#110b36] text-white">
+                  대형 (31석~)
+                </option>
+              </select>
+              <ChevronDown className="pointer-events-none absolute top-1/2 right-4 size-4 -translate-y-1/2 text-white/80" />
+            </span>
           </div>
           <div className="flex flex-col gap-1.5">
             <label htmlFor="operation_type" className="text-sm font-semibold text-white/90">
               운영 형태
             </label>
-            <select
-              id="operation_type"
-              className="h-12 w-full rounded-xl border border-white/15 bg-[#0d0a26]/45 px-4 text-base text-white placeholder:text-white/70 backdrop-blur-md [color-scheme:dark] focus:border-[#b3a4ff] focus:ring-4 focus:ring-[#b3a4ff]/25 focus:outline-none pr-8"
-              {...register("operation_type")}
-            >
-              <option value="HALL" className="bg-[#110b36] text-white">
-                홀
-              </option>
-              <option value="DELIVERY" className="bg-[#110b36] text-white">
-                배달
-              </option>
-              <option value="BOTH" className="bg-[#110b36] text-white">
-                홀+배달
-              </option>
-            </select>
+            <span className="relative block">
+              <select
+                id="operation_type"
+                className="h-12 w-full rounded-xl border border-white/15 bg-[#0d0a26]/45 px-4 text-base text-white placeholder:text-white/70 backdrop-blur-md [color-scheme:dark] focus:border-[#b3a4ff] focus:ring-4 focus:ring-[#b3a4ff]/25 focus:outline-none appearance-none pr-10"
+                {...register("operation_type")}
+              >
+                <option value="HALL" className="bg-[#110b36] text-white">
+                  홀
+                </option>
+                <option value="DELIVERY" className="bg-[#110b36] text-white">
+                  배달
+                </option>
+                <option value="BOTH" className="bg-[#110b36] text-white">
+                  홀+배달
+                </option>
+              </select>
+              <ChevronDown className="pointer-events-none absolute top-1/2 right-4 size-4 -translate-y-1/2 text-white/80" />
+            </span>
           </div>
         </div>
 

@@ -1,3 +1,4 @@
+import { ChevronDown } from "lucide-react";
 // 알약 입력 + 라벨 + 에러 메시지 묶음 — RHF 친화 (04_fe.md §8, mockup v2).
 import {
   type InputHTMLAttributes,
@@ -28,9 +29,12 @@ Input.displayName = "Input";
 
 export const Select = forwardRef<HTMLSelectElement, SelectHTMLAttributes<HTMLSelectElement>>(
   ({ className, children, ...rest }, ref) => (
-    <select ref={ref} className={cn(baseField, "pr-8", className)} {...rest}>
-      {children}
-    </select>
+    <span className="relative block">
+      <select ref={ref} className={cn(baseField, "appearance-none pr-10", className)} {...rest}>
+        {children}
+      </select>
+      <ChevronDown className="pointer-events-none absolute top-1/2 right-4 size-4 -translate-y-1/2 text-ink-2" />
+    </span>
   ),
 );
 Select.displayName = "Select";

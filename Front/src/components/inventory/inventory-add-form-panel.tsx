@@ -81,7 +81,13 @@ export function InventoryAddFormPanel({ onClose, onSuccess }: InventoryAddFormPa
   });
 
   return (
-    <FollowPanel title="새 재료" onClose={onClose} aria-label="새 재료" className="lg:col-span-2">
+    <FollowPanel
+      title="새 재료"
+      onClose={onClose}
+      aria-label="새 재료"
+      className="lg:col-span-2"
+      fit
+    >
       <form
         onSubmit={handleSubmit((v) => createMutation.mutate(v))}
         className="mt-4 grid grid-cols-2 gap-3"

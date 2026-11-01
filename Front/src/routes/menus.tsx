@@ -373,6 +373,7 @@ function MenuEditorPanel({
       onClose={onClose}
       aria-label={isNew ? "새 메뉴" : `${panelTitle} 편집`}
       className="lg:col-span-2 lg:mt-9"
+      fit
     >
       <form
         onSubmit={(e) => {

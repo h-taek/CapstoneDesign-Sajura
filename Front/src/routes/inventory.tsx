@@ -1,6 +1,6 @@
 // 재고관리 화면 v2 — MainShell + 4:3 카드 격자 + 팔로우 패널 (04_fe.md §4.6, 09_inventory.html).
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ChevronLeft, ChevronRight, Plus, Search } from "lucide-react";
+import { ChevronDown, ChevronLeft, ChevronRight, Plus, Search } from "lucide-react";
 import { useCallback, useMemo, useState } from "react";
 import { type InventoryItem, deleteInventoryItem, listInventory } from "../api/endpoints/inventory";
 import { InventoryAddFormPanel } from "../components/inventory/inventory-add-form-panel";
@@ -155,18 +155,21 @@ export default function InventoryPage() {
               </button>
             </div>
 
-            <select
-              aria-label="재고 정렬"
-              value={sortOption}
-              onChange={(e) => handleSortChange(e.target.value as InventorySortOption)}
-              className="h-11 rounded-full border border-white/50 bg-white/50 pr-3 pl-5 text-sm font-semibold text-ink focus:outline-none"
-            >
-              {INVENTORY_SORT_OPTIONS.map((opt) => (
-                <option key={opt} value={opt}>
-                  {SORT_OPTION_LABELS[opt]}
-                </option>
-              ))}
-            </select>
+            <span className="relative">
+              <select
+                aria-label="재고 정렬"
+                value={sortOption}
+                onChange={(e) => handleSortChange(e.target.value as InventorySortOption)}
+                className="h-11 appearance-none rounded-full border border-white/50 bg-white/50 pr-10 pl-5 text-sm font-semibold text-ink focus:outline-none"
+              >
+                {INVENTORY_SORT_OPTIONS.map((opt) => (
+                  <option key={opt} value={opt}>
+                    {SORT_OPTION_LABELS[opt]}
+                  </option>
+                ))}
+              </select>
+              <ChevronDown className="pointer-events-none absolute top-1/2 right-4 size-4 -translate-y-1/2 text-ink-2" />
+            </span>
           </div>
         </div>
 

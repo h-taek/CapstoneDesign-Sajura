@@ -138,6 +138,7 @@ export function InventoryDetailPanel({
       onClose={onClose}
       aria-label={`${item.name} 상세`}
       className="lg:col-span-2"
+      fit
     >
       {/* 상단 요약 DL */}
       <dl className="mt-3 grid grid-cols-3 gap-2 rounded-xl glass-card p-3">
@@ -682,17 +683,20 @@ function EditLotForm({
       </label>
       <label className="flex flex-col gap-1 text-xs font-semibold text-ink-2">
         수정 사유
-        <select
-          value={reason}
-          onChange={(e) => setReason(e.target.value as AdjustmentReason)}
-          className="h-10 w-full rounded-lg border border-white/80 bg-[rgb(46_32_120/0.065)] px-2.5 text-[0.95rem] font-normal text-ink focus:border-brand focus:outline-none"
-        >
-          {(Object.keys(REASON_LABEL) as AdjustmentReason[]).map((r) => (
-            <option key={r} value={r}>
-              {REASON_LABEL[r]}
-            </option>
-          ))}
-        </select>
+        <span className="relative block">
+          <select
+            value={reason}
+            onChange={(e) => setReason(e.target.value as AdjustmentReason)}
+            className="h-10 w-full appearance-none rounded-lg border border-white/80 bg-[rgb(46_32_120/0.065)] pr-8 pl-2.5 text-[0.95rem] font-normal text-ink focus:border-brand focus:outline-none"
+          >
+            {(Object.keys(REASON_LABEL) as AdjustmentReason[]).map((r) => (
+              <option key={r} value={r}>
+                {REASON_LABEL[r]}
+              </option>
+            ))}
+          </select>
+          <ChevronDown className="pointer-events-none absolute top-1/2 right-2.5 size-4 -translate-y-1/2 text-ink-2" />
+        </span>
       </label>
       <label className="flex flex-col gap-1 text-xs font-semibold text-ink-2">
         메모 (선택)

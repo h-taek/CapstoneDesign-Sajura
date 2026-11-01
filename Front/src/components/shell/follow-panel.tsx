@@ -50,7 +50,38 @@ export interface FollowPanelProps {
   backLabel?: string;
   className?: string;
   panelClassName?: string;
+  /** 판이 격자보다 길면 판 아래 끝을 격자 아래 요소(쪽 이동)까지 포함해 화면 끝에 맞춘다 (웹) */
+  fit?: boolean;
   "aria-label"?: string;
+}
+
+/**
+ * fit 판의 높이(px) — 판이 격자보다 길면 내용 양과 상관없이 화면 끝까지. 격자가 판보다 길면 null(CSS 그대로).
+ * 격자 칸은 판 높이만큼 늘어나므로 칸 안 내용이 차지한 높이로 잰다.
+ */
+function fitHeight(aside: HTMLElement, panel: HTMLElement): number | null {
+  const wrap = aside.parentElement;
+  if (!wrap) return null;
+  const grid = Math.max(
+    0,
+    ...[...wrap.children]
+      .filter((c) => c.tagName !== "ASIDE")
+      .map((c) => {
+        const top = c.getBoundingClientRect().top;
+        return Math.max(0, ...[...c.children].map((k) => k.getBoundingClientRect().bottom - top));
+      }),
+  );
+  if (Math.min(panel.scrollHeight, Number.parseFloat(getComputedStyle(panel).maxHeight)) <= grid) {
+    return null;
+  }
+  // 격자 아래 공간은 본문(main) 안 요소와 본문 아래 여백만 — 화면 틀의 최소 높이(min-h-screen)는 넣지 않는다
+  const main = aside.closest("main") ?? wrap;
+  const below =
+    main.getBoundingClientRect().bottom -
+    wrap.getBoundingClientRect().bottom +
+    Number.parseFloat(getComputedStyle(main).marginBottom);
+  const fit = window.innerHeight - (aside.getBoundingClientRect().top + window.scrollY) - below;
+  return Math.max(grid, fit);
 }
 
 export function FollowPanel({
@@ -61,10 +92,12 @@ export function FollowPanel({
   backLabel = "목록으로",
   className,
   panelClassName,
+  fit = false,
   "aria-label": ariaLabel,
 }: FollowPanelProps) {
   const asideRef = useRef<HTMLElement | null>(null);
   const panelRef = useRef<HTMLDivElement | null>(null);
+  const contentRef = useRef<HTMLDivElement | null>(null);
   const dropRef = useRef(0);
   const [drop, setDrop] = useState(0);
 
@@ -127,13 +160,38 @@ export function FollowPanel({
     };
   }, []);
 
+  useEffect(() => {
+    if (!fit) return;
+    const aside = asideRef.current;
+    const panel = panelRef.current;
+    if (!aside || !panel) return;
+    const apply = () => {
+      panel.style.height = "";
+      if (window.innerWidth < 1024) return;
+      const height = fitHeight(aside, panel);
+      if (height !== null) panel.style.height = `${height}px`;
+    };
+    apply();
+    // 판 내용(로트 불러오기 등)이나 격자(카드 수)가 바뀌면 다시 맞춘다
+    const ro = new ResizeObserver(apply);
+    if (contentRef.current) ro.observe(contentRef.current);
+    for (const c of aside.parentElement?.children ?? []) if (c !== aside) ro.observe(c);
+    window.addEventListener("resize", apply);
+    return () => {
+      ro.disconnect();
+      window.removeEventListener("resize", apply);
+      panel.style.height = "";
+    };
+  }, [fit]);
+
   return (
     <aside
       ref={asideRef}
       data-follow
       aria-label={ariaLabel ?? (typeof title === "string" ? title : undefined)}
       className={cn(
-        "fixed inset-0 z-50 overflow-y-auto lg:relative lg:inset-auto lg:z-auto lg:col-span-2 lg:flex lg:h-0 lg:min-h-full lg:flex-col lg:overflow-visible",
+        "fixed inset-0 z-50 overflow-y-auto lg:relative lg:inset-auto lg:z-auto lg:col-span-2 lg:flex lg:flex-col lg:overflow-visible",
+        !fit && "lg:h-0 lg:min-h-full",
         className,
       )}
     >
@@ -145,36 +203,38 @@ export function FollowPanel({
           panelClassName,
         )}
       >
-        {title !== undefined || onClose !== undefined ? (
-          <div className="mb-4 flex items-center gap-2">
-            {onClose ? (
-              <button
-                type="button"
-                aria-label={backLabel}
-                onClick={onClose}
-                className="flex size-10 items-center justify-center rounded-full text-ink-2 hover:bg-white/60 lg:hidden"
-              >
-                <ChevronLeft className="size-6" />
-              </button>
-            ) : null}
-            {title !== undefined ? (
-              <h2 className="min-w-0 flex-1 truncate text-xl font-bold text-ink">{title}</h2>
-            ) : (
-              <span className="flex-1" />
-            )}
-            {onClose ? (
-              <button
-                type="button"
-                aria-label={closeLabel}
-                onClick={onClose}
-                className="hidden size-10 items-center justify-center rounded-full text-ink-2 hover:bg-white/60 lg:flex"
-              >
-                <X className="size-5" />
-              </button>
-            ) : null}
-          </div>
-        ) : null}
-        {children}
+        <div ref={contentRef}>
+          {title !== undefined || onClose !== undefined ? (
+            <div className="mb-4 flex items-center gap-2">
+              {onClose ? (
+                <button
+                  type="button"
+                  aria-label={backLabel}
+                  onClick={onClose}
+                  className="flex size-10 items-center justify-center rounded-full text-ink-2 hover:bg-white/60 lg:hidden"
+                >
+                  <ChevronLeft className="size-6" />
+                </button>
+              ) : null}
+              {title !== undefined ? (
+                <h2 className="min-w-0 flex-1 truncate text-xl font-bold text-ink">{title}</h2>
+              ) : (
+                <span className="flex-1" />
+              )}
+              {onClose ? (
+                <button
+                  type="button"
+                  aria-label={closeLabel}
+                  onClick={onClose}
+                  className="hidden size-10 items-center justify-center rounded-full text-ink-2 hover:bg-white/60 lg:flex"
+                >
+                  <X className="size-5" />
+                </button>
+              ) : null}
+            </div>
+          ) : null}
+          {children}
+        </div>
       </div>
     </aside>
   );

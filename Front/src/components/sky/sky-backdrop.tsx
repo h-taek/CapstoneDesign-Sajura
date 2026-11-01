@@ -52,8 +52,8 @@ export function dayBackdrop(calm = false): string {
       </g>
       <g transform="translate(162 0)">
         <path class="d-fill" d="M484 190V88h170v102z"/>
-        <path d="M478 92h182l-10 24H488z" fill="#6b4eff" opacity=".9"/>
-        <path d="M498 92l-6 24M528 92l-4 24M558 92l-2 24M588 92v24M618 92l2 24M648 92l4 24" stroke="#fff" stroke-opacity=".35" stroke-width="10"/>
+        <path d="M482 92h174l4 24H478z" fill="#6b4eff" opacity=".9"/>
+        <path d="M489 92h10l-3.5 24h-10zM519 92h10l-2 24h-10zM549 92h10l-.5 24h-10zM579 92h10l.5 24h-10zM609 92h10l2 24h-10zM639 92h10l3.5 24h-10z" fill="#fff" fill-opacity=".35"/>
         <rect class="d-win" x="508" y="128" width="62" height="40" rx="4"/>
         <rect class="d-win" x="586" y="128" width="40" height="62" rx="3"/>
       </g>
@@ -93,12 +93,11 @@ export function SkyBackdrop() {
         </g>
         <g transform="translate(162 0)">
           <path className="d-fill" d="M484 190V88h170v102z" />
-          <path d="M478 92h182l-10 24H488z" fill="#6b4eff" opacity=".9" />
+          <path d="M482 92h174l4 24H478z" fill="#6b4eff" opacity=".9" />
           <path
-            d="M498 92l-6 24M528 92l-4 24M558 92l-2 24M588 92v24M618 92l2 24M648 92l4 24"
-            stroke="#fff"
-            strokeOpacity=".35"
-            strokeWidth="10"
+            d="M489 92h10l-3.5 24h-10zM519 92h10l-2 24h-10zM549 92h10l-.5 24h-10zM579 92h10l.5 24h-10zM609 92h10l2 24h-10zM639 92h10l3.5 24h-10z"
+            fill="#fff"
+            fillOpacity=".35"
           />
           <rect className="d-win" x="508" y="128" width="62" height="40" rx="4" />
           <rect className="d-win" x="586" y="128" width="40" height="62" rx="3" />
