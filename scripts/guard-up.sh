@@ -6,7 +6,9 @@ set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 export OLLAMA_MODELS="$ROOT/Back/ollama"
-GUARD_LOG="$ROOT/.guard-ollama.log"
+LOG_DIR="$ROOT/docker/log"
+GUARD_LOG="$LOG_DIR/guard-ollama.log"
+mkdir -p "$LOG_DIR"
 GUARD_PID="$ROOT/.guard-ollama.pid"
 PORT=11434
 # 분류기 모델과 비교 후보 (HANDOFF — 시연 준비 때 비교해 확정)
@@ -21,7 +23,7 @@ for arg in "$@"; do
     -h|--help)
       cat <<EOF
 사용: $0 [옵션]
-  (옵션 없음) Back/ollama/를 모델 폴더로 Ollama 서버 기동 (백그라운드, 로그: .guard-ollama.log)
+  (옵션 없음) Back/ollama/를 모델 폴더로 Ollama 서버 기동 (백그라운드, 로그: docker/log/guard-ollama.log)
   --pull      서버 기동 후 분류기 모델 받기: ${MODELS[*]}
   --down      서버 종료
   --status    서버 상태와 받은 모델 목록

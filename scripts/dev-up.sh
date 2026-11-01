@@ -6,7 +6,9 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
 
-FE_LOG="$ROOT/.dev-fe.log"
+LOG_DIR="$ROOT/docker/log"
+FE_LOG="$LOG_DIR/dev-fe.log"
+mkdir -p "$LOG_DIR"
 FE_PID="$ROOT/.dev-fe.pid"
 FE_PORT="${FE_PORT:-5173}"
 BE_PORT="${BE_PORT:-8000}"
@@ -132,7 +134,7 @@ if [[ "$WITH_FE" == 1 ]]; then
     log "Front/node_modules 없음 → pnpm install"
     (cd Front && pnpm install)
   fi
-  log "FE dev 서버 시작 (백그라운드, 로그: .dev-fe.log)"
+  log "FE dev 서버 시작 (백그라운드, 로그: docker/log/dev-fe.log)"
   (
     cd Front
     nohup env VITE_API_BASE_URL="$API_BASE_URL" pnpm dev --port "$FE_PORT" \
