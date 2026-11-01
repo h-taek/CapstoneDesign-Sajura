@@ -1137,8 +1137,29 @@ addEventListener("wheel", (e) => {
   if (!used && inside) { scrollBy(0, e.deltaY); used = true; }
   if (used) e.preventDefault();
 }, { passive: false });
+// 판이 격자보다 길면(aside[data-fit]) 판 아래 끝을 화면 끝에 맞춘다 — 격자 아래 요소(쪽 이동)까지 한 화면에 들어오게. 격자가 더 길면 CSS 그대로
+function fitPanels() {
+  for (const p of followPanels()) {
+    const aside = p.parentElement;
+    if (!aside.hasAttribute("data-fit")) continue;
+    p.style.maxHeight = "";
+    if (innerWidth < 1024) continue;
+    // 격자 칸은 판 높이만큼 늘어나므로 칸 안 내용이 차지한 높이로 잰다
+    const grid = Math.max(0, ...[...aside.parentElement.children].filter((c) => c.tagName !== "ASIDE").map((c) => {
+      const top = c.getBoundingClientRect().top;
+      return Math.max(0, ...[...c.children].map((k) => k.getBoundingClientRect().bottom - top));
+    }));
+    if (Math.min(p.scrollHeight, parseFloat(getComputedStyle(p).maxHeight)) <= grid) continue;
+    const wrapBottom = aside.parentElement.getBoundingClientRect().bottom + scrollY;
+    const below = document.documentElement.scrollHeight - wrapBottom;
+    const fit = innerHeight - (aside.getBoundingClientRect().top + scrollY) - below;
+    p.style.maxHeight = `${Math.max(grid, fit)}px`;
+  }
+}
+addEventListener("load", fitPanels);
+addEventListener("resize", fitPanels);
 // 판을 바꾸거나(상태 전환) 페이지가 끝에서 떨어지면 내려온 판을 제자리로
-addEventListener("click", () => requestAnimationFrame(() => document.querySelectorAll("aside[data-follow] > *").forEach((p) => dropPanel(p, 0))));
+addEventListener("click", () => requestAnimationFrame(() => { document.querySelectorAll("aside[data-follow] > *").forEach((p) => dropPanel(p, 0)); fitPanels(); }));
 addEventListener("scroll", () => {
   if (scrollY + innerHeight < document.documentElement.scrollHeight - 1) document.querySelectorAll("aside[data-follow] > [data-drop]").forEach((p) => dropPanel(p, 0));
 }, { passive: true });
