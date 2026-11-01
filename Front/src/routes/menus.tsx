@@ -93,7 +93,7 @@ export default function MenusPage() {
         <div className="mb-3 flex flex-wrap items-center gap-3">
           <label className="relative block w-full lg:w-96">
             <span className="sr-only">메뉴 검색</span>
-            <Search className="pointer-events-none absolute top-1/2 left-3.5 size-5 -translate-y-1/2 text-ink-2" />
+            <Search className="pointer-events-none absolute top-1/2 z-10 left-3.5 size-5 -translate-y-1/2 text-ink-2" />
             <input
               type="search"
               placeholder="메뉴 검색"

@@ -310,10 +310,10 @@ describe("ForecastPage 화면 렌더링 및 인터랙션", () => {
           low_confidence_reason: null,
           explanation: {
             baseline: "136만원",
-            deviation_vs_baseline: -21,
+            deviation_vs_baseline: -0.21,
             top_factors: [
-              { feature: "day_tue", label: "화요일 효과", pct: -14 },
-              { feature: "recent_avg", label: "최근 같은 요일 평균", pct: -6 },
+              { feature: "day_tue", label: "화요일 효과", pct: -0.14 },
+              { feature: "recent_avg", label: "최근 같은 요일 평균", pct: -0.06 },
             ],
             sentence: "10월 20일(화)은 평소보다 약 21% 낮을 것으로 예상됩니다.",
           },
@@ -332,8 +332,8 @@ describe("ForecastPage 화면 렌더링 및 인터랙션", () => {
           low_confidence_reason: null,
           explanation: {
             baseline: "136만원",
-            deviation_vs_baseline: -16,
-            top_factors: [{ feature: "day_wed", label: "수요일 효과", pct: -9 }],
+            deviation_vs_baseline: -0.16,
+            top_factors: [{ feature: "day_wed", label: "수요일 효과", pct: -0.09 }],
             sentence: "10월 21일(수)은 평소보다 약 16% 낮을 것으로 예상됩니다.",
           },
           menu_forecast: [
@@ -351,8 +351,8 @@ describe("ForecastPage 화면 렌더링 및 인터랙션", () => {
           low_confidence_reason: "LONG_HORIZON",
           explanation: {
             baseline: "136만원",
-            deviation_vs_baseline: -11,
-            top_factors: [{ feature: "day_thu", label: "목요일 효과", pct: -7 }],
+            deviation_vs_baseline: -0.11,
+            top_factors: [{ feature: "day_thu", label: "목요일 효과", pct: -0.07 }],
             sentence: "10월 22일(목)은 평소보다 약 11% 낮을 것으로 예상됩니다.",
           },
           menu_forecast: [
@@ -398,6 +398,10 @@ describe("ForecastPage 화면 렌더링 및 인터랙션", () => {
 
     // 신뢰도 낮음 뱃지 (모레 항목)
     expect(screen.getByText("신뢰도 낮음")).toBeInTheDocument();
+
+    // 편차·요인은 비율(−0.21·−0.14)을 %로 보인다
+    expect(screen.getByText(/평소보다 21% 낮음/)).toBeInTheDocument();
+    expect(screen.getByText(/화요일 효과 -14%/)).toBeInTheDocument();
 
     // 첫 날 메뉴별 예상 판매 목록
     expect(screen.getByText(/10월 20일 \(화\) 메뉴별 예상 판매/)).toBeInTheDocument();

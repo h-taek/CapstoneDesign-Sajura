@@ -313,18 +313,21 @@ export default function ForecastPage() {
                   const isSelected = selectedDayIndex === idx;
                   const dayName = horizonDayLabel(p.horizon_days, idx);
                   const dateLabel = formatTargetDate(p.target_date);
+                  // deviation_vs_baseline·pct는 비율이다(0.12 = 12%) — 02_implementation_design.md §3.7
                   const deviation = p.explanation?.deviation_vs_baseline;
+                  const deviationPct = deviation != null ? Math.round(Math.abs(deviation) * 100) : 0;
                   const deviationText =
-                    deviation !== undefined && deviation !== null
-                      ? deviation > 0
-                        ? `평소보다 ${Math.round(Math.abs(deviation))}% 높음`
-                        : deviation < 0
-                          ? `평소보다 ${Math.round(Math.abs(deviation))}% 낮음`
-                          : "평소 수준"
-                      : null;
+                    deviation == null
+                      ? null
+                      : deviationPct === 0
+                        ? "평소 수준"
+                        : `평소보다 ${deviationPct}% ${deviation > 0 ? "높음" : "낮음"}`;
 
                   const factorsText = (p.explanation?.top_factors ?? [])
-                    .map((f) => `${f.label} ${f.pct > 0 ? `+${f.pct}` : f.pct}%`)
+                    .map((f) => {
+                      const pct = Math.round(f.pct * 100);
+                      return `${f.label} ${pct > 0 ? `+${pct}` : pct}%`;
+                    })
                     .join(" · ");
 
                   return (
