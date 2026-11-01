@@ -14,12 +14,12 @@ const PAGES = {
   inventory: { file: "08_inventory.html", route: "/inventory", name: "재고관리" },
   orders: { file: "09_orders.html", route: "/orders", name: "발주추천" },
   menus: { file: "10_menus.html", route: "/menus", name: "메뉴 관리" },
-  upload: { file: "11_sales-upload.html", route: "/sales/upload", name: "매출 CSV 업로드" },
-  settings: { file: "12_settings.html", route: "/settings", name: "설정(앱: 더보기)" },
-  pos: { file: "13_settings-pos.html", route: "/settings/pos", name: "POS 연동 설정" },
-  notifications: { file: "14_settings-notifications.html", route: "/settings/notifications", name: "알림 설정" },
-  account: { file: "15_settings-account.html", route: "/settings/account", name: "계정 정보" },
-  appinfo: { file: "16_settings-app-info.html", route: "/settings/app-info", name: "앱 정보" },
+  settings: { file: "11_settings.html", route: "/settings", name: "설정(앱: 더보기)" },
+  pos: { file: "12_settings-pos.html", route: "/settings/pos", name: "POS 연동 설정" },
+  notifications: { file: "13_settings-notifications.html", route: "/settings/notifications", name: "알림 설정" },
+  account: { file: "14_settings-account.html", route: "/settings/account", name: "계정 정보" },
+  appinfo: { file: "15_settings-app-info.html", route: "/settings/app-info", name: "앱 정보" },
+  upload: { file: "16_sales-upload.html", route: "/sales/upload", name: "매출 CSV 업로드" },
   admin: { file: "17_admin-verifications.html", route: "/admin/verifications", name: "관리자 심사" },
 };
 
