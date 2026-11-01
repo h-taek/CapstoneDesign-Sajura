@@ -8,6 +8,13 @@
 
 ## 1. 개발 이력
 
+### FE OpenAPI 타입 재생성 + Front v2 이식 plan — 39bff57 (2026-11-01)
+
+- `Front/openapi.json`·`types.gen.ts`가 10/31 BE에 멈춰 있었음 — `automate/start·step·finish`·`price-trends` 빠짐, 없어진 `orders/approve`·발주 `status`가 남음. 02 §3과 BE는 일치
+- 재생성 후 깨진 곳만 막음 — 발주 화면 approve 호출·상태 배지 제거(v2 이식 B6에서 쿠팡 담기로 다시 만듦), 재고 픽스처에 `coupang_product`·`unit_price`
+- `docs/plan/10_v2_front.md` — 화면 단위로 디자인·새 API·로직을 함께 옮김. 라운드 A(하늘·라우팅 / 메인 셸 / API 층) → B(화면 여덟), 파일 소유·검증 기준
+- 검증: typecheck 통과, Vitest 60 통과, 고친 파일 biome 통과. 전체 lint는 이전부터 `tsconfig.json`·`vitest.config.ts` 포맷 실패
+
 ### 확장 진행 패널 — 팝업을 쿠팡 화면 위 채팅 패널로 확정·구현 — 0c140c2..576eda3 (2026-11-01)
 
 - spec 04 §12.8 '팝업'(도구 막대 기본 팝업)이 사용자 의도와 달라 쿠팡 작업 탭 위에 그리는 떠 있는 패널로 고쳐 씀. 기본 팝업은 다른 곳을 누르면 닫혀 자동 표시·X 닫기와 맞지 않음
