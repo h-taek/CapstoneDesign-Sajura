@@ -8,6 +8,7 @@ def test_cron_jobs_run_at_kst_times() -> None:
     jobs = {c.name: (c.hour, c.minute) for c in WorkerSettings.cron_jobs}
     assert jobs == {
         "cron:clear_coupang_store_prices": (0, 0),
+        "cron:sync_pos_sales": (1, 0),
         "cron:check_expiry": (1, 30),
         "cron:purge_withdrawn_accounts": (3, 0),
     }

@@ -15,6 +15,7 @@ from app.api.deps import CurrentUserDep, SessionDep, require_business_access
 from app.core import crypto, errors
 from app.models.pos_connection import PosConnection, PosStatus
 from app.schemas.types import UtcDatetime
+from app.services.pos_sync_service import PosSyncService
 from app.services.store_service import StoreService
 
 router = APIRouter(
@@ -138,6 +139,11 @@ async def sync_pos(session: SessionDep, current: CurrentUserDep) -> PosSyncRespo
     pos = await session.scalar(select(PosConnection).where(PosConnection.store_id == store.store_id))
     if pos is None:
         raise errors.DomainError(status_code=404, error_code="NOT_FOUND", message="POS 연동 정보가 없습니다.")
+    if pos.pos_type == "TOSSPLACE":
+        # 토스플레이스: store_code = 매장 ID(MerchantId), 인증은 사주라 앱 키 (pos_sync_service)
+        result = await PosSyncService(session).sync(pos)
+        return PosSyncResponse(synced_at=result.synced_at, records_synced=result.records_synced)
+    # 키움페이·OKPOS 어댑터 전까지 stub — 동기화 시각만 기록
     pos.last_synced_at = datetime.now(UTC).replace(tzinfo=None)
     await session.commit()
     return PosSyncResponse(synced_at=pos.last_synced_at, records_synced=0)
