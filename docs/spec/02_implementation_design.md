@@ -27,7 +27,7 @@
 | 재고 관리 (초기 등록, FIFO 자동 차감, 수동 수정, 폐기) | O | O |
 | 소비기한 관리 (D-3/D-1 알림) | O | O |
 | CSV 업로드 (주점 POS 데이터) | O | O |
-| POS API 연동 (토스플레이스·키움페이·OKPOS — 판매 데이터 자동 수집, 연동 관리 API, 실패 시 CSV 모드) | — | O |
+| POS API 연동 (토스플레이스·키움페이·OKPOS — 판매 데이터 자동 수집, 연동 관리 API, 실패 시 연동 상태 `ERROR`) | — | O |
 | n8n 배치 파이프라인 (수동 트리거) | O | — |
 | n8n 배치 파이프라인 (02:00 자동 스케줄) | — | O |
 | 수요예측 (배치 결과 조회, 신뢰도 배지, 예측 근거 기본) | O | O |
@@ -219,14 +219,11 @@ sequenceDiagram
                 사주라UI->>사주라서버: POST /api/sales/upload
                 사주라서버->>DB: pos_connections.status=CSV_MODE 저장 + 판매 데이터 적재
             else POS API 연동
-                사용자->>사주라UI: POS 종류·자격증명 입력
+                사용자->>사주라UI: POS 종류·연동 정보 입력 (토스플레이스는 가맹점 ID)
                 사주라UI->>사주라서버: POST /api/store/pos
-                사주라서버->>DB: POS 정보 저장
-                alt POS 연동 성공
-                    사주라서버-->>사주라UI: 연동 성공 (status: CONNECTED)
-                else POS 연동 실패
-                    사주라서버-->>사주라UI: 연동 실패 → CSV 모드로 전환 (status: CSV_MODE)
-                end
+                사주라서버->>DB: POS 정보 저장 (status: CONNECTED)
+                사주라서버-->>사주라UI: 201
+                note over 사주라서버,DB: (비동기, 토스플레이스) ARQ 첫 동기화 — 전체 이력 적재, 실패 시 status: ERROR (01_basic_design.md §3.4.3)
             end
             Note over 사주라UI: CSV·POS API 양쪽 모두 수요예측·자동발주 활성화
 
@@ -893,11 +890,13 @@ Authorization: Bearer <access_token>
 // Request
 {
   "pos_type": "TOSSPLACE",
-  "api_key": "string",   // 1~150자. 암호화 저장 (03_be.md §10.1)
-  "store_code": "12345"
+  "api_key": "string",   // 1~150자. 암호화 저장 (03_be.md §10.1). TOSSPLACE는 생략(빈 값으로 저장)
+  "store_code": "12345"  // TOSSPLACE는 토스 가맹점 ID
 }
 // Response 201: GET /api/store/pos 와 동일 구조
 ```
+
+> TOSSPLACE면 응답 후 ARQ 작업으로 첫 동기화를 시작한다 (`01_basic_design.md` §3.4.3).
 
 #### PATCH /api/store/pos
 
@@ -908,6 +907,8 @@ Authorization: Bearer <access_token>
 }
 // Response 200: GET /api/store/pos 와 동일 구조
 ```
+
+> `pos_type`이나 `store_code`가 바뀌면 `last_synced_at`을 비우고, TOSSPLACE면 ARQ 작업으로 전체 이력을 다시 받는다.
 
 #### DELETE /api/store/pos
 
@@ -922,8 +923,10 @@ Authorization: Bearer <access_token>
 // Response 200
 {
   "synced_at": "2026-05-06T02:00:00Z",
-  "records_synced": 142
+  "records_synced": 142   // 새로 저장한 판매 수
 }
+// 404 NOT_FOUND: 연동 정보 없음
+// 503 POS_SYNC_FAILED: POS사 조회 실패 (message에 사유)
 ```
 
 #### GET /api/store/pos/status
@@ -1496,7 +1499,8 @@ Authorization: Bearer <access_token>
     "3행: 메뉴명 없음",
     "17행: 금액 형식 오류",
     "매장 메뉴와 매핑 실패: 페페로니피자 (12행), 로제파스타 (7행)",
-    "이미 저장된 영수증번호와 중복: 3건"
+    "이미 저장된 영수증번호와 중복: 3건",
+    "POS 연동 판매가 있는 날: 40건"
   ],
   "anomaly_count": 0,
   "auto_created_menus": 0,
@@ -1511,7 +1515,7 @@ Authorization: Bearer <access_token>
 
 > 저장된 판매는 `01_basic_design.md` §3.3.3 기준으로 재고를 차감한다.
 
-> 그룹화 정책: `매장 메뉴와 매핑 실패`·`같은 파일 안에서 영수증번호 중복`·`이미 저장된 영수증번호와 중복`은 행 단위가 아닌 메뉴·ID·총건수 그룹으로 반환한다. adapter 변환 실패(메뉴명 없음/형식 오류 등)는 `{행번호}행: {사유}` 형식.
+> 그룹화 정책: `매장 메뉴와 매핑 실패`·`같은 파일 안에서 영수증번호 중복`·`이미 저장된 영수증번호와 중복`·`POS 연동 판매가 있는 날`(`01_basic_design.md` §3.4.7)은 행 단위가 아닌 메뉴·ID·총건수 그룹으로 반환한다. adapter 변환 실패(메뉴명 없음/형식 오류 등)는 `{행번호}행: {사유}` 형식.
 
 ### 3.7 수요예측 / 추천발주 / 발주 API
 

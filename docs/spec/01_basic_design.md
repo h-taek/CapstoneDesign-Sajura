@@ -603,15 +603,28 @@ Frontend → GET /api/auth/login/{provider}
 #### 3.4.3 POS API 연동
 
 - 지원 POS사는 토스플레이스·키움페이·OKPOS 세 곳으로 한정한다. 저장 코드값은 `TOSSPLACE` / `KIWOOM` / `OKPOS`다.
-- 회사별 인증 방식·자격증명 필드·수집 방식(웹훅/주기 조회)은 조사 후 확정한다 (`docs/research/backend/13_pos_adapter.md`).
+- 토스플레이스는 사주라 앱 인증 정보(서버 설정 `TOSSPLACE_ACCESS_KEY`·`TOSSPLACE_ACCESS_SECRET`)로 조회한다. 점주에게서는 토스 가맹점 ID만 받아 `store_code`에 저장하고, API 자격증명은 받지 않는다.
+- 키움페이·OKPOS는 연동 정보만 저장하고 판매를 수집하지 않는다. 판매 데이터는 CSV로 올린다.
+- 토스플레이스 완료 주문의 품목 한 줄이 판매 1행이다. `external_sale_id`는 `TP:{주문 ID}:{품목 순번}`이다. 취소된 주문은 이미 저장된 판매를 지운다.
+- 동기화가 성공하면 연동 상태를 `CONNECTED`로, 실패하면 `ERROR`와 오류 문장(`error_message`)으로 기록한다.
+
+| 동기화 시점 | 실행 | 받는 범위 |
+|---|---|---|
+| 연동 등록 직후 | ARQ 작업 | 전체 이력(2024-01-01부터) |
+| 가맹점 ID·POS 종류 변경 직후 | ARQ 작업 | 전체 이력 |
+| 매일 01:00 | ARQ `cron_jobs`. 상태가 `CONNECTED`·`ERROR`인 토스플레이스 매장 전부 | 마지막 동기화 2일 전부터 |
+| 점주 [지금 동기화] | `POST /api/store/pos/sync` | 마지막 동기화 2일 전부터. 첫 동기화 전이면 전체 이력 |
+
+- 매일 01:00 동기화는 AI 야간 배치(n8n 02:00, §3.11.1) 전에 전날 판매를 채운다.
 
 | 구분 | 항목 | 비고 |
 |---|---|---|
 | 입력 | POS 종류 선택 | 토스플레이스 / 키움페이 / OKPOS |
-| | API 자격증명 | |
+| | 토스 가맹점 ID | 토스플레이스 |
+| | API 자격증명·매장 코드 | 키움페이·OKPOS |
 | | store_id | |
-| 출력 | 연동 성공/실패 여부 | |
-| | 초기 데이터 수집 건수 | |
+| 출력 | 연동 등록 결과 | |
+| | 동기화 상태·마지막 동기화 시각·받은 판매 수 | |
 
 #### 3.4.4 CSV 업로드
 
@@ -621,6 +634,7 @@ Frontend → GET /api/auth/login/{provider}
 - 업로드 시 컬럼명을 동적으로 매핑한다(`date_column`·`menu_column`·`quantity_column`·`price_column`, 선택: `external_sale_id_column`).
 - 메뉴 자동 등록 옵션(`auto_create_menus=true`): CSV에 있는 미등록 메뉴명을 매장 메뉴에 즉시 추가한다. 카테고리는 `"자동등록"`, 단가는 `total_price / quantity`, `use_inventory_deduction=false`. 점주가 메뉴 화면에서 사후 수정 가능. 기본값은 `false`(미등록 행은 skip).
 - 결과의 그룹화 사유: `02_implementation_design.md` §3.6 API 응답 정의.
+- POS API 판매가 있는 날의 행은 저장하지 않는다 (§3.4.7).
 
 | 구분 | 항목 | 비고 |
 |---|---|---|
@@ -650,6 +664,14 @@ Frontend → GET /api/auth/login/{provider}
 | 입력 | 공통 스키마 변환된 데이터 | |
 | 출력 | 정상 데이터 | 학습 데이터셋 편입 |
 | | 이상치 탐지 결과 | |
+
+#### 3.4.7 CSV·POS API 판매가 겹치는 날
+
+- 같은 매장의 같은 날(판매 시각의 날짜, 한국 시각)에 POS API 판매가 있으면 그날은 POS API 판매만 쓴다.
+- POS API 동기화로 받은 판매가 있는 날은 그날의 CSV 판매를 지운다.
+- CSV 업로드에서 POS API 판매가 있는 날의 행은 `skipped`로 반환한다.
+- POS API 판매가 없는 날은 CSV 판매를 그대로 둔다.
+- 지운 CSV 판매의 재고 차감은 되돌리지 않는다. 같은 날 POS API 판매는 §3.3.3 차감 기준 시각 이전이면 다시 차감하지 않는다.
 
 ### 3.5 판매 데이터 조회
 
