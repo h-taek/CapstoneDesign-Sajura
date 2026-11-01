@@ -10,12 +10,16 @@ import {
   syncPos,
   updatePos,
 } from "../../api/endpoints/pos";
+import tossLogo from "../../assets/pos/toss-logo-white.png";
 import { formatMonthDayTime } from "../../lib/format";
 import { FollowPanel } from "../shell/follow-panel";
 import { extractApiMessage } from "./upload-panel";
 
 const PRIMARY_BTN =
   "inline-flex h-11 shrink-0 items-center justify-center gap-1.5 rounded-full bg-brand px-5 text-[0.95rem] font-semibold whitespace-nowrap text-white transition-colors hover:bg-brand-strong disabled:cursor-not-allowed disabled:bg-ink-3/40";
+// 토스 연결 — 기본 버튼 모양에 Toss Blue(#0064FF)
+const TOSS_BTN =
+  "inline-flex h-11 shrink-0 items-center justify-center gap-1.5 rounded-full bg-[#0064FF] px-5 text-[0.95rem] font-semibold whitespace-nowrap text-white transition-colors hover:bg-[#0064FF]/90";
 const SECONDARY_BTN =
   "inline-flex h-11 shrink-0 items-center justify-center gap-1.5 rounded-full border border-white/80 px-5 text-[0.95rem] font-semibold whitespace-nowrap text-ink-2 transition-colors hover:bg-white/30 disabled:cursor-not-allowed disabled:opacity-60";
 
@@ -164,6 +168,12 @@ export function PosPanel({ onBack, onOpenUpload }: PosPanelProps) {
       <div className="mt-4 flex flex-wrap gap-2">
         {status === "CSV_MODE" || status === "DISCONNECTED" ? (
           <>
+            {status === "CSV_MODE" ? (
+              <button type="button" onClick={openConnectForm} className={TOSS_BTN}>
+                <img src={tossLogo} alt="토스" className="h-[18px] w-auto" />
+                연결
+              </button>
+            ) : null}
             <button
               type="button"
               onClick={onOpenUpload}
@@ -176,9 +186,11 @@ export function PosPanel({ onBack, onOpenUpload }: PosPanelProps) {
               <Download className="size-4" />
               CSV 양식 받기
             </button>
-            <button type="button" onClick={openConnectForm} className={SECONDARY_BTN}>
-              {status === "CSV_MODE" ? "토스 연결" : "다시 연동"}
-            </button>
+            {status === "DISCONNECTED" ? (
+              <button type="button" onClick={openConnectForm} className={SECONDARY_BTN}>
+                다시 연동
+              </button>
+            ) : null}
           </>
         ) : null}
 
