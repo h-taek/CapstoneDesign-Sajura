@@ -9,7 +9,7 @@ cd "$ROOT"
 LOG_DIR="$ROOT/docker/log"
 FE_LOG="$LOG_DIR/dev-fe.log"
 mkdir -p "$LOG_DIR"
-FE_PID="$ROOT/.dev-fe.pid"
+FE_PID="$LOG_DIR/dev-fe.pid"
 FE_PORT="${FE_PORT:-5173}"
 BE_PORT="${BE_PORT:-8000}"
 # Default: Vite dev proxy(/api → BE)를 거치도록 상대경로 — Safari ITP의

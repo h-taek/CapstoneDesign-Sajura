@@ -9,7 +9,7 @@ export OLLAMA_MODELS="$ROOT/Back/ollama"
 LOG_DIR="$ROOT/docker/log"
 GUARD_LOG="$LOG_DIR/guard-ollama.log"
 mkdir -p "$LOG_DIR"
-GUARD_PID="$ROOT/.guard-ollama.pid"
+GUARD_PID="$LOG_DIR/guard-ollama.pid"
 PORT=11434
 # 분류기 모델과 비교 후보 (HANDOFF — 시연 준비 때 비교해 확정)
 MODELS=(qwen3.6:35b-a3b qwen3.8:27b)
