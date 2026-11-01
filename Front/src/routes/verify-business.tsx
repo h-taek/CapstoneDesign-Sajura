@@ -66,7 +66,7 @@ export default function VerifyBusinessPage() {
         Sajura
       </p>
 
-      <main className="min-h-dvh px-5 pt-[13vh] pb-10 text-center text-white">
+      <main className="sky-titles min-h-dvh px-5 pt-[13vh] pb-10 text-center text-white">
         <section className="mx-auto w-full max-w-[400px]">
           <h1 className="text-[1.75rem] font-extrabold tracking-tight">매장 인증을 해 주세요</h1>
 

@@ -364,7 +364,9 @@ body[data-mood="hero"] .bd-veil { opacity: 0; }
    시작 화면은 스크롤 위치, 가입·온보딩은 정해 둔 밤 시각, 대시보드는 실제 현재 시각을 쓴다.
    대시보드(data-calm)는 읽기용 옅은 막을 덮고 동네를 흐리게 둔다. 밤일수록 막을 진하게 해 글이 읽힌다.
    --sky-fg·--sky-fg2·--sky-pill은 하늘 위에 바로 놓인 글자색과 알약 유리색(막 없는 화면에서만 바뀐다) */
-:root { --sky-fg: #111827; --sky-fg2: #374151; --sky-pill: rgb(255 255 255 / 0.1); }
+:root { --sky-fg: #111827; --sky-fg2: #374151; --sky-pill: rgb(255 255 255 / 0.1); --sky-halo: transparent; }
+/* 하늘 위 흰 제목·안내문 — 하늘색으로 번지는 그림자. 하늘 위에서는 안 보이고 달과 겹칠 때만 글자를 띄운다 */
+.sky-titles h1, .sky-titles h1 + p { text-shadow: 0 0 2px var(--sky-halo), 0 0 6px var(--sky-halo), 0 0 12px var(--sky-halo); }
 .bd-day { background: #241a5e; }
 .bd-day .d-sky, .bd-day .d-veil { inset: 0; }
 .bd-day .d-stars { inset: 0; width: 100%; height: 100%; }
@@ -702,6 +704,8 @@ function drawDay(mf) {
     root.setProperty("--sky-fg", dayRgb(dayMix("#ffffff", "#111827", s.fg)));
     root.setProperty("--sky-fg2", dayRgb(dayMix("#dcd8f2", "#374151", s.fg)));
     root.setProperty("--sky-pill", dayRgb(s.sky[0], 0.42));
+    // 제목 높이(화면 위 약 20%)의 하늘색 — 맨 위 색과 55% 지점 색 사이
+    root.setProperty("--sky-halo", dayRgb(s.sky[0].map((v, i) => Math.round(v + (s.sky[1][i] - v) * 0.4))));
   }
   for (const el of document.querySelectorAll("[data-sky-clock]")) el.textContent = dayClock(mf);
 }

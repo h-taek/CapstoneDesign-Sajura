@@ -46,6 +46,13 @@
   --sky-fg: #111827;
   --sky-fg2: #374151;
   --sky-pill: rgb(255 255 255 / 0.1);
+  --sky-halo: transparent;
+}
+
+/* 하늘 위 흰 제목·안내문 — 하늘색으로 번지는 그림자. 하늘 위에서는 안 보이고 달과 겹칠 때만 글자를 띄운다 */
+.sky-titles h1,
+.sky-titles h1 + p {
+  text-shadow: 0 0 2px var(--sky-halo), 0 0 6px var(--sky-halo), 0 0 12px var(--sky-halo);
 }
 
 @layer base {

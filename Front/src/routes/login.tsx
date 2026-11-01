@@ -67,7 +67,7 @@ export default function LoginPage() {
   const goGoogle = () => window.location.assign(oauthLoginUrl("google"));
 
   return (
-    <main className="min-h-dvh px-5 pt-[8vh] pb-10 text-center text-white">
+    <main className="sky-titles min-h-dvh px-5 pt-[8vh] pb-10 text-center text-white">
       <section className="mx-auto w-full max-w-[400px]">
         <p className="text-[2rem] leading-none font-extrabold tracking-tight text-[#b3a4ff]">
           Sajura

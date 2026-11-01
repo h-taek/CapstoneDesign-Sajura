@@ -163,7 +163,7 @@ export function setSkyCalm(calm: boolean): void {
   else bd.removeAttribute("data-calm");
 }
 
-/** 주어진 분(mf)으로 하늘 배경과 document.documentElement의 --sky-fg·--sky-fg2·--sky-pill을 갱신한다. */
+/** 주어진 분(mf)으로 하늘 배경과 document.documentElement의 --sky-fg·--sky-fg2·--sky-pill·--sky-halo를 갱신한다. */
 export function drawDay(mf: number): DaySample {
   DAY.mf = mf;
   const s = dayAt(mf);
@@ -178,10 +178,16 @@ export function drawDay(mf: number): DaySample {
       root.setProperty("--sky-fg", dayRgb(dayMix("#ffffff", "#111827", s.fg)));
       root.setProperty("--sky-fg2", dayRgb(dayMix("#dcd8f2", "#374151", s.fg)));
       root.setProperty("--sky-pill", dayRgb(s.sky[0], 0.42));
+      // 제목 높이(화면 위 약 20%)의 하늘색 — 맨 위 색과 55% 지점 색 사이
+      root.setProperty(
+        "--sky-halo",
+        dayRgb(s.sky[0].map((v, i) => Math.round(v + ((s.sky[1]?.[i] ?? v) - v) * 0.4))),
+      );
     } else {
       root.setProperty("--sky-fg", "#111827");
       root.setProperty("--sky-fg2", "#374151");
       root.setProperty("--sky-pill", "rgb(255 255 255 / 0.1)");
+      root.setProperty("--sky-halo", "transparent");
     }
     for (const el of document.querySelectorAll<HTMLElement>("[data-sky-clock]")) {
       el.textContent = dayClock(mf);
