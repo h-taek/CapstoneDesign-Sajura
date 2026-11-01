@@ -1,12 +1,12 @@
-// 쿠팡 탭 안의 동작 — 클릭·입력·담기 완료·비회원 가격 받기·알림 (04_fe.md §12.4·§12.5·§12.7)
+// 쿠팡 탭 안의 동작 — 클릭·입력·담기 완료·비회원 가격 받기·누를 요소 이름 (04_fe.md §12.4·§12.5·§12.8)
 
 import {
   cartAddedAppeared,
   click,
+  clickTarget,
   fetchNonWow,
   loggedIn,
   readPage,
-  showNotice,
   typeText,
 } from "../src/page";
 import { CART_URL, PRODUCT_URL, SEARCH_URL, load } from "./helpers";
@@ -122,12 +122,33 @@ describe("비회원 가격 받기", () => {
   });
 });
 
-it("거부 사유는 HTML로 해석하지 않는다", () => {
+describe("누를 요소 이름 (진행 패널 문장)", () => {
+  it("글자가 있으면 그 글자, 링크 안이면 종류는 링크", () => {
+    const doc = load("search");
+    const ref = refOf(doc, SEARCH_URL, (t, r) => r === "link" && t.startsWith("국내산 울팜"));
+    expect(clickTarget(ref)).toEqual({ text: expect.stringMatching(/^국내산 울팜/), kind: "링크" });
+  });
+
+  it("그림 파일 이름·아이콘 클래스 이름은 글자로 치지 않는다", () => {
+    const doc = load("cart");
+    const page = readPage(doc, CART_URL);
+    const icon = page.elements.find((e) => e.role === "image" && /icon|\.(png|svg|gif)$/i.test(e.text));
+    if (!icon) throw new Error("아이콘 요소 없음");
+    expect(clickTarget(icon.ref).text).toBeNull();
+  });
+});
+
+it("누르기 직전에 커서 옮기기를 부른다", async () => {
   const doc = load("search");
-  showNotice(doc, "요청이 거부되었습니다", '<img src=x onerror="alert(1)">상품명에 지시');
-  const box = doc.getElementById("sajura-notice") as HTMLElement;
-  expect(box.querySelector("img")).toBeNull();
-  expect(box.textContent).toContain('<img src=x onerror="alert(1)">상품명에 지시');
-  // 알림은 다음 요소 목록에 섞이지 않는다
-  expect(readPage(doc, SEARCH_URL).elements.some((e) => e.text.includes("거부"))).toBe(false);
+  const ref = refOf(doc, SEARCH_URL, (t, r) => r === "link" && t.startsWith("국내산 울팜"));
+  const a = doc.querySelector("#product-list a") as HTMLAnchorElement;
+  const order: string[] = [];
+  a.addEventListener("click", (e) => {
+    order.push("click");
+    e.preventDefault();
+  });
+  await click(doc, SEARCH_URL, ref, async (el) => {
+    order.push(el === a ? "point" : "point-other");
+  });
+  expect(order).toEqual(["point", "click"]);
 });

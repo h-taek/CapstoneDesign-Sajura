@@ -54,3 +54,33 @@ it("시작·비회원 가격·알림", () => {
     detail: "사유",
   });
 });
+
+describe("진행 패널 progress", () => {
+  it("대상·결과·끝", () => {
+    expect(parseRequest({ type: "progress", kind: "target", name: "양파" })).toEqual({
+      type: "progress",
+      progress: { kind: "target", name: "양파" },
+    });
+    expect(parseRequest({ type: "progress", kind: "result", status: "FAILED", reason: "검색 결과 없음" })).toEqual({
+      type: "progress",
+      progress: { kind: "result", status: "FAILED", reason: "검색 결과 없음" },
+    });
+    expect(parseRequest({ type: "progress", kind: "result", status: "ADDED" })).toEqual({
+      type: "progress",
+      progress: { kind: "result", status: "ADDED", reason: null },
+    });
+    expect(parseRequest({ type: "progress", kind: "done" })).toEqual({ type: "progress", progress: { kind: "done" } });
+  });
+
+  it("형식이 다르면 null", () => {
+    for (const bad of [
+      { type: "progress", kind: "target", name: "" },
+      { type: "progress", kind: "target", name: "x".repeat(101) },
+      { type: "progress", kind: "result", status: "OK" },
+      { type: "progress", kind: "result", status: "ADDED", reason: "x".repeat(501) },
+      { type: "progress", kind: "start" },
+    ]) {
+      expect(parseRequest(bad)).toBeNull();
+    }
+  });
+});

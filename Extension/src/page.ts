@@ -3,6 +3,7 @@
 
 import { DIALOGS, WORK_FLAG } from "./dialogGuard";
 import { type Snapshot, buildElements, pageProduct, parseNonWowPrice } from "./elements";
+import type { ClickTarget } from "./log";
 import type { CartAdded, ElementsResult } from "./messages";
 import { PRODUCT_URL_PREFIX } from "./messages";
 import { type FetchResult, isBlockedPage } from "./nonwow";
@@ -82,7 +83,21 @@ function isCartButton(el: Element): boolean {
   return (btn.textContent ?? "").includes("담기");
 }
 
-export async function click(doc: Document, url: string, ref: string): Promise<ClickResult> {
+/** 진행 패널 문장에 쓸 누를 요소의 이름 (§12.8). 그림 파일 이름·아이콘 클래스 이름은 글자로 치지 않는다. */
+export function clickTarget(ref: string): ClickTarget {
+  const el = target(ref);
+  const e = snapshot?.elements.find((x) => x.ref === ref);
+  const text = e && !snapshot?.names.has(ref) && e.text.trim() ? e.text : null;
+  return { text, kind: el?.closest("a[href]") ? "링크" : "버튼" };
+}
+
+/** point: 누르기 직전에 부른다 — 진행 패널 커서를 요소로 옮긴다. */
+export async function click(
+  doc: Document,
+  url: string,
+  ref: string,
+  point?: (el: Element) => Promise<void>,
+): Promise<ClickResult> {
   const found = target(ref);
   if (!found) return { ok: false, message: "요소 없음", cart_added: null };
   // 링크·버튼 안의 글자를 골랐으면 그 링크·버튼을 누른다 — 카드 안 '할인' 글자는 눌러도 열리지 않았다
@@ -92,6 +107,7 @@ export async function click(doc: Document, url: string, ref: string): Promise<Cl
   // 화면 밖 버튼은 눌러도 담기가 되지 않았다(research/backend/16 §6.12) — 먼저 화면 안으로
   el.scrollIntoView?.({ block: "center" });
   await sleep(300);
+  await point?.(el);
   const waitCart = url.startsWith(PRODUCT_URL_PREFIX) && isCartButton(el);
   const before = waitCart ? pageText(doc) : "";
   (el as HTMLElement).click();
@@ -138,33 +154,4 @@ export async function fetchNonWow(url: string, fetcher: typeof fetch = fetch): P
   const html = await res.text();
   if (isBlockedPage(html)) return { ok: false };
   return { ok: true, price: parseNonWowPrice(html) };
-}
-
-const NOTICE_ID = "sajura-notice";
-
-/** 작업 탭 위쪽 알림. 사유는 외부 글을 옮겼을 수 있으므로 일반 텍스트로만 넣는다 (§12.7). */
-export function showNotice(doc: Document, title: string, detail: string | null): void {
-  doc.getElementById(NOTICE_ID)?.remove();
-  const box = doc.createElement("div");
-  box.id = NOTICE_ID;
-  box.setAttribute("role", "alert");
-  box.style.cssText =
-    "position:fixed;top:12px;left:50%;transform:translateX(-50%);z-index:2147483647;max-width:480px;" +
-    "padding:12px 16px;background:#1f2937;color:#fff;border-radius:8px;font:14px/1.5 sans-serif;" +
-    "box-shadow:0 4px 12px rgba(0,0,0,.3)";
-  const head = doc.createElement("strong");
-  head.textContent = `사주라 — ${title}`;
-  box.append(head);
-  if (detail) {
-    const p = doc.createElement("div");
-    p.textContent = detail;
-    box.append(p);
-  }
-  const close = doc.createElement("button");
-  close.type = "button";
-  close.textContent = "닫기";
-  close.style.cssText = "margin-top:8px;background:none;border:1px solid #fff;color:#fff;border-radius:4px;cursor:pointer";
-  close.addEventListener("click", () => box.remove());
-  box.append(close);
-  doc.body.append(box);
 }

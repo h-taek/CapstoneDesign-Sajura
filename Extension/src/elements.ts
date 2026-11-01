@@ -4,6 +4,7 @@
 // 조상 요소 수다. 상품 고유 ID는 검색 결과 카드 링크와 상품 페이지 제목에 붙이고, 상품 페이지의
 // 가격 영역은 제목 아래 깊이로 옮긴다. 서버는 ID가 붙은 요소 아래 깊이의 요소를 그 상품 값으로 읽는다.
 
+import { PANEL_HOST_ID } from "./log";
 import type { PageElement } from "./messages";
 import { MASK, headerNameZone, isMyCoupangLabel, maskShapes } from "./privacy";
 
@@ -32,6 +33,7 @@ export interface WowCard {
 export interface Snapshot {
   elements: PageElement[];
   refs: Map<string, Element>; // 번호 → 요소. 그 화면에서만 쓴다
+  names: Set<string>; // 글자가 그림 파일 이름·아이콘 클래스 이름인 요소 번호 — 진행 패널 문장에서는 글자로 치지 않는다
   wowCards: WowCard[];
 }
 
@@ -213,6 +215,7 @@ function productPage(doc: Document, url: string): ProductPage | null {
 export function buildElements(doc: Document, url: string): Snapshot {
   const elements: PageElement[] = [];
   const refs = new Map<string, Element>();
+  const names = new Set<string>();
   const cardLinks = new Map<number, string>(); // 상품 카드 링크 요소의 위치 → 링크 주소
   const product = productPage(doc, url);
   const zone = headerNameZone(doc);
@@ -226,7 +229,7 @@ export function buildElements(doc: Document, url: string): Snapshot {
 
   // masked: 머리말 이름 표시 안이라 글자를 모두 가린다. dup: 상품 링크의 상품명과 같은 글자는 다시 담지 않는다
   const walk = (el: Element, depth: number, masked: boolean, dup: string | null, moved = false) => {
-    if (SKIP.has(el.localName) || el.id === "sajura-notice" || hidden(el)) return;
+    if (SKIP.has(el.localName) || el.id === PANEL_HOST_ID || hidden(el)) return;
     if (product && el === product.priceBox && !moved) return; // 제목 아래로 옮겨 담는다
 
     if (product && el === product.title) {
@@ -273,12 +276,13 @@ export function buildElements(doc: Document, url: string): Snapshot {
       const prevEl = prev && refs.get(prev.ref);
       if (prev && prevEl && zone.contains(prevEl) && !prevEl.contains(el)) prev.text = MASK;
     }
-    emit(el, info.role, text, depth);
+    const at = emit(el, info.role, text, depth);
+    if (info.name) names.add(elements[at].ref);
     for (const c of el.children) walk(c, depth + 1, maskChildren, dup);
   };
 
   if (doc.body) walk(doc.body, 0, false, null);
-  return { elements, refs, wowCards: wowCards(elements, cardLinks) };
+  return { elements, refs, names, wowCards: wowCards(elements, cardLinks) };
 }
 
 /** 검색 결과의 와우 할인 카드('와우할인'·'와우쿠폰할인'). 같은 itemId는 처음 카드만. */

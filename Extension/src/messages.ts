@@ -1,6 +1,8 @@
 // PWA ↔ 확장 메시지 (04_fe.md §12.3·§12.4). PWA가 externally_connectable로 보낸다.
 // 실행 결과 형식은 02_implementation_design.md §3.7 automate/step의 result다.
 
+import type { Status } from "./log";
+
 export const PRODUCT_URL_PREFIX = "https://www.coupang.com/vp/products/";
 export const TEXT_MAX = 50;
 
@@ -57,14 +59,20 @@ export type Request =
   | { type: "open" } // 작업 탭을 열고 로그인 여부를 확인한다. 한 담기의 시작
   | { type: "run"; action: Action } // 동작 하나
   | { type: "take_non_wow_prices"; wait: boolean } // 받은 비회원 가격. wait면 남은 받기를 끝낸 뒤
-  | { type: "notice"; title: string; detail: string | null }; // 작업 탭에 알림(일반 텍스트)
+  | { type: "notice"; title: string; detail: string | null } // 진행 패널에 알림 말풍선(일반 텍스트)
+  | { type: "progress"; progress: Progress }; // 진행 패널에 대상·결과·끝 (§12.8)
+
+export type Progress =
+  | { kind: "target"; name: string }
+  | { kind: "result"; status: Status; reason: string | null }
+  | { kind: "done" };
 
 export type Response =
   | { ok: true; version: string } // ping
   | { ok: true; logged_in: boolean } // open
   | { ok: true; result: StepResult; non_wow_prices: NonWowPrice[] } // run
   | { ok: true; non_wow_prices: NonWowPrice[] } // take_non_wow_prices
-  | { ok: true } // notice
+  | { ok: true } // notice·progress
   | { ok: false; error: string };
 
 const isObj = (v: unknown): v is Record<string, unknown> =>
@@ -96,6 +104,23 @@ function parseAction(v: unknown): Action | null {
   }
 }
 
+const STATUSES: readonly string[] = ["ADDED", "CHECK_NEEDED", "FAILED"];
+
+function parseProgress(v: Record<string, unknown>): Progress | null {
+  switch (v.kind) {
+    case "target":
+      return isStr(v.name, 100) && v.name.trim() ? { kind: "target", name: v.name } : null;
+    case "result":
+      return typeof v.status === "string" && STATUSES.includes(v.status) && (v.reason == null || isStr(v.reason, 500))
+        ? { kind: "result", status: v.status as Status, reason: v.reason ?? null }
+        : null;
+    case "done":
+      return { kind: "done" };
+    default:
+      return null;
+  }
+}
+
 /** 받은 메시지 검사 — 형식이 다르면 null. */
 export function parseRequest(v: unknown): Request | null {
   if (!isObj(v)) return null;
@@ -113,6 +138,10 @@ export function parseRequest(v: unknown): Request | null {
       return isStr(v.title, 100) && (v.detail === null || isStr(v.detail, 500))
         ? { type: "notice", title: v.title, detail: v.detail }
         : null;
+    case "progress": {
+      const progress = parseProgress(v);
+      return progress ? { type: "progress", progress } : null;
+    }
     default:
       return null;
   }

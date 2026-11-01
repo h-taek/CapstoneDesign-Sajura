@@ -1,8 +1,10 @@
 // 서비스 워커 — PWA의 메시지를 받아 작업 탭에서 동작을 실행한다 (04_fe.md §12.3·§12.4).
 // 담기를 시작할 때 연 작업 탭 하나에서만 움직이고, 서버는 부르지 않는다.
+// 진행 패널 기록(§12.8)은 여기서만 쓴다. 패널은 chrome.storage.session의 기록을 구독한다.
 
 import type { Command } from "./content";
 import type { WowCard } from "./elements";
+import { type ClickTarget, type Log, emptyLog, sentence } from "./log";
 import {
   type Action,
   type ActionResult,
@@ -13,6 +15,7 @@ import {
 } from "./messages";
 import { type FetchResult, NonWowQueue, type QueueState, emptyState } from "./nonwow";
 import type { ClickResult } from "./page";
+import type { PanelMessage } from "./panelLink";
 
 const HOME = "https://www.coupang.com/";
 const LOAD_TIMEOUT_MS = 20_000;
@@ -31,6 +34,24 @@ let session: Session | null = null;
 let queue: NonWowQueue | null = null;
 
 const persist = () => chrome.storage.session.set({ session });
+
+// 패널(content script)이 기록을 읽고 바뀜을 받게 한다
+void chrome.storage.session.setAccessLevel({ accessLevel: "TRUSTED_AND_UNTRUSTED_CONTEXTS" });
+
+let log: Log | null = null;
+let logChain: Promise<void> = Promise.resolve();
+
+/** 기록 고치기 — 하나씩 차례로 저장한다. */
+function editLog(fn: (l: Log) => void): Promise<void> {
+  logChain = logChain
+    .then(async () => {
+      log ??= ((await chrome.storage.session.get("log")).log as Log | undefined) ?? emptyLog();
+      fn(log);
+      await chrome.storage.session.set({ log });
+    })
+    .catch(() => undefined);
+  return logChain;
+}
 
 async function load(): Promise<{ session: Session; queue: NonWowQueue }> {
   if (!session || !queue) {
@@ -159,9 +180,29 @@ async function run(tabId: number, a: Action, q: NonWowQueue): Promise<ElementsRe
 
 async function handle(req: Request): Promise<Response> {
   if (req.type === "ping") return { ok: true, version: chrome.runtime.getManifest().version };
+  if (req.type === "notice") {
+    await editLog((l) => l.entries.push({ k: "notice", title: req.title, detail: req.detail, at: Date.now() }));
+    return { ok: true };
+  }
+  if (req.type === "progress") {
+    const p = req.progress;
+    const at = Date.now();
+    await editLog((l) => {
+      if (p.kind === "target") l.entries.push({ k: "target", name: p.name, at });
+      else if (p.kind === "result") l.entries.push({ k: "result", status: p.status, reason: p.reason, at });
+      else {
+        l.entries.push({ k: "done", at });
+        l.running = false;
+        l.busy = false;
+      }
+    });
+    return { ok: true };
+  }
   const { session: s } = await load();
 
   if (req.type === "open") {
+    // 새 담기 — 기록을 비우고 작업 탭에 패널을 연다
+    await editLog((l) => Object.assign(l, emptyLog(), { startedAt: Date.now(), running: true }));
     const tab = await chrome.tabs.create({ url: HOME, active: true });
     if (tab.id == null) return { ok: false, error: "작업 탭을 열지 못했습니다" };
     // 새 담기 — 받은 와우 카드 기록을 비운다
@@ -179,12 +220,23 @@ async function handle(req: Request): Promise<Response> {
   }
 
   if (s.tabId == null || !(await tabState(s.tabId))) return { ok: false, error: "작업 탭이 없습니다" };
-  if (req.type === "notice") {
-    await send(s.tabId, { cmd: "notice", title: req.title, detail: req.detail });
-    return { ok: true };
+  const target =
+    req.action.tool === "click"
+      ? await send<ClickTarget>(s.tabId, { cmd: "label", ref: req.action.args.ref }, false).catch(() => null)
+      : null;
+  const text = sentence(req.action, target);
+  await editLog((l) => {
+    l.entries.push({ k: "action", text, at: Date.now() });
+    l.busy = true;
+  });
+  try {
+    const result = await run(s.tabId, req.action, q);
+    return { ok: true, result, non_wow_prices: await q.take(false) };
+  } finally {
+    await editLog((l) => {
+      l.busy = false;
+    });
   }
-  const result = await run(s.tabId, req.action, q);
-  return { ok: true, result, non_wow_prices: await q.take(false) };
 }
 
 chrome.runtime.onMessageExternal.addListener((msg, _sender, reply) => {
@@ -195,4 +247,31 @@ chrome.runtime.onMessageExternal.addListener((msg, _sender, reply) => {
   }
   handle(req).then(reply, (e) => reply({ ok: false, error: String(e) } satisfies Response));
   return true;
+});
+
+// 진행 패널 (§12.8) — 이 탭이 작업 탭인지, X로 닫기, 확장 버튼으로 다시 열기
+chrome.runtime.onMessage.addListener((msg: PanelMessage, sender, reply) => {
+  if (sender.id !== chrome.runtime.id || !msg || typeof msg !== "object" || !("panel" in msg)) return false;
+  const work = async () => (await load()).session.tabId === sender.tab?.id && sender.tab?.id != null;
+  (async () => {
+    if (msg.panel === "hello") return { work: await work() };
+    if (await work()) await editLog((l) => (l.closed = msg.panel === "close"));
+    return {};
+  })().then(reply, () => reply({}));
+  return true;
+});
+
+// 확장 버튼 — 누른 탭에 패널을 연다. 크롬 내부 화면처럼 그릴 수 없는 탭이면 아무것도 하지 않는다
+chrome.action.onClicked.addListener((tab) => {
+  if (tab.id == null) return;
+  chrome.scripting.executeScript({ target: { tabId: tab.id }, files: ["viewer.js"] }).catch(() => undefined);
+});
+
+// 작업 탭을 닫으면 담기가 멈춘다 — 빛·기다림 점을 거둔다
+chrome.tabs.onRemoved.addListener(async (tabId) => {
+  if ((await load()).session.tabId !== tabId) return;
+  await editLog((l) => {
+    l.running = false;
+    l.busy = false;
+  });
 });

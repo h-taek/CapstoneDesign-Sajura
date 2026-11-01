@@ -9,7 +9,8 @@
     { "matches": ["*://*.coupang.com/*"], "js": ["dialog.js"], "run_at": "document_start", "world": "MAIN" },
     { "matches": ["*://*.coupang.com/*"], "js": ["content.js"], "run_at": "document_idle" }
   ],
+  "action": { "default_title": "사주라 — 쿠팡 담기 진행" },
   "host_permissions": ["*://*.coupang.com/*"],
-  "permissions": ["storage"],
+  "permissions": ["storage", "activeTab", "scripting"],
   "externally_connectable": { "matches": ["http://localhost:5173/*"] }
 }

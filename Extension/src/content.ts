@@ -1,19 +1,20 @@
 // content script — 쿠팡 탭마다 들어가지만 background가 명령을 보낸 작업 탭에서만 움직인다.
-// 명령은 확장 내부(background)에서만 온다.
+// 명령은 확장 내부(background)에서만 온다. 진행 패널은 탭마다 붙여 두고 작업 탭에서만 저절로 연다(§12.8).
 
 import {
   type ClickResult,
   claimWorkTab,
   click,
+  clickTarget,
   fetchNonWow,
   loggedIn,
   readPage,
   scroll,
-  showNotice,
   takeDialogs,
   typeText,
 } from "./page";
 import { PRODUCT_URL_PREFIX } from "./messages";
+import { attachPanel } from "./panelLink";
 
 export type Command =
   | { cmd: "read" }
@@ -23,7 +24,9 @@ export type Command =
   | { cmd: "navigate"; url: string }
   | { cmd: "login" }
   | { cmd: "fetch"; url: string }
-  | { cmd: "notice"; title: string; detail: string | null };
+  | { cmd: "label"; ref: string };
+
+const panel = attachPanel();
 
 /** 동작 결과에 그사이 뜬 알림 창 글을 붙인다. */
 function withDialogs(r: ClickResult): ClickResult {
@@ -38,7 +41,7 @@ async function handle(c: Command): Promise<unknown> {
     case "read":
       return readPage(document, location.href);
     case "click":
-      return withDialogs(await click(document, location.href, c.ref));
+      return withDialogs(await click(document, location.href, c.ref, panel.pointAt));
     case "type":
       return withDialogs(typeText(c.ref, c.text));
     case "scroll":
@@ -54,9 +57,8 @@ async function handle(c: Command): Promise<unknown> {
       return { logged_in: loggedIn(document) };
     case "fetch":
       return fetchNonWow(c.url);
-    case "notice":
-      showNotice(document, c.title, c.detail);
-      return { ok: true };
+    case "label":
+      return clickTarget(c.ref);
   }
 }
 

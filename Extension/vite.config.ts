@@ -1,4 +1,4 @@
-// 확장 빌드 — background(ES 모듈 서비스 워커), content·dialog(번들 하나, import 없음)를 따로 만든다.
+// 확장 빌드 — background(ES 모듈 서비스 워커), content·dialog·viewer(번들 하나, import 없음)를 따로 만든다.
 // content script는 모듈을 쓸 수 없어 IIFE로 묶는다. public/manifest.json은 dist에 그대로 복사된다.
 import { defineConfig } from "vitest/config";
 
