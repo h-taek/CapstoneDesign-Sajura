@@ -315,7 +315,8 @@ export default function ForecastPage() {
                   const dateLabel = formatTargetDate(p.target_date);
                   // deviation_vs_baseline·pct는 비율이다(0.12 = 12%) — 02_implementation_design.md §3.7
                   const deviation = p.explanation?.deviation_vs_baseline;
-                  const deviationPct = deviation != null ? Math.round(Math.abs(deviation) * 100) : 0;
+                  const deviationPct =
+                    deviation != null ? Math.round(Math.abs(deviation) * 100) : 0;
                   const deviationText =
                     deviation == null
                       ? null
