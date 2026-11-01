@@ -8,6 +8,13 @@
 
 ## 1. 개발 이력
 
+### FE 날짜 표시 함수 통합 + 단가 못 읽은 발주 금액 — 9ce3405 (2026-11-01)
+
+- forecast·home·orders·sales·inventory·admin·settings와 API 층에 따로 있던 날짜 파싱·`YYYY-MM-DD`·'10월 19일'·'(화)'·'10/19'·'10월 17일 14:02' 표기를 `lib/format`으로 모음. 일시 문자열은 `new Date`로 읽는다(지금 BE 값에선 화면 결과 같음)
+- 확정 발주 합계가 0이면 홈 최근 발주·발주 내역에 '—'(`formatOrderCost`). 일부 품목만 단가를 못 읽으면 합계는 읽은 품목만의 합 그대로
+- 확인한 것 — BE `approved_at` 등 UTC 저장 일시가 시간대 없이 나간다(HANDOFF 할 일)
+- 검증: Vitest 192·typecheck·build 통과, 바뀐 파일 biome 통과
+
 ### 화면 실데이터 확인 + 쿠팡 담기 누를 수 있음 표시 — a67be11..c56db56 (2026-11-01)
 
 - dev(mysql·redis·be·agent)·Claude in Chrome으로 웹 1440px·앱 390px 화면을 목업과 대조. 매출 예측의 평소 대비·요인 비율을 %로(홈과 같은 값), 메뉴 검색 아이콘 z-10. `Front/.env.local`에 개발용 확장 ID(git 제외)
