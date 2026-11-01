@@ -2,8 +2,8 @@
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router";
 import { type OrderSummary, getOrder } from "../../api/endpoints/orders";
-import { formatWon } from "../../lib/format";
-import { formatMonthDayDow } from "./home-utils";
+import { formatMonthDayDow } from "../../lib/format";
+import { formatOrderCost } from "../orders/order-calc";
 
 interface RecentOrderTileProps {
   order: OrderSummary;
@@ -46,7 +46,7 @@ export function RecentOrderTile({ order }: RecentOrderTileProps) {
         <span className="mt-3 text-[0.95rem] leading-snug font-bold text-ink">{title}</span>
         <span className="mt-0.5 truncate text-xs text-ink-3">{sub || " "}</span>
         <span className="tabular mt-auto pt-3 text-[1.35rem] leading-none font-bold tracking-tight text-ink">
-          {formatWon(order.total_estimated_cost)}
+          {formatOrderCost(order.total_estimated_cost)}
         </span>
         <span className="mt-1.5 flex items-center justify-between gap-2 text-xs">
           {isPending ? (

@@ -1,5 +1,6 @@
 // 판매 데이터 업로드 및 조회 API — 02_implementation_design.md §3.6.
 import { api } from "../../lib/api";
+import { toIsoDate } from "../../lib/format";
 import type { components } from "../types.gen";
 
 type S = components["schemas"];
@@ -42,10 +43,8 @@ export async function uploadSalesCsv(
   return api.post("sales/upload", { body: form, timeout: 120_000 }).json<CSVUploadResponse>();
 }
 
-// 로컬 날짜 그대로 YYYY-MM-DD — toISOString()은 UTC로 바꿔 하루가 밀릴 수 있다
 function isoDate(d: Date | string): string {
-  if (typeof d === "string") return d;
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  return typeof d === "string" ? d : toIsoDate(d);
 }
 
 export type SaleListItem = S["SaleListItem"];

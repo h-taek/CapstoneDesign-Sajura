@@ -15,8 +15,10 @@ import {
   updateLot,
 } from "../../api/endpoints/inventory";
 import { receiveOrderItem, skipOrderItem } from "../../api/endpoints/orders";
+import { formatMonthDay } from "../../lib/format";
 import { calculatePriceChange } from "../../lib/price-trend";
 import { FollowPanel } from "../shell/follow-panel";
+import { daysUntil } from "./stock-status";
 
 const REASON_LABEL: Record<AdjustmentReason, string> = {
   STOCKTAKE: "실사 조정",
@@ -125,11 +127,7 @@ export function InventoryDetailPanel({
   const nearestExpiry = item.nearest_expiry_date;
   let expiryDisplay = "—";
   if (nearestExpiry) {
-    const today = new Date();
-    const start = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-    const [y, m, d] = nearestExpiry.split("-").map(Number);
-    const target = new Date(y ?? 0, (m ?? 1) - 1, d ?? 1);
-    const diffDays = Math.round((target.getTime() - start.getTime()) / 86_400_000);
+    const diffDays = daysUntil(nearestExpiry, new Date());
     expiryDisplay =
       diffDays < 0 ? `${-diffDays}일 지남` : diffDays === 0 ? "D-Day" : `D-${diffDays}`;
   }
@@ -291,10 +289,8 @@ export function InventoryDetailPanel({
         ) : (
           <ul className="mt-2 divide-y divide-white/70 rounded-xl glass-card px-3.5">
             {lots.map((lot) => {
-              const [, m, d] = (lot.expiry_date ?? "").split("-").map(Number);
-              const expiryText = lot.expiry_date ? `${m}월 ${d}일` : "—";
-              const [, rm, rd] = lot.received_at.split("-").map(Number);
-              const receivedText = `${rm}월 ${rd}일 입고`;
+              const expiryText = lot.expiry_date ? formatMonthDay(lot.expiry_date) : "—";
+              const receivedText = `${formatMonthDay(lot.received_at)} 입고`;
 
               const isEditing = editLotId === lot.lot_id;
               const isDisposing = disposeLotId === lot.lot_id;
@@ -539,8 +535,7 @@ function PendingOrderCard({
     onError: () => window.alert("입고 안 함 처리에 실패했습니다."),
   });
 
-  const [, am, ad] = pending.approved_at.slice(0, 10).split("-").map(Number);
-  const titleDate = `${am}월 ${ad}일 확정 발주`;
+  const titleDate = `${formatMonthDay(pending.approved_at)} 확정 발주`;
   const subtotalText =
     pending.subtotal != null ? ` · ${pending.subtotal.toLocaleString("ko-KR")}원` : "";
 

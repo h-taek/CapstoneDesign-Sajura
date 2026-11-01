@@ -3,9 +3,9 @@ import { useQuery } from "@tanstack/react-query";
 import { ChevronDown } from "lucide-react";
 import { useState } from "react";
 import { type OrderSummary, getOrder } from "../../api/endpoints/orders";
-import { formatQty, formatWon } from "../../lib/format";
+import { formatMonthDayDow, formatQty, formatWon } from "../../lib/format";
 import { cn } from "../../lib/utils";
-import { formatDayWithWeekday } from "./order-calc";
+import { formatOrderCost } from "./order-calc";
 
 function OrderHistoryItem({
   order,
@@ -20,7 +20,7 @@ function OrderHistoryItem({
     staleTime: 60_000,
   });
 
-  const dayText = formatDayWithWeekday(new Date(order.approved_at));
+  const dayText = formatMonthDayDow(order.approved_at);
 
   // 상세 품목이 로드되었으면 첫 번째 품목명 외 N개, 아니면 품목 N개
   let titleText = `품목 ${order.item_count}개`;
@@ -55,7 +55,7 @@ function OrderHistoryItem({
         </span>
         <span className="shrink-0 text-right">
           <span className="tabular block text-[0.95rem] font-bold text-ink">
-            {formatWon(order.total_estimated_cost)}
+            {formatOrderCost(order.total_estimated_cost)}
           </span>
           <span
             className={cn(

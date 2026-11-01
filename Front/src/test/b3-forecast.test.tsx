@@ -15,36 +15,14 @@ import {
   calcYesterdayAccuracy,
   forecastErrorMessage,
   formatIntervalRange,
-  formatMonthDay,
-  formatTargetDate,
   getPeriodBounds,
   horizonDayLabel,
   lowConfidenceTooltip,
-  parseLocalDate,
 } from "../components/forecast/forecast-logic";
 import ForecastPage from "../routes/forecast";
 
 describe("매출 예측 순수 계산 함수 (forecast-logic)", () => {
   describe("날짜 및 라벨 포맷", () => {
-    it("parseLocalDate: YYYY-MM-DD를 로컬 Date 자정으로 파싱한다", () => {
-      const d = parseLocalDate("2026-10-20");
-      expect(d.getFullYear()).toBe(2026);
-      expect(d.getMonth()).toBe(9); // 10월은 인덱스 9
-      expect(d.getDate()).toBe(20);
-    });
-
-    it("formatMonthDay: 'M월 D일' 형식으로 포맷한다", () => {
-      const d = new Date(2026, 9, 19);
-      expect(formatMonthDay(d)).toBe("10월 19일");
-    });
-
-    it("formatTargetDate: 요일을 포함한 'M월 D일 (요일)' 형식으로 포맷한다", () => {
-      // 2026-10-20은 화요일
-      expect(formatTargetDate("2026-10-20")).toBe("10월 20일 (화)");
-      // 2026-10-21은 수요일
-      expect(formatTargetDate("2026-10-21")).toBe("10월 21일 (수)");
-    });
-
     it("horizonDayLabel: 1~3은 오늘/내일/모레로 변환한다", () => {
       expect(horizonDayLabel(1, 0)).toBe("오늘");
       expect(horizonDayLabel(2, 1)).toBe("내일");
@@ -272,7 +250,7 @@ describe("ForecastPage 화면 렌더링 및 인터랙션", () => {
       this_month_sales_count: 500,
       today_revenue: 1_280_000,
       today_sales_count: 45,
-      last_sale_at: "2026-10-19T22:00:00Z",
+      last_sale_at: "2026-10-19T22:00:00",
     });
 
     vi.spyOn(dashboardApi, "getForecastVsActual").mockResolvedValue({

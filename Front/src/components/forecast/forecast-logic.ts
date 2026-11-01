@@ -3,13 +3,11 @@ import { HTTPError } from "ky";
 import type { ForecastActualPoint } from "../../api/endpoints/dashboard";
 import type { DailyPrediction } from "../../api/endpoints/forecast";
 import { accuracyRatio } from "../../lib/accuracy";
-import { formatWonShort } from "../../lib/format";
+import { formatMonthDay, formatWonShort, toIsoDate } from "../../lib/format";
 
 export type PeriodRange = "week" | "month" | "year";
 
 export type MenuForecastItem = DailyPrediction["menu_forecast"][number];
-
-const DOW_LABELS = ["일", "월", "화", "수", "목", "금", "토"] as const;
 
 const HORIZON_DAY_LABELS: Record<number, string> = {
   1: "오늘",
@@ -25,31 +23,6 @@ const LOW_CONFIDENCE_REASONS: Record<string, string> = {
   WIDE_INTERVAL: "신뢰도 낮음 — 예상 매출 범위가 넓어 오차가 클 수 있어요",
   DRIFT: "신뢰도 낮음 — 최근 매출 흐름이 평소와 달라 오차가 클 수 있어요",
 };
-
-/** YYYY-MM-DD(또는 ISO 일시) 문자열을 시간대 밀림 없이 로컬 자정 Date로 바꾼다. */
-export function parseLocalDate(iso: string): Date {
-  const [y, m, d] = iso.slice(0, 10).split("-").map(Number);
-  return new Date(y || 2026, (m || 1) - 1, d || 1);
-}
-
-/** 로컬 Date를 YYYY-MM-DD 문자열로 바꾼다. */
-export function formatIsoDate(date: Date): string {
-  const y = date.getFullYear();
-  const m = String(date.getMonth() + 1).padStart(2, "0");
-  const d = String(date.getDate()).padStart(2, "0");
-  return `${y}-${m}-${d}`;
-}
-
-/** "10월 19일" 형식. */
-export function formatMonthDay(date: Date): string {
-  return `${date.getMonth() + 1}월 ${date.getDate()}일`;
-}
-
-/** "10월 20일 (화)" 형식 — 목업 07의 날짜·요일 표기. */
-export function formatTargetDate(iso: string): string {
-  const d = parseLocalDate(iso);
-  return `${d.getMonth() + 1}월 ${d.getDate()}일 (${DOW_LABELS[d.getDay()]})`;
-}
 
 /** horizon_days(1~3)를 오늘·내일·모레로 바꾼다. */
 export function horizonDayLabel(horizonDays: number, index: number): string {
@@ -222,8 +195,8 @@ export function buildPeriodView(
       pairedPredicted.push(null);
     }
 
-    const startIso = formatIsoDate(bounds.start);
-    const endIso = formatIsoDate(bounds.end);
+    const startIso = toIsoDate(bounds.start);
+    const endIso = toIsoDate(bounds.end);
     let hasEarlierSales = false;
 
     for (const p of points) {
@@ -273,7 +246,7 @@ export function buildPeriodView(
       bounds.start.getMonth(),
       bounds.start.getDate() + i,
     );
-    const iso = formatIsoDate(d);
+    const iso = toIsoDate(d);
     const p = byDate.get(iso);
     labels.push(`${d.getMonth() + 1}/${d.getDate()}`);
     values.push(p?.actual_sales ?? 0);
@@ -290,7 +263,7 @@ export function buildPeriodView(
         bounds.prevStart.getMonth(),
         bounds.prevStart.getDate() + i,
       );
-      const p = byDate.get(formatIsoDate(d));
+      const p = byDate.get(toIsoDate(d));
       prevSum += p?.actual_sales ?? 0;
     }
   }

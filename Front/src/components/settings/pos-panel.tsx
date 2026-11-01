@@ -2,6 +2,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { Download, Upload } from "lucide-react";
 import { type PosStatus, getPosStatus } from "../../api/endpoints/pos";
+import { formatMonthDayTime } from "../../lib/format";
 import { FollowPanel } from "../shell/follow-panel";
 
 const TEMPLATE_HEADER =
@@ -24,16 +25,6 @@ export function downloadSalesCsvTemplate() {
   URL.revokeObjectURL(url);
 }
 
-function formatSyncTime(dateStr: string | null | undefined): string {
-  if (!dateStr) return "";
-  try {
-    const d = new Date(dateStr);
-    return `${d.getMonth() + 1}월 ${d.getDate()}일 ${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
-  } catch {
-    return dateStr;
-  }
-}
-
 interface PosPanelProps {
   onBack?: () => void;
   onOpenUpload: () => void;
@@ -47,7 +38,7 @@ export function PosPanel({ onBack, onOpenUpload }: PosPanelProps) {
   });
 
   const status = posStatus?.status ?? "CSV_MODE";
-  const lastSync = formatSyncTime(posStatus?.last_synced_at);
+  const lastSync = posStatus?.last_synced_at ? formatMonthDayTime(posStatus.last_synced_at) : "";
 
   return (
     <FollowPanel

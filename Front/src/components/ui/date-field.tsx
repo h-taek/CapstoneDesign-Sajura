@@ -1,9 +1,8 @@
 // 날짜 선택 필드 — 앱(< lg)은 네이티브 date 입력, 웹(>= lg)은 유리 달력 팝오버 (04_fe.md §4.0, mockup.js).
 import { CalendarDays, ChevronLeft, ChevronRight } from "lucide-react";
 import { type FocusEvent, forwardRef, useEffect, useId, useMemo, useRef, useState } from "react";
+import { WEEKDAYS } from "../../lib/format";
 import { cn } from "../../lib/utils";
-
-const WEEKDAYS = ["일", "월", "화", "수", "목", "금", "토"] as const;
 
 const baseDateFieldClass =
   "h-11 w-full rounded-full border border-white/80 bg-[rgb(46_32_120/0.065)] px-4 text-base text-ink placeholder:text-ink-3 focus:border-brand focus:outline-none focus:ring-4 focus:ring-brand-soft disabled:cursor-not-allowed disabled:opacity-60 disabled:text-ink-3";

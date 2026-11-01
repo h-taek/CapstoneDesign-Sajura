@@ -6,6 +6,7 @@ import type { OrderRecommendation } from "../api/endpoints/orders";
 import * as ordersApi from "../api/endpoints/orders";
 import {
   calculateOrderSummary,
+  formatOrderCost,
   formatStockoutDate,
   formatTargetPeriod,
   sortRecommendations,
@@ -152,6 +153,11 @@ describe("b6: order-calc 순수 함수", () => {
     expect(periodStr).toContain("10월 19일 판매까지 반영");
     expect(periodStr).toContain("10월 20일 (화)");
     expect(periodStr).toContain("3일분");
+  });
+
+  it("formatOrderCost: 단가를 하나도 못 읽어 합계가 0이면 —", () => {
+    expect(formatOrderCost(84000)).toBe("84,000원");
+    expect(formatOrderCost(0)).toBe("—");
   });
 });
 

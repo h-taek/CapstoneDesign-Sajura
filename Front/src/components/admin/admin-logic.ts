@@ -1,5 +1,6 @@
 // 관리자 사업자 검증 심사 큐 정렬·포맷 로직 (04_fe.md §4.10, §7.0).
 import type { VerificationItem } from "../../api/endpoints/admin";
+import { formatMonthDayTime } from "../../lib/format";
 
 /**
  * 심사 큐 기본 정렬: 신청 일시(submitted_at) 오래된 순 (04_fe.md §4.10).
@@ -20,11 +21,5 @@ export function sortVerifications(items: VerificationItem[]): VerificationItem[]
  * 신청 일시 포맷 (예: "10월 17일 14:02").
  */
 export function formatSubmittedAt(iso: string): string {
-  const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return iso;
-  const month = d.getMonth() + 1;
-  const day = d.getDate();
-  const hours = String(d.getHours()).padStart(2, "0");
-  const minutes = String(d.getMinutes()).padStart(2, "0");
-  return `${month}월 ${day}일 ${hours}:${minutes}`;
+  return Number.isNaN(new Date(iso).getTime()) ? iso : formatMonthDayTime(iso);
 }

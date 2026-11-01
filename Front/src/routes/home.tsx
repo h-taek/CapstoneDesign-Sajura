@@ -17,11 +17,7 @@ import { listOrders } from "../api/endpoints/orders";
 import { getSalesSummary, getSalesTrends } from "../api/endpoints/sales";
 import { HomeAreaChart } from "../components/home/home-area-chart";
 import {
-  formatChartLabel,
   formatExpiryDday,
-  formatMonthDay,
-  formatMonthDayDow,
-  parseLocalDate,
   selectAlertInventory,
   selectTopPriceTrends,
 } from "../components/home/home-utils";
@@ -33,12 +29,16 @@ import { isExpiryWarning, isStockWarning } from "../components/inventory/stock-s
 import { InstallBanner } from "../components/pwa/install-banner";
 import { MainShell } from "../components/shell";
 import { accuracyRatio } from "../lib/accuracy";
-import { formatQty, formatWonShort } from "../lib/format";
+import {
+  formatMonthDay,
+  formatMonthDayDow,
+  formatQty,
+  formatSlashDate,
+  formatWonShort,
+  parseLocalDate,
+  toIsoDate,
+} from "../lib/format";
 import { useAuthStore } from "../stores/auth-store";
-
-function toIsoDate(d: Date): string {
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-}
 
 export default function HomePage() {
   const user = useAuthStore((s) => s.user);
@@ -123,7 +123,7 @@ export default function HomePage() {
 
   // 최근 7일 실제 매출 및 평소 평균 계산
   const actualValues = fvaData.map((p) => p.actual_sales ?? 0);
-  const actualLabels = fvaData.map((p) => formatChartLabel(p.date));
+  const actualLabels = fvaData.map((p) => formatSlashDate(p.date));
   const baseline =
     actualValues.length > 0
       ? Math.round(actualValues.reduce((a, b) => a + b, 0) / actualValues.length)

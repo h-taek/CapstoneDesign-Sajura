@@ -1,5 +1,6 @@
 // 재고 경고 판정·정렬 — BE는 원본값만 주고 화면 판단은 FE가 한다 (04_fe.md §4.6, 03_be.md §2).
 import type { InventoryItem } from "../../api/endpoints/inventory";
+import { parseLocalDate } from "../../lib/format";
 
 // 01_basic_design.md §3.3.6 — D-1 긴급, D-3 경고
 const EXPIRY_URGENT_DAYS = 1;
@@ -41,15 +42,10 @@ export const SORT_OPTION_LABELS: Record<InventorySortOption, string> = {
 export type InventorySortKey = "expiry" | "name" | "quantity" | "status";
 export type SortDir = "asc" | "desc";
 
-function localDate(iso: string): Date {
-  const [y, m, d] = iso.split("-").map(Number);
-  return new Date(y ?? 0, (m ?? 1) - 1, d ?? 1);
-}
-
 /** 오늘 기준 남은 일수. 지났으면 음수. */
 export function daysUntil(iso: string, today: Date): number {
   const start = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-  return Math.round((localDate(iso).getTime() - start.getTime()) / 86_400_000);
+  return Math.round((parseLocalDate(iso).getTime() - start.getTime()) / 86_400_000);
 }
 
 export function stockStatus(item: InventoryItem, today: Date): StockStatus {

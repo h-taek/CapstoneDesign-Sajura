@@ -9,36 +9,6 @@ import {
   sortInventory,
 } from "../inventory/stock-status";
 
-const DOW = ["일", "월", "화", "수", "목", "금", "토"] as const;
-
-/** "YYYY-MM-DD" 또는 Date를 로컬 Date 객체로 변환한다. */
-export function parseLocalDate(val: Date | string): Date {
-  if (val instanceof Date) {
-    return new Date(val.getFullYear(), val.getMonth(), val.getDate());
-  }
-  const datePart = val.split("T")[0] ?? "";
-  const [y, m, d] = datePart.split("-").map(Number);
-  return new Date(y ?? 0, (m ?? 1) - 1, d ?? 1);
-}
-
-/** "10월 19일" 형식 */
-export function formatMonthDay(val: Date | string): string {
-  const d = parseLocalDate(val);
-  return `${d.getMonth() + 1}월 ${d.getDate()}일`;
-}
-
-/** "10월 20일 (화)" 형식 */
-export function formatMonthDayDow(val: Date | string): string {
-  const d = parseLocalDate(val);
-  return `${d.getMonth() + 1}월 ${d.getDate()}일 (${DOW[d.getDay()]})`;
-}
-
-/** "10/19" 차트 라벨 형식 */
-export function formatChartLabel(val: Date | string): string {
-  const d = parseLocalDate(val);
-  return `${d.getMonth() + 1}/${d.getDate()}`;
-}
-
 /** 소비기한 D-day 표시 ("D-1", "D-0", "D+2", "—") */
 export function formatExpiryDday(iso: string | null, today: Date): string {
   if (iso === null) return "—";

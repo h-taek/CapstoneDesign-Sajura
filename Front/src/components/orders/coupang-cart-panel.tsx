@@ -1,7 +1,6 @@
 // 쿠팡 담기 판 컴포넌트 — 04_fe.md §4.8, 목업 10_orders.html lines 180~212.
 import type { AutomateFinishResponse, OrderRecommendation } from "../../api/endpoints/orders";
-import { formatQty, formatWon } from "../../lib/format";
-import { formatDayWithWeekday } from "./order-calc";
+import { formatMonthDayDow, formatQty, formatWon } from "../../lib/format";
 
 interface CoupangCartPanelProps {
   status: "idle" | "carting" | "result" | "error";
@@ -52,7 +51,7 @@ export function CoupangCartPanel({
     const totalSuccessful = addedItems.length + checkNeededItems.length;
 
     const approvedDayText = finishResult.approved_at
-      ? formatDayWithWeekday(new Date(finishResult.approved_at))
+      ? formatMonthDayDow(finishResult.approved_at)
       : "";
 
     const formatItemList = (items: typeof finishResult.items) =>

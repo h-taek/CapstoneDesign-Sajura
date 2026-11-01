@@ -15,15 +15,12 @@ import {
   calcYesterdayAccuracy,
   forecastErrorMessage,
   formatIntervalRange,
-  formatMonthDay,
-  formatTargetDate,
   getPeriodBounds,
   horizonDayLabel,
   lowConfidenceTooltip,
-  parseLocalDate,
 } from "../components/forecast/forecast-logic";
 import { MainShell } from "../components/shell";
-import { formatWonShort } from "../lib/format";
+import { formatMonthDay, formatMonthDayDow, formatWonShort, parseLocalDate } from "../lib/format";
 
 export default function ForecastPage() {
   const [range, setRange] = useState<PeriodRange>("month");
@@ -312,7 +309,7 @@ export default function ForecastPage() {
                 {predictions.map((p, idx) => {
                   const isSelected = selectedDayIndex === idx;
                   const dayName = horizonDayLabel(p.horizon_days, idx);
-                  const dateLabel = formatTargetDate(p.target_date);
+                  const dateLabel = formatMonthDayDow(p.target_date);
                   // deviation_vs_baseline·pct는 비율이다(0.12 = 12%) — 02_implementation_design.md §3.7
                   const deviation = p.explanation?.deviation_vs_baseline;
                   const deviationPct =
@@ -402,7 +399,7 @@ export default function ForecastPage() {
         ) : (
           <>
             <h2 className="px-1 text-base font-bold text-ink">
-              {formatTargetDate(selectedPrediction.target_date)} 메뉴별 예상 판매
+              {formatMonthDayDow(selectedPrediction.target_date)} 메뉴별 예상 판매
             </h2>
             <ul className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
               {menuShareItems.map((item) => (

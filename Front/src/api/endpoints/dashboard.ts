@@ -1,5 +1,6 @@
 // 대시보드 API — 02_implementation_design.md §3.9.
 import { api } from "../../lib/api";
+import { toIsoDate } from "../../lib/format";
 import type { components } from "../types.gen";
 
 type S = components["schemas"];
@@ -9,8 +10,7 @@ export type ForecastActualPoint = S["ForecastActualPoint"];
 export type ForecastVsActualResponse = S["ForecastVsActualResponse"];
 
 function isoDate(d: Date | string): string {
-  if (typeof d === "string") return d;
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  return typeof d === "string" ? d : toIsoDate(d);
 }
 
 // GET /api/dashboard/forecast-vs-actual — 날짜별 예측 매출과 실제 매출 비교.

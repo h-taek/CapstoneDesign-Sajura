@@ -1,5 +1,6 @@
 // 판매 데이터 순수 계산 로직 (04_fe.md §7.0, §4.7).
 import type { SaleListItem, TrendPoint } from "../../api/endpoints/sales";
+import { WEEKDAYS, formatMonthDay, parseLocalDate } from "../../lib/format";
 
 export interface DaySaleSummary {
   date: string; // YYYY-MM-DD
@@ -31,8 +32,6 @@ export interface DayAggregatedDetails {
   allSales: SaleListItem[];
 }
 
-const DOW_KOREAN = ["일", "월", "화", "수", "목", "금", "토"] as const;
-
 /** YYYY-MM-DD 날짜 문자열 사이 일 수 계산 (시작/끝 포함) */
 export function getDaysDiffInclusive(start: string, end: string): number {
   const [sy, sm, sd] = start.split("-").map(Number);
@@ -56,14 +55,12 @@ export function formatDayDisplay(dateIso: string): {
   shortDate: string;
   dayOfWeek: string;
 } {
-  const [y, m, d] = dateIso.split("-").map(Number);
-  if (!y || !m || !d) {
+  const dateObj = parseLocalDate(dateIso);
+  if (Number.isNaN(dateObj.getTime())) {
     return { dayLabel: dateIso, shortDate: dateIso, dayOfWeek: "" };
   }
-  const dateObj = new Date(y, m - 1, d);
-  const dow = DOW_KOREAN[dateObj.getDay()] ?? "";
-  const shortDate = `${m}월 ${d}일`;
-  const dayOfWeek = `(${dow})`;
+  const shortDate = formatMonthDay(dateObj);
+  const dayOfWeek = `(${WEEKDAYS[dateObj.getDay()]})`;
   return {
     dayLabel: `${shortDate} ${dayOfWeek}`,
     shortDate,

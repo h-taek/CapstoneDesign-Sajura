@@ -13,7 +13,7 @@ import {
 import { DayPanel } from "../../components/sales/day-panel";
 import { MenuPanel } from "../../components/sales/menu-panel";
 import { DateField, MainShell } from "../../components/shell";
-import { formatWon } from "../../lib/format";
+import { formatWon, parseLocalDate, toIsoDate } from "../../lib/format";
 
 const PAGE_SIZE = 31; // 1년이면 366줄이라 31줄씩 쪽 이동
 
@@ -29,17 +29,14 @@ export default function SalesPage() {
     if (summary?.last_sale_at) {
       return summary.last_sale_at.slice(0, 10);
     }
-    const today = new Date();
-    return `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
+    return toIsoDate(new Date());
   }, [summary?.last_sale_at]);
 
   const defaultStartIso = useMemo(() => {
     // 기본 일주일 전 (6일 차이)
-    const [y, m, d] = defaultEndIso.split("-").map(Number);
-    if (!y || !m || !d) return "2026-10-13";
-    const date = new Date(Date.UTC(y, m - 1, d));
-    date.setUTCDate(date.getUTCDate() - 6);
-    return `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, "0")}-${String(date.getUTCDate()).padStart(2, "0")}`;
+    const date = parseLocalDate(defaultEndIso);
+    date.setDate(date.getDate() - 6);
+    return toIsoDate(date);
   }, [defaultEndIso]);
 
   const [startDate, setStartDate] = useState<string>("");

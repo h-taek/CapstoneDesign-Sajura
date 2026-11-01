@@ -1,37 +1,16 @@
 // 추천발주 화면 계산 순수 함수 — 04_fe.md §4.8, §7.0.
 import type { OrderRecommendation } from "../../api/endpoints/orders";
-
-const WEEKDAYS = ["일", "월", "화", "수", "목", "금", "토"] as const;
-
-/** YYYY-MM-DD 또는 Date 객체를 파싱해 로컬 날짜 객체 반환 */
-function parseLocalDate(dateInput: string | Date): Date {
-  if (dateInput instanceof Date) return dateInput;
-  const [yearStr, monthStr, dayStr] = dateInput.split("-");
-  const year = Number(yearStr);
-  const month = Number(monthStr);
-  const day = Number(dayStr);
-  if (!year || !month || !day) {
-    return new Date(dateInput);
-  }
-  return new Date(year, month - 1, day);
-}
+import {
+  WEEKDAYS,
+  formatMonthDayDow,
+  formatSlashDate,
+  formatWon,
+  parseLocalDate,
+} from "../../lib/format";
 
 /** 날짜 문자열(YYYY-MM-DD)을 "M/D" (예: "10/21") 형태로 변환. 없으면 "—" */
 export function formatStockoutDate(dateStr: string | null | undefined): string {
-  if (!dateStr) return "—";
-  const d = parseLocalDate(dateStr);
-  if (Number.isNaN(d.getTime())) return "—";
-  return `${d.getMonth() + 1}/${d.getDate()}`;
-}
-
-/** 날짜 문자열 또는 Date 객체를 "M월 D일 (요일)" (예: "10월 20일 (화)") 형태로 변환 */
-export function formatDayWithWeekday(dateInput: string | Date): string {
-  const d = parseLocalDate(dateInput);
-  if (Number.isNaN(d.getTime())) return "";
-  const month = d.getMonth() + 1;
-  const date = d.getDate();
-  const weekday = WEEKDAYS[d.getDay()] ?? "";
-  return `${month}월 ${date}일 (${weekday})`;
+  return dateStr ? formatSlashDate(dateStr) : "—";
 }
 
 /**
@@ -51,11 +30,11 @@ export function formatTargetPeriod(targetDates: string[] | undefined | null): st
 
   const count = targetDates.length;
   if (count === 1) {
-    return `${reflectedText} · ${formatDayWithWeekday(first)} 1일분`;
+    return `${reflectedText} · ${formatMonthDayDow(first)} 1일분`;
   }
 
   const last = parseLocalDate(targetDates[count - 1]!);
-  const firstText = formatDayWithWeekday(first);
+  const firstText = formatMonthDayDow(first);
 
   // 같은 월이면 마지막 날은 "D일 (요일)", 다른 월이면 "M월 D일 (요일)"
   const lastWeekday = WEEKDAYS[last.getDay()] ?? "";
@@ -152,4 +131,9 @@ export function calculateItemEstimate(
   const q = Number(quantityStr);
   if (!Number.isFinite(q) || q <= 0) return 0;
   return Math.round(unitPrice * q);
+}
+
+/** 확정 발주 예상 금액. 담은 상품 단가를 하나도 못 읽어 합계가 0이면 "—" */
+export function formatOrderCost(totalEstimatedCost: number): string {
+  return totalEstimatedCost > 0 ? formatWon(totalEstimatedCost) : "—";
 }
