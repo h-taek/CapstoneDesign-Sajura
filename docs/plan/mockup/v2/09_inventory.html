@@ -24,6 +24,8 @@
   }
 </style>
 </head>
+<!-- 웹 상세 판 스크롤 — 판은 화면 위쪽(떠 있는 주 메뉴 아래 84px)에 붙어 따라오고, 판 아래 끝이 격자 끝에 닿으면 격자와 함께 올라간다(sticky).
+     판 높이는 내용·화면·격자 중 작은 쪽, 넘치면 판 안 스크롤. 마우스가 판 안이면 판 안이 먼저 움직이고 끝에 닿으면 페이지로 넘어간다, 판 밖이면 페이지만 움직인다(브라우저 기본) -->
 <!-- 원본: Front/src/routes/inventory.tsx, components/inventory/*. v2 재설계 — 재료마다 카드 하나, 누르면 상세 판(웹은 오른쪽 열, 앱은 전체 화면) -->
 <!-- 오늘은 2026-10-19로 본다. 정렬은 기본값(소비기한 빠른순)으로 풀어 쓴다 — 소비기한 없는 재료는 맨 뒤, 같으면 이름순.
      카드는 재료명·총 수량·가장 이른 소비기한(D-n). 경고는 배지 없이 해당 글씨만 빨갛게(소비기한 오늘+3일 이내, 수량 needs_check 또는 ≤ 재주문 임계값).
@@ -218,8 +220,8 @@
     </div>
 
     <!-- 재료 추가 — 저장을 누른 뒤 구매 금액 검증 오류가 난 모습 -->
-    <aside data-when="form" aria-label="새 재료" class="fixed inset-0 z-50 overflow-y-auto lg:relative lg:inset-auto lg:z-auto lg:col-span-2 lg:flex lg:h-0 lg:min-h-full lg:flex-col lg:overflow-visible">
-      <div class="min-h-full px-4 pt-[5.25rem] pb-28 glass-card lg:min-h-0 lg:overflow-y-auto lg:rounded-2xl lg:p-5">
+    <aside data-when="form" data-follow aria-label="새 재료" class="fixed inset-0 z-50 overflow-y-auto lg:relative lg:inset-auto lg:z-auto lg:col-span-2 lg:flex lg:h-0 lg:min-h-full lg:flex-col lg:overflow-visible">
+      <div class="min-h-full px-4 pt-[5.25rem] pb-28 glass-card lg:min-h-0 lg:overflow-y-auto lg:rounded-2xl lg:p-5 lg:sticky lg:top-[5.25rem] lg:max-h-[calc(100vh-6.25rem)]">
         <div class="flex items-center gap-2">
           <button type="button" data-set-state="default" aria-label="목록으로" class="flex size-10 items-center justify-center rounded-full text-ink-2 hover:bg-white/60 lg:hidden"><span data-icon="chevronLeft" class="size-6"></span></button>
           <h2 class="min-w-0 flex-1 text-xl font-bold text-ink">새 재료</h2>
@@ -244,8 +246,8 @@
     </aside>
 
     <!-- 상세 — 루꼴라(needs_check: 기록상 재고 없이 판매 차감). 입고 대기 1건, 로트 1개(잔여 0) -->
-    <aside data-when="lots addlot edit" aria-label="루꼴라 상세" class="fixed inset-0 z-50 overflow-y-auto lg:relative lg:inset-auto lg:z-auto lg:col-span-2 lg:flex lg:h-0 lg:min-h-full lg:flex-col lg:overflow-visible">
-      <div class="min-h-full px-4 pt-[5.25rem] pb-28 glass-card lg:min-h-0 lg:overflow-y-auto lg:rounded-2xl lg:p-5">
+    <aside data-when="lots addlot edit" data-follow aria-label="루꼴라 상세" class="fixed inset-0 z-50 overflow-y-auto lg:relative lg:inset-auto lg:z-auto lg:col-span-2 lg:flex lg:h-0 lg:min-h-full lg:flex-col lg:overflow-visible">
+      <div class="min-h-full px-4 pt-[5.25rem] pb-28 glass-card lg:min-h-0 lg:overflow-y-auto lg:rounded-2xl lg:p-5 lg:sticky lg:top-[5.25rem] lg:max-h-[calc(100vh-6.25rem)]">
         <div class="flex items-center gap-2">
           <button type="button" data-set-state="default" aria-label="목록으로" class="flex size-10 items-center justify-center rounded-full text-ink-2 hover:bg-white/60 lg:hidden"><span data-icon="chevronLeft" class="size-6"></span></button>
           <h2 class="min-w-0 flex-1 truncate text-xl font-bold text-ink">루꼴라</h2>
@@ -359,8 +361,8 @@
     </aside>
 
     <!-- 상세 — 모짜렐라 치즈(소비기한 D-3). 입고 대기 1건, 로트 2개. dispose는 첫 로트 폐기 폼을 연 모습 -->
-    <aside data-when="mozz dispose" aria-label="모짜렐라 치즈 상세" class="fixed inset-0 z-50 overflow-y-auto lg:relative lg:inset-auto lg:z-auto lg:col-span-2 lg:flex lg:h-0 lg:min-h-full lg:flex-col lg:overflow-visible">
-      <div class="min-h-full px-4 pt-[5.25rem] pb-28 glass-card lg:min-h-0 lg:overflow-y-auto lg:rounded-2xl lg:p-5">
+    <aside data-when="mozz dispose" data-follow aria-label="모짜렐라 치즈 상세" class="fixed inset-0 z-50 overflow-y-auto lg:relative lg:inset-auto lg:z-auto lg:col-span-2 lg:flex lg:h-0 lg:min-h-full lg:flex-col lg:overflow-visible">
+      <div class="min-h-full px-4 pt-[5.25rem] pb-28 glass-card lg:min-h-0 lg:overflow-y-auto lg:rounded-2xl lg:p-5 lg:sticky lg:top-[5.25rem] lg:max-h-[calc(100vh-6.25rem)]">
         <div class="flex items-center gap-2">
           <button type="button" data-set-state="default" aria-label="목록으로" class="flex size-10 items-center justify-center rounded-full text-ink-2 hover:bg-white/60 lg:hidden"><span data-icon="chevronLeft" class="size-6"></span></button>
           <h2 class="min-w-0 flex-1 truncate text-xl font-bold text-ink">모짜렐라 치즈</h2>
@@ -476,32 +478,5 @@
     <button type="button" disabled aria-label="다음 쪽" class="flex size-10 items-center justify-center rounded-full text-ink-4"><span data-icon="chevronRight" class="size-5"></span></button>
   </nav>
 </div>
-<script>
-// 웹 상세 판은 페이지 스크롤을 천천히 따라 내려온다 — 맨 위에서는 판 위 끝이 격자 위 끝에, 맨 아래에서는 판 아래 끝이 격자 아래 끝에 닿는다
-const followPanel = () => {
-  for (const a of document.querySelectorAll(".inv-wrap > aside")) {
-    const panel = a.firstElementChild;
-    if (a.hidden || innerWidth < 1024) { panel.style.transform = ""; continue; }
-    const max = document.documentElement.scrollHeight - innerHeight;
-    const travel = Math.max(0, a.clientHeight - panel.offsetHeight);
-    panel.style.transform = `translateY(${max > 0 ? Math.round(travel * Math.min(1, scrollY / max)) : 0}px)`;
-  }
-};
-addEventListener("scroll", followPanel, { passive: true });
-addEventListener("resize", followPanel);
-addEventListener("click", () => requestAnimationFrame(followPanel));
-addEventListener("load", followPanel);
-// 판 내용이 격자보다 길어 판 안에서 스크롤할 때 — 페이지가 끝에 닿은 뒤 더 굴리면 판 안이 이어서 내려가고, 올릴 때는 판 안이 먼저 올라간다
-addEventListener("wheel", (e) => {
-  if (innerWidth < 1024) return;
-  const panel = [...document.querySelectorAll(".inv-wrap > aside")].find((a) => !a.hidden)?.firstElementChild;
-  if (!panel || panel.contains(e.target)) return;
-  const atEnd = scrollY + innerHeight >= document.documentElement.scrollHeight - 1;
-  const room = e.deltaY > 0 ? panel.scrollHeight - panel.clientHeight - panel.scrollTop : panel.scrollTop;
-  if (!atEnd || room < 1) return;
-  e.preventDefault();
-  panel.scrollTop += e.deltaY;
-}, { passive: false });
-</script>
 </body>
 </html>

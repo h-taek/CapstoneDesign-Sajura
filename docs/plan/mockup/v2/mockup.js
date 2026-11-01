@@ -1109,6 +1109,38 @@ function renderChart(el) {
   el.innerHTML = `<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" class="h-full w-full">${body}</svg>`;
 }
 
+// 웹 옆 판(aside[data-follow] > 첫 판) — 판은 CSS sticky로 화면 위쪽에 붙어 따라오고, 판 아래 끝이 격자 끝에 닿으면 격자와 함께 올라간다.
+// 판이 화면보다 짧아 페이지가 먼저 끝나면, 판 밖에서 더 내릴 때 판만 내려와 아래 끝이 격자 끝(aside 아래 끝)에 닿는다. 올릴 때는 판이 먼저 제자리로.
+// 마우스가 판 안이면 판 안 스크롤이 먼저, 끝에 닿으면 판 밖과 같은 동작(페이지 → 페이지 끝이면 판이 내려옴)으로 이어진다
+const followPanels = () =>
+  [...document.querySelectorAll("aside[data-follow]")].filter((a) => !a.hidden && getComputedStyle(a).display !== "none").map((a) => a.firstElementChild);
+const dropPanel = (p, v) => { p.dataset.drop = String(v); p.style.transform = v ? `translateY(${v}px)` : ""; };
+addEventListener("wheel", (e) => {
+  if (innerWidth < 1024) return;
+  const panels = followPanels();
+  // 페이지가 스크롤되지 않는 화면(내용이 화면 안에 다 들어옴)에서는 판을 내리지 않는다
+  if (!panels.length || document.documentElement.scrollHeight - innerHeight < 1) return;
+  // 마우스가 판 안이면 판 안 스크롤이 먼저(브라우저 기본)
+  const inside = panels.find((p) => p.contains(e.target));
+  if (inside && (e.deltaY > 0 ? inside.scrollHeight - inside.clientHeight - inside.scrollTop > 0.5 : inside.scrollTop > 0.5)) return;
+  const atEnd = scrollY + innerHeight >= document.documentElement.scrollHeight - 1;
+  let used = false;
+  for (const p of panels) {
+    const cur = Number(p.dataset.drop || 0);
+    const room = p.parentElement.getBoundingClientRect().bottom - p.getBoundingClientRect().bottom;
+    if (e.deltaY > 0 && atEnd && room > 0.5) { dropPanel(p, cur + Math.min(e.deltaY, room)); used = true; }
+    else if (e.deltaY < 0 && cur > 0) { dropPanel(p, Math.max(0, cur + e.deltaY)); used = true; }
+  }
+  // 판 안이 그 방향 끝에 닿은 뒤 — 브라우저는 한 번의 손동작을 판 안에 묶어 페이지로 넘기지 않으므로 페이지 스크롤을 직접 잇는다
+  if (!used && inside) { scrollBy(0, e.deltaY); used = true; }
+  if (used) e.preventDefault();
+}, { passive: false });
+// 판을 바꾸거나(상태 전환) 페이지가 끝에서 떨어지면 내려온 판을 제자리로
+addEventListener("click", () => requestAnimationFrame(() => document.querySelectorAll("aside[data-follow] > *").forEach((p) => dropPanel(p, 0))));
+addEventListener("scroll", () => {
+  if (scrollY + innerHeight < document.documentElement.scrollHeight - 1) document.querySelectorAll("aside[data-follow] > [data-drop]").forEach((p) => dropPanel(p, 0));
+}, { passive: true });
+
 // 화면 상태 — body[data-states]="라벨:키,…". data-when="키 키"인 요소는 그 상태에서만 보인다.
 function applyState(state) {
   document.body.dataset.state = state;

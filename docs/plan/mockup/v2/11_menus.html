@@ -129,8 +129,8 @@
     </div>
 
     <!-- 편집 — 불새우 루꼴라 화덕피자(레시피 있음, 재고 차감 켬). error는 메뉴명을 이미 있는 이름으로 바꿔 저장한 모습(MENU_NAME_DUPLICATE) -->
-    <aside data-when="edit" aria-label="불새우 루꼴라 화덕피자 편집" class="fixed inset-0 z-50 overflow-y-auto lg:relative lg:inset-auto lg:z-auto lg:col-span-2 lg:mt-9 lg:flex lg:flex-col lg:overflow-visible">
-      <div class="min-h-full px-4 pt-[5.25rem] pb-28 glass-card lg:min-h-0 lg:rounded-2xl lg:p-5">
+    <aside data-when="edit" data-follow aria-label="불새우 루꼴라 화덕피자 편집" class="fixed inset-0 z-50 overflow-y-auto lg:relative lg:inset-auto lg:z-auto lg:col-span-2 lg:mt-9 lg:flex lg:flex-col lg:overflow-visible">
+      <div class="min-h-full px-4 pt-[5.25rem] pb-28 glass-card lg:min-h-0 lg:overflow-y-auto lg:rounded-2xl lg:p-5 lg:sticky lg:top-[5.25rem] lg:max-h-[calc(100vh-6.25rem)]">
         <div class="flex items-center gap-2">
           <button type="button" data-set-state="default" aria-label="목록으로" class="flex size-10 items-center justify-center rounded-full text-ink-2 hover:bg-white/60 lg:hidden"><span data-icon="chevronLeft" class="size-6"></span></button>
           <h2 class="min-w-0 flex-1 truncate text-xl font-bold text-ink">불새우 루꼴라 화덕피자</h2>
@@ -159,8 +159,8 @@
         </section>
       </div>
     </aside>
-    <aside data-when="error" aria-label="불새우 루꼴라 화덕피자 편집" class="fixed inset-0 z-50 overflow-y-auto lg:relative lg:inset-auto lg:z-auto lg:col-span-2 lg:mt-9 lg:flex lg:flex-col lg:overflow-visible">
-      <div class="min-h-full px-4 pt-[5.25rem] pb-28 glass-card lg:min-h-0 lg:rounded-2xl lg:p-5">
+    <aside data-when="error" data-follow aria-label="불새우 루꼴라 화덕피자 편집" class="fixed inset-0 z-50 overflow-y-auto lg:relative lg:inset-auto lg:z-auto lg:col-span-2 lg:mt-9 lg:flex lg:flex-col lg:overflow-visible">
+      <div class="min-h-full px-4 pt-[5.25rem] pb-28 glass-card lg:min-h-0 lg:overflow-y-auto lg:rounded-2xl lg:p-5 lg:sticky lg:top-[5.25rem] lg:max-h-[calc(100vh-6.25rem)]">
         <div class="flex items-center gap-2">
           <button type="button" data-set-state="default" aria-label="목록으로" class="flex size-10 items-center justify-center rounded-full text-ink-2 hover:bg-white/60 lg:hidden"><span data-icon="chevronLeft" class="size-6"></span></button>
           <h2 class="min-w-0 flex-1 truncate text-xl font-bold text-ink">불새우 루꼴라 화덕피자</h2>
@@ -191,8 +191,8 @@
     </aside>
 
     <!-- 편집 — 머스크멜론 하몽(레시피 없음). 재고 차감은 레시피를 저장하기 전까지 잠긴다 -->
-    <aside data-when="melon" aria-label="머스크멜론 하몽 편집" class="fixed inset-0 z-50 overflow-y-auto lg:relative lg:inset-auto lg:z-auto lg:col-span-2 lg:mt-9 lg:flex lg:flex-col lg:overflow-visible">
-      <div class="min-h-full px-4 pt-[5.25rem] pb-28 glass-card lg:min-h-0 lg:rounded-2xl lg:p-5">
+    <aside data-when="melon" data-follow aria-label="머스크멜론 하몽 편집" class="fixed inset-0 z-50 overflow-y-auto lg:relative lg:inset-auto lg:z-auto lg:col-span-2 lg:mt-9 lg:flex lg:flex-col lg:overflow-visible">
+      <div class="min-h-full px-4 pt-[5.25rem] pb-28 glass-card lg:min-h-0 lg:overflow-y-auto lg:rounded-2xl lg:p-5 lg:sticky lg:top-[5.25rem] lg:max-h-[calc(100vh-6.25rem)]">
         <div class="flex items-center gap-2">
           <button type="button" data-set-state="default" aria-label="목록으로" class="flex size-10 items-center justify-center rounded-full text-ink-2 hover:bg-white/60 lg:hidden"><span data-icon="chevronLeft" class="size-6"></span></button>
           <h2 class="min-w-0 flex-1 truncate text-xl font-bold text-ink">머스크멜론 하몽</h2>
@@ -217,8 +217,8 @@
     </aside>
 
     <!-- 메뉴 추가 — 저장하면 메뉴(POST /api/menus, 재고 차감 꺼짐)와 레시피(PUT …/recipe)를 함께 저장. noinv는 등록된 재료가 없는 매장 -->
-    <aside data-when="new noinv" aria-label="새 메뉴" class="fixed inset-0 z-50 overflow-y-auto lg:relative lg:inset-auto lg:z-auto lg:col-span-2 lg:mt-9 lg:flex lg:flex-col lg:overflow-visible">
-      <div class="min-h-full px-4 pt-[5.25rem] pb-28 glass-card lg:min-h-0 lg:rounded-2xl lg:p-5">
+    <aside data-when="new noinv" data-follow aria-label="새 메뉴" class="fixed inset-0 z-50 overflow-y-auto lg:relative lg:inset-auto lg:z-auto lg:col-span-2 lg:mt-9 lg:flex lg:flex-col lg:overflow-visible">
+      <div class="min-h-full px-4 pt-[5.25rem] pb-28 glass-card lg:min-h-0 lg:overflow-y-auto lg:rounded-2xl lg:p-5 lg:sticky lg:top-[5.25rem] lg:max-h-[calc(100vh-6.25rem)]">
         <div class="flex items-center gap-2">
           <button type="button" data-set-state="default" aria-label="목록으로" class="flex size-10 items-center justify-center rounded-full text-ink-2 hover:bg-white/60 lg:hidden"><span data-icon="chevronLeft" class="size-6"></span></button>
           <h2 class="min-w-0 flex-1 truncate text-xl font-bold text-ink">새 메뉴</h2>
@@ -253,15 +253,8 @@
   </div>
 </div>
 <script>
-// 08 재고와 같다 — 웹 판은 페이지 스크롤을 천천히 따라 내려와, 맨 위에서는 판 위 끝이 격자 위 끝에, 맨 아래에서는 판 아래 끝이 격자 아래 끝에 닿는다
+// 웹 판은 09 재고와 같다 — 화면 위쪽에 붙어 따라오다 판 아래 끝이 격자 끝에 닿으면 격자와 함께 올라간다(sticky). 판이 화면보다 길면 판 안 스크롤(마우스가 판 안일 때만)
 const followPanel = () => {
-  for (const a of document.querySelectorAll(".menu-wrap > aside")) {
-    const panel = a.firstElementChild;
-    if (a.hidden || innerWidth < 1024) { panel.style.transform = ""; continue; }
-    const max = document.documentElement.scrollHeight - innerHeight;
-    const travel = Math.max(0, a.clientHeight - panel.offsetHeight);
-    panel.style.transform = `translateY(${max > 0 ? Math.round(travel * Math.min(1, scrollY / max)) : 0}px)`;
-  }
   // 카테고리 구분선 — 판과 높이가 겹치지 않는 선은 판 자리까지 길게, 겹치는 선은 격자 끝에서 멈춘다. 판이 내려오면 그 높이의 선이 줄어든다
   const wrap = document.querySelector(".menu-wrap");
   const open = [...wrap.querySelectorAll(":scope > aside")].find((a) => !a.hidden);
