@@ -89,6 +89,11 @@ class Settings(BaseSettings):
     # 매장 주소 → 좌표 (Google Geocoding API) — 날씨 격자·관측소 계산용. 비면 위치를 비운다
     GOOGLE_MAPS_API_KEY: str = ""
 
+    # 토스플레이스 Open API — 사주라 앱(개발자센터) 인증 정보. 매장 ID는 pos_connections.store_code
+    TOSSPLACE_BASE_URL: str = "https://open-api.tossplace.com/api-public/openapi/v1"
+    TOSSPLACE_ACCESS_KEY: str = ""
+    TOSSPLACE_ACCESS_SECRET: str = ""
+
     # 담기 에이전트 서버 — 쿠팡 자동 담기 LLM 대화 (03_be.md §2.4.5). LLM 설정은 에이전트 서버에 둔다
     AGENT_BASE_URL: str = "http://agent:8000"
 

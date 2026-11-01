@@ -15,6 +15,7 @@ from app.config import get_settings
 from app.services.account_purge_service import AccountPurgeService
 from app.services.automation_service import AutomationService
 from app.services.inventory_service import InventoryService
+from app.services.pos_sync_service import PosSyncService
 
 KST = timezone(timedelta(hours=9))
 
@@ -42,12 +43,21 @@ async def clear_coupang_store_prices(ctx: dict) -> int:
         return await AutomationService(session).clear_store_prices(today=datetime.now(KST).date())
 
 
+async def sync_pos_sales(ctx: dict) -> int:
+    """POS 연동 매장 판매 동기화 — 매일 01:00, 02:00 예측 전 (01_basic_design.md §3.4.3)."""
+    async with app_db.SessionLocal() as session:
+        return await PosSyncService(session).sync_all()
+
+
 class WorkerSettings:
     redis_settings = _redis_settings()
     timezone = KST
-    functions: list = [check_expiry, purge_withdrawn_accounts, clear_coupang_store_prices]
+    functions: list = [
+        check_expiry, purge_withdrawn_accounts, clear_coupang_store_prices, sync_pos_sales,
+    ]
     cron_jobs: list = [
         cron(clear_coupang_store_prices, hour=0, minute=0),
+        cron(sync_pos_sales, hour=1, minute=0),
         cron(check_expiry, hour=1, minute=30),
         cron(purge_withdrawn_accounts, hour=3, minute=0),
     ]

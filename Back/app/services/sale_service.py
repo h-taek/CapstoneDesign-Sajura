@@ -177,6 +177,68 @@ class SaleService:
         await self._notify(store_id=store_id, result=result)
         return result
 
+    async def ingest_pos_sales(
+        self,
+        *,
+        store_id: str,
+        sales: list[CommonSale],
+        cancelled_prefixes: list[str] | None = None,
+        auto_create_menus: bool = True,
+        anomaly_detector: AnomalyDetector | None = None,
+    ) -> UploadResult:
+        """POS 어댑터가 변환한 판매를 저장 (source=POS).
+
+        CSV 업로드와 같은 메뉴 매핑·중복 방지·재고 차감 경로를 탄다.
+
+        cancelled_prefixes: 취소된 주문의 external_sale_id 접두어. 이미 저장된 행을 지운다.
+        재고 차감은 되돌리지 않는다(취소분 재고 복원은 후속 과제).
+        POS 메뉴명은 점주가 미리 등록하지 않았을 수 있어 기본으로 자동 등록한다.
+        """
+        detector = anomaly_detector or AnomalyDetector()
+        result = UploadResult()
+        if cancelled_prefixes:
+            await self._delete_pos_sales(store_id=store_id, prefixes=cancelled_prefixes)
+        if not sales:
+            return result
+        menu_map = await self._load_menu_map(store_id=store_id)
+        current_menu_count = len(menu_map)
+        deduction = await InventoryService(self.session).deduction_context(store_id=store_id)
+        for start in range(0, len(sales), CHUNK_SIZE):
+            chunk = sales[start:start + CHUNK_SIZE]
+            if auto_create_menus:
+                created = await self._auto_create_missing_menus(
+                    store_id=store_id, sales=chunk, menu_map=menu_map,
+                    current_menu_count=current_menu_count, result=result,
+                )
+                result.auto_created_menus += created
+                current_menu_count += created
+            result.anomaly_count += len(detector.detect(chunk))
+            await self._insert_chunk(
+                store_id=store_id, sales=chunk,
+                row_indices=list(range(start + 1, start + len(chunk) + 1)),
+                menu_map=menu_map, result=result, deduction=deduction, source=SaleSource.POS,
+            )
+        await self._notify(store_id=store_id, result=result)
+        return result
+
+    async def _delete_pos_sales(self, *, store_id: str, prefixes: list[str]) -> int:
+        removed = 0
+        for prefix in prefixes:
+            rows = (
+                await self.session.scalars(
+                    select(SaleRecord).where(
+                        SaleRecord.store_id == store_id,
+                        SaleRecord.source == SaleSource.POS,
+                        SaleRecord.external_sale_id.like(f"{prefix}%"),
+                    )
+                )
+            ).all()
+            for r in rows:
+                await self.session.delete(r)
+            removed += len(rows)
+        await self.session.commit()
+        return removed
+
     async def _notify(self, *, store_id: str, result: UploadResult) -> None:
         """업로드 결과 알림 — 이상치는 업로드당 한 건, 재고 부족은 새로 확인 필요가 된 품목마다."""
         notifier = NotificationService(self.session)
@@ -492,6 +554,7 @@ class SaleService:
         menu_map: dict[str, str],
         result: UploadResult,
         deduction: DeductionContext,
+        source: SaleSource = SaleSource.CSV,
     ) -> None:
         rows_to_insert: list[dict] = []
         seen_external: set[str] = set()  # 같은 청크 내 중복 external_sale_id 미리 차단
@@ -534,7 +597,7 @@ class SaleService:
                 "unit_price": sale.unit_price,
                 "total_price": sale.total_price,
                 "sold_at": sale.sold_at,
-                "source": SaleSource.CSV.value,
+                "source": source.value,
             })
 
         if not rows_to_insert:
@@ -553,7 +616,7 @@ class SaleService:
                     await self.session.scalars(
                         select(SaleRecord.external_sale_id).where(
                             SaleRecord.store_id == store_id,
-                            SaleRecord.source == SaleSource.CSV,
+                            SaleRecord.source == source,
                             SaleRecord.external_sale_id.in_(
                                 [r["external_sale_id"] for r in rows_to_insert]
                             ),
