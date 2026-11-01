@@ -1,48 +1,22 @@
 // 발주추천 화면 — 리디자인 v2.
 // AI 서버(GET /api/orders/recommend — 수요예측 × 메뉴 비중 분해 × 레시피(BOM) × 재고/리드타임/안전재고)
-// 추천을 줄 단위 선택 + 수량 스테퍼로 고친 뒤 POST /api/orders/approve로 확정한다. recommendation_id를
-// 실어 수정 이력이 남는다. 예측이 없으면(이력 부족·AI 서버 장애) 대체 추천 없이 사유만 안내한다.
-// 쿠팡 자동 담기·실제 입고 반영은 후속 작업 — 확정 = 기록만, 재고 수량은 자동 변경되지 않음.
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+// 추천을 줄 단위 선택 + 수량 스테퍼로 고친다. 예측이 없으면(이력 부족·AI 서버 장애) 대체 추천 없이 사유만 안내한다.
+// 확정은 쿠팡 담기(POST /api/orders/automate/*)로 붙인다 — 08_coupang_cart.md §4·§5.
+import { useQuery } from "@tanstack/react-query";
 import { HTTPError } from "ky";
-import {
-  AlertTriangle,
-  Check,
-  CheckCircle2,
-  ChevronDown,
-  Minus,
-  Plus,
-  Sparkles,
-} from "lucide-react";
+import { AlertTriangle, Check, ChevronDown, Minus, Plus, Sparkles } from "lucide-react";
 import { type ReactNode, useEffect, useMemo, useState } from "react";
 import {
-  type OrderApproveRequest,
   type OrderDetailItem,
-  type OrderStatus,
   type OrderSummary,
-  approveOrder,
   getAIRecommend,
   getOrder,
   listOrders,
 } from "../api/endpoints/orders";
 import { DashboardShell } from "../components/dashboard/shell";
-import { Button } from "../components/ui/button";
 import { Card, EmptyState, PageHeader, SectionTitle } from "../components/ui/card";
 import { formatQty, formatWon } from "../lib/format";
 import { cn } from "../lib/utils";
-
-const STATUS_LABEL: Record<OrderStatus, string> = {
-  APPROVED: "확정",
-  AUTOMATED: "자동 담기 완료",
-  MANUAL_REQUIRED: "수동 처리 필요",
-};
-
-function approveErrorMessage(error: unknown): string {
-  if (error instanceof HTTPError && error.response.status === 409) {
-    return "이미 확정한 추천안이에요. 새 추천을 불러왔어요.";
-  }
-  return "발주 확정에 실패했습니다. 잠시 후 다시 시도해주세요.";
-}
 
 /** 단가 × 수량. 단가 미설정이면 null (01_basic_design.md §3.3.1) */
 function estimate(unitPrice: number | null, quantity: string): number | null {
@@ -95,23 +69,6 @@ function useOrderSelection(rows: SelectableRow[]) {
     .filter((i) => Number.isFinite(i.final_quantity) && i.final_quantity > 0);
 
   return { selected, quantities, toggle, setQuantity, items };
-}
-
-function useApprove() {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: (body: OrderApproveRequest) => approveOrder(body),
-    // 확정한 추천안은 다시 확정할 수 없다 — 성공·409 모두 새 추천(입고 예정량 반영)을 받는다
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["orders"] });
-      queryClient.invalidateQueries({ queryKey: ["ai-orders-recommend"] });
-    },
-    onError: (error) => {
-      if (error instanceof HTTPError && error.response.status === 409) {
-        queryClient.invalidateQueries({ queryKey: ["ai-orders-recommend"] });
-      }
-    },
-  });
 }
 
 /** 발주 품목 한 줄 — 웹은 표처럼 가로, 앱은 큰 카드. 줄 전체를 눌러 선택할 수 있다. */
@@ -246,54 +203,6 @@ function QuantityStepper({
   );
 }
 
-function ApproveBar({
-  count,
-  total,
-  unpriced,
-  pending,
-  label,
-  onClick,
-}: {
-  count: number;
-  total: number;
-  unpriced: number;
-  pending: boolean;
-  label: string;
-  onClick: () => void;
-}) {
-  return (
-    <div className="flex flex-col gap-2 border-t border-line-soft bg-white p-4 lg:flex-row lg:items-center lg:justify-between lg:px-5">
-      <p className="text-[0.95rem] text-ink-3">
-        <strong className="font-bold text-ink">{count}개</strong> 품목
-        {count > unpriced && (
-          <>
-            {" · 예상 "}
-            <strong className="font-bold text-ink">{formatWon(total)}</strong>
-          </>
-        )}
-        {unpriced > 0 && <span className="text-sm"> (단가 미설정 {unpriced}개 제외)</span>}
-      </p>
-      <Button
-        size="xl"
-        onClick={onClick}
-        disabled={count === 0 || pending}
-        className="w-full lg:h-12 lg:w-auto lg:text-base"
-      >
-        {pending ? "확정 중…" : `${label} (${count})`}
-      </Button>
-    </div>
-  );
-}
-
-function ApprovedNotice() {
-  return (
-    <p className="flex items-center gap-2 rounded-xl bg-ok-soft px-4 py-3 text-[0.95rem] font-medium text-ok">
-      <CheckCircle2 className="size-5 shrink-0" /> 발주가 확정되었습니다. 실제 주문·입고 처리는 직접
-      진행해주세요.
-    </p>
-  );
-}
-
 const RECEIPT_LABEL: Record<string, string> = {
   PENDING: "입고 대기",
   RECEIVED: "입고 완료",
@@ -346,19 +255,9 @@ function OrderHistoryRow({ order }: { order: OrderSummary }) {
             {order.total_estimated_cost > 0 && ` · 예상 ${formatWon(order.total_estimated_cost)}`}
           </span>
         </span>
-        <span className="flex shrink-0 items-center gap-2">
-          <span
-            className={cn(
-              "rounded-full px-2.5 py-1 text-sm font-semibold",
-              order.status === "MANUAL_REQUIRED" ? "bg-warn-soft text-warn" : "bg-ok-soft text-ok",
-            )}
-          >
-            {STATUS_LABEL[order.status]}
-          </span>
-          <ChevronDown
-            className={cn("size-5 text-ink-3 transition-transform", open && "rotate-180")}
-          />
-        </span>
+        <ChevronDown
+          className={cn("size-5 shrink-0 text-ink-3 transition-transform", open && "rotate-180")}
+        />
       </button>
       {open && (
         <div className="border-t border-line-soft bg-subtle px-5 py-4 text-[0.95rem] text-ink-2">
@@ -413,21 +312,6 @@ export default function OrdersPage() {
     [aiRecommend],
   );
   const ai = useOrderSelection(aiRows);
-  const aiApprove = useApprove();
-
-  // 선택한 품목의 예상 합계 — 단가 미설정 품목은 빼고 개수만 센다
-  const price = new Map((aiRecommend?.recommendations ?? []).map((r) => [r.item_id, r.unit_price]));
-  const aiTotal = { total: 0, unpriced: 0 };
-  for (const i of ai.items) {
-    const p = price.get(i.item_id);
-    if (p == null) aiTotal.unpriced += 1;
-    else aiTotal.total += Math.round(p * i.final_quantity);
-  }
-
-  const handleAiApprove = () => {
-    if (!aiRecommend || ai.items.length === 0) return;
-    aiApprove.mutate({ recommendation_id: aiRecommend.recommendation_id, items: ai.items });
-  };
 
   const lowConfidenceBadge = aiRecommend?.is_low_confidence ? (
     <span className="rounded-full bg-warn-soft px-2.5 py-0.5 text-sm font-semibold text-warn">
@@ -440,7 +324,7 @@ export default function OrdersPage() {
       <div className="space-y-6 lg:space-y-8">
         <PageHeader
           title="발주 추천"
-          description="AI가 계산한 추천량을 확인하고, 필요한 것만 골라 확정하세요."
+          description="AI가 계산한 추천량을 확인하고, 필요한 것만 골라 수량을 고치세요."
         />
 
         <section className="space-y-3">
@@ -498,23 +382,9 @@ export default function OrdersPage() {
                   />
                 ))}
               </ul>
-              <ApproveBar
-                count={ai.items.length}
-                total={aiTotal.total}
-                unpriced={aiTotal.unpriced}
-                pending={aiApprove.isPending}
-                label="AI 추천 발주 확정"
-                onClick={handleAiApprove}
-              />
             </Card>
           ) : (
             <EmptyState>AI 추천 결과가 없습니다 (레시피·재고 설정을 확인해주세요).</EmptyState>
-          )}
-          {aiApprove.isSuccess && <ApprovedNotice />}
-          {aiApprove.isError && (
-            <p className="rounded-xl bg-danger-soft px-4 py-3 text-[0.95rem] font-medium text-danger">
-              {approveErrorMessage(aiApprove.error)}
-            </p>
           )}
         </section>
 

@@ -1982,6 +1982,67 @@
         }
       }
     },
+    "/api/inventory/price-trends": {
+      "get": {
+        "tags": [
+          "inventory"
+        ],
+        "summary": "List Price Trends",
+        "operationId": "list_price_trends_api_inventory_price_trends_get",
+        "parameters": [
+          {
+            "name": "days",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 365,
+              "minimum": 1,
+              "default": 30,
+              "title": "Days"
+            }
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PriceTrendResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/inventory/{item_id}": {
       "get": {
         "tags": [
@@ -2473,65 +2534,6 @@
         }
       }
     },
-    "/api/orders/approve": {
-      "post": {
-        "tags": [
-          "orders"
-        ],
-        "summary": "Approve Order",
-        "operationId": "approve_order_api_orders_approve_post",
-        "parameters": [
-          {
-            "name": "authorization",
-            "in": "header",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "Authorization"
-            }
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/OrderApproveRequest"
-              }
-            }
-          }
-        },
-        "responses": {
-          "201": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/OrderApproveResponse"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
     "/api/orders": {
       "get": {
         "tags": [
@@ -2645,6 +2647,212 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/OrderDetailResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/orders/automate/start": {
+      "post": {
+        "tags": [
+          "orders"
+        ],
+        "summary": "Automate Start",
+        "description": "[쿠팡 담기] — 담기를 시작한다. 발주는 아직 저장하지 않는다.",
+        "operationId": "automate_start_api_orders_automate_start_post",
+        "parameters": [
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AutomateStartRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AutomateStartResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/orders/automate/{run_id}/step": {
+      "post": {
+        "tags": [
+          "orders"
+        ],
+        "summary": "Automate Step",
+        "description": "담기 에이전트 한 걸음 (03_be.md §2.4).",
+        "operationId": "automate_step_api_orders_automate__run_id__step_post",
+        "parameters": [
+          {
+            "name": "run_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Run Id"
+            }
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AutomateStepRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/AutomateStepAction"
+                    },
+                    {
+                      "$ref": "#/components/schemas/AutomateStepDone"
+                    }
+                  ],
+                  "title": "Response Automate Step Api Orders Automate  Run Id  Step Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/orders/automate/{run_id}/finish": {
+      "post": {
+        "tags": [
+          "orders"
+        ],
+        "summary": "Automate Finish",
+        "description": "쿠팡 담기 마침 — 담긴 품목으로 발주를 확정한다.",
+        "operationId": "automate_finish_api_orders_automate__run_id__finish_post",
+        "parameters": [
+          {
+            "name": "run_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Run Id"
+            }
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AutomateFinishRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AutomateFinishResponse"
                 }
               }
             }
@@ -4102,6 +4310,52 @@
         ],
         "title": "AIRecommendResponse"
       },
+      "ActionResult": {
+        "properties": {
+          "kind": {
+            "type": "string",
+            "const": "action",
+            "title": "Kind"
+          },
+          "ok": {
+            "type": "boolean",
+            "title": "Ok"
+          },
+          "page_changed": {
+            "type": "boolean",
+            "title": "Page Changed"
+          },
+          "message": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 200
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Message"
+          },
+          "cart_added": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/CartAdded"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "kind",
+          "ok",
+          "page_changed"
+        ],
+        "title": "ActionResult"
+      },
       "AdjustmentReason": {
         "type": "string",
         "enum": [
@@ -4197,6 +4451,24 @@
         ],
         "title": "AdjustmentResponse"
       },
+      "AgentCall": {
+        "properties": {
+          "tool": {
+            "type": "string",
+            "title": "Tool"
+          },
+          "args": {
+            "type": "object",
+            "title": "Args"
+          }
+        },
+        "type": "object",
+        "required": [
+          "tool",
+          "args"
+        ],
+        "title": "AgentCall"
+      },
       "ApprovalLogItem": {
         "properties": {
           "item_id": {
@@ -4255,6 +4527,284 @@
           "items"
         ],
         "title": "ApprovalLogResponse"
+      },
+      "AutomateFinishRequest": {
+        "properties": {
+          "non_wow_prices": {
+            "items": {
+              "$ref": "#/components/schemas/NonWowPrice"
+            },
+            "type": "array",
+            "title": "Non Wow Prices"
+          }
+        },
+        "type": "object",
+        "title": "AutomateFinishRequest"
+      },
+      "AutomateFinishResponse": {
+        "properties": {
+          "order_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Order Id"
+          },
+          "approved_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Approved At"
+          },
+          "total_estimated_cost": {
+            "type": "integer",
+            "title": "Total Estimated Cost"
+          },
+          "manual_guide_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Manual Guide Url"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/AutomateItemResult"
+            },
+            "type": "array",
+            "title": "Items"
+          }
+        },
+        "type": "object",
+        "required": [
+          "order_id",
+          "approved_at",
+          "total_estimated_cost",
+          "manual_guide_url",
+          "items"
+        ],
+        "title": "AutomateFinishResponse"
+      },
+      "AutomateItem": {
+        "properties": {
+          "item_id": {
+            "type": "string",
+            "title": "Item Id"
+          },
+          "final_quantity": {
+            "anyOf": [
+              {
+                "type": "number",
+                "exclusiveMinimum": 0.0
+              },
+              {
+                "type": "string"
+              }
+            ],
+            "title": "Final Quantity"
+          }
+        },
+        "type": "object",
+        "required": [
+          "item_id",
+          "final_quantity"
+        ],
+        "title": "AutomateItem"
+      },
+      "AutomateItemResult": {
+        "properties": {
+          "item_id": {
+            "type": "string",
+            "title": "Item Id"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "ADDED",
+              "CHECK_NEEDED",
+              "FAILED"
+            ],
+            "title": "Status"
+          },
+          "reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reason"
+          }
+        },
+        "type": "object",
+        "required": [
+          "item_id",
+          "status",
+          "reason"
+        ],
+        "title": "AutomateItemResult"
+      },
+      "AutomateStartRequest": {
+        "properties": {
+          "recommendation_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Recommendation Id"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/AutomateItem"
+            },
+            "type": "array",
+            "minItems": 1,
+            "title": "Items"
+          },
+          "note": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 500
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Note"
+          },
+          "coupang_logged_in": {
+            "type": "boolean",
+            "title": "Coupang Logged In"
+          }
+        },
+        "type": "object",
+        "required": [
+          "items",
+          "coupang_logged_in"
+        ],
+        "title": "AutomateStartRequest"
+      },
+      "AutomateStartResponse": {
+        "properties": {
+          "run_id": {
+            "type": "string",
+            "title": "Run Id"
+          },
+          "targets": {
+            "items": {
+              "$ref": "#/components/schemas/AutomateTarget"
+            },
+            "type": "array",
+            "title": "Targets"
+          }
+        },
+        "type": "object",
+        "required": [
+          "run_id",
+          "targets"
+        ],
+        "title": "AutomateStartResponse"
+      },
+      "AutomateStepAction": {
+        "properties": {
+          "action": {
+            "$ref": "#/components/schemas/AgentCall"
+          }
+        },
+        "type": "object",
+        "required": [
+          "action"
+        ],
+        "title": "AutomateStepAction"
+      },
+      "AutomateStepDone": {
+        "properties": {
+          "done": {
+            "$ref": "#/components/schemas/AgentCall"
+          }
+        },
+        "type": "object",
+        "required": [
+          "done"
+        ],
+        "title": "AutomateStepDone"
+      },
+      "AutomateStepRequest": {
+        "properties": {
+          "target": {
+            "type": "string",
+            "title": "Target"
+          },
+          "result": {
+            "anyOf": [
+              {
+                "oneOf": [
+                  {
+                    "$ref": "#/components/schemas/ElementsResult"
+                  },
+                  {
+                    "$ref": "#/components/schemas/ActionResult"
+                  }
+                ],
+                "discriminator": {
+                  "propertyName": "kind",
+                  "mapping": {
+                    "action": "#/components/schemas/ActionResult",
+                    "elements": "#/components/schemas/ElementsResult"
+                  }
+                }
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Result"
+          },
+          "non_wow_prices": {
+            "items": {
+              "$ref": "#/components/schemas/NonWowPrice"
+            },
+            "type": "array",
+            "title": "Non Wow Prices"
+          }
+        },
+        "type": "object",
+        "required": [
+          "target"
+        ],
+        "title": "AutomateStepRequest"
+      },
+      "AutomateTarget": {
+        "properties": {
+          "item_id": {
+            "type": "string",
+            "title": "Item Id"
+          },
+          "item_name": {
+            "type": "string",
+            "title": "Item Name"
+          }
+        },
+        "type": "object",
+        "required": [
+          "item_id",
+          "item_name"
+        ],
+        "title": "AutomateTarget"
       },
       "Body_upload_sales_csv_api_sales_upload_post": {
         "properties": {
@@ -4489,6 +5039,45 @@
         ],
         "title": "CSVUploadResponse"
       },
+      "CartAdded": {
+        "properties": {
+          "item_id": {
+            "type": "string",
+            "pattern": "^\\d{1,20}$",
+            "title": "Item Id"
+          },
+          "product_id": {
+            "type": "string",
+            "pattern": "^\\d{1,20}$",
+            "title": "Product Id"
+          },
+          "vendor_item_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^\\d{1,20}$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Vendor Item Id"
+          },
+          "price": {
+            "type": "integer",
+            "exclusiveMinimum": 0.0,
+            "title": "Price"
+          }
+        },
+        "type": "object",
+        "required": [
+          "item_id",
+          "product_id",
+          "price"
+        ],
+        "title": "CartAdded",
+        "description": "상품 페이지에서 담기 완료 표시가 나타났을 때의 담기 결과."
+      },
       "ChangePasswordRequest": {
         "properties": {
           "current_password": {
@@ -4645,6 +5234,34 @@
           "disposed_at"
         ],
         "title": "DisposeResponse"
+      },
+      "ElementsResult": {
+        "properties": {
+          "kind": {
+            "type": "string",
+            "const": "elements",
+            "title": "Kind"
+          },
+          "url": {
+            "type": "string",
+            "maxLength": 2000,
+            "title": "Url"
+          },
+          "elements": {
+            "items": {
+              "$ref": "#/components/schemas/PageElement"
+            },
+            "type": "array",
+            "title": "Elements"
+          }
+        },
+        "type": "object",
+        "required": [
+          "kind",
+          "url",
+          "elements"
+        ],
+        "title": "ElementsResult"
       },
       "Explanation": {
         "properties": {
@@ -4883,6 +5500,95 @@
         ],
         "title": "IngredientItemWithName"
       },
+      "InventoryCoupangProduct": {
+        "properties": {
+          "item_id": {
+            "type": "string",
+            "title": "Item Id"
+          },
+          "product_id": {
+            "type": "string",
+            "title": "Product Id"
+          },
+          "product_name": {
+            "type": "string",
+            "title": "Product Name"
+          },
+          "option_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Option Name"
+          },
+          "sale_price": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sale Price"
+          },
+          "content_quantity": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Content Quantity"
+          },
+          "content_unit": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Content Unit"
+          },
+          "unit_price": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Unit Price"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Updated At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "item_id",
+          "product_id",
+          "product_name",
+          "option_name",
+          "sale_price",
+          "content_quantity",
+          "content_unit",
+          "unit_price",
+          "updated_at"
+        ],
+        "title": "InventoryCoupangProduct"
+      },
       "InventoryDeduction": {
         "properties": {
           "deducted_sales": {
@@ -5064,27 +5770,26 @@
             ],
             "title": "Safety Stock"
           },
-          "coupang_url": {
+          "coupang_product": {
             "anyOf": [
               {
-                "type": "string"
+                "$ref": "#/components/schemas/InventoryCoupangProduct"
               },
               {
                 "type": "null"
               }
-            ],
-            "title": "Coupang Url"
+            ]
           },
-          "last_price": {
+          "unit_price": {
             "anyOf": [
               {
-                "type": "integer"
+                "type": "number"
               },
               {
                 "type": "null"
               }
             ],
-            "title": "Last Price"
+            "title": "Unit Price"
           },
           "created_at": {
             "type": "string",
@@ -5108,6 +5813,8 @@
           "low_stock_threshold",
           "lead_time_days",
           "safety_stock",
+          "coupang_product",
+          "unit_price",
           "created_at",
           "updated_at"
         ],
@@ -5762,6 +6469,45 @@
         ],
         "title": "NeedsCheckItem"
       },
+      "NonWowPrice": {
+        "properties": {
+          "item_id": {
+            "type": "string",
+            "pattern": "^\\d{1,20}$",
+            "title": "Item Id"
+          },
+          "non_wow_price": {
+            "type": "integer",
+            "exclusiveMinimum": 0.0,
+            "title": "Non Wow Price"
+          },
+          "display_price": {
+            "type": "integer",
+            "exclusiveMinimum": 0.0,
+            "title": "Display Price"
+          },
+          "unit_price_text": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 50
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Unit Price Text"
+          }
+        },
+        "type": "object",
+        "required": [
+          "item_id",
+          "non_wow_price",
+          "display_price"
+        ],
+        "title": "NonWowPrice",
+        "description": "확장이 뒤에서 받은 와우 할인 카드의 비회원 가격 (04_fe.md §12.5)."
+      },
       "NotificationItem": {
         "properties": {
           "notification_id": {
@@ -5970,100 +6716,45 @@
         ],
         "title": "OnboardingCompleteResponse"
       },
-      "OrderApproveItem": {
+      "OrderCoupangProduct": {
         "properties": {
           "item_id": {
             "type": "string",
             "title": "Item Id"
           },
-          "final_quantity": {
+          "product_id": {
+            "type": "string",
+            "title": "Product Id"
+          },
+          "product_name": {
+            "type": "string",
+            "title": "Product Name"
+          },
+          "option_name": {
             "anyOf": [
               {
-                "type": "number",
-                "exclusiveMinimum": 0.0
+                "type": "string"
               },
               {
-                "type": "string"
+                "type": "null"
               }
             ],
-            "title": "Final Quantity"
+            "title": "Option Name"
+          },
+          "rocket_fresh": {
+            "type": "boolean",
+            "title": "Rocket Fresh"
           }
         },
         "type": "object",
         "required": [
           "item_id",
-          "final_quantity"
+          "product_id",
+          "product_name",
+          "option_name",
+          "rocket_fresh"
         ],
-        "title": "OrderApproveItem"
-      },
-      "OrderApproveRequest": {
-        "properties": {
-          "recommendation_id": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Recommendation Id"
-          },
-          "items": {
-            "items": {
-              "$ref": "#/components/schemas/OrderApproveItem"
-            },
-            "type": "array",
-            "minItems": 1,
-            "title": "Items"
-          },
-          "note": {
-            "anyOf": [
-              {
-                "type": "string",
-                "maxLength": 500
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Note"
-          }
-        },
-        "type": "object",
-        "required": [
-          "items"
-        ],
-        "title": "OrderApproveRequest"
-      },
-      "OrderApproveResponse": {
-        "properties": {
-          "order_id": {
-            "type": "string",
-            "title": "Order Id"
-          },
-          "approved_at": {
-            "type": "string",
-            "format": "date-time",
-            "title": "Approved At"
-          },
-          "total_estimated_cost": {
-            "type": "integer",
-            "title": "Total Estimated Cost"
-          },
-          "status": {
-            "type": "string",
-            "title": "Status"
-          }
-        },
-        "type": "object",
-        "required": [
-          "order_id",
-          "approved_at",
-          "total_estimated_cost",
-          "status"
-        ],
-        "title": "OrderApproveResponse"
+        "title": "OrderCoupangProduct"
       },
       "OrderDetailItem": {
         "properties": {
@@ -6112,6 +6803,16 @@
           "receipt_status": {
             "type": "string",
             "title": "Receipt Status"
+          },
+          "coupang_product": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/OrderCoupangProduct"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "type": "object",
@@ -6123,7 +6824,8 @@
           "unit",
           "unit_price",
           "subtotal",
-          "receipt_status"
+          "receipt_status",
+          "coupang_product"
         ],
         "title": "OrderDetailItem"
       },
@@ -6137,10 +6839,6 @@
             "type": "string",
             "format": "date-time",
             "title": "Approved At"
-          },
-          "status": {
-            "type": "string",
-            "title": "Status"
           },
           "total_estimated_cost": {
             "type": "integer",
@@ -6169,7 +6867,6 @@
         "required": [
           "order_id",
           "approved_at",
-          "status",
           "total_estimated_cost",
           "note",
           "items"
@@ -6300,10 +6997,6 @@
             "type": "integer",
             "title": "Total Estimated Cost"
           },
-          "status": {
-            "type": "string",
-            "title": "Status"
-          },
           "item_count": {
             "type": "integer",
             "title": "Item Count"
@@ -6314,10 +7007,89 @@
           "order_id",
           "approved_at",
           "total_estimated_cost",
-          "status",
           "item_count"
         ],
         "title": "OrderSummary"
+      },
+      "PageElement": {
+        "properties": {
+          "ref": {
+            "type": "string",
+            "maxLength": 20,
+            "title": "Ref"
+          },
+          "role": {
+            "type": "string",
+            "maxLength": 30,
+            "title": "Role"
+          },
+          "text": {
+            "type": "string",
+            "title": "Text"
+          },
+          "depth": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Depth"
+          },
+          "product_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^\\d{1,20}$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Product Id"
+          },
+          "item_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^\\d{1,20}$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Item Id"
+          },
+          "vendor_item_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^\\d{1,20}$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Vendor Item Id"
+          },
+          "non_wow_price": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "exclusiveMinimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Non Wow Price"
+          }
+        },
+        "type": "object",
+        "required": [
+          "ref",
+          "role",
+          "text",
+          "depth"
+        ],
+        "title": "PageElement",
+        "description": "요소 목록의 요소 하나 (04_fe.md §12.4)."
       },
       "PendingOrderItem": {
         "properties": {
@@ -6660,6 +7432,91 @@
         },
         "type": "object",
         "title": "PosUpdateRequest"
+      },
+      "PriceTrendItem": {
+        "properties": {
+          "item_id": {
+            "type": "string",
+            "title": "Item Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "unit": {
+            "type": "string",
+            "title": "Unit"
+          },
+          "points": {
+            "items": {
+              "$ref": "#/components/schemas/PriceTrendPoint"
+            },
+            "type": "array",
+            "title": "Points"
+          }
+        },
+        "type": "object",
+        "required": [
+          "item_id",
+          "name",
+          "unit",
+          "points"
+        ],
+        "title": "PriceTrendItem"
+      },
+      "PriceTrendPoint": {
+        "properties": {
+          "date": {
+            "type": "string",
+            "format": "date",
+            "title": "Date"
+          },
+          "unit_price": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Unit Price"
+          }
+        },
+        "type": "object",
+        "required": [
+          "date",
+          "unit_price"
+        ],
+        "title": "PriceTrendPoint"
+      },
+      "PriceTrendResponse": {
+        "properties": {
+          "start_date": {
+            "type": "string",
+            "format": "date",
+            "title": "Start Date"
+          },
+          "end_date": {
+            "type": "string",
+            "format": "date",
+            "title": "End Date"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/PriceTrendItem"
+            },
+            "type": "array",
+            "title": "Items"
+          }
+        },
+        "type": "object",
+        "required": [
+          "start_date",
+          "end_date",
+          "items"
+        ],
+        "title": "PriceTrendResponse"
       },
       "PushKeys": {
         "properties": {

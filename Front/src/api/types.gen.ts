@@ -441,6 +441,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/inventory/price-trends": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Price Trends */
+        get: operations["list_price_trends_api_inventory_price_trends_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/inventory/{item_id}": {
         parameters: {
             query?: never;
@@ -529,23 +546,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/orders/approve": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Approve Order */
-        post: operations["approve_order_api_orders_approve_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/api/orders": {
         parameters: {
             query?: never;
@@ -574,6 +574,66 @@ export interface paths {
         get: operations["get_order_api_orders__order_id__get"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/orders/automate/start": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Automate Start
+         * @description [쿠팡 담기] — 담기를 시작한다. 발주는 아직 저장하지 않는다.
+         */
+        post: operations["automate_start_api_orders_automate_start_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/orders/automate/{run_id}/step": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Automate Step
+         * @description 담기 에이전트 한 걸음 (03_be.md §2.4).
+         */
+        post: operations["automate_step_api_orders_automate__run_id__step_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/orders/automate/{run_id}/finish": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Automate Finish
+         * @description 쿠팡 담기 마침 — 담긴 품목으로 발주를 확정한다.
+         */
+        post: operations["automate_finish_api_orders_automate__run_id__finish_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -963,6 +1023,21 @@ export interface components {
             /** Recommendations */
             recommendations: components["schemas"]["OrderRecommendation"][];
         };
+        /** ActionResult */
+        ActionResult: {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            kind: "action";
+            /** Ok */
+            ok: boolean;
+            /** Page Changed */
+            page_changed: boolean;
+            /** Message */
+            message?: string | null;
+            cart_added?: components["schemas"]["CartAdded"] | null;
+        };
         /**
          * AdjustmentReason
          * @enum {string}
@@ -995,6 +1070,13 @@ export interface components {
              */
             adjusted_at: string;
         };
+        /** AgentCall */
+        AgentCall: {
+            /** Tool */
+            tool: string;
+            /** Args */
+            args: Record<string, never>;
+        };
         /** ApprovalLogItem */
         ApprovalLogItem: {
             /** Item Id */
@@ -1016,6 +1098,88 @@ export interface components {
             order_id: string;
             /** Items */
             items: components["schemas"]["ApprovalLogItem"][];
+        };
+        /** AutomateFinishRequest */
+        AutomateFinishRequest: {
+            /** Non Wow Prices */
+            non_wow_prices?: components["schemas"]["NonWowPrice"][];
+        };
+        /** AutomateFinishResponse */
+        AutomateFinishResponse: {
+            /** Order Id */
+            order_id: string | null;
+            /**
+             * Approved At
+             * Format: date-time
+             */
+            approved_at: string;
+            /** Total Estimated Cost */
+            total_estimated_cost: number;
+            /** Manual Guide Url */
+            manual_guide_url: string | null;
+            /** Items */
+            items: components["schemas"]["AutomateItemResult"][];
+        };
+        /** AutomateItem */
+        AutomateItem: {
+            /** Item Id */
+            item_id: string;
+            /** Final Quantity */
+            final_quantity: number | string;
+        };
+        /** AutomateItemResult */
+        AutomateItemResult: {
+            /** Item Id */
+            item_id: string;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "ADDED" | "CHECK_NEEDED" | "FAILED";
+            /** Reason */
+            reason: string | null;
+        };
+        /** AutomateStartRequest */
+        AutomateStartRequest: {
+            /** Recommendation Id */
+            recommendation_id?: string | null;
+            /** Items */
+            items: components["schemas"]["AutomateItem"][];
+            /** Note */
+            note?: string | null;
+            /** Coupang Logged In */
+            coupang_logged_in: boolean;
+        };
+        /** AutomateStartResponse */
+        AutomateStartResponse: {
+            /** Run Id */
+            run_id: string;
+            /** Targets */
+            targets: components["schemas"]["AutomateTarget"][];
+        };
+        /** AutomateStepAction */
+        AutomateStepAction: {
+            action: components["schemas"]["AgentCall"];
+        };
+        /** AutomateStepDone */
+        AutomateStepDone: {
+            done: components["schemas"]["AgentCall"];
+        };
+        /** AutomateStepRequest */
+        AutomateStepRequest: {
+            /** Target */
+            target: string;
+            /** Result */
+            result?: (components["schemas"]["ElementsResult"] | components["schemas"]["ActionResult"]) | null;
+            /** Non Wow Prices */
+            non_wow_prices?: components["schemas"]["NonWowPrice"][];
+        };
+        /** AutomateTarget */
+        AutomateTarget: {
+            /** Item Id */
+            item_id: string;
+            /** Item Name */
+            item_name: string;
         };
         /** Body_upload_sales_csv_api_sales_upload_post */
         Body_upload_sales_csv_api_sales_upload_post: {
@@ -1110,6 +1274,20 @@ export interface components {
             auto_created_menus: number;
             inventory_deduction: components["schemas"]["InventoryDeduction"];
         };
+        /**
+         * CartAdded
+         * @description 상품 페이지에서 담기 완료 표시가 나타났을 때의 담기 결과.
+         */
+        CartAdded: {
+            /** Item Id */
+            item_id: string;
+            /** Product Id */
+            product_id: string;
+            /** Vendor Item Id */
+            vendor_item_id?: string | null;
+            /** Price */
+            price: number;
+        };
         /** ChangePasswordRequest */
         ChangePasswordRequest: {
             /** Current Password */
@@ -1165,6 +1343,18 @@ export interface components {
              * Format: date-time
              */
             disposed_at: string;
+        };
+        /** ElementsResult */
+        ElementsResult: {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            kind: "elements";
+            /** Url */
+            url: string;
+            /** Elements */
+            elements: components["schemas"]["PageElement"][];
         };
         /** Explanation */
         Explanation: {
@@ -1245,6 +1435,30 @@ export interface components {
             /** Item Name */
             item_name: string;
         };
+        /** InventoryCoupangProduct */
+        InventoryCoupangProduct: {
+            /** Item Id */
+            item_id: string;
+            /** Product Id */
+            product_id: string;
+            /** Product Name */
+            product_name: string;
+            /** Option Name */
+            option_name: string | null;
+            /** Sale Price */
+            sale_price: number | null;
+            /** Content Quantity */
+            content_quantity: number | null;
+            /** Content Unit */
+            content_unit: string | null;
+            /** Unit Price */
+            unit_price: number | null;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+        };
         /** InventoryDeduction */
         InventoryDeduction: {
             /**
@@ -1297,10 +1511,9 @@ export interface components {
             lead_time_days: number | null;
             /** Safety Stock */
             safety_stock: number | null;
-            /** Coupang Url */
-            coupang_url?: string | null;
-            /** Last Price */
-            last_price?: number | null;
+            coupang_product: components["schemas"]["InventoryCoupangProduct"] | null;
+            /** Unit Price */
+            unit_price: number | null;
             /**
              * Created At
              * Format: date-time
@@ -1518,6 +1731,20 @@ export interface components {
             /** Name */
             name: string;
         };
+        /**
+         * NonWowPrice
+         * @description 확장이 뒤에서 받은 와우 할인 카드의 비회원 가격 (04_fe.md §12.5).
+         */
+        NonWowPrice: {
+            /** Item Id */
+            item_id: string;
+            /** Non Wow Price */
+            non_wow_price: number;
+            /** Display Price */
+            display_price: number;
+            /** Unit Price Text */
+            unit_price_text?: string | null;
+        };
         /** NotificationItem */
         NotificationItem: {
             /** Notification Id */
@@ -1587,35 +1814,18 @@ export interface components {
             /** Store Id */
             store_id: string;
         };
-        /** OrderApproveItem */
-        OrderApproveItem: {
+        /** OrderCoupangProduct */
+        OrderCoupangProduct: {
             /** Item Id */
             item_id: string;
-            /** Final Quantity */
-            final_quantity: number | string;
-        };
-        /** OrderApproveRequest */
-        OrderApproveRequest: {
-            /** Recommendation Id */
-            recommendation_id?: string | null;
-            /** Items */
-            items: components["schemas"]["OrderApproveItem"][];
-            /** Note */
-            note?: string | null;
-        };
-        /** OrderApproveResponse */
-        OrderApproveResponse: {
-            /** Order Id */
-            order_id: string;
-            /**
-             * Approved At
-             * Format: date-time
-             */
-            approved_at: string;
-            /** Total Estimated Cost */
-            total_estimated_cost: number;
-            /** Status */
-            status: string;
+            /** Product Id */
+            product_id: string;
+            /** Product Name */
+            product_name: string;
+            /** Option Name */
+            option_name: string | null;
+            /** Rocket Fresh */
+            rocket_fresh: boolean;
         };
         /** OrderDetailItem */
         OrderDetailItem: {
@@ -1635,6 +1845,7 @@ export interface components {
             subtotal: number | null;
             /** Receipt Status */
             receipt_status: string;
+            coupang_product: components["schemas"]["OrderCoupangProduct"] | null;
         };
         /** OrderDetailResponse */
         OrderDetailResponse: {
@@ -1645,8 +1856,6 @@ export interface components {
              * Format: date-time
              */
             approved_at: string;
-            /** Status */
-            status: string;
             /** Total Estimated Cost */
             total_estimated_cost: number;
             /** Note */
@@ -1701,10 +1910,30 @@ export interface components {
             approved_at: string;
             /** Total Estimated Cost */
             total_estimated_cost: number;
-            /** Status */
-            status: string;
             /** Item Count */
             item_count: number;
+        };
+        /**
+         * PageElement
+         * @description 요소 목록의 요소 하나 (04_fe.md §12.4).
+         */
+        PageElement: {
+            /** Ref */
+            ref: string;
+            /** Role */
+            role: string;
+            /** Text */
+            text: string;
+            /** Depth */
+            depth: number;
+            /** Product Id */
+            product_id?: string | null;
+            /** Item Id */
+            item_id?: string | null;
+            /** Vendor Item Id */
+            vendor_item_id?: string | null;
+            /** Non Wow Price */
+            non_wow_price?: number | null;
         };
         /** PendingOrderItem */
         PendingOrderItem: {
@@ -1821,6 +2050,42 @@ export interface components {
             api_key?: string | null;
             /** Store Code */
             store_code?: string | null;
+        };
+        /** PriceTrendItem */
+        PriceTrendItem: {
+            /** Item Id */
+            item_id: string;
+            /** Name */
+            name: string;
+            /** Unit */
+            unit: string;
+            /** Points */
+            points: components["schemas"]["PriceTrendPoint"][];
+        };
+        /** PriceTrendPoint */
+        PriceTrendPoint: {
+            /**
+             * Date
+             * Format: date
+             */
+            date: string;
+            /** Unit Price */
+            unit_price: number | null;
+        };
+        /** PriceTrendResponse */
+        PriceTrendResponse: {
+            /**
+             * Start Date
+             * Format: date
+             */
+            start_date: string;
+            /**
+             * End Date
+             * Format: date
+             */
+            end_date: string;
+            /** Items */
+            items: components["schemas"]["PriceTrendItem"][];
         };
         /** PushKeys */
         PushKeys: {
@@ -3363,6 +3628,39 @@ export interface operations {
             };
         };
     };
+    list_price_trends_api_inventory_price_trends_get: {
+        parameters: {
+            query?: {
+                days?: number;
+            };
+            header?: {
+                authorization?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PriceTrendResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     get_inventory_item_api_inventory__item_id__get: {
         parameters: {
             query?: never;
@@ -3640,41 +3938,6 @@ export interface operations {
             };
         };
     };
-    approve_order_api_orders_approve_post: {
-        parameters: {
-            query?: never;
-            header?: {
-                authorization?: string | null;
-            };
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["OrderApproveRequest"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["OrderApproveResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
     list_orders_api_orders_get: {
         parameters: {
             query?: {
@@ -3729,6 +3992,115 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["OrderDetailResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    automate_start_api_orders_automate_start_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AutomateStartRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AutomateStartResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    automate_step_api_orders_automate__run_id__step_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                run_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AutomateStepRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AutomateStepAction"] | components["schemas"]["AutomateStepDone"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    automate_finish_api_orders_automate__run_id__finish_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                run_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AutomateFinishRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AutomateFinishResponse"];
                 };
             };
             /** @description Validation Error */

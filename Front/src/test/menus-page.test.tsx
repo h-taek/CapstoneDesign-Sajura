@@ -39,6 +39,8 @@ const dough: inventoryApi.InventoryItem = {
   low_stock_threshold: 0,
   lead_time_days: null,
   safety_stock: null,
+  coupang_product: null,
+  unit_price: null,
   created_at: "2026-10-01T00:00:00",
   updated_at: "2026-10-01T00:00:00",
 };
