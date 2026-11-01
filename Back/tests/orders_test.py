@@ -212,11 +212,13 @@ async def test_list_and_detail(client: AsyncClient) -> None:
     assert page["total"] == 3 and page["total_pages"] == 2 and page["size"] == 2
     assert len(page["items"]) == 2
     assert page["items"][0]["item_count"] == 2
+    assert page["items"][0]["approved_at"].endswith("Z")  # DB UTC 시각에 시간대를 붙여 낸다
 
     r = await client.get(f"/api/orders/{last_id}", headers=auth)
     assert r.status_code == 200, r.text
     detail = r.json()
     assert detail["total_estimated_cost"] == 30
+    assert detail["approved_at"].endswith("Z")
     by_name = {i["item_name"]: i for i in detail["items"]}
     assert (by_name["원두"]["unit_price"], by_name["원두"]["subtotal"]) == (10.0, 30)
     assert (by_name["우유"]["unit_price"], by_name["우유"]["subtotal"]) == (None, None)

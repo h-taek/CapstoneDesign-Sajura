@@ -1,10 +1,11 @@
 """Auth DTOs — 02_implementation_design.md §3.2."""
 from __future__ import annotations
 
-from datetime import datetime
 from typing import Literal
 
 from pydantic import BaseModel, EmailStr, Field
+
+from app.schemas.types import UtcDatetime
 
 
 class RegisterRequest(BaseModel):
@@ -44,7 +45,7 @@ class UserMeResponse(BaseModel):
     business_no: str | None
     business_status: Literal["UNVERIFIED", "PENDING", "VERIFIED", "REJECTED"]
     onboarding_completed: bool
-    created_at: datetime
+    created_at: UtcDatetime
 
 
 class UpdateMeRequest(BaseModel):

@@ -1,10 +1,11 @@
 """Store DTOs — 02_implementation_design.md §3.3."""
 from __future__ import annotations
 
-from datetime import datetime
 from typing import Literal
 
 from pydantic import BaseModel, Field
+
+from app.schemas.types import UtcDatetime
 
 StoreSizeLit = Literal["SMALL", "MEDIUM", "LARGE"]
 OperationLit = Literal["HALL", "DELIVERY", "BOTH"]
@@ -23,7 +24,7 @@ class StoreResponse(BaseModel):
     address: str | None
     phone: str | None
     onboarding_completed: bool
-    created_at: datetime
+    created_at: UtcDatetime
 
 
 # business_no는 multipart form field로 받는다 (cert 파일과 함께). 라우터에서 Form()으로 파싱.
@@ -48,7 +49,7 @@ class VerificationItem(BaseModel):
     business_no: str | None
     business_status: BusinessStatusLit
     cert_url: str | None
-    submitted_at: datetime
+    submitted_at: UtcDatetime
 
 
 class VerificationListResponse(BaseModel):

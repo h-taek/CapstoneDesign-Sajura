@@ -14,6 +14,7 @@ from sqlalchemy import select
 from app.api.deps import CurrentUserDep, SessionDep, require_business_access
 from app.core import crypto, errors
 from app.models.pos_connection import PosConnection, PosStatus
+from app.schemas.types import UtcDatetime
 from app.services.store_service import StoreService
 
 router = APIRouter(
@@ -42,17 +43,17 @@ class PosResponse(BaseModel):
     pos_type: str
     api_key: str
     store_code: str
-    connected_at: datetime
+    connected_at: UtcDatetime
 
 
 class PosStatusResponse(BaseModel):
     status: Literal["CONNECTED", "ERROR", "CSV_MODE", "DISCONNECTED"]
-    last_synced_at: datetime | None
+    last_synced_at: UtcDatetime | None
     error_message: str | None
 
 
 class PosSyncResponse(BaseModel):
-    synced_at: datetime
+    synced_at: UtcDatetime
     records_synced: int
 
 

@@ -2,13 +2,13 @@
 
 from __future__ import annotations
 
-from datetime import date, datetime
+from datetime import date
 from decimal import Decimal
 
 from pydantic import BaseModel, Field, model_validator
 
 from app.models.inventory_item import AdjustmentReason
-from app.schemas.types import JsonDecimal
+from app.schemas.types import JsonDecimal, UtcDatetime
 
 
 class InventoryItemCreateRequest(BaseModel):
@@ -45,7 +45,7 @@ class InventoryCoupangProduct(BaseModel):
     content_quantity: JsonDecimal | None  # 상품 1개 용량(g·ml·개). 모르면 null
     content_unit: str | None
     unit_price: JsonDecimal | None  # 공용 단가(용량 단위 1당 원). 대조를 통과하지 못했으면 null
-    updated_at: datetime
+    updated_at: UtcDatetime
 
 
 class InventoryItemResponse(BaseModel):
@@ -60,8 +60,8 @@ class InventoryItemResponse(BaseModel):
     safety_stock: JsonDecimal | None
     coupang_product: InventoryCoupangProduct | None  # 연결된 공용 쿠팡 상품
     unit_price: JsonDecimal | None  # 재료 단위당 원. 미설정이면 null
-    created_at: datetime
-    updated_at: datetime
+    created_at: UtcDatetime
+    updated_at: UtcDatetime
 
 
 class InventoryListResponse(BaseModel):
@@ -106,7 +106,7 @@ class LotResponse(BaseModel):
 class PendingOrderItem(BaseModel):
     order_item_id: str
     order_id: str
-    approved_at: datetime
+    approved_at: UtcDatetime
     final_quantity: JsonDecimal
     subtotal: int | None  # 확정 시 단가 미설정이면 null
 
@@ -138,7 +138,7 @@ class AdjustmentResponse(BaseModel):
     after_expiry_date: date | None
     reason: AdjustmentReason
     memo: str | None
-    adjusted_at: datetime
+    adjusted_at: UtcDatetime
 
 
 class DisposeRequest(BaseModel):
@@ -150,4 +150,4 @@ class DisposeRequest(BaseModel):
 class DisposeResponse(BaseModel):
     disposed_quantity: JsonDecimal
     remaining_quantity: JsonDecimal
-    disposed_at: datetime
+    disposed_at: UtcDatetime

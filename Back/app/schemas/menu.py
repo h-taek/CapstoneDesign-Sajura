@@ -1,11 +1,9 @@
 """Menu / Recipe DTOs — 02_implementation_design.md §3.4."""
 from __future__ import annotations
 
-from datetime import datetime
-
 from pydantic import BaseModel, Field
 
-from app.schemas.types import JsonDecimal
+from app.schemas.types import JsonDecimal, UtcDatetime
 
 
 class MenuCreateRequest(BaseModel):
@@ -36,9 +34,9 @@ class MenuListItem(BaseModel):
 
 
 class MenuResponse(MenuListItem):
-    deleted_at: datetime | None
-    created_at: datetime
-    updated_at: datetime | None = None
+    deleted_at: UtcDatetime | None
+    created_at: UtcDatetime
+    updated_at: UtcDatetime | None = None
 
 
 class MenuListResponse(BaseModel):
@@ -80,7 +78,7 @@ class IngredientItemWithName(IngredientItem):
 class RecipeResponse(BaseModel):
     menu_id: str
     ingredients: list[IngredientItemWithName]
-    updated_at: datetime
+    updated_at: UtcDatetime
 
 
 class RecipeUpsertRequest(BaseModel):

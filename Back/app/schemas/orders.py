@@ -2,16 +2,17 @@
 
 from __future__ import annotations
 
-from datetime import datetime
 from decimal import Decimal
 from typing import Annotated, Any, Literal
 
 from pydantic import BaseModel, Field, field_validator
 
+from app.schemas.types import UtcDatetime
+
 
 class OrderSummary(BaseModel):
     order_id: str
-    approved_at: datetime
+    approved_at: UtcDatetime
     total_estimated_cost: int
     item_count: int
 
@@ -46,7 +47,7 @@ class OrderDetailItem(BaseModel):
 
 class OrderDetailResponse(BaseModel):
     order_id: str
-    approved_at: datetime
+    approved_at: UtcDatetime
     total_estimated_cost: int
     note: str | None
     items: list[OrderDetailItem]
@@ -180,7 +181,7 @@ class AutomateItemResult(BaseModel):
 
 class AutomateFinishResponse(BaseModel):
     order_id: str | None  # 담긴 품목이 없으면 null
-    approved_at: datetime
+    approved_at: UtcDatetime
     total_estimated_cost: int
     manual_guide_url: str | None  # 실패 품목이 있으면 쿠팡 첫 화면
     items: list[AutomateItemResult]
