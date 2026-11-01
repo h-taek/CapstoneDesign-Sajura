@@ -8,6 +8,14 @@
 
 ## 1. 개발 이력
 
+### Front v2 이식 라운드 A·B — e77bb6a..6f41ef2 (2026-11-01)
+
+- plan `10_v2_front.md`대로 agy 서브 열한 개(라운드 A 셋·B 여덟, 각자 worktree)로 병렬 구현, 묶음마다 diff 리뷰 뒤 합침. 라운드 B 중간에 agy 토큰 소진으로 여덟 모두 빈 턴 — 사용자가 모델을 Gemini 3.8 Flash로 바꾼 뒤 재개
+- 라운드 A — 하늘 '사장님의 하루'를 루트 레이아웃에 한 번(경로·단계별 시각, 아침이 밝기·가게 들어가기), 라우터 확정(`/sales`, `/settings/*` 한 화면), 열린 배치 메인 셸·알림 판·옆 판·날짜 판·유리 토큰, API 함수는 `api/endpoints` 한 곳(확장 연결 `lib/extension`, Web Push `lib/push`)
+- 라운드 B — 시작·인증·온보딩, 홈, 매출 예측, 판매 데이터, 재고, 추천발주·쿠팡 담기, 메뉴·관리자, 설정. 옛 DashboardShell·설정 하위 화면·매출 올리기 화면 삭제
+- 리뷰에서 고친 것 — 알림 종류 이름(BE `EXPIRY_OVER`·`ANOMALY_HIGH`), 같은 API 두 벌·별칭 20여 개·다시 내보내기·안 쓰는 함수, 확장 응답 대기 15초 → 90초, 작업 탭을 닫아도 담기가 계속돼 발주를 만들던 것, 담기 결과 없이 '담김' 표시, 409에 추천 재조회 없음, 하루 판매를 첫 100건만 묶던 것, 년 정확도(예측 있는 날끼리)·년 이전 넘김, 단가 변화율·예측 정확도가 화면마다 다르던 것(`lib/price-trend`·`lib/accuracy`로 통일), 설치 안내 세 벌 → `components/pwa` 하나, SW 새 버전 교체를 탭을 모두 닫은 뒤로(spec 04 §6)
+- 검증: typecheck·build 통과, Vitest 190 통과, 바뀐 파일 biome 통과. 화면 대조·실데이터 확인은 아직
+
 ### FE OpenAPI 타입 재생성 + Front v2 이식 plan — 39bff57 (2026-11-01)
 
 - `Front/openapi.json`·`types.gen.ts`가 10/31 BE에 멈춰 있었음 — `automate/start·step·finish`·`price-trends` 빠짐, 없어진 `orders/approve`·발주 `status`가 남음. 02 §3과 BE는 일치
