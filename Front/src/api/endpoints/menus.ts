@@ -15,10 +15,16 @@ export async function createMenusBulk(menus: MenuInput[]): Promise<BulkMenusResp
 
 export type MenuListItem = S["MenuListItem"];
 
+export type MenuResponse = S["MenuResponse"];
+
 export type MenuListResponse = S["MenuListResponse"];
 
 export async function listMenus(size = 100): Promise<MenuListResponse> {
   return api.get("menus", { searchParams: { size } }).json<MenuListResponse>();
+}
+
+export async function getMenu(menuId: string): Promise<MenuResponse> {
+  return api.get(`menus/${menuId}`).json<MenuResponse>();
 }
 
 export async function createMenu(input: MenuInput): Promise<MenuListItem> {

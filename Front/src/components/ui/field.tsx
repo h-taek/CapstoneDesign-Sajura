@@ -1,4 +1,4 @@
-// 입력 + 라벨 + 에러 메시지 묶음 — RHF 친화 (04_fe.md §8).
+// 알약 입력 + 라벨 + 에러 메시지 묶음 — RHF 친화 (04_fe.md §8, mockup v2).
 import {
   type InputHTMLAttributes,
   type ReactNode,
@@ -7,8 +7,17 @@ import {
 } from "react";
 import { cn } from "../../lib/utils";
 
+export {
+  DateField,
+  type DateFieldProps,
+  daysInMonth,
+  formatDateDisplay,
+  isDateOutOfRange,
+  stepCalendarMonth,
+} from "./date-field";
+
 const baseField =
-  "h-12 w-full rounded-xl border border-line bg-white px-4 text-base text-ink placeholder:text-ink-4 focus:border-brand focus:outline-none focus:ring-4 focus:ring-brand-soft disabled:bg-subtle disabled:text-ink-3";
+  "h-11 w-full rounded-full border border-white/80 bg-[rgb(46_32_120/0.065)] px-4 text-base text-ink placeholder:text-ink-3 focus:border-brand focus:outline-none focus:ring-4 focus:ring-brand-soft disabled:cursor-not-allowed disabled:opacity-60 disabled:text-ink-3";
 
 export const Input = forwardRef<HTMLInputElement, InputHTMLAttributes<HTMLInputElement>>(
   ({ className, ...rest }, ref) => (

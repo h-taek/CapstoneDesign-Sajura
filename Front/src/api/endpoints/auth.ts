@@ -6,13 +6,21 @@ import type { components } from "../types.gen";
 
 type S = components["schemas"];
 
+export type TokenResponse = S["TokenResponse"];
+
 type RefreshResponse = S["TokenResponse"];
 
 type LoginResponse = S["TokenResponse"];
 
 export type RegisterPayload = S["RegisterRequest"];
 
-type RegisterResponse = S["RegisterResponse"];
+export type RegisterResponse = S["RegisterResponse"];
+
+export type ChangePasswordRequest = S["ChangePasswordRequest"];
+
+export type DeleteAccountRequest = S["DeleteAccountRequest"];
+
+export type BusinessVerifyResponse = S["BusinessVerifyResponse"];
 
 /** BE 에러 envelope({ error, message }) → 사용자 메시지. 파싱 불가 시 fallback. */
 export async function authErrorMessage(error: unknown, fallback: string): Promise<string> {

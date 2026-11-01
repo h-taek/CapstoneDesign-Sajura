@@ -27,11 +27,3 @@ export async function completeOnboarding(): Promise<{
 }> {
   return api.post("store/onboarding/complete").json();
 }
-
-export type PosType = S["PosCreateRequest"]["pos_type"];
-
-export type PosRegister = S["PosCreateRequest"];
-
-export async function registerPos(payload: PosRegister): Promise<unknown> {
-  return api.post("store/pos", { json: payload }).json();
-}

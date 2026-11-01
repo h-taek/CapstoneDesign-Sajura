@@ -1,0 +1,223 @@
+/* 사장님의 하루(bd-day) 배경과 화면 전환(아침이 밝기·가게로 들어가기·홈 등장) 스타일 */
+.bd {
+  position: fixed;
+  inset: 0;
+  z-index: -10;
+  overflow: hidden;
+  pointer-events: none;
+}
+.bd > * {
+  position: absolute;
+  display: block;
+}
+@media (prefers-reduced-motion: reduce) {
+  .bd * {
+    animation: none !important;
+  }
+}
+
+/* 나가기(로그인 → 홈) */
+.leaving .intro-copy,
+.leaving main {
+  animation: ex-down 0.4s ease-in both;
+}
+.leaving .orb {
+  animation: orb-out 0.9s cubic-bezier(0.6, 0, 0.2, 1) both;
+}
+.leaving .bd-veil {
+  animation: veil-in 0.9s ease both;
+}
+@keyframes ex-down {
+  to {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+}
+@keyframes orb-out {
+  to {
+    transform: scale(7);
+    opacity: 0;
+  }
+}
+@keyframes veil-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* 들어오기(대시보드가 시작 화면에서 넘어왔을 때만) — 상단 바, 메뉴, 패널, 하단 알약, 패널 속 내용 순 */
+.entering .en {
+  animation: en-up 0.7s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  animation-delay: var(--d, 0s);
+}
+.entering .en-top {
+  animation-name: en-down;
+}
+.entering .en-left {
+  animation-name: en-left;
+}
+.entering main > * > * {
+  animation: en-up 0.6s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+.entering main > * > :nth-child(1) {
+  animation-delay: 0.35s;
+}
+.entering main > * > :nth-child(2) {
+  animation-delay: 0.45s;
+}
+.entering main > * > :nth-child(3) {
+  animation-delay: 0.55s;
+}
+.entering main > * > :nth-child(n + 4) {
+  animation-delay: 0.65s;
+}
+@keyframes en-up {
+  from {
+    opacity: 0;
+    transform: translateY(24px) scale(0.98);
+  }
+}
+@keyframes en-down {
+  from {
+    opacity: 0;
+    transform: translateY(-16px);
+  }
+}
+@keyframes en-left {
+  from {
+    opacity: 0;
+    transform: translateX(-16px);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .entering *,
+  .leaving * {
+    animation: none !important;
+  }
+}
+
+/* 사장님의 하루 — 시각에 따라 하늘 색·별·달·해·가게 창문 불빛이 바뀐다 */
+.bd-day {
+  background: #241a5e;
+}
+.bd-day .d-sky,
+.bd-day .d-veil {
+  inset: 0;
+}
+.bd-day .d-stars {
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+.bd-day .d-stars circle {
+  animation: dtw 4s ease-in-out infinite alternate;
+}
+.bd-day .d-stars circle:nth-child(3n) {
+  animation-duration: 6s;
+}
+.bd-day .d-stars circle:nth-child(4n) {
+  animation-duration: 3s;
+}
+@keyframes dtw {
+  to {
+    opacity: 0.25;
+  }
+}
+.bd-day .d-veil {
+  background: #f6f4ff;
+  opacity: 0;
+}
+.bd-day .d-moon {
+  width: 88px;
+  height: 88px;
+  border-radius: 50%;
+  translate: -50% -50%;
+  background: radial-gradient(circle at 38% 36%, #fffdf3, #e9e4ff 70%);
+  box-shadow: 0 0 60px 18px rgb(214 205 255 / 0.35), inset -14px -10px 0 rgb(170 160 230 / 0.35);
+}
+.bd-day .d-sun {
+  width: 150px;
+  height: 150px;
+  border-radius: 50%;
+  translate: -50% -50%;
+  background: radial-gradient(circle, #fff7e0 0 34%, #ffd9a0 46%, rgb(255 190 140 / 0) 70%);
+}
+.bd-day .d-town {
+  left: 0;
+  right: 0;
+  bottom: 0;
+  width: 100%;
+  height: min(22vh, 190px);
+}
+@media (max-width: 860px) {
+  .bd-day .d-moon {
+    width: 60px;
+    height: 60px;
+  }
+  .bd-day .d-sun {
+    width: 110px;
+    height: 110px;
+  }
+}
+.entering .bd-day .d-veil {
+  animation: dveil 1s ease both;
+}
+@keyframes dveil {
+  from {
+    opacity: 0;
+  }
+}
+
+/* 가게로 들어가기(시작 화면 → 가입·로그인) */
+.shop-light {
+  position: fixed;
+  inset: 0;
+  z-index: 70;
+  pointer-events: none;
+}
+.shop-light.out {
+  animation: shop-out 0.9s ease 0.1s both;
+}
+@keyframes shop-out {
+  to {
+    opacity: 0;
+  }
+}
+.going-shop main,
+.going-shop header {
+  transition: opacity 0.3s ease;
+  opacity: 0;
+}
+.arrive-shop main > * {
+  animation: en-up 0.7s cubic-bezier(0.2, 0.8, 0.2, 1) 0.3s both;
+}
+
+/* 아침이 밝기(로그인 → 홈) */
+.morning-clock {
+  position: fixed;
+  inset: 0;
+  z-index: 70;
+  display: grid;
+  place-items: center;
+  pointer-events: none;
+  font-size: clamp(3.5rem, 10vw, 7rem);
+  font-weight: 300;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+  animation: mc-in 0.4s ease both;
+}
+@keyframes mc-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .arrive-shop *,
+  .shop-light {
+    animation: none !important;
+  }
+}

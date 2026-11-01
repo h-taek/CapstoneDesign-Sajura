@@ -2,10 +2,11 @@
 import { useMutation } from "@tanstack/react-query";
 import { useState } from "react";
 import { Navigate, useNavigate } from "react-router";
-import { Button } from "../../components/ui/button";
 import { fetchMe } from "../../api/endpoints/auth";
 import { createMenusBulk } from "../../api/endpoints/menus";
-import { completeOnboarding, patchStore, registerPos } from "../../api/endpoints/store";
+import { createPos } from "../../api/endpoints/pos";
+import { completeOnboarding, patchStore } from "../../api/endpoints/store";
+import { Button } from "../../components/ui/button";
 import { OPERATION_TYPE_LABEL, POS_TYPE_LABEL, STORE_SIZE_LABEL } from "../../schemas/onboarding";
 import { useAuthStore } from "../../stores/auth-store";
 import { useOnboardingStore } from "../../stores/onboarding-store";
@@ -35,7 +36,7 @@ export default function ConfirmStep() {
       });
       if (pos.pos_type !== "CSV_ONLY") {
         // posStepSchema가 CSV_ONLY 외에는 api_key·store_code 입력을 보장한다
-        await registerPos({
+        await createPos({
           pos_type: pos.pos_type,
           api_key: pos.api_key ?? "",
           store_code: pos.store_code ?? "",
@@ -61,12 +62,18 @@ export default function ConfirmStep() {
       <section>
         <h2 className="font-medium">매장</h2>
         <dl className="mt-1 grid grid-cols-2 text-sm text-ink-2">
-          <dt>매장명</dt><dd>{store.store_name}</dd>
-          <dt>업종</dt><dd>{store.business_type}</dd>
-          <dt>규모</dt><dd>{STORE_SIZE_LABEL[store.store_size]}</dd>
-          <dt>운영</dt><dd>{OPERATION_TYPE_LABEL[store.operation_type]}</dd>
-          <dt>주소</dt><dd>{store.address}</dd>
-          <dt>전화</dt><dd>{store.phone}</dd>
+          <dt>매장명</dt>
+          <dd>{store.store_name}</dd>
+          <dt>업종</dt>
+          <dd>{store.business_type}</dd>
+          <dt>규모</dt>
+          <dd>{STORE_SIZE_LABEL[store.store_size]}</dd>
+          <dt>운영</dt>
+          <dd>{OPERATION_TYPE_LABEL[store.operation_type]}</dd>
+          <dt>주소</dt>
+          <dd>{store.address}</dd>
+          <dt>전화</dt>
+          <dd>{store.phone}</dd>
         </dl>
       </section>
       <section>

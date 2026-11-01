@@ -2,11 +2,10 @@
 @import "pretendard/dist/web/variable/pretendardvariable-dynamic-subset.css";
 
 /*
- * 사주라 디자인 토큰 v2 (2026-10 리디자인)
- * - 웹: 수발주 B2B 서비스(발주고·마켓봄·앳트래커)처럼 흰 바탕 + 회색 캔버스 + 브랜드 한 색,
- *   큰 숫자 KPI, 상단 가로 내비게이션.
- * - 앱(모바일 PWA): 50~60대 사용량 1위권 앱(카카오톡·네이버·밴드) 문법 — 하단 탭 + 큰 글씨,
- *   화면당 행동 하나, 표 대신 카드 목록.
+ * 사주라 디자인 토큰 v2 (유리·하늘 배경 리디자인)
+ * - 전 페이지 공통 하늘 배경 위에 유리(glass / glass-bar / glass-card / glass-strong / glass-brand)를 얹는다.
+ * - 앱(모바일 PWA): 하단 탭 + 상단 축소 바 + 큰 글씨(112.5%).
+ * - 웹(>= 1024px): 중앙 알약 내비게이션 + 우측 유틸리티 바 + 큰 숫자 KPI.
  * 색은 반드시 아래 이름으로 쓴다(bg-brand, text-ink-3 …). 임의 hex 금지.
  */
 @theme {
@@ -23,10 +22,10 @@
   --color-ink-3: #6b7280;
   --color-ink-4: #9ca3af;
 
-  --color-line: #e3e6eb;
-  --color-line-soft: #eef0f3;
-  --color-canvas: #f4f5f8;
-  --color-subtle: #f6f7f9;
+  --color-line: rgb(72 60 140 / 0.16);
+  --color-line-soft: rgb(72 60 140 / 0.09);
+  --color-canvas: transparent;
+  --color-subtle: rgb(255 255 255 / 0.5);
 
   --color-accent: #ffe066;
 
@@ -41,6 +40,12 @@
 
   --shadow-card: 0 1px 2px rgb(17 24 39 / 0.04), 0 1px 1px rgb(17 24 39 / 0.02);
   --shadow-pop: 0 10px 30px -12px rgb(17 24 39 / 0.25);
+}
+
+:root {
+  --sky-fg: #111827;
+  --sky-fg2: #374151;
+  --sky-pill: rgb(255 255 255 / 0.1);
 }
 
 @layer base {
@@ -62,7 +67,8 @@
     outline: 3px solid var(--color-brand-tint);
     outline-offset: 2px;
   }
-  input[type="checkbox"] {
+  input[type="checkbox"],
+  input[type="radio"] {
     accent-color: var(--color-brand);
   }
 }
@@ -78,4 +84,86 @@
 
 @utility pb-safe {
   padding-bottom: env(safe-area-inset-bottom);
+}
+
+/* 유리 카드 — 배경(그라데이션·물결·구름)이 비쳐 보인다 */
+@utility glass {
+  background: rgb(255 255 255 / 0.1);
+  -webkit-backdrop-filter: blur(20px) saturate(160%);
+  backdrop-filter: blur(20px) saturate(160%);
+  border: 1px solid rgb(255 255 255 / 0.45);
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.6), inset 0 -1px 0 rgb(255 255 255 / 0.15), 0 10px
+    28px -14px rgb(0 0 0 / 0.18);
+}
+
+@utility glass-bar {
+  background: rgb(46 32 120 / 0.1);
+  -webkit-backdrop-filter: blur(20px) saturate(160%);
+  backdrop-filter: blur(20px) saturate(160%);
+  border: 1px solid rgb(255 255 255 / 0.4);
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.5), inset 0 -1px 0 rgb(255 255 255 / 0.12), 0 10px
+    28px -14px rgb(0 0 0 / 0.18);
+}
+
+@utility glass-strong {
+  background: rgb(255 255 255 / 0.72);
+  -webkit-backdrop-filter: blur(24px) saturate(160%);
+  backdrop-filter: blur(24px) saturate(160%);
+  border: 1px solid rgb(255 255 255 / 0.6);
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.8), 0 24px 60px -24px rgb(40 20 120 / 0.35);
+}
+
+@utility glass-brand {
+  background: linear-gradient(150deg, rgb(107 78 255 / 0.82) 0%, rgb(107 78 255 / 0.62) 100%);
+  -webkit-backdrop-filter: blur(16px) saturate(160%);
+  backdrop-filter: blur(16px) saturate(160%);
+  border: 1px solid rgb(255 255 255 / 0.4);
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.45), inset 0 -1px 0 rgb(255 255 255 / 0.12), 0 8px
+    20px -12px rgb(107 78 255 / 0.45);
+}
+
+@utility glass-card {
+  background: rgb(255 255 255 / 0.38);
+  -webkit-backdrop-filter: blur(20px) saturate(160%);
+  backdrop-filter: blur(20px) saturate(160%);
+  border: 1px solid rgb(255 255 255 / 0.5);
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.7);
+}
+
+/* 유리 카드 안의 중첩 카드는 backdrop-filter를 꺼서 흰 배경이 겹쳐 탁해지지 않게 한다 */
+:is(.glass, .glass-card, .glass-strong, .glass-brand) .glass-card {
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+
+/* 앱 상단 바 — 아래로 내리면 오른쪽 알약(알림+프로필)만 남고 줄어든다 */
+header[data-shrink] {
+  transition: left 0.4s cubic-bezier(0.2, 0.8, 0.2, 1);
+  overflow: hidden;
+}
+
+header[data-shrink] .shrink-hide {
+  transition: opacity 0.2s;
+}
+
+header[data-shrink].is-shrunk {
+  left: calc(100% - 0.75rem - var(--shrink-w, 6.5rem));
+  gap: 0;
+}
+
+header[data-shrink].is-shrunk .shrink-hide {
+  opacity: 0;
+  pointer-events: none;
+  flex: 0 0 0;
+  width: 0;
+  min-width: 0;
+  padding: 0;
+  overflow: hidden;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  header[data-shrink],
+  header[data-shrink] .shrink-hide {
+    transition: none !important;
+  }
 }

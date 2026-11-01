@@ -86,7 +86,7 @@ export default function ForecastPage() {
     error: forecastError,
   } = useQuery({
     queryKey: ["ai-forecast-predict"],
-    queryFn: getForecastPredict,
+    queryFn: () => getForecastPredict(),
     staleTime: 60_000,
     retry: false,
   });

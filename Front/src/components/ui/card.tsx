@@ -1,8 +1,8 @@
-// 카드·섹션·KPI 프리미티브 — 디자인 토큰 v2.
-// 웹: 흰 카드 + 얇은 테두리 + 큰 숫자. 앱: 같은 카드가 화면 폭을 꽉 채우고 글씨가 커진다.
+// 유리 카드·섹션·KPI 프리미티브 — 디자인 토큰 v2.
+// 웹: 유리 카드(glass-card) + 큰 숫자. 앱: 같은 카드가 화면 폭을 꽉 채우고 글씨가 커진다.
 import type { LucideIcon } from "lucide-react";
 import { ChevronRight } from "lucide-react";
-import type { ReactNode } from "react";
+import type { HTMLAttributes, ReactNode } from "react";
 import { Link } from "react-router";
 import { cn } from "../../lib/utils";
 
@@ -10,13 +10,14 @@ export function Card({
   className,
   children,
   as: Tag = "div",
+  ...rest
 }: {
   className?: string;
   children: ReactNode;
   as?: "div" | "section" | "article";
-}) {
+} & HTMLAttributes<HTMLElement>) {
   return (
-    <Tag className={cn("rounded-2xl border border-line bg-white shadow-card", className)}>
+    <Tag className={cn("glass-card rounded-2xl", className)} {...rest}>
       {children}
     </Tag>
   );
@@ -82,7 +83,7 @@ export function MoreLink({ to, children = "전체 보기" }: { to: string; child
   );
 }
 
-/** 큰 숫자 KPI — 발주고·앳트래커처럼 숫자를 가장 크게. */
+/** 큰 숫자 KPI — 숫자를 가장 크게 보여준다. */
 export function StatCard({
   label,
   value,
@@ -137,7 +138,7 @@ export function EmptyState({
   return (
     <div
       className={cn(
-        "flex min-h-[120px] flex-col items-center justify-center gap-3 rounded-2xl border border-dashed border-line bg-white px-6 py-8 text-center text-[0.95rem] text-ink-3",
+        "glass-card flex min-h-[120px] flex-col items-center justify-center gap-3 rounded-2xl px-6 py-8 text-center text-[0.95rem] text-ink-3",
         className,
       )}
     >
@@ -147,23 +148,25 @@ export function EmptyState({
   );
 }
 
-/** 칩 탭 — 기간·필터 전환. */
+/** 알약 탭 — 기간·필터 전환. */
 export function Segmented<T extends string>({
   value,
   options,
   onChange,
   label,
+  className,
 }: {
   value: T;
   options: Array<{ value: T; label: string }>;
   onChange: (v: T) => void;
   label: string;
+  className?: string;
 }) {
   return (
     <div
       role="tablist"
       aria-label={label}
-      className="inline-flex rounded-xl border border-line bg-white p-1 shadow-card"
+      className={cn("glass-card inline-flex rounded-full p-1", className)}
     >
       {options.map((o) => (
         <button
@@ -173,7 +176,7 @@ export function Segmented<T extends string>({
           aria-selected={o.value === value}
           onClick={() => onChange(o.value)}
           className={cn(
-            "rounded-lg px-3.5 py-1.5 text-sm font-semibold transition-colors",
+            "rounded-full px-3.5 py-1.5 text-sm font-semibold transition-colors lg:px-5",
             o.value === value ? "bg-brand-soft text-brand" : "text-ink-3 hover:text-ink-2",
           )}
         >
@@ -186,10 +189,10 @@ export function Segmented<T extends string>({
 
 /** 표 공통 클래스 — 웹 전용 표(앱에서는 카드 목록으로 대체). */
 export const tableClass = {
-  wrap: "overflow-x-auto rounded-2xl border border-line bg-white shadow-card",
+  wrap: "glass-card overflow-x-auto rounded-2xl",
   table: "w-full min-w-[640px] text-left text-[0.95rem]",
-  thead: "bg-subtle text-sm text-ink-3",
+  thead: "border-b border-white/70 text-sm text-ink-3",
   th: "px-5 py-3 font-semibold",
-  tr: "border-t border-line-soft",
+  tr: "border-t border-white/70",
   td: "px-5 py-3.5 text-ink-2",
 };

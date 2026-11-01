@@ -1,9 +1,11 @@
-// 판매 데이터 업로드 API — 02_implementation_design.md §3.6.
+// 판매 데이터 업로드 및 조회 API — 02_implementation_design.md §3.6.
 import { api } from "../../lib/api";
 import type { components } from "../types.gen";
 
 type S = components["schemas"];
 
+export type NeedsCheckItem = S["NeedsCheckItem"];
+export type InventoryDeduction = S["InventoryDeduction"];
 export type CSVUploadResponse = S["CSVUploadResponse"];
 
 export interface CSVUploadColumns {
@@ -40,6 +42,38 @@ export async function uploadSalesCsv(
   return api.post("sales/upload", { body: form, timeout: 120_000 }).json<CSVUploadResponse>();
 }
 
+// 로컬 날짜 그대로 YYYY-MM-DD — toISOString()은 UTC로 바꿔 하루가 밀릴 수 있다
+function isoDate(d: Date | string): string {
+  if (typeof d === "string") return d;
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+
+export type SaleListItem = S["SaleListItem"];
+
+export type SalesListResponse = S["SalesListResponse"];
+
+export interface SalesListParams {
+  start_date: Date | string;
+  end_date: Date | string;
+  menu_id?: string | null;
+  order?: "asc" | "desc";
+  page?: number;
+  size?: number;
+}
+
+// GET /api/sales — 판매 내역 목록 조회 (기간 합계 포함).
+export async function listSales(params: SalesListParams): Promise<SalesListResponse> {
+  const searchParams: Record<string, string | number> = {
+    start_date: isoDate(params.start_date),
+    end_date: isoDate(params.end_date),
+  };
+  if (params.menu_id) searchParams.menu_id = params.menu_id;
+  if (params.order) searchParams.order = params.order;
+  if (params.page !== undefined) searchParams.page = params.page;
+  if (params.size !== undefined) searchParams.size = params.size;
+  return api.get("sales", { searchParams }).json<SalesListResponse>();
+}
+
 export type SalesSummary = S["SalesSummaryResponse"];
 
 export async function getSalesSummary(): Promise<SalesSummary> {
@@ -52,25 +86,33 @@ export type TrendPoint = S["TrendPoint"];
 
 export type SalesTrends = S["SalesTrendsResponse"];
 
-// 로컬 날짜 그대로 YYYY-MM-DD — toISOString()은 UTC로 바꿔 하루가 밀릴 수 있다
-function isoDate(d: Date): string {
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-}
-
 export async function getSalesTrends(
-  start: Date,
-  end: Date,
+  start: Date | string,
+  end: Date | string,
   groupBy: TrendGroupBy = "day",
+  menuId?: string | null,
 ): Promise<SalesTrends> {
-  return api
-    .get("sales/trends", {
-      searchParams: { start_date: isoDate(start), end_date: isoDate(end), group_by: groupBy },
-    })
-    .json<SalesTrends>();
+  const searchParams: Record<string, string> = {
+    start_date: isoDate(start),
+    end_date: isoDate(end),
+    group_by: groupBy,
+  };
+  if (menuId) searchParams.menu_id = menuId;
+  return api.get("sales/trends", { searchParams }).json<SalesTrends>();
 }
 
 export type TopMenuItem = S["TopMenuItem"];
 
-export async function getTopMenus(limit = 5): Promise<TopMenuItem[]> {
-  return api.get("sales/top-menus", { searchParams: { limit } }).json<TopMenuItem[]>();
+export interface TopMenusRange {
+  start_date?: Date | string;
+  end_date?: Date | string;
+}
+
+export async function getTopMenus(limit = 5, range?: TopMenusRange): Promise<TopMenuItem[]> {
+  const searchParams: Record<string, string | number> = { limit };
+  if (range?.start_date && range?.end_date) {
+    searchParams.start_date = isoDate(range.start_date);
+    searchParams.end_date = isoDate(range.end_date);
+  }
+  return api.get("sales/top-menus", { searchParams }).json<TopMenuItem[]>();
 }

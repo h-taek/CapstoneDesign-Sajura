@@ -1,4 +1,4 @@
-// 버튼 프리미티브 — 디자인 토큰 v2 (index.css @theme).
+// 알약 버튼 프리미티브 — 디자인 토큰 v2 (index.css @theme).
 // 앱(모바일)에서는 html 글씨가 커지므로 같은 size도 손가락 기준(≥48px)으로 커진다.
 import { type ButtonHTMLAttributes, forwardRef } from "react";
 import { cn } from "../../lib/utils";
@@ -10,16 +10,16 @@ const variants: Record<Variant, string> = {
   primary: "bg-brand text-white hover:bg-brand-strong disabled:bg-ink-4",
   soft: "bg-brand-soft text-brand-strong hover:bg-brand-tint disabled:opacity-60",
   secondary:
-    "bg-white text-ink-2 border border-line hover:bg-subtle hover:border-ink-4 disabled:opacity-60",
-  ghost: "bg-transparent text-ink-2 hover:bg-subtle disabled:opacity-50",
-  destructive: "bg-danger text-white hover:bg-red-700 disabled:bg-red-300",
+    "border border-white/80 bg-transparent text-ink-2 hover:bg-white/30 disabled:opacity-60",
+  ghost: "bg-transparent text-ink-2 hover:bg-white/40 hover:text-ink disabled:opacity-50",
+  destructive: "bg-danger text-white hover:opacity-90 disabled:bg-ink-4",
 };
 
 const sizes: Record<Size, string> = {
-  sm: "h-9 px-3.5 text-sm rounded-lg",
-  md: "h-11 px-5 text-[0.95rem] rounded-xl",
-  lg: "h-12 px-6 text-base rounded-xl",
-  xl: "h-14 px-6 text-lg rounded-2xl",
+  sm: "h-9 px-4 text-sm rounded-full",
+  md: "h-11 px-5 text-[0.95rem] rounded-full",
+  lg: "h-12 px-6 text-base rounded-full",
+  xl: "h-14 px-6 text-lg rounded-full",
 };
 
 export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {

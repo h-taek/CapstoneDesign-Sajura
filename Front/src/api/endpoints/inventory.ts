@@ -4,6 +4,8 @@ import type { components } from "../types.gen";
 
 type S = components["schemas"];
 
+export type InventoryCoupangProduct = S["InventoryCoupangProduct"];
+
 export type InventoryItem = S["InventoryItemResponse"];
 
 export type InventoryItemInput = S["InventoryItemCreateRequest"];
@@ -36,7 +38,13 @@ export type LotInput = S["LotCreateRequest"];
 
 export type AdjustmentReason = S["AdjustmentReason"];
 
+export type AdjustmentResponse = S["AdjustmentResponse"];
+
 export type LotPatch = S["LotUpdateRequest"];
+
+export type DisposeRequest = S["DisposeRequest"];
+
+export type DisposeResponse = S["DisposeResponse"];
 
 export type PendingOrderItem = S["PendingOrderItem"];
 
@@ -60,4 +68,15 @@ export async function disposeLot(
   input: { lot_id: string; quantity: number; reason: string | null },
 ): Promise<void> {
   await api.post(`inventory/${itemId}/dispose`, { json: input });
+}
+
+export type PriceTrendPoint = S["PriceTrendPoint"];
+
+export type PriceTrendItem = S["PriceTrendItem"];
+
+export type PriceTrendResponse = S["PriceTrendResponse"];
+
+// GET /api/inventory/price-trends — 재료별 최근 일별 매입 단가 추이.
+export async function getPriceTrends(days = 30): Promise<PriceTrendResponse> {
+  return api.get("inventory/price-trends", { searchParams: { days } }).json<PriceTrendResponse>();
 }
