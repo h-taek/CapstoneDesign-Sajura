@@ -75,7 +75,7 @@
 | B7 메뉴·관리자 | 11·13 | `routes/menus.tsx`, `routes/admin/*`, `components/menus/*`, `components/admin/*` | 카테고리 묶음·구분선, 검색·보기(`04_fe.md` §4.5), 심사 큐(§4.10) | 묶음 정렬·거르기, 기존 메뉴 시험 유지 |
 | B8 설정 | 12 | `routes/settings/*`, `routes/sales/upload.tsx`, `components/settings/*`, `components/pwa/*`, `lib/pwa-install.ts`, `sw.ts` | 판 일곱(`04_fe.md` §4.9) — 매장 정보, 알림 설정·이 기기로 푸시(`lib/push.ts`), 쿠팡 담기 확장 상태(`ping`), 매출 올리기는 POS 판 안. PWA 결함 셋(새 버전 SW 즉시 교체로 입력 중 새로고침, 비지원 브라우저 설치 안내, `promptInstall` 예외) | 판 전환, 확장 연결/없음, 푸시 권한 거부, 설치 안내 분기 |
 
-구현 기본값(정해지지 않은 것): 추천 수정값은 화면 상태로만 둔다(나갔다 오면 초기화). 상단 바 입력창은 두지 않는다. 회원가입 [선택] 약관·로고·약관 본문은 지금 것을 둔다.
+추천 수정값은 화면 상태로만 둔다(`PROGRESS.md` §2 '추천 수정안 저장 폐지'). 약관 항목·약관 본문·로고는 지금 것을 둔다.
 
 ## 3. 마무리
 
