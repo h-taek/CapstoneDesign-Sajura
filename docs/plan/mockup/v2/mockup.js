@@ -17,6 +17,7 @@ const PAGES = {
   menus: { file: "11_menus.html", route: "/menus", name: "메뉴 관리" },
   settings: { file: "12_settings.html", route: "/settings", name: "설정(앱: 더보기)" },
   admin: { file: "13_admin-verifications.html", route: "/admin/verifications", name: "관리자 심사" },
+  extension: { file: "14_extension-panel.html", route: "확장 · 쿠팡 작업 탭", name: "확장 진행 패널" },
 };
 
 // "키?상태"면 그 화면을 그 상태로 연다(설정의 판 — 계정 정보·매출 올리기 등)
@@ -173,6 +174,7 @@ const ICON_PATHS = {
   info: '<circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/>',
   leaf: '<path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10Z"/><path d="M2 21c0-3 1.85-5.36 5.08-6C9.5 14.52 12 13 13 12"/>',
   leafyGreen: '<path d="M2 22c1.25-.987 2.27-1.975 3.9-2.2a5.56 5.56 0 0 1 3.8 1.5 4 4 0 0 0 6.187-2.353 3.5 3.5 0 0 0 3.69-5.116A3.5 3.5 0 0 0 20.95 8 3.5 3.5 0 1 0 16 3.05a3.5 3.5 0 0 0-5.831 1.373 3.5 3.5 0 0 0-5.116 3.69 4 4 0 0 0-2.348 6.155C3.499 15.42 4.409 16.712 4.2 18.1 3.926 19.743 3.014 20.732 2 22"/><path d="M2 22 17 7"/>',
+  loaderCircle: '<path d="M21 12a9 9 0 1 1-6.219-8.56"/>',
   logOut: '<path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" x2="9" y1="12" y2="12"/>',
   menu: '<line x1="4" x2="20" y1="12" y2="12"/><line x1="4" x2="20" y1="6" y2="6"/><line x1="4" x2="20" y1="18" y2="18"/>',
   minus: '<path d="M5 12h14"/>',

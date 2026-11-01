@@ -1,0 +1,219 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>확장 진행 패널 — 사주라 목업 v2</title>
+<script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4.0.17"></script>
+<script src="mockup.js" defer></script>
+<style>
+  /* 진행 패널 — 안은 연보라 유리(뒤 쿠팡 화면을 흐림), 외곽선은 위 보라 → 아래 분홍빛 보라 그라데이션(하늘 해 질 녘 색).
+     외곽선은 ::before 한 겹을 테두리 두께만 남기고 가운데를 마스크로 뚫어 그린다(유리 흐림을 덮지 않는다) */
+  .sj-panel {
+    position: fixed;
+    background: rgb(236 231 255 / 0.62);
+    -webkit-backdrop-filter: blur(24px) saturate(170%);
+    backdrop-filter: blur(24px) saturate(170%);
+    box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.7), 0 24px 60px -20px rgb(100 71 187 / 0.45);
+  }
+  .sj-panel::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    padding: 2px;
+    background: linear-gradient(180deg, #6447bb 0%, #885faf 50%, #af78a2 100%);
+    -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    pointer-events: none;
+  }
+  .sj-avatar { background: linear-gradient(180deg, #6447bb 0%, #885faf 50%, #af78a2 100%); }
+  /* 확장이 하는 말 — 흰 유리 말풍선 / 담을 대상 — 외곽선과 같은 그라데이션 말풍선 */
+  .sj-in { background: rgb(255 255 255 / 0.78); box-shadow: 0 1px 2px rgb(100 71 187 / 0.08); }
+  .sj-out { background: linear-gradient(160deg, #6447bb 0%, #885faf 100%); box-shadow: 0 4px 12px -6px rgb(100 71 187 / 0.6); }
+  .sj-dot { width: 6px; height: 6px; border-radius: 9999px; background: #885faf; animation: sj-dot 1.2s infinite ease-in-out both; }
+  .sj-dot:nth-child(2) { animation-delay: 0.15s; }
+  .sj-dot:nth-child(3) { animation-delay: 0.3s; }
+  @keyframes sj-dot { 0%, 80%, 100% { opacity: 0.25; transform: translateY(0); } 40% { opacity: 1; transform: translateY(-2px); } }
+  /* 대화 스크롤 막대 — 얇게, 연보라 */
+  [data-log] { scrollbar-width: thin; scrollbar-color: rgb(100 71 187 / 0.3) transparent; }
+  /* 담기 중 테두리 빛 — 선 없이 가장자리에서 번지는 오라. 외곽선과 같은 보라 → 분홍, 서서히 켜진 뒤 천천히 숨 쉰다 */
+  .sj-glow { position: fixed; inset: 48px 0 0; z-index: 45; pointer-events: none; /* 목업은 크롬 창 머리(48px) 아래부터 — 실제는 탭 화면 전체 */
+    box-shadow: inset 0 0 60px 4px rgb(100 71 187 / 0.32), inset 0 0 140px 20px rgb(136 95 175 / 0.18), inset 0 -80px 120px -60px rgb(175 120 162 / 0.4);
+    animation: sj-in 0.8s ease-out both, sj-breathe 2.4s ease-in-out 0.8s infinite; }
+  @keyframes sj-in { from { opacity: 0; } }
+  @keyframes sj-breathe { 0%, 100% { opacity: 0.65; } 50% { opacity: 1; } }
+  /* 확장 커서 — 끝점이 요소 가운데. 누를 때 동그라미가 퍼진다 */
+  .sj-cursor { z-index: 46; pointer-events: none; filter: drop-shadow(0 2px 4px rgb(100 71 187 / 0.45)); }
+  .sj-cursor svg { position: relative; margin: -2px 0 0 -2px; }
+  .sj-ripple { position: absolute; top: -14px; left: -14px; width: 28px; height: 28px; border-radius: 9999px;
+    border: 2px solid #885faf; animation: sj-ripple 1.4s ease-out infinite; }
+  @keyframes sj-ripple { 0% { transform: scale(0.3); opacity: 1; } 70%, 100% { transform: scale(1.4); opacity: 0; } }
+</style>
+</head>
+<!-- 사주라 확장이 쿠팡 작업 탭 화면 위에 그리는 진행 패널·테두리 빛·커서(04_fe.md §12.8). PC 크롬 전용이라 앱 폭 보기는 없다.
+     [쿠팡 담기]로 작업 탭이 열리면 오른쪽 아래에 저절로 뜬다. X로 닫고, 크롬 도구 막대의 사주라 확장 버튼으로 다시 연다.
+     담기 진행을 채팅처럼 쌓는다 — 대상(오른쪽 말풍선) → 동작 문장 → 결과(왼쪽 말풍선). 끝난 대상의 동작 말풍선은 접어 둔다. 점주는 입력하지 않는다.
+     품목·결과는 10 추천 발주의 '담는 중'·'담기 결과'와 같다(바질 · 페퍼로니 · 피자 도우 · 모짜렐라 치즈, 비로그인).
+     뒤의 쿠팡 화면은 자리 표시다 -->
+<body data-page="extension" data-states="담는 중:running,알림·거부:notice,마침:done,기록 없음:empty,닫힘:closed" class="min-h-dvh bg-[#f5f6f8]">
+
+<!-- 크롬 창 머리 — 주소 칸과 확장 버튼. 확장 버튼을 누르면 패널을 다시 연다 -->
+<div class="sticky top-0 z-40 flex h-12 items-center gap-3 border-b border-black/10 bg-white px-4">
+  <span class="flex h-8 min-w-0 flex-1 items-center rounded-full bg-[#f1f3f4] px-4 text-sm text-ink-3"><span class="truncate">www.coupang.com/vp/products/…</span></span>
+  <button type="button" data-set-state="running" aria-label="사주라 확장" title="사주라 확장" class="flex size-8 shrink-0 items-center justify-center rounded-lg bg-brand text-white hover:bg-brand-strong"><span data-icon="shoppingCart" class="size-4"></span></button>
+</div>
+
+<!-- 쿠팡 화면 자리 — 상품 페이지 모양. 패널 뒤로도 내용이 지나가게 화면 폭을 다 쓴다 -->
+<div aria-hidden="true" class="grid grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)] gap-10 px-10 py-10">
+  <div class="aspect-square rounded-xl bg-[linear-gradient(140deg,#f6d6b8_0%,#e8a87c_45%,#c0392b_100%)]"></div>
+  <div class="space-y-4 pt-2">
+    <div class="h-4 w-1/3 rounded bg-black/[0.08]"></div>
+    <div class="h-7 w-11/12 rounded bg-black/[0.12]"></div>
+    <div class="h-7 w-2/3 rounded bg-black/[0.12]"></div>
+    <div class="h-px bg-black/10"></div>
+    <div class="flex items-end gap-3"><div class="h-9 w-40 rounded bg-[#e5484d]/70"></div><div class="h-5 w-24 rounded bg-black/[0.08]"></div></div>
+    <div class="h-4 w-1/4 rounded bg-[#2f6fed]/40"></div>
+    <div class="h-px bg-black/10"></div>
+    <div class="grid grid-cols-4 gap-3 pt-2">
+      <div class="aspect-square rounded-lg bg-[#f3c98b]"></div><div class="relative aspect-square rounded-lg bg-[#9fd3a8]">
+        <!-- 확장 커서 — 클릭 동작 때 누를 요소 가운데로 움직인 뒤 동그라미가 퍼지고 누른다 -->
+        <span data-when="running closed" class="sj-cursor absolute top-1/2 left-1/2"><i class="sj-ripple"></i><svg width="22" height="24" viewBox="0 0 22 24"><path d="M2 2 L2 19 L7 14.5 L10.5 22 L14 20.5 L10.5 13 L17 13 Z" fill="url(#sj-g)" stroke="#fff" stroke-width="1.6" stroke-linejoin="round"/><defs><linearGradient id="sj-g" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#6447bb"/><stop offset="1" stop-color="#af78a2"/></linearGradient></defs></svg></span>
+      </div><div class="aspect-square rounded-lg bg-[#e8a3a3]"></div><div class="aspect-square rounded-lg bg-[#a9c4ef]"></div>
+    </div>
+    <div class="flex gap-3 pt-4"><div class="h-12 w-28 rounded bg-black/[0.08]"></div><div class="h-12 flex-1 rounded border-2 border-[#2f6fed]/60"></div><div class="h-12 flex-1 rounded bg-[#2f6fed]/80"></div></div>
+  </div>
+</div>
+
+<!-- 담기 중 테두리 빛 — 작업 탭 화면 가장자리에 포인트색 빛. 담기 중(open부터 progress done까지)에만, 패널을 닫아도 남는다. 클릭·스크롤을 막지 않는다 -->
+<div data-when="running notice closed" aria-hidden="true" class="sj-glow"></div>
+
+<!-- 진행 패널 — 오른쪽 아래에 고정(실제는 아래에서 16px, 목업은 도구 막대 위로 띄운다), 폭 360px, 아래 끝을 붙인 채 위로 자란다, 높이는 기록만큼 최대 480px(넘으면 대화만 안에서 스크롤, 새 말풍선이 오면 맨 아래로).
+     채팅처럼 — 오른쪽 말풍선은 담을 대상(progress target), 왼쪽은 확장이 하는 말(동작 문장·결과·알림·끝).
+     동작 문장은 작은 말풍선, 결과·알림·끝은 보통 말풍선. 다음 동작을 기다리는 동안(run에 답한 뒤 다음 run·progress가 올 때까지) 점 세 개. 끝난 대상의 동작 말풍선은 접는다 -->
+<section data-when="running notice done empty" role="log" aria-label="사주라 쿠팡 담기 진행" class="sj-panel right-4 bottom-20 z-50 flex max-h-[min(480px,calc(100vh-9rem))] w-[360px] flex-col rounded-3xl">
+  <!-- 머리 — 대화 상대처럼. 상태(담는 중 / 마침)는 이름 아래 -->
+  <header class="flex items-center gap-2.5 border-b border-[#6447bb]/10 px-4 pt-3.5 pb-3">
+    <span aria-hidden="true" class="sj-avatar flex size-9 shrink-0 items-center justify-center rounded-full text-white"><span data-icon="shoppingCart" class="size-4"></span></span>
+    <div class="min-w-0 flex-1">
+      <p class="text-[0.95rem] font-bold text-ink">사주라</p>
+      <p data-when="running notice" class="flex items-center gap-1.5 text-xs text-ink-2"><i class="size-1.5 rounded-full bg-ok"></i>담는 중 · 오전 9:12 시작</p>
+      <p data-when="done" class="text-xs text-ink-2">마침 · 10월 20일 오전 9:12 시작</p>
+      <p data-when="empty" class="text-xs text-ink-2">담기 기록 없음</p>
+    </div>
+    <button type="button" data-set-state="closed" aria-label="닫기" class="-mr-1 flex size-9 shrink-0 items-center justify-center rounded-full text-ink-2 hover:bg-white/60 hover:text-ink"><span data-icon="x" class="size-5"></span></button>
+  </header>
+
+  <div data-log class="min-h-0 flex-1 overflow-y-auto px-3.5 pt-4 pb-4">
+    <div data-when="running" class="space-y-3">
+      <div class="flex justify-end"><p class="sj-out max-w-[75%] truncate rounded-2xl rounded-br-md px-3.5 py-2 text-sm font-semibold text-white">바질</p></div>
+      <div class="flex items-end gap-2"><span aria-hidden="true" class="sj-avatar flex size-7 shrink-0 items-center justify-center rounded-full text-white"><span data-icon="shoppingCart" class="size-3.5"></span></span><div class="flex min-w-0 flex-col items-start gap-1">
+        <details class="group">
+          <summary class="inline-flex cursor-pointer list-none items-center gap-1 px-1 text-xs text-ink-3 hover:text-ink-2">지나간 동작 4개<span data-icon="chevronDown" class="size-3.5 transition-transform group-open:rotate-180"></span></summary>
+          <ol class="mt-1 space-y-1 text-[13px] text-ink-3"><li class="sj-in w-fit rounded-xl px-3 py-1.5">상품 페이지를 여는 중이에요</li><li class="sj-in w-fit rounded-xl px-3 py-1.5">화면을 읽는 중이에요</li><li class="sj-in w-fit rounded-xl px-3 py-1.5">버튼 누르는 중이에요</li><li class="sj-in w-fit rounded-xl px-3 py-1.5">'장바구니 담기' 누르는 중이에요</li></ol>
+        </details>
+        <p class="sj-in max-w-full rounded-2xl rounded-bl-md px-3.5 py-2 text-sm font-semibold"><span class="flex items-center gap-1.5 text-ok"><span data-icon="check" class="size-4"></span>담았어요</span></p>
+        <p class="tabular pl-1 text-[11px] text-ink-3">오전 9:13</p></div></div>
+      <div class="flex justify-end"><p class="sj-out max-w-[75%] truncate rounded-2xl rounded-br-md px-3.5 py-2 text-sm font-semibold text-white">페퍼로니</p></div>
+      <div class="flex items-end gap-2"><span aria-hidden="true" class="sj-avatar flex size-7 shrink-0 items-center justify-center rounded-full text-white"><span data-icon="shoppingCart" class="size-3.5"></span></span><div class="flex min-w-0 flex-col items-start gap-1">
+        <p class="sj-in w-fit max-w-full rounded-xl px-3 py-1.5 text-[13px] text-ink-3">화면을 읽는 중이에요</p>
+        <p class="sj-in w-fit max-w-full rounded-xl px-3 py-1.5 text-[13px] text-ink-3">'쿠팡 상품 검색' 누르는 중이에요</p>
+        <p class="sj-in w-fit max-w-full rounded-xl px-3 py-1.5 text-[13px] text-ink-3">'페퍼로니 슬라이스 1kg' 입력하는 중이에요</p>
+        <p class="sj-in w-fit max-w-full rounded-xl px-3 py-1.5 text-[13px] text-ink-3">'검색' 누르는 중이에요</p>
+        <p class="sj-in w-fit max-w-full rounded-xl px-3 py-1.5 text-[13px] text-ink-3">화면을 읽는 중이에요</p>
+        <p class="sj-in w-fit max-w-full rounded-xl px-3 py-1.5 text-[13px] text-ink-3">화면을 내리는 중이에요</p>
+        <p class="sj-in flex w-fit max-w-full items-center gap-1.5 rounded-xl px-3 py-1.5 text-[13px] font-semibold text-ink"><span data-icon="loaderCircle" class="size-3.5 shrink-0 animate-spin text-[#6447bb]"></span><span class="min-w-0 truncate">'[냉동] 델리 페퍼로니 슬라이스 1kg…' 누르는 중이에요</span></p>
+        </div></div>
+    </div>
+    <div data-when="notice" class="space-y-3">
+      <div class="flex items-end gap-2"><span aria-hidden="true" class="sj-avatar flex size-7 shrink-0 items-center justify-center rounded-full text-white"><span data-icon="shoppingCart" class="size-3.5"></span></span><div class="flex min-w-0 flex-col items-start gap-1">
+        <div class="flex max-w-full gap-2 rounded-2xl rounded-bl-md px-3.5 py-2.5 text-sm bg-warn-soft/90"><span data-icon="alertTriangle" class="mt-0.5 size-4 shrink-0 text-warn"></span><span class="min-w-0"><span class="block font-semibold text-ink">쿠팡에 로그인해 주세요</span><span class="block text-ink-2">로그인하지 않으면 로켓프레시 상품은 담을 수 없습니다</span></span></div>
+        <p class="tabular pl-1 text-[11px] text-ink-3">오전 9:12</p></div></div>
+      <div class="flex justify-end"><p class="sj-out max-w-[75%] truncate rounded-2xl rounded-br-md px-3.5 py-2 text-sm font-semibold text-white">바질</p></div>
+      <div class="flex items-end gap-2"><span aria-hidden="true" class="sj-avatar flex size-7 shrink-0 items-center justify-center rounded-full text-white"><span data-icon="shoppingCart" class="size-3.5"></span></span><div class="flex min-w-0 flex-col items-start gap-1">
+        <details class="group">
+          <summary class="inline-flex cursor-pointer list-none items-center gap-1 px-1 text-xs text-ink-3 hover:text-ink-2">지나간 동작 4개<span data-icon="chevronDown" class="size-3.5 transition-transform group-open:rotate-180"></span></summary>
+          <ol class="mt-1 space-y-1 text-[13px] text-ink-3"><li class="sj-in w-fit rounded-xl px-3 py-1.5">상품 페이지를 여는 중이에요</li><li class="sj-in w-fit rounded-xl px-3 py-1.5">화면을 읽는 중이에요</li><li class="sj-in w-fit rounded-xl px-3 py-1.5">버튼 누르는 중이에요</li><li class="sj-in w-fit rounded-xl px-3 py-1.5">'장바구니 담기' 누르는 중이에요</li></ol>
+        </details>
+        <p class="sj-in max-w-full rounded-2xl rounded-bl-md px-3.5 py-2 text-sm font-semibold"><span class="flex items-center gap-1.5 text-ok"><span data-icon="check" class="size-4"></span>담았어요</span></p>
+        <p class="tabular pl-1 text-[11px] text-ink-3">오전 9:13</p></div></div>
+      <div class="flex justify-end"><p class="sj-out max-w-[75%] truncate rounded-2xl rounded-br-md px-3.5 py-2 text-sm font-semibold text-white">페퍼로니</p></div>
+      <div class="flex items-end gap-2"><span aria-hidden="true" class="sj-avatar flex size-7 shrink-0 items-center justify-center rounded-full text-white"><span data-icon="shoppingCart" class="size-3.5"></span></span><div class="flex min-w-0 flex-col items-start gap-1">
+        <p class="sj-in w-fit max-w-full rounded-xl px-3 py-1.5 text-[13px] text-ink-3">화면을 읽는 중이에요</p>
+        <p class="sj-in w-fit max-w-full rounded-xl px-3 py-1.5 text-[13px] text-ink-3">'쿠팡 상품 검색' 누르는 중이에요</p>
+        <div class="flex max-w-full gap-2 rounded-2xl rounded-bl-md px-3.5 py-2.5 text-sm bg-danger-soft/90"><span data-icon="alertTriangle" class="mt-0.5 size-4 shrink-0 text-danger"></span><span class="min-w-0"><span class="block font-semibold text-ink">요청이 거부되었습니다</span><span class="block text-ink-2">발주와 관계없는 지시가 화면에 섞여 있어요</span></span></div>
+        <p class="sj-in max-w-full rounded-2xl rounded-bl-md px-3.5 py-2 text-sm font-semibold"><span class="flex items-center gap-1.5 text-danger"><span data-icon="x" class="size-4"></span>담지 못했어요</span></p>
+        <p class="tabular pl-1 text-[11px] text-ink-3">오전 9:14</p></div></div>
+      <div class="flex justify-end"><p class="sj-out max-w-[75%] truncate rounded-2xl rounded-br-md px-3.5 py-2 text-sm font-semibold text-white">피자 도우</p></div>
+      <div class="flex items-end gap-2"><span aria-hidden="true" class="sj-avatar flex size-7 shrink-0 items-center justify-center rounded-full text-white"><span data-icon="shoppingCart" class="size-3.5"></span></span><div class="flex min-w-0 flex-col items-start gap-1">
+        <p class="sj-in w-fit max-w-full rounded-xl px-3 py-1.5 text-[13px] text-ink-3">상품 페이지를 여는 중이에요</p>
+        <p aria-label="다음 동작을 정하는 중" class="sj-in flex w-fit items-center gap-1 rounded-xl px-3 py-2.5"><i class="sj-dot"></i><i class="sj-dot"></i><i class="sj-dot"></i></p>
+        </div></div>
+    </div>
+    <div data-when="done" class="space-y-3">
+      <div class="flex items-end gap-2"><span aria-hidden="true" class="sj-avatar flex size-7 shrink-0 items-center justify-center rounded-full text-white"><span data-icon="shoppingCart" class="size-3.5"></span></span><div class="flex min-w-0 flex-col items-start gap-1">
+        <div class="flex max-w-full gap-2 rounded-2xl rounded-bl-md px-3.5 py-2.5 text-sm bg-warn-soft/90"><span data-icon="alertTriangle" class="mt-0.5 size-4 shrink-0 text-warn"></span><span class="min-w-0"><span class="block font-semibold text-ink">쿠팡에 로그인해 주세요</span><span class="block text-ink-2">로그인하지 않으면 로켓프레시 상품은 담을 수 없습니다</span></span></div>
+        <p class="tabular pl-1 text-[11px] text-ink-3">오전 9:12</p></div></div>
+      <div class="flex justify-end"><p class="sj-out max-w-[75%] truncate rounded-2xl rounded-br-md px-3.5 py-2 text-sm font-semibold text-white">바질</p></div>
+      <div class="flex items-end gap-2"><span aria-hidden="true" class="sj-avatar flex size-7 shrink-0 items-center justify-center rounded-full text-white"><span data-icon="shoppingCart" class="size-3.5"></span></span><div class="flex min-w-0 flex-col items-start gap-1">
+        <details class="group">
+          <summary class="inline-flex cursor-pointer list-none items-center gap-1 px-1 text-xs text-ink-3 hover:text-ink-2">지나간 동작 4개<span data-icon="chevronDown" class="size-3.5 transition-transform group-open:rotate-180"></span></summary>
+          <ol class="mt-1 space-y-1 text-[13px] text-ink-3"><li class="sj-in w-fit rounded-xl px-3 py-1.5">상품 페이지를 여는 중이에요</li><li class="sj-in w-fit rounded-xl px-3 py-1.5">화면을 읽는 중이에요</li><li class="sj-in w-fit rounded-xl px-3 py-1.5">버튼 누르는 중이에요</li><li class="sj-in w-fit rounded-xl px-3 py-1.5">'장바구니 담기' 누르는 중이에요</li></ol>
+        </details>
+        <p class="sj-in max-w-full rounded-2xl rounded-bl-md px-3.5 py-2 text-sm font-semibold"><span class="flex items-center gap-1.5 text-ok"><span data-icon="check" class="size-4"></span>담았어요</span></p>
+        <p class="tabular pl-1 text-[11px] text-ink-3">오전 9:13</p></div></div>
+      <div class="flex justify-end"><p class="sj-out max-w-[75%] truncate rounded-2xl rounded-br-md px-3.5 py-2 text-sm font-semibold text-white">페퍼로니</p></div>
+      <div class="flex items-end gap-2"><span aria-hidden="true" class="sj-avatar flex size-7 shrink-0 items-center justify-center rounded-full text-white"><span data-icon="shoppingCart" class="size-3.5"></span></span><div class="flex min-w-0 flex-col items-start gap-1">
+        <details class="group">
+          <summary class="inline-flex cursor-pointer list-none items-center gap-1 px-1 text-xs text-ink-3 hover:text-ink-2">지나간 동작 11개<span data-icon="chevronDown" class="size-3.5 transition-transform group-open:rotate-180"></span></summary>
+          <ol class="mt-1 space-y-1 text-[13px] text-ink-3"><li class="sj-in w-fit rounded-xl px-3 py-1.5">화면을 읽는 중이에요</li><li class="sj-in w-fit rounded-xl px-3 py-1.5">'쿠팡 상품 검색' 누르는 중이에요</li><li class="sj-in w-fit rounded-xl px-3 py-1.5">'페퍼로니 슬라이스 1kg' 입력하는 중이에요</li><li class="sj-in w-fit rounded-xl px-3 py-1.5">'검색' 누르는 중이에요</li><li class="sj-in w-fit rounded-xl px-3 py-1.5">화면을 읽는 중이에요</li><li class="sj-in w-fit rounded-xl px-3 py-1.5">화면을 내리는 중이에요</li><li class="sj-in w-fit rounded-xl px-3 py-1.5">'[냉동] 델리 페퍼로니 슬라이스 1kg…' 누르는 중이에요</li><li class="sj-in w-fit rounded-xl px-3 py-1.5">화면을 읽는 중이에요</li><li class="sj-in w-fit rounded-xl px-3 py-1.5">'옵션 선택' 누르는 중이에요</li><li class="sj-in w-fit rounded-xl px-3 py-1.5">화면을 읽는 중이에요</li><li class="sj-in w-fit rounded-xl px-3 py-1.5">화면을 올리는 중이에요</li></ol>
+        </details>
+        <p class="sj-in max-w-full rounded-2xl rounded-bl-md px-3.5 py-2 text-sm font-semibold"><span class="flex items-center gap-1.5 text-danger"><span data-icon="x" class="size-4"></span>담지 못했어요</span><span class="mt-0.5 block font-normal text-ink-2">발주 수량에 맞는 상품을 찾지 못했어요</span></p>
+        <p class="tabular pl-1 text-[11px] text-ink-3">오전 9:16</p></div></div>
+      <div class="flex justify-end"><p class="sj-out max-w-[75%] truncate rounded-2xl rounded-br-md px-3.5 py-2 text-sm font-semibold text-white">피자 도우</p></div>
+      <div class="flex items-end gap-2"><span aria-hidden="true" class="sj-avatar flex size-7 shrink-0 items-center justify-center rounded-full text-white"><span data-icon="shoppingCart" class="size-3.5"></span></span><div class="flex min-w-0 flex-col items-start gap-1">
+        <details class="group">
+          <summary class="inline-flex cursor-pointer list-none items-center gap-1 px-1 text-xs text-ink-3 hover:text-ink-2">지나간 동작 5개<span data-icon="chevronDown" class="size-3.5 transition-transform group-open:rotate-180"></span></summary>
+          <ol class="mt-1 space-y-1 text-[13px] text-ink-3"><li class="sj-in w-fit rounded-xl px-3 py-1.5">상품 페이지를 여는 중이에요</li><li class="sj-in w-fit rounded-xl px-3 py-1.5">화면을 읽는 중이에요</li><li class="sj-in w-fit rounded-xl px-3 py-1.5">버튼 누르는 중이에요</li><li class="sj-in w-fit rounded-xl px-3 py-1.5">버튼 누르는 중이에요</li><li class="sj-in w-fit rounded-xl px-3 py-1.5">'장바구니 담기' 누르는 중이에요</li></ol>
+        </details>
+        <p class="sj-in max-w-full rounded-2xl rounded-bl-md px-3.5 py-2 text-sm font-semibold"><span class="flex items-center gap-1.5 text-ok"><span data-icon="check" class="size-4"></span>담았어요</span></p>
+        <p class="tabular pl-1 text-[11px] text-ink-3">오전 9:17</p></div></div>
+      <div class="flex justify-end"><p class="sj-out max-w-[75%] truncate rounded-2xl rounded-br-md px-3.5 py-2 text-sm font-semibold text-white">모짜렐라 치즈</p></div>
+      <div class="flex items-end gap-2"><span aria-hidden="true" class="sj-avatar flex size-7 shrink-0 items-center justify-center rounded-full text-white"><span data-icon="shoppingCart" class="size-3.5"></span></span><div class="flex min-w-0 flex-col items-start gap-1">
+        <details class="group">
+          <summary class="inline-flex cursor-pointer list-none items-center gap-1 px-1 text-xs text-ink-3 hover:text-ink-2">지나간 동작 4개<span data-icon="chevronDown" class="size-3.5 transition-transform group-open:rotate-180"></span></summary>
+          <ol class="mt-1 space-y-1 text-[13px] text-ink-3"><li class="sj-in w-fit rounded-xl px-3 py-1.5">상품 페이지를 여는 중이에요</li><li class="sj-in w-fit rounded-xl px-3 py-1.5">화면을 읽는 중이에요</li><li class="sj-in w-fit rounded-xl px-3 py-1.5">버튼 누르는 중이에요</li><li class="sj-in w-fit rounded-xl px-3 py-1.5">'장바구니 담기' 누르는 중이에요</li></ol>
+        </details>
+        <p class="sj-in max-w-full rounded-2xl rounded-bl-md px-3.5 py-2 text-sm font-semibold"><span class="flex items-center gap-1.5 text-ok"><span data-icon="check" class="size-4"></span>담았어요</span></p>
+        <p class="tabular pl-1 text-[11px] text-ink-3">오전 9:18</p></div></div>
+      <div class="flex justify-end"><p class="sj-out max-w-[75%] truncate rounded-2xl rounded-br-md px-3.5 py-2 text-sm font-semibold text-white">장바구니 검수</p></div>
+      <div class="flex items-end gap-2"><span aria-hidden="true" class="sj-avatar flex size-7 shrink-0 items-center justify-center rounded-full text-white"><span data-icon="shoppingCart" class="size-3.5"></span></span><div class="flex min-w-0 flex-col items-start gap-1">
+        <details class="group">
+          <summary class="inline-flex cursor-pointer list-none items-center gap-1 px-1 text-xs text-ink-3 hover:text-ink-2">지나간 동작 3개<span data-icon="chevronDown" class="size-3.5 transition-transform group-open:rotate-180"></span></summary>
+          <ol class="mt-1 space-y-1 text-[13px] text-ink-3"><li class="sj-in w-fit rounded-xl px-3 py-1.5">상품 페이지를 여는 중이에요</li><li class="sj-in w-fit rounded-xl px-3 py-1.5">화면을 읽는 중이에요</li><li class="sj-in w-fit rounded-xl px-3 py-1.5">화면을 내리는 중이에요</li></ol>
+        </details>
+        <p class="sj-in max-w-full rounded-2xl rounded-bl-md px-3.5 py-2 text-sm font-semibold"><span class="flex items-center gap-1.5 text-warn"><span data-icon="alertTriangle" class="size-4"></span>확인이 필요해요</span><span class="mt-0.5 block font-normal text-ink-2">피자 도우 — 장바구니에 있던 같은 상품과 합쳐져 수량이 더 많아요</span></p>
+        <p class="tabular pl-1 text-[11px] text-ink-3">오전 9:19</p></div></div>
+      <div class="flex items-end gap-2"><span aria-hidden="true" class="sj-avatar flex size-7 shrink-0 items-center justify-center rounded-full text-white"><span data-icon="shoppingCart" class="size-3.5"></span></span><div class="flex min-w-0 flex-col items-start gap-1">
+        <p class="sj-in max-w-full rounded-2xl rounded-bl-md px-3.5 py-2 text-sm text-ink-2 "><span class="block font-semibold text-ink">담기를 마쳤어요</span>장바구니에서 수량을 확인하고 결제해 주세요. 결과는 사주라 추천발주 화면에도 있어요</p>
+        <p class="tabular pl-1 text-[11px] text-ink-3">오전 9:19</p></div></div>
+    </div>
+    <div data-when="empty" class="space-y-3">
+      <div class="flex items-end gap-2"><span aria-hidden="true" class="sj-avatar flex size-7 shrink-0 items-center justify-center rounded-full text-white"><span data-icon="shoppingCart" class="size-3.5"></span></span><div class="flex min-w-0 flex-col items-start gap-1">
+        <p class="sj-in max-w-full rounded-2xl rounded-bl-md px-3.5 py-2 text-sm text-ink-2 ">추천발주에서 [쿠팡 담기]를 누르면 여기에 진행이 보여요</p>
+        </div></div>
+    </div>
+  </div>
+</section>
+
+<!-- 닫힘 — 패널 없음. 도구 막대의 확장 버튼으로 다시 연다 -->
+<p data-when="closed" class="fixed right-4 bottom-20 z-50 rounded-full bg-[#101828]/85 px-4 py-2 text-sm text-white">(목업) 오른쪽 위 확장 버튼을 누르면 다시 열려요</p>
+
+<script>
+  // 새 말풍선이 오면 맨 아래로 — 목업은 상태를 바꿀 때마다 맨 아래를 보인다
+  new MutationObserver(() => requestAnimationFrame(() => { const log = document.querySelector("[data-log]"); log.scrollTop = log.scrollHeight; }))
+    .observe(document.body, { attributes: true, attributeFilter: ["data-state"] });
+</script>
+</body>
+</html>
