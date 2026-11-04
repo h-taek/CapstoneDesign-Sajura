@@ -1,6 +1,7 @@
 // 매출 예측 기간 막대 차트 — 목업 07_forecast / mockup.js의 renderChart(bar) 그대로 이식.
 // 실제 매출 막대(보라색) + 그날 예측 점선(회색 점선) + (최신 구간일 때) 오늘·내일·모레 예상 막대(연한 보라 + 점선 테두리).
 import { useEffect, useRef, useState } from "react";
+import { ChartTooltip, formatWonFull, useChartHover } from "../charts/chart-hover";
 
 export interface ForecastChartProps {
   labels: string[];
@@ -40,6 +41,7 @@ export function ForecastChart({
 }: ForecastChartProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [width, setWidth] = useState(600);
+  const hover = useChartHover(containerRef);
 
   useEffect(() => {
     const el = containerRef.current;
@@ -112,15 +114,35 @@ export function ForecastChart({
     predRuns.push({ points: currentRun.join(" ") });
   }
 
+  // 호버/터치한 막대
+  const hi = hover.index != null && hover.index < values.length ? hover.index : null;
+  const hiValue = hi != null ? (values[hi] ?? 0) : 0;
+  const hiPred = hi != null ? (predicted[hi] ?? null) : null;
+  const hiIsForecast = hi != null && hi >= realCount;
+
   return (
-    <div ref={containerRef} className={`w-full ${className}`} style={{ height: H }}>
+    <div ref={containerRef} className={`relative w-full ${className}`} style={{ height: H }}>
       <svg
         viewBox={`0 0 ${W} ${H}`}
         width="100%"
         height="100%"
         className="block"
         aria-hidden="true"
+        {...hover.bind(values.length, x)}
       >
+        {/* 호버/터치한 막대 배경 하이라이트 */}
+        {hi != null && (
+          <rect
+            x={x(hi) - stepX / 2}
+            y={T}
+            width={stepX}
+            height={H - T - B}
+            fill={CHART_COLORS.brand}
+            fillOpacity={0.08}
+            pointerEvents="none"
+          />
+        )}
+
         {/* Y축 틱 및 텍스트 */}
         {yTicks.map((t, idx) => (
           <text
@@ -195,6 +217,21 @@ export function ForecastChart({
           />
         ))}
       </svg>
+
+      {hi != null && (
+        <ChartTooltip
+          x={x(hi)}
+          y={y(Math.max(hiValue, hiPred ?? 0))}
+          containerWidth={W}
+          title={labels[hi] ?? ""}
+          rows={[
+            { label: hiIsForecast ? "예상" : "실제", value: formatWonFull(hiValue) },
+            ...(hiPred != null
+              ? [{ label: "그날 예측", value: formatWonFull(hiPred), tone: "muted" as const }]
+              : []),
+          ]}
+        />
+      )}
     </div>
   );
 }
