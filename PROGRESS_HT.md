@@ -8,6 +8,22 @@
 
 ## 1. 개발 이력
 
+### 사업자 인증을 회원가입 마지막 단계로 — 745153c·d6fadfa (2026-11-06)
+
+- 이메일(약관·이메일·이름·비밀번호·사업자 인증)·소셜(약관·사업자 인증) 모두 사업자 인증을 통과해야 계정을 만들고, 가입 즉시 로그인해 온보딩으로 간다. 실패하면 계정을 만들지 않는다
+- 처음 보는 소셜 계정은 콜백에서 만들지 않고 가입 대기 토큰(`signup_token`, 30분, `path=/api/auth`)으로 `/register?social=1`. `GET`·`POST /api/auth/register/social`, `AUTH_SIGNUP_TOKEN_INVALID`
+- 사업자 검증 전 계정(UNVERIFIED·REJECTED)은 Refresh Token을 남기지 않는다(로그인·refresh). `/verify-business`(반려 재제출·기존 미인증 계정)를 통과할 때 처음 발급. FE 가드는 그 임시 로그인으로 로그인·가입 화면에 들어오면 로그인을 비운다
+- 로그인 화면 '가입 완료' 안내 흐름 제거, 가입 대기 만료 안내 추가. 온보딩 단계에서 사업자 인증을 빼고 Step 4 입력 확인을 spec에 맞춤
+- 문서 — spec 01 UC-01·§3.1~3.1.4·§4.2·4.3, 02 가입·로그인·refresh·사업자 검증 API·소셜 시퀀스·매장 DB 주석, 03 §7.1 가입 대기 토큰·§7.3 검증 전 계정·오류 코드, 04 §2·§3·§4.0~4.2
+- 검증: BE pytest 192(be 컨테이너, 가입·소셜 가입·검증 전 Refresh·OAuth 콜백 분기 추가), FE Vitest 210·typecheck·biome(기존 5건 외 없음). dev 브라우저로 이메일 5단계 가입 → `/onboarding/1`(PENDING·등록증·Refresh 1개), 중복 번호 안내·입력 유지, 소셜 모드 2단계(가입 대기 토큰을 dev에서 만들어 넣음) → 온보딩, 반려 계정 로그인 시 Refresh 없음·로그인 화면으로 가면 임시 로그인 비움. 실제 구글·카카오 로그인으로는 확인 전
+
+### PR #40 로그아웃 보완 머지 — 0ccd771 (2026-11-06)
+
+- 팀원 PR #40을 PR 브랜치에서 고쳐 일반 merge. 사업자 인증 화면의 '다른 계정으로 로그인'·'그 계정으로 로그인하기' 버튼은 뺐다(뒤로가기가 맡는다)
+- 로그아웃·탈퇴는 이 기기의 푸시 구독을 먼저 해지, 세션 만료(refresh 실패)도 로그인 정보·온보딩 입력·조회 캐시를 비운다(`lib/local-session.ts`), 로그아웃 버튼 처리 중 '로그아웃 중…'. Web Push ttl 12시간
+- 처음 squash로 머지(431a7b9)했다가 main을 되돌려 일반 merge로 다시 올림(강제 push)
+- 검증: FE Vitest 206, BE 알림 pytest 10, dev 브라우저에서 로그아웃 후 자동 재로그인 없음
+
 ### 1차 배포 — 맥미니 브리지 VM, sajura.htaeky.duckdns.org — 845326b·06660b3 (2026-11-02)
 
 - caddy 이미지에 FE 빌드 포함(node 단계 → `/srv`), `SITE_ADDRESS`가 도메인이면 Let's Encrypt 자동 HTTPS(443만 열어 TLS-ALPN). API 제한 시간 130초. 쓰이지 않던 `docker/fe/Dockerfile` 제거. 확장 `externally_connectable`에 배포 주소 추가
