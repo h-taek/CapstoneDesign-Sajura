@@ -6,7 +6,6 @@
 //   PENDING·VERIFIED + 온보딩 미완료 → /onboarding/{현재 스텝}
 //   PENDING·VERIFIED + 온보딩 완료   → /  (앱)
 //   role !== ADMIN 이 /admin/* 접근  → 본인 단계(온보딩 완료 시 /)
-import { Loader2 } from "lucide-react";
 import { type ReactNode, useEffect, useState, useSyncExternalStore } from "react";
 import { Navigate, useLocation } from "react-router";
 import { isMorningTransitioning, subscribeMorningTransition } from "../components/sky/day";
@@ -102,7 +101,17 @@ export function RequireAdmin({ children }: { children: ReactNode }) {
   return <>{children}</>;
 }
 
-/** 자동 로그인 복구·로그아웃을 기다리는 동안 — 하늘만 두고, 0.5초가 넘으면 로딩 아이콘 (04_fe.md §2). */
+// 유리 원판을 도넛 모양으로 오려 내고, 한쪽을 밝게 해 도는 것이 보이게 한다
+const DONUT_MASK =
+  "radial-gradient(farthest-side, transparent calc(100% - 7px), #000 calc(100% - 6px))";
+const GLASS_DONUT = {
+  borderRadius: "9999px",
+  maskImage: DONUT_MASK,
+  WebkitMaskImage: DONUT_MASK,
+  backgroundImage: "conic-gradient(from 0deg, rgb(255 255 255 / 0) 0 35%, rgb(255 255 255 / 0.9))",
+} as const;
+
+/** 자동 로그인 복구·로그아웃을 기다리는 동안 — 하늘만 두고, 0.5초가 넘으면 유리 도넛 로딩 (04_fe.md §2). */
 function SplashScreen() {
   const [slow, setSlow] = useState(false);
   useEffect(() => {
@@ -112,9 +121,11 @@ function SplashScreen() {
   return (
     <output className="grid min-h-dvh place-items-center" aria-live="polite">
       {slow && (
-        <span className="rounded-full p-3 glass-card">
-          <Loader2 className="size-7 animate-spin text-brand" aria-hidden="true" />
-        </span>
+        <span
+          aria-hidden="true"
+          className="block size-10 animate-spin glass-card"
+          style={GLASS_DONUT}
+        />
       )}
       <span className="sr-only">로딩 중</span>
     </output>
