@@ -64,6 +64,8 @@ PUSH_URL = {
 }
 
 _GONE_STATUS = (404, 410)
+# 기기가 꺼져 있어도 푸시 서버가 12시간 보관했다가 전달한다 (pywebpush 기본 ttl=0은 보관하지 않는다)
+_PUSH_TTL_SECONDS = 12 * 60 * 60
 
 
 class NotificationService:
@@ -129,6 +131,7 @@ class NotificationService:
                     data=data,
                     vapid_private_key=settings.VAPID_PRIVATE_KEY,
                     vapid_claims={"sub": settings.VAPID_SUBJECT},
+                    ttl=_PUSH_TTL_SECONDS,
                 )
             except WebPushException as exc:
                 status = getattr(exc.response, "status_code", None)

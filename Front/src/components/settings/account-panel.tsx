@@ -11,6 +11,8 @@ import {
   deleteAccount,
   updateMe,
 } from "../../api/endpoints/auth";
+import { releaseDevicePush } from "../../features/auth/sign-out";
+import { clearLocalSession } from "../../lib/local-session";
 import { useAuthStore } from "../../stores/auth-store";
 import { FollowPanel } from "../shell/follow-panel";
 
@@ -42,7 +44,6 @@ export function AccountPanel({ onBack }: { onBack?: () => void }) {
   const navigate = useNavigate();
   const user = useAuthStore((s) => s.user);
   const setUser = useAuthStore((s) => s.setUser);
-  const clearAuth = useAuthStore((s) => s.clear);
 
   const isLocal = user?.auth_provider === "LOCAL";
   const providerText = user?.auth_provider ? PROVIDER_LABEL[user.auth_provider] : "이메일 로그인";
@@ -86,9 +87,10 @@ export function AccountPanel({ onBack }: { onBack?: () => void }) {
   const [withdrawError, setWithdrawError] = useState<string | null>(null);
   const withdrawMutation = useMutation({
     mutationFn: () => deleteAccount(isLocal ? withdrawPassword : ""),
-    onSuccess: () => {
-      queryClient.clear();
-      clearAuth();
+    onSuccess: async () => {
+      // 탈퇴는 refresh 토큰만 폐기한다 — 아직 유효한 로그인 토큰으로 이 기기의 푸시 구독을 먼저 지운다
+      await releaseDevicePush();
+      clearLocalSession(queryClient);
       navigate("/login", { replace: true, state: { withdrawn: true } });
     },
     onError: async (error) =>

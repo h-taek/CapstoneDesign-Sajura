@@ -1,7 +1,7 @@
 // 설정 허브(SettingsHubPage) — 04_fe.md §4.9, mockup v2 12_settings.html.
 // 웹: 왼쪽 2열 목록 + 오른쪽 3열 판(FollowPanel). 기본은 POS 연동.
 // 앱: 목록만 보이다가 항목을 누르면 해당 판이 전체 화면(FollowPanel).
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Bell,
   ChefHat,
@@ -15,6 +15,7 @@ import {
   Upload,
   Wallet,
 } from "lucide-react";
+import { useState } from "react";
 import { Link, useNavigate, useParams } from "react-router";
 import { getPosStatus } from "../../api/endpoints/pos";
 import { InstallMenuButton } from "../../components/pwa/install-banner";
@@ -26,6 +27,7 @@ import { PosPanel } from "../../components/settings/pos-panel";
 import { StorePanel } from "../../components/settings/store-panel";
 import { UploadPanel } from "../../components/settings/upload-panel";
 import { MainShell } from "../../components/shell/main-shell";
+import { signOut } from "../../features/auth/sign-out";
 import { useAuthStore } from "../../stores/auth-store";
 
 export type SettingsPanelKey =
@@ -43,7 +45,7 @@ export default function SettingsHubPage() {
   const splat = (params["*"] ?? "").replace(/^\/+|\/+$/g, "") as SettingsPanelKey | "";
 
   const user = useAuthStore((s) => s.user);
-  const clearAuth = useAuthStore((s) => s.clear);
+  const queryClient = useQueryClient();
   const userName = user?.name ?? "사장";
   const userInitial = userName.slice(0, 1);
   const userEmail = user?.email ?? "owner@sajura.kr";
@@ -68,8 +70,11 @@ export default function SettingsHubPage() {
     navigate("/settings");
   };
 
-  const handleLogout = () => {
-    clearAuth();
+  // 토큰이 만료돼 있으면 서버를 여러 번 오가므로, 그동안 버튼을 막아 연타를 막는다
+  const [loggingOut, setLoggingOut] = useState(false);
+  const handleLogout = async () => {
+    setLoggingOut(true);
+    await signOut(queryClient);
     navigate("/login", { replace: true });
   };
 
@@ -319,9 +324,10 @@ export default function SettingsHubPage() {
           <button
             type="button"
             onClick={handleLogout}
-            className="flex h-14 w-full items-center justify-center gap-2 rounded-full text-base font-semibold text-ink-2 transition-colors hover:bg-white/50 glass-card"
+            disabled={loggingOut}
+            className="flex h-14 w-full items-center justify-center gap-2 rounded-full text-base font-semibold text-ink-2 transition-colors hover:bg-white/50 glass-card disabled:opacity-60"
           >
-            <LogOut className="size-5" /> 로그아웃
+            <LogOut className="size-5" /> {loggingOut ? "로그아웃 중…" : "로그아웃"}
           </button>
         </div>
 
