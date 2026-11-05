@@ -6,6 +6,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import * as authApi from "../api/endpoints/auth";
 import * as storeApi from "../api/endpoints/store";
 import * as pushLib from "../lib/push";
+import { RequireGuest, RequireStage } from "../routes/guards";
 import LoginPage from "../routes/login";
 import SettingsHubPage from "../routes/settings/index";
 import { type AuthUser, useAuthStore } from "../stores/auth-store";
@@ -32,6 +33,35 @@ function renderAt(path: string) {
         <Routes>
           <Route path="/settings/*" element={<SettingsHubPage />} />
           <Route path="/login" element={<LoginPage />} />
+        </Routes>
+      </MemoryRouter>
+    </QueryClientProvider>,
+  );
+}
+
+// 실제 앱처럼 설정은 단계 가드, 로그인은 로그인 화면 가드 아래에 둔다
+function renderGuarded(path: string) {
+  const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  return render(
+    <QueryClientProvider client={client}>
+      <MemoryRouter initialEntries={[path]}>
+        <Routes>
+          <Route
+            path="/settings/*"
+            element={
+              <RequireStage stage="app">
+                <SettingsHubPage />
+              </RequireStage>
+            }
+          />
+          <Route
+            path="/login"
+            element={
+              <RequireGuest>
+                <LoginPage />
+              </RequireGuest>
+            }
+          />
         </Routes>
       </MemoryRouter>
     </QueryClientProvider>,
@@ -83,6 +113,27 @@ describe("회원 탈퇴", () => {
     await waitFor(() => expect(del).toHaveBeenCalledWith("Passw0rd!"));
     expect(await screen.findByText(/탈퇴가 접수되었습니다/)).toBeInTheDocument();
     expect(useAuthStore.getState().accessToken).toBeNull();
+  });
+
+  it("가드가 있어도 탈퇴 후 로그인 화면에 접수 안내가 한 번 뜬다", async () => {
+    useAuthStore.setState({ bootstrapped: true, accessToken: "tok", user });
+    vi.spyOn(authApi, "deleteAccount").mockResolvedValue();
+    const { unmount } = renderGuarded("/settings/account");
+
+    fireEvent.change(await screen.findByLabelText("비밀번호 확인"), {
+      target: { value: "Passw0rd!" },
+    });
+    fireEvent.click(screen.getByLabelText(/모든 데이터가 지워지는 것을 확인/));
+    fireEvent.click(screen.getByRole("button", { name: "회원 탈퇴" }));
+
+    expect(await screen.findByText(/탈퇴가 접수되었어요/)).toBeInTheDocument();
+    unmount();
+
+    // 다음에 로그인 화면에 오면 다시 뜨지 않는다
+    renderGuarded("/login");
+    expect(
+      await screen.findByText("로그인하고 오늘 밤부터 사주라에게 맡겨 보세요."),
+    ).toBeInTheDocument();
   });
 
   it("소셜 계정은 비밀번호 없이 탈퇴한다", async () => {

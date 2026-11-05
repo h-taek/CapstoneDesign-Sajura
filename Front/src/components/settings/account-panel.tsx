@@ -12,6 +12,7 @@ import {
   updateMe,
 } from "../../api/endpoints/auth";
 import { releaseDevicePush } from "../../features/auth/sign-out";
+import { markWithdrawn } from "../../features/auth/withdrawn-notice";
 import { clearLocalSession } from "../../lib/local-session";
 import { useAuthStore } from "../../stores/auth-store";
 import { FollowPanel } from "../shell/follow-panel";
@@ -90,8 +91,9 @@ export function AccountPanel({ onBack }: { onBack?: () => void }) {
     onSuccess: async () => {
       // 탈퇴는 refresh 토큰만 폐기한다 — 아직 유효한 로그인 토큰으로 이 기기의 푸시 구독을 먼저 지운다
       await releaseDevicePush();
+      markWithdrawn();
       clearLocalSession(queryClient);
-      navigate("/login", { replace: true, state: { withdrawn: true } });
+      navigate("/login", { replace: true });
     },
     onError: async (error) =>
       setWithdrawError(await authErrorMessage(error, "탈퇴에 실패했습니다.")),

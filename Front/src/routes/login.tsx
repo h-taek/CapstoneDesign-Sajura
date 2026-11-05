@@ -1,8 +1,8 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation } from "@tanstack/react-query";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
-import { Link, useLocation, useNavigate, useSearchParams } from "react-router";
+import { Link, useNavigate, useSearchParams } from "react-router";
 import { authErrorMessage, fetchMe, loginWithEmail, oauthLoginUrl } from "../api/endpoints/auth";
 import eyeIcon from "../assets/login/eye-icon.svg";
 import googleG1 from "../assets/login/google-g-1.svg";
@@ -11,17 +11,21 @@ import googleG3 from "../assets/login/google-g-3.svg";
 import googleG4 from "../assets/login/google-g-4.svg";
 import kakaoIcon from "../assets/login/kakao-icon.svg";
 import { LOGIN_SKY, LOGIN_SKY_STEPS, goDashboard, useSky } from "../components/sky";
+import { clearWithdrawnNotice, hasWithdrawnNotice } from "../features/auth/withdrawn-notice";
 import { type LoginValues, loginSchema } from "../schemas/auth";
 import { useAuthStore } from "../stores/auth-store";
 
 export default function LoginPage() {
   const navigate = useNavigate();
-  const location = useLocation();
-  const navState = location.state as { withdrawn?: boolean } | null;
   const [searchParams] = useSearchParams();
 
   const isOauthWithdrawn = searchParams.get("error") === "withdrawn";
-  const isWithdrawn = Boolean(navState?.withdrawn || isOauthWithdrawn);
+  // 방금 탈퇴했으면 한 번만 안내한다 — 읽은 뒤 지워 다음 방문에는 뜨지 않게
+  const [justWithdrawn] = useState(hasWithdrawnNotice);
+  useEffect(() => {
+    if (justWithdrawn) clearWithdrawnNotice();
+  }, [justWithdrawn]);
+  const isWithdrawn = justWithdrawn || isOauthWithdrawn;
   // 소셜 가입 대기 토큰(30분)이 만료돼 회원가입 화면에서 돌려보냄 (04_fe.md §4.1)
   const isSignupExpired = searchParams.get("error") === "signup_expired";
 
