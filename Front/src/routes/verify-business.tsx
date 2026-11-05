@@ -1,31 +1,15 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { HTTPError } from "ky";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { useRef, useState } from "react";
 import { useNavigate } from "react-router";
 import { authErrorMessage, fetchMe, verifyBusiness } from "../api/endpoints/auth";
 import { getStore } from "../api/endpoints/store";
 import { VERIFY_SKY, useSky } from "../components/sky";
-import { signOut } from "../features/auth/sign-out";
 import { formatBusinessNo } from "../schemas/auth";
 import { useAuthStore } from "../stores/auth-store";
 import { landingPath } from "./guards";
 
-const DUPLICATE_MESSAGE =
-  "이미 가입된 사업자등록번호예요. 그 번호로 가입한 계정으로 로그인해 주세요.";
-
-/** BE 에러 envelope의 error 코드. 본문은 clone으로 읽어 메시지 파싱과 겹치지 않게 한다. */
-async function errorCode(error: unknown): Promise<string | null> {
-  if (!(error instanceof HTTPError)) return null;
-  const body = (await error.response
-    .clone()
-    .json()
-    .catch(() => null)) as { error?: string } | null;
-  return body?.error ?? null;
-}
-
 export default function VerifyBusinessPage() {
   const navigate = useNavigate();
-  const queryClient = useQueryClient();
   useSky(VERIFY_SKY);
 
   const user = useAuthStore((s) => s.user);
@@ -36,9 +20,6 @@ export default function VerifyBusinessPage() {
   );
   const [cert, setCert] = useState<File | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
-  // 다른 계정이 이미 쓰는 사업자번호(409) — 그 계정으로 로그인하도록 안내
-  const [duplicate, setDuplicate] = useState(false);
-  const [leaving, setLeaving] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
   const isRejected = user?.business_status === "REJECTED";
@@ -61,27 +42,13 @@ export default function VerifyBusinessPage() {
       navigate(landingPath(me), { replace: true });
     },
     onError: async (error) => {
-      if ((await errorCode(error)) === "AUTH_BUSINESS_NO_DUPLICATE") {
-        setDuplicate(true);
-        setFormError(DUPLICATE_MESSAGE);
-        return;
-      }
       setFormError(await authErrorMessage(error, "사업자 검증에 실패했습니다."));
     },
   });
 
-  // 가입 직후엔 이미 로그인 상태라 /login·/register로 가도 가드가 이 화면으로 돌려보낸다.
-  // 서버 로그아웃(refresh 쿠키 삭제)까지 해야 다른 계정으로 들어갈 수 있다.
-  const handleSwitchAccount = async () => {
-    setLeaving(true);
-    await signOut(queryClient);
-    navigate("/login", { replace: true });
-  };
-
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setFormError(null);
-    setDuplicate(false);
     if (!cert) {
       setFormError("사업자등록증 파일을 첨부하세요.");
       return;
@@ -160,30 +127,6 @@ export default function VerifyBusinessPage() {
               {mutation.isPending ? "검증 중…" : "제출하기"}
             </button>
           </form>
-
-          {duplicate && (
-            <button
-              type="button"
-              onClick={handleSwitchAccount}
-              disabled={leaving}
-              className="mt-3 inline-flex h-[52px] w-full items-center justify-center rounded-xl border border-white/25 bg-white/15 bg-clip-padding px-5 text-lg font-bold text-white backdrop-blur-md transition-colors hover:bg-white/25 disabled:opacity-60"
-            >
-              그 계정으로 로그인하기
-            </button>
-          )}
-
-          <p className="mt-8 text-sm text-white/75">
-            {user?.email ? <span className="break-all">{user.email}</span> : "지금 계정"}
-            으로 진행 중이에요 ·{" "}
-            <button
-              type="button"
-              onClick={handleSwitchAccount}
-              disabled={leaving}
-              className="font-semibold text-white underline underline-offset-4 hover:text-[#b3a4ff] disabled:opacity-60"
-            >
-              다른 계정으로 로그인
-            </button>
-          </p>
         </section>
       </main>
     </>
