@@ -15,6 +15,7 @@ import {
   Upload,
   Wallet,
 } from "lucide-react";
+import { useState } from "react";
 import { Link, useNavigate, useParams } from "react-router";
 import { getPosStatus } from "../../api/endpoints/pos";
 import { InstallMenuButton } from "../../components/pwa/install-banner";
@@ -69,7 +70,10 @@ export default function SettingsHubPage() {
     navigate("/settings");
   };
 
+  // 토큰이 만료돼 있으면 서버를 여러 번 오가므로, 그동안 버튼을 막아 연타를 막는다
+  const [loggingOut, setLoggingOut] = useState(false);
   const handleLogout = async () => {
+    setLoggingOut(true);
     await signOut(queryClient);
     navigate("/login", { replace: true });
   };
@@ -320,9 +324,10 @@ export default function SettingsHubPage() {
           <button
             type="button"
             onClick={handleLogout}
-            className="flex h-14 w-full items-center justify-center gap-2 rounded-full text-base font-semibold text-ink-2 transition-colors hover:bg-white/50 glass-card"
+            disabled={loggingOut}
+            className="flex h-14 w-full items-center justify-center gap-2 rounded-full text-base font-semibold text-ink-2 transition-colors hover:bg-white/50 glass-card disabled:opacity-60"
           >
-            <LogOut className="size-5" /> 로그아웃
+            <LogOut className="size-5" /> {loggingOut ? "로그아웃 중…" : "로그아웃"}
           </button>
         </div>
 

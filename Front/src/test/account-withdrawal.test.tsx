@@ -5,9 +5,11 @@ import { MemoryRouter, Route, Routes } from "react-router";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import * as authApi from "../api/endpoints/auth";
 import * as storeApi from "../api/endpoints/store";
+import * as pushLib from "../lib/push";
 import LoginPage from "../routes/login";
 import SettingsHubPage from "../routes/settings/index";
 import { type AuthUser, useAuthStore } from "../stores/auth-store";
+import { useOnboardingStore } from "../stores/onboarding-store";
 
 const user: AuthUser = {
   user_id: "u1",
@@ -46,6 +48,25 @@ describe("회원 탈퇴", () => {
   afterEach(() => {
     vi.restoreAllMocks();
     useAuthStore.getState().clear();
+    useOnboardingStore.getState().reset();
+    pushLib.setStoredSubscriptionId(null);
+  });
+
+  it("탈퇴하면 이 기기의 푸시 구독을 지우고 온보딩 입력까지 비운다", async () => {
+    useAuthStore.setState({ accessToken: "tok", user });
+    useOnboardingStore.setState({ pos: { pos_type: "CSV_ONLY" } as never });
+    pushLib.setStoredSubscriptionId("sub-1");
+    vi.spyOn(authApi, "deleteAccount").mockResolvedValue();
+    const unsubscribe = vi.spyOn(pushLib, "unsubscribePush").mockResolvedValue(true);
+    renderAt("/settings/account");
+
+    fireEvent.change(screen.getByLabelText("비밀번호 확인"), { target: { value: "Passw0rd!" } });
+    fireEvent.click(screen.getByLabelText(/모든 데이터가 지워지는 것을 확인/));
+    fireEvent.click(screen.getByRole("button", { name: "회원 탈퇴" }));
+
+    expect(await screen.findByText(/탈퇴가 접수되었습니다/)).toBeInTheDocument();
+    expect(unsubscribe).toHaveBeenCalledTimes(1);
+    expect(useOnboardingStore.getState().pos).toBeNull();
   });
 
   it("확인 체크 전에는 버튼이 비활성이고, 탈퇴 후 로그인 화면에서 접수 안내를 보여준다", async () => {

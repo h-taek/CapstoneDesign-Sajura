@@ -3,6 +3,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter, Route, Routes } from "react-router";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import * as authApi from "../api/endpoints/auth";
 import * as notifApi from "../api/endpoints/notifications";
 import * as posApi from "../api/endpoints/pos";
 import * as storeApi from "../api/endpoints/store";
@@ -77,6 +78,22 @@ describe("B8 설정 화면", () => {
   afterEach(() => {
     vi.restoreAllMocks();
     useAuthStore.getState().clear();
+  });
+
+  it("로그아웃을 누르면 끝날 때까지 버튼을 막고 '로그아웃 중…'을 보여 준다", async () => {
+    let finish: () => void = () => {};
+    vi.spyOn(authApi, "logout").mockReturnValue(
+      new Promise<void>((resolve) => {
+        finish = resolve;
+      }),
+    );
+    renderSettings();
+
+    fireEvent.click(screen.getByRole("button", { name: "로그아웃" }));
+    expect(await screen.findByRole("button", { name: "로그아웃 중…" })).toBeDisabled();
+
+    finish();
+    await waitFor(() => expect(useAuthStore.getState().accessToken).toBeNull());
   });
 
   it("1) 판 전환: /settings 진입 시 기본으로 POS 연동이 보이고, 다른 항목 클릭 시 해당 판으로 전환된다", async () => {

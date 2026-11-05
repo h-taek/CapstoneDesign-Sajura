@@ -1,6 +1,8 @@
 // HTTP 클라이언트 — 04_fe.md §1 (ky 1.x) + §2 (401 단일 refresh 인터셉터).
 import ky from "ky";
 import { type AuthUser, useAuthStore } from "../stores/auth-store";
+import { clearLocalSession } from "./local-session";
+import { queryClient } from "./query-client";
 
 const BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "/api";
 
@@ -47,7 +49,8 @@ export const api = ky.create({
 
         const newToken = await refreshAccessToken();
         if (!newToken) {
-          useAuthStore.getState().clear();
+          // 세션 만료 — 이전 계정의 조회 캐시·온보딩 입력이 다음 로그인에 남지 않게 함께 비운다.
+          clearLocalSession(queryClient);
           return response;
         }
         request.headers.set("Authorization", `Bearer ${newToken}`);

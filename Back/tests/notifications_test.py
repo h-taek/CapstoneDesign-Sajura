@@ -64,7 +64,13 @@ def push_calls(monkeypatch: pytest.MonkeyPatch) -> list[dict]:
         status_code = 410
 
     def fake_webpush(subscription_info: dict, data: str, **kwargs: object) -> None:
-        calls.append({"endpoint": subscription_info["endpoint"], "data": json.loads(data)})
+        calls.append(
+            {
+                "endpoint": subscription_info["endpoint"],
+                "data": json.loads(data),
+                "ttl": kwargs.get("ttl"),
+            }
+        )
         if "gone" in subscription_info["endpoint"]:
             raise WebPushException("gone", response=_Gone())
 
@@ -253,6 +259,7 @@ async def test_push_to_each_subscription_and_drop_gone(
     assert push_calls[0]["data"] == {
         "title": "원두 재고 확인", "body": "원두 재고 확인 본문", "url": "/inventory",
     }
+    assert push_calls[0]["ttl"] == 12 * 60 * 60
     async with app_db.SessionLocal() as session:
         left = (
             await session.scalars(
