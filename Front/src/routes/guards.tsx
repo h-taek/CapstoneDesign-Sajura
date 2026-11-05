@@ -101,14 +101,13 @@ export function RequireAdmin({ children }: { children: ReactNode }) {
   return <>{children}</>;
 }
 
-// 유리 원판을 도넛 모양으로 오려 내고, 한쪽을 밝게 해 도는 것이 보이게 한다
+// 흰 유리 원판을 도넛 모양(두께 6px)으로 오려 낸 고리 — 위로 포인트 컬러 호가 돈다
 const DONUT_MASK =
   "radial-gradient(farthest-side, transparent calc(100% - 7px), #000 calc(100% - 6px))";
-const GLASS_DONUT = {
+const GLASS_RING = {
   borderRadius: "9999px",
   maskImage: DONUT_MASK,
   WebkitMaskImage: DONUT_MASK,
-  backgroundImage: "conic-gradient(from 0deg, rgb(255 255 255 / 0) 0 35%, rgb(255 255 255 / 0.9))",
 } as const;
 
 /** 자동 로그인 복구·로그아웃을 기다리는 동안 — 하늘만 두고, 0.5초가 넘으면 유리 도넛 로딩 (04_fe.md §2). */
@@ -121,11 +120,22 @@ function SplashScreen() {
   return (
     <output className="grid min-h-dvh place-items-center" aria-live="polite">
       {slow && (
-        <span
-          aria-hidden="true"
-          className="block size-10 animate-spin glass-card"
-          style={GLASS_DONUT}
-        />
+        <span aria-hidden="true" className="relative block size-10">
+          <span className="absolute inset-0 glass-card" style={GLASS_RING} />
+          {/* 고리 한가운데(반지름 17)를 지나는 호, 끝은 둥글게 — 둘레 약 107 중 28 */}
+          <svg viewBox="0 0 40 40" className="absolute inset-0 animate-spin">
+            <circle
+              cx="20"
+              cy="20"
+              r="17"
+              fill="none"
+              strokeWidth="6"
+              strokeLinecap="round"
+              strokeDasharray="28 107"
+              className="stroke-brand"
+            />
+          </svg>
+        </span>
       )}
       <span className="sr-only">로딩 중</span>
     </output>
