@@ -106,6 +106,9 @@ const DONUT_MASK =
   "radial-gradient(farthest-side, transparent calc(100% - 7px), #000 calc(100% - 6px))";
 const GLASS_RING = {
   borderRadius: "9999px",
+  // glass-card의 카드용 테두리·안쪽 빛은 고리 둘레에 선으로 남아 뺀다
+  border: "none",
+  boxShadow: "none",
   maskImage: DONUT_MASK,
   WebkitMaskImage: DONUT_MASK,
 } as const;
