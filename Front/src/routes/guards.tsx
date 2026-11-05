@@ -123,7 +123,7 @@ function SplashScreen() {
         <span aria-hidden="true" className="relative block size-10">
           <span className="absolute inset-0 glass-card" style={GLASS_RING} />
           {/* 고리 한가운데(반지름 17)를 지나는 호, 끝은 둥글게 — 둘레 약 107 중 28 */}
-          <svg viewBox="0 0 40 40" className="absolute inset-0 animate-spin">
+          <svg viewBox="0 0 40 40" className="absolute inset-0 animate-spin" aria-hidden="true">
             <circle
               cx="20"
               cy="20"
