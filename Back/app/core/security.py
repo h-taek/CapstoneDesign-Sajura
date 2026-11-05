@@ -42,6 +42,33 @@ def decode_access_token(token: str) -> dict[str, Any]:
         raise
 
 
+SIGNUP_TOKEN_TTL_SECONDS = 30 * 60
+_SIGNUP_PURPOSE = "social_signup"
+
+
+def create_signup_token(*, provider: str, social_id: str, email: str, name: str) -> str:
+    """소셜 가입 대기 토큰 — 처음 보는 소셜 계정의 콜백에서 발급 (03_be.md §7.1).
+
+    `sub`가 없어 Access Token으로 쓸 수 없다.
+    """
+    now = datetime.now(UTC)
+    payload: dict[str, Any] = {
+        "purpose": _SIGNUP_PURPOSE, "provider": provider, "social_id": social_id,
+        "email": email, "name": name,
+        "exp": int((now + timedelta(seconds=SIGNUP_TOKEN_TTL_SECONDS)).timestamp()),
+        "iat": int(now.timestamp()),
+    }
+    return jwt.encode(payload, _settings.JWT_SECRET, algorithm=_settings.JWT_ALGORITHM)
+
+
+def decode_signup_token(token: str) -> dict[str, Any]:
+    """만료·위조·다른 용도의 토큰이면 JWTError."""
+    payload = jwt.decode(token, _settings.JWT_SECRET, algorithms=[_settings.JWT_ALGORITHM])
+    if payload.get("purpose") != _SIGNUP_PURPOSE:
+        raise JWTError("not a signup token")
+    return payload
+
+
 def generate_refresh_token() -> str:
     return secrets.token_urlsafe(48)
 

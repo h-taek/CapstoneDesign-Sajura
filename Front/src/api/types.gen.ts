@@ -38,6 +38,24 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/auth/register/social": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Social Signup Info */
+        get: operations["social_signup_info_api_auth_register_social_get"];
+        put?: never;
+        /** Register Social */
+        post: operations["register_social_api_auth_register_social_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/auth/login": {
         parameters: {
             query?: never;
@@ -1181,6 +1199,29 @@ export interface components {
             /** Item Name */
             item_name: string;
         };
+        /** Body_register_api_auth_register_post */
+        Body_register_api_auth_register_post: {
+            /**
+             * Email
+             * Format: email
+             */
+            email: string;
+            /** Password */
+            password: string;
+            /** Name */
+            name: string;
+            /** Business No */
+            business_no: string;
+            /** Cert */
+            cert?: string | null;
+        };
+        /** Body_register_social_api_auth_register_social_post */
+        Body_register_social_api_auth_register_social_post: {
+            /** Business No */
+            business_no: string;
+            /** Cert */
+            cert?: string | null;
+        };
         /** Body_upload_sales_csv_api_sales_upload_post */
         Body_upload_sales_csv_api_sales_upload_post: {
             /**
@@ -2116,30 +2157,6 @@ export interface components {
             /** Ingredients */
             ingredients: components["schemas"]["IngredientItem"][];
         };
-        /** RegisterRequest */
-        RegisterRequest: {
-            /**
-             * Email
-             * Format: email
-             */
-            email: string;
-            /** Password */
-            password: string;
-            /** Name */
-            name: string;
-        };
-        /** RegisterResponse */
-        RegisterResponse: {
-            /** User Id */
-            user_id: string;
-            /**
-             * Email
-             * Format: email
-             */
-            email: string;
-            /** Name */
-            name: string;
-        };
         /** RejectRequest */
         RejectRequest: {
             /** Reason */
@@ -2213,6 +2230,21 @@ export interface components {
             group_by: "day" | "week" | "month";
             /** Data */
             data: components["schemas"]["TrendPoint"][];
+        };
+        /**
+         * SocialSignupResponse
+         * @description 소셜 가입 대기 토큰에 담긴 계정 정보 — 회원가입 화면 소셜 모드가 표시한다.
+         */
+        SocialSignupResponse: {
+            /**
+             * Provider
+             * @enum {string}
+             */
+            provider: "GOOGLE" | "KAKAO";
+            /** Email */
+            email: string;
+            /** Name */
+            name: string;
         };
         /** StoreResponse */
         StoreResponse: {
@@ -2459,7 +2491,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["RegisterRequest"];
+                "multipart/form-data": components["schemas"]["Body_register_api_auth_register_post"];
             };
         };
         responses: {
@@ -2469,7 +2501,73 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["RegisterResponse"];
+                    "application/json": components["schemas"]["TokenResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    social_signup_info_api_auth_register_social_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: {
+                signup_token?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SocialSignupResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    register_social_api_auth_register_social_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: {
+                signup_token?: string | null;
+            };
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["Body_register_social_api_auth_register_social_post"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TokenResponse"];
                 };
             };
             /** @description Validation Error */

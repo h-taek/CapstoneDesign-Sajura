@@ -11,14 +11,13 @@ from authlib.integrations.starlette_client import OAuth, OAuthError
 from fastapi import APIRouter, Request, Response
 from fastapi.responses import RedirectResponse
 
+from app.api.cookies import clear_signup_cookie, set_refresh_cookie, set_signup_cookie
 from app.api.deps import SessionDep
 from app.config import get_settings
-from app.core import errors
+from app.core import errors, security
 from app.services.auth_service import AuthService
 
 router = APIRouter(prefix="/api/auth", tags=["auth"])
-
-REFRESH_COOKIE_NAME = "refresh_token"
 
 Provider = Literal["kakao", "google"]
 
@@ -91,9 +90,8 @@ async def callback(provider: Provider, request: Request, session: SessionDep) ->
             message="소셜 로그인에 실패했습니다.", detail={"reason": exc.error},
         ) from exc
     try:
-        tokens, _ = await AuthService(session).login_with_oauth(
+        result = await AuthService(session).login_with_oauth(
             provider=provider, social_id=profile["social_id"],
-            email=profile["email"], name=profile["name"],
         )
     except errors.DomainError as exc:
         # 브라우저 이동 중이라 JSON 대신 FE 로그인 화면으로 사유를 넘긴다
@@ -101,13 +99,22 @@ async def callback(provider: Provider, request: Request, session: SessionDep) ->
         if exc.detail.get("error") != "AUTH_ACCOUNT_WITHDRAWN":
             raise
         return RedirectResponse(url=f"{_fe_landing_url()}/login?error=withdrawn", status_code=302)
-    s = get_settings()
+    if result is None:
+        # 처음 보는 소셜 계정 — 계정을 만들지 않고 가입 대기 토큰으로 회원가입 화면에 보낸다
+        # (03_be.md §7.1)
+        resp = RedirectResponse(url=f"{_fe_landing_url()}/register?social=1", status_code=302)
+        set_signup_cookie(
+            resp,
+            security.create_signup_token(
+                provider=provider, social_id=profile["social_id"],
+                email=profile["email"], name=profile["name"],
+            ),
+        )
+        return resp
+    tokens, _ = result
     resp = RedirectResponse(url=_fe_landing_url(), status_code=302)
-    resp.set_cookie(
-        key=REFRESH_COOKIE_NAME, value=tokens.refresh_token,
-        max_age=s.JWT_REFRESH_TOKEN_TTL_SECONDS, httponly=True,
-        secure=s.APP_ENV != "development", samesite="lax", path="/",
-    )
+    set_refresh_cookie(resp, tokens.refresh_token)
+    clear_signup_cookie(resp)
     return resp
 
 

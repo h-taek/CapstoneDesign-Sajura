@@ -17,13 +17,13 @@ import { useAuthStore } from "../stores/auth-store";
 export default function LoginPage() {
   const navigate = useNavigate();
   const location = useLocation();
-  const navState = location.state as { registeredEmail?: string; withdrawn?: boolean } | null;
-  const registeredEmail = navState?.registeredEmail;
+  const navState = location.state as { withdrawn?: boolean } | null;
   const [searchParams] = useSearchParams();
 
   const isOauthWithdrawn = searchParams.get("error") === "withdrawn";
   const isWithdrawn = Boolean(navState?.withdrawn || isOauthWithdrawn);
-  const isRegistered = Boolean(registeredEmail);
+  // 소셜 가입 대기 토큰(30분)이 만료돼 회원가입 화면에서 돌려보냄 (04_fe.md §4.1)
+  const isSignupExpired = searchParams.get("error") === "signup_expired";
 
   const setAccessToken = useAuthStore((s) => s.setAccessToken);
   const setUser = useAuthStore((s) => s.setUser);
@@ -31,13 +31,12 @@ export default function LoginPage() {
   const [hasAuthError, setHasAuthError] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
-  // 단계별 하늘 시각: registered면 22:15, 아니면 21:30
-  const activeSkyStep = isRegistered ? "registered" : isWithdrawn ? "withdrawn" : "default";
+  const activeSkyStep = isWithdrawn ? "withdrawn" : "default";
   useSky(LOGIN_SKY, LOGIN_SKY_STEPS, activeSkyStep);
 
   const { register, handleSubmit } = useForm<LoginValues>({
     resolver: zodResolver(loginSchema),
-    defaultValues: { email: registeredEmail ?? "", password: "" },
+    defaultValues: { email: "", password: "" },
     mode: "onBlur",
   });
 
@@ -84,10 +83,9 @@ export default function LoginPage() {
           <p className="mt-2 text-base font-semibold text-[#ffd6d6]" role="alert">
             이메일 또는 비밀번호가 올바르지 않아요.
           </p>
-        ) : isRegistered ? (
-          // biome-ignore lint/a11y/useSemanticElements: mockup requirement
-          <p className="mt-2 text-base font-semibold text-[#c8f7dc]" role="status">
-            가입이 완료되었어요. 로그인해 주세요.
+        ) : isSignupExpired ? (
+          <p className="mt-2 text-base font-semibold text-[#ffd6d6]" role="alert">
+            가입 시간이 지났어요. 소셜 로그인부터 다시 해 주세요.
           </p>
         ) : isWithdrawn ? (
           // biome-ignore lint/a11y/useSemanticElements: mockup requirement

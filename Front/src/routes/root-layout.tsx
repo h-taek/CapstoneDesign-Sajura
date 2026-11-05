@@ -6,13 +6,11 @@ import { applySkyMode, defaultSkyForPath, hasActiveSkyHook } from "../components
 
 export default function RootLayout() {
   const location = useLocation();
-  const navState = location.state as { registeredEmail?: string } | null;
-  const registered = Boolean(navState?.registeredEmail);
 
   useEffect(() => {
     if (hasActiveSkyHook()) return;
-    return applySkyMode(defaultSkyForPath(location.pathname, registered));
-  }, [location.pathname, registered]);
+    return applySkyMode(defaultSkyForPath(location.pathname));
+  }, [location.pathname]);
 
   return (
     <>

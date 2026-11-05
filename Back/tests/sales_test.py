@@ -8,7 +8,7 @@ import pytest
 from httpx import AsyncClient
 
 from app.adapters.pos.csv_adapter import CSVAdapter, CommonSale, SkipReason
-from tests.conftest import make_test_email
+from tests.conftest import make_test_email, register_user
 
 
 # ----------------------------------------------------------------------
@@ -96,30 +96,10 @@ def test_csv_adapter_skip_menu_name_over_100_chars() -> None:
 
 
 async def _register_verified_user(client: AsyncClient) -> tuple[str, dict]:
-    """register → master-code 통과(검증) → onboarding 완료 후 토큰 반환."""
-    from app.config import get_settings
-
-    master = get_settings().NTS_MASTER_BYPASS_CODE
-    if not master:
-        pytest.skip("NTS_MASTER_BYPASS_CODE 미설정")
-
+    """마스터 코드로 가입(검증 통과·로그인) → onboarding 완료 후 토큰 반환."""
     email = make_test_email()
-    r = await client.post(
-        "/api/auth/register",
-        json={"email": email, "password": "Passw0rd!", "name": "테스터"},
-    )
-    assert r.status_code == 201, r.text
-    r = await client.post(
-        "/api/auth/login", json={"email": email, "password": "Passw0rd!"}
-    )
-    assert r.status_code == 200, r.text
-    tokens = r.json()
+    tokens = await register_user(client, email)
     auth = {"Authorization": f"Bearer {tokens['access_token']}"}
-
-    r = await client.post(
-        "/api/store/business/verify", data={"business_no": master}, headers=auth
-    )
-    assert r.status_code == 200, r.text
 
     # 매장 정보 입력 + 온보딩 완료
     r = await client.patch(

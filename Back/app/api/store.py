@@ -3,8 +3,9 @@ from __future__ import annotations
 
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, File, Form, UploadFile
+from fastapi import APIRouter, Depends, File, Form, Response, UploadFile
 
+from app.api.cookies import set_refresh_cookie
 from app.api.deps import CurrentUserDep, SessionDep, require_business_access
 from app.schemas.store import (
     BusinessVerifyResponse,
@@ -12,6 +13,7 @@ from app.schemas.store import (
     StoreResponse,
     StoreUpdateRequest,
 )
+from app.services.auth_service import AuthService
 from app.services.store_service import StoreService
 
 router = APIRouter(prefix="/api/store", tags=["store"])
@@ -32,6 +34,7 @@ def _to_dto(s) -> StoreResponse:
 
 @router.post("/business/verify", response_model=BusinessVerifyResponse)
 async def verify_business(
+    response: Response,
     session: SessionDep,
     current: CurrentUserDep,
     business_no: Annotated[str, Form()],
@@ -40,6 +43,11 @@ async def verify_business(
     store = await StoreService(session).verify_business(
         user_id=current.user_id, business_no=business_no, cert=cert
     )
+    # 사업자 검증 전 계정은 Refresh Token이 없었다 — 통과한 지금 처음 발급한다 (03_be.md §7.3)
+    tokens = await AuthService(session).issue_session(
+        user_id=current.user_id, store_id=store.store_id
+    )
+    set_refresh_cookie(response, tokens.refresh_token)
     return BusinessVerifyResponse(
         business_status=store.business_status.value, business_no=store.business_no
     )

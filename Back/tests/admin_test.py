@@ -13,7 +13,7 @@ from sqlalchemy import update
 
 import app.db as app_db
 from app.models.user import User, UserRole
-from tests.conftest import make_test_email
+from tests.conftest import make_test_email, register_user
 
 
 def _biz_no() -> str:
@@ -21,16 +21,8 @@ def _biz_no() -> str:
     return f"{n % 1000:03d}-{(n // 1000) % 100:02d}-{(n // 100000) % 100000:05d}"
 
 
-def _cert() -> dict:
-    return {"cert": ("cert.png", b"\x89PNG\r\n\x1a\n_dummy_", "image/png")}
-
-
 async def _register_login(client: AsyncClient, email: str) -> dict:
-    await client.post(
-        "/api/auth/register", json={"email": email, "password": "Passw0rd!", "name": "u"}
-    )
-    r = await client.post("/api/auth/login", json={"email": email, "password": "Passw0rd!"})
-    return {"access_token": r.json()["access_token"]}
+    return await register_user(client, email)
 
 
 def _auth(tokens: dict) -> dict:
@@ -46,11 +38,7 @@ async def _promote_admin(email: str) -> None:
 async def _owner_with_pending(client: AsyncClient) -> tuple[dict, str]:
     """점주 가입·로그인 + 검증 업로드 → PENDING. (auth, store_id) 반환."""
     email = make_test_email("owner")
-    tokens = await _register_login(client, email)
-    await client.post(
-        "/api/store/business/verify",
-        data={"business_no": _biz_no()}, files=_cert(), headers=_auth(tokens),
-    )
+    tokens = await register_user(client, email, business_no=_biz_no())
     return _auth(tokens), email
 
 

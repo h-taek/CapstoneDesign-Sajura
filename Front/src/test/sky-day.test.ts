@@ -134,7 +134,6 @@ describe("dayAt 하늘 색 보간", () => {
     expect(resolveSkyValue("22:40", raw, "confirm")).toBe("00:10");
     expect(defaultSkyForPath("/intro")).toBe("scroll");
     expect(defaultSkyForPath("/login")).toBe("21:30");
-    expect(defaultSkyForPath("/login", true)).toBe("22:15");
     expect(defaultSkyForPath("/verify-business")).toBe("22:20");
     expect(defaultSkyForPath("/onboarding/4")).toBe("00:10");
     expect(defaultSkyForPath("/")).toBe("now");

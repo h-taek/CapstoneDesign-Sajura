@@ -46,6 +46,42 @@ def make_test_email(tag: str = "u") -> str:
     return f"{TEST_EMAIL_PREFIX}{tag}-{uuid.uuid4().hex[:10]}@{TEST_EMAIL_DOMAIN}"
 
 
+TEST_PASSWORD = "Passw0rd!"
+
+
+def make_biz_no() -> str:
+    """국세청 stub 모드에서 통과하는 형식의 사업자번호 — 테스트마다 달라 중복 충돌이 없다."""
+    n = uuid.uuid4().int
+    return f"{n % 1000:03d}-{(n // 1000) % 100:02d}-{(n // 100000) % 100000:05d}"
+
+
+def cert_file() -> dict:
+    """multipart 업로드용 더미 사업자등록증(PNG 헤더)."""
+    return {"cert": ("cert.png", b"\x89PNG\r\n\x1a\n_dummy_cert_", "image/png")}
+
+
+async def register_user(
+    client: AsyncClient, email: str, *, password: str = TEST_PASSWORD, name: str = "테스터",
+    business_no: str | None = None,
+) -> dict:
+    """사업자 인증까지 마친 이메일 회원가입 — 가입 즉시 로그인 응답을 돌려준다 (02 §3.2).
+
+    business_no를 주면 등록증과 함께 내 PENDING, 주지 않으면 마스터 코드로 VERIFIED.
+    """
+    files = cert_file() if business_no else None
+    if business_no is None:
+        business_no = get_settings().NTS_MASTER_BYPASS_CODE
+        if not business_no:
+            pytest.skip("NTS_MASTER_BYPASS_CODE 미설정")
+    r = await client.post(
+        "/api/auth/register",
+        data={"email": email, "password": password, "name": name, "business_no": business_no},
+        files=files,
+    )
+    assert r.status_code == 201, r.text
+    return r.json()
+
+
 @pytest_asyncio.fixture(autouse=True, loop_scope="function")
 async def _rate_limit_store() -> None:
     # ASGITransport는 lifespan을 돌리지 않는다. 테스트마다 빈 저장소로 시작해 횟수를 나눈다

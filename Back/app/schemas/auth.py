@@ -8,15 +8,11 @@ from pydantic import BaseModel, EmailStr, Field
 from app.schemas.types import UtcDatetime
 
 
-class RegisterRequest(BaseModel):
-    email: EmailStr
-    password: str = Field(min_length=8, max_length=128)
-    name: str = Field(min_length=1, max_length=50)
+class SocialSignupResponse(BaseModel):
+    """소셜 가입 대기 토큰에 담긴 계정 정보 — 회원가입 화면 소셜 모드가 표시한다."""
 
-
-class RegisterResponse(BaseModel):
-    user_id: str
-    email: EmailStr
+    provider: Literal["GOOGLE", "KAKAO"]
+    email: str
     name: str
 
 

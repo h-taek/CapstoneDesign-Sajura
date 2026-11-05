@@ -1,5 +1,5 @@
 // 라우트 가드 목적지(상태 넷 × 경로), 설정 하위 판 라우팅, 루트 하늘 유지 시험.
-import { act, render, screen } from "@testing-library/react";
+import { act, render, screen, waitFor } from "@testing-library/react";
 import {
   MemoryRouter,
   Outlet,
@@ -210,13 +210,15 @@ describe("가드 목적지 (상태 넷 × 경로)", () => {
     unmount();
   });
 
-  it("2) 사업자 미인증·반려(UNVERIFIED·REJECTED): /intro와 /verify-business 외 모든 경로를 /verify-business로 보낸다", () => {
+  it("2) 사업자 미인증·반려(UNVERIFIED·REJECTED): /intro·/verify-business는 그대로, 로그인·가입 화면은 임시 로그인을 비우고 보여 주며, 나머지는 /verify-business로 보낸다", async () => {
     for (const status of ["UNVERIFIED", "REJECTED"] as const) {
-      useAuthStore.setState({
-        bootstrapped: true,
-        accessToken: "tok",
-        user: { ...verifiedUser, business_status: status, onboarding_completed: false },
-      });
+      const signIn = () =>
+        useAuthStore.setState({
+          bootstrapped: true,
+          accessToken: "tok",
+          user: { ...verifiedUser, business_status: status, onboarding_completed: false },
+        });
+      signIn();
 
       const { unmount: uIntro } = renderGuardedPath("/intro");
       expect(screen.getByTestId("path")).toHaveTextContent("/intro");
@@ -226,9 +228,17 @@ describe("가드 목적지 (상태 넷 × 경로)", () => {
       expect(screen.getByTestId("path")).toHaveTextContent("/verify-business");
       uVerify();
 
+      // 뒤로가기 등으로 로그인·가입 화면에 오면 Refresh Token 없는 임시 로그인을 버린다 (04_fe.md §2)
+      for (const path of ["/login", "/register"]) {
+        signIn();
+        const { unmount } = renderGuardedPath(path);
+        expect(screen.getByTestId("path")).toHaveTextContent(path);
+        await waitFor(() => expect(useAuthStore.getState().accessToken).toBeNull());
+        unmount();
+      }
+
+      signIn();
       for (const path of [
-        "/login",
-        "/register",
         "/onboarding/1",
         "/",
         "/forecast",

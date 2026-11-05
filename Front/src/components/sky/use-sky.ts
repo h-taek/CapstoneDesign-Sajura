@@ -21,7 +21,6 @@ export const LOGIN_SKY_STEPS = {
   default: "21:30",
   withdrawn: "21:30",
   error: "21:30",
-  registered: "22:15",
 } as const;
 
 export const REGISTER_SKY = "21:30" as const;
@@ -33,6 +32,8 @@ export const REGISTER_SKY_STEPS = {
   name: "22:00",
   password: "22:15",
   "pw-error": "22:15",
+  business: "22:20",
+  "business-error": "22:20",
 } as const;
 
 export const VERIFY_SKY = "22:20" as const;
@@ -76,9 +77,9 @@ export function resolveSkyValue(
 }
 
 /** 경로(pathname)에 해당하는 목업 기본 하늘 시각을 돌려준다. */
-export function defaultSkyForPath(pathname: string, registered?: boolean): SkyMode {
+export function defaultSkyForPath(pathname: string): SkyMode {
   if (pathname === "/intro") return INTRO_SKY;
-  if (pathname === "/login") return registered ? LOGIN_SKY_STEPS.registered : LOGIN_SKY;
+  if (pathname === "/login") return LOGIN_SKY;
   if (pathname === "/register") return REGISTER_SKY;
   if (pathname === "/verify-business") return VERIFY_SKY;
   if (pathname.startsWith("/onboarding")) {

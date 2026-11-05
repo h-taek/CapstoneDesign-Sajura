@@ -42,6 +42,20 @@ def auth_refresh_token_invalid() -> DomainError:
     return DomainError(status_code=401, error_code="AUTH_REFRESH_TOKEN_INVALID", message="Refresh Token이 유효하지 않습니다.")
 
 
+def auth_signup_token_invalid() -> DomainError:
+    return DomainError(
+        status_code=401, error_code="AUTH_SIGNUP_TOKEN_INVALID",
+        message="가입 대기 시간이 지났습니다. 소셜 로그인부터 다시 시작하세요.",
+    )
+
+
+def auth_business_no_duplicate() -> DomainError:
+    return DomainError(
+        status_code=409, error_code="AUTH_BUSINESS_NO_DUPLICATE",
+        message="이미 등록된 사업자등록번호입니다.",
+    )
+
+
 def auth_account_withdrawn(status_code: int) -> DomainError:
     return DomainError(
         status_code=status_code, error_code="AUTH_ACCOUNT_WITHDRAWN",

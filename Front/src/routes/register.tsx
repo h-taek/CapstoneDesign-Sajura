@@ -1,16 +1,55 @@
+import { useQuery } from "@tanstack/react-query";
 import { ChevronRight } from "lucide-react";
-import { useState } from "react";
-import { useNavigate } from "react-router";
-import { authErrorMessage, register as registerApi } from "../api/endpoints/auth";
-import { REGISTER_SKY, REGISTER_SKY_STEPS, useSky } from "../components/sky";
+import { useEffect, useState } from "react";
+import { useNavigate, useSearchParams } from "react-router";
+import {
+  authErrorCode,
+  authErrorMessage,
+  fetchMe,
+  fetchSocialSignup,
+  register as registerApi,
+  registerSocial,
+} from "../api/endpoints/auth";
+import { BusinessFields } from "../components/auth/business-fields";
+import { REGISTER_SKY, REGISTER_SKY_STEPS, goDashboard, useSky } from "../components/sky";
+import { useAuthStore } from "../stores/auth-store";
 
-type Step = "terms" | "email" | "name" | "password";
+type Step = "terms" | "email" | "name" | "password" | "business";
+
+// 회원가입 단계 (04_fe.md §4.1) — 마지막 사업자 인증을 통과해야 계정이 생기고 곧바로 로그인된다
+const EMAIL_STEPS: Step[] = ["terms", "email", "name", "password", "business"];
+const SOCIAL_STEPS: Step[] = ["terms", "business"];
+const STEP_LABEL: Record<Step, string> = {
+  terms: "약관",
+  email: "이메일",
+  name: "이름",
+  password: "비밀번호",
+  business: "사업자 인증",
+};
+const PROVIDER_LABEL = { GOOGLE: "구글", KAKAO: "카카오" } as const;
+const SIGNUP_EXPIRED = "/login?error=signup_expired";
 
 export default function RegisterPage() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  // 처음 보는 소셜 계정 — BE 콜백이 가입 대기 토큰(Cookie)과 함께 보낸다 (03_be.md §7.1)
+  const isSocial = searchParams.get("social") === "1";
+  const steps = isSocial ? SOCIAL_STEPS : EMAIL_STEPS;
+  const setAccessToken = useAuthStore((s) => s.setAccessToken);
+  const setUser = useAuthStore((s) => s.setUser);
 
   const [step, setStep] = useState<Step>("terms");
   const [errorType, setErrorType] = useState<string | null>(null);
+
+  const { data: social, error: socialError } = useQuery({
+    queryKey: ["social-signup"],
+    queryFn: fetchSocialSignup,
+    enabled: isSocial,
+    retry: false,
+  });
+  useEffect(() => {
+    if (socialError) navigate(SIGNUP_EXPIRED, { replace: true });
+  }, [socialError, navigate]);
 
   // 약관 상태
   const [tAge, setTAge] = useState(false);
@@ -23,6 +62,9 @@ export default function RegisterPage() {
   const [name, setName] = useState("");
   const [password, setPassword] = useState("");
   const [passwordConfirm, setPasswordConfirm] = useState("");
+  const [businessNo, setBusinessNo] = useState("");
+  const [cert, setCert] = useState<File | null>(null);
+  const [businessError, setBusinessError] = useState<string | null>(null);
 
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -38,9 +80,13 @@ export default function RegisterPage() {
           : "email"
         : step === "name"
           ? "name"
-          : errorType === "password"
-            ? "pw-error"
-            : "password";
+          : step === "password"
+            ? errorType === "password"
+              ? "pw-error"
+              : "password"
+            : errorType === "business"
+              ? "business-error"
+              : "business";
 
   useSky(REGISTER_SKY, REGISTER_SKY_STEPS, activeSkyStep);
 
@@ -61,7 +107,7 @@ export default function RegisterPage() {
       return;
     }
     setErrorType(null);
-    setStep("email");
+    setStep(steps[1] ?? "email");
   };
 
   const handleNextFromEmail = () => {
@@ -80,32 +126,53 @@ export default function RegisterPage() {
     setStep("password");
   };
 
-  const handleRegister = async (e: React.FormEvent) => {
+  const handleNextFromPassword = (e: React.FormEvent) => {
     e.preventDefault();
     if (password.length < 8 || password !== passwordConfirm) {
       setErrorType("password");
       return;
     }
+    setErrorType(null);
+    setStep("business");
+  };
 
+  const handleRegister = async (e: React.FormEvent) => {
+    e.preventDefault();
     setIsSubmitting(true);
     setErrorType(null);
+    setBusinessError(null);
     try {
-      await registerApi({ email: email.trim(), password, name: name.trim() });
-      navigate("/login", { replace: true, state: { registeredEmail: email.trim() } });
+      const tokens = isSocial
+        ? await registerSocial(businessNo, cert)
+        : await registerApi({
+            email: email.trim(),
+            password,
+            name: name.trim(),
+            businessNo,
+            cert,
+          });
+      // 가입 즉시 로그인 — 사업자 인증을 통과한 계정이라 곧장 온보딩으로 간다
+      setAccessToken(tokens.access_token);
+      const me = await fetchMe();
+      setUser(me);
+      await goDashboard(me, navigate);
     } catch (err) {
-      const msg = await authErrorMessage(err, "회원가입에 실패했습니다.");
-      if (msg.includes("이메일") || msg.includes("email") || msg.includes("이미")) {
+      const code = await authErrorCode(err);
+      if (code === "AUTH_SIGNUP_TOKEN_INVALID") {
+        navigate(SIGNUP_EXPIRED, { replace: true });
+      } else if (code === "AUTH_EMAIL_DUPLICATE" || code === "AUTH_ACCOUNT_WITHDRAWN") {
         setStep("email");
         setErrorType("email");
       } else {
-        setErrorType("password");
+        setErrorType("business");
+        setBusinessError(await authErrorMessage(err, "회원가입에 실패했습니다."));
       }
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  const stepIndex = step === "terms" ? 1 : step === "email" ? 2 : step === "name" ? 3 : 4;
+  const stepIndex = steps.indexOf(step);
 
   return (
     <>
@@ -115,82 +182,32 @@ export default function RegisterPage() {
 
       <main className="sky-titles min-h-dvh px-5 pt-[13vh] pb-10 text-center text-white">
         <section className="mx-auto w-full max-w-[400px]">
-          {/* 진행 막대 4칸 */}
-          <div className="-my-3 flex justify-center gap-2" aria-label={`${stepIndex} / 4 단계`}>
-            {/* 1단계 약관 */}
-            {stepIndex > 1 ? (
-              <button
-                type="button"
-                onClick={() => {
-                  setStep("terms");
-                  setErrorType(null);
-                }}
-                aria-label="1단계 약관로 돌아가기"
-                className="cursor-pointer py-3 hover:opacity-80"
-              >
-                <span className="block h-1 w-9 rounded-full bg-white/20" />
-              </button>
-            ) : (
-              <span className="py-3" aria-current="step">
-                <span className="block h-1 w-9 rounded-full bg-[#b3a4ff]" />
-              </span>
-            )}
-
-            {/* 2단계 이메일 */}
-            {stepIndex > 2 ? (
-              <button
-                type="button"
-                onClick={() => {
-                  setStep("email");
-                  setErrorType(null);
-                }}
-                aria-label="2단계 이메일로 돌아가기"
-                className="cursor-pointer py-3 hover:opacity-80"
-              >
-                <span className="block h-1 w-9 rounded-full bg-white/20" />
-              </button>
-            ) : stepIndex === 2 ? (
-              <span className="py-3" aria-current="step">
-                <span className="block h-1 w-9 rounded-full bg-[#b3a4ff]" />
-              </span>
-            ) : (
-              <span className="py-3">
-                <span className="block h-1 w-9 rounded-full bg-white/20" />
-              </span>
-            )}
-
-            {/* 3단계 이름 */}
-            {stepIndex > 3 ? (
-              <button
-                type="button"
-                onClick={() => {
-                  setStep("name");
-                  setErrorType(null);
-                }}
-                aria-label="3단계 이름로 돌아가기"
-                className="cursor-pointer py-3 hover:opacity-80"
-              >
-                <span className="block h-1 w-9 rounded-full bg-white/20" />
-              </button>
-            ) : stepIndex === 3 ? (
-              <span className="py-3" aria-current="step">
-                <span className="block h-1 w-9 rounded-full bg-[#b3a4ff]" />
-              </span>
-            ) : (
-              <span className="py-3">
-                <span className="block h-1 w-9 rounded-full bg-white/20" />
-              </span>
-            )}
-
-            {/* 4단계 비밀번호 */}
-            {stepIndex === 4 ? (
-              <span className="py-3" aria-current="step">
-                <span className="block h-1 w-9 rounded-full bg-[#b3a4ff]" />
-              </span>
-            ) : (
-              <span className="py-3">
-                <span className="block h-1 w-9 rounded-full bg-white/20" />
-              </span>
+          {/* 진행 막대 — 지나온 단계는 눌러서 돌아간다 */}
+          <div
+            className="-my-3 flex justify-center gap-2"
+            aria-label={`${stepIndex + 1} / ${steps.length} 단계`}
+          >
+            {steps.map((s, i) =>
+              i < stepIndex ? (
+                <button
+                  key={s}
+                  type="button"
+                  onClick={() => {
+                    setStep(s);
+                    setErrorType(null);
+                  }}
+                  aria-label={`${i + 1}단계 ${STEP_LABEL[s]}로 돌아가기`}
+                  className="cursor-pointer py-3 hover:opacity-80"
+                >
+                  <span className="block h-1 w-9 rounded-full bg-white/20" />
+                </button>
+              ) : (
+                <span key={s} className="py-3" aria-current={i === stepIndex ? "step" : undefined}>
+                  <span
+                    className={`block h-1 w-9 rounded-full ${i === stepIndex ? "bg-[#b3a4ff]" : "bg-white/20"}`}
+                  />
+                </span>
+              ),
             )}
           </div>
 
@@ -203,6 +220,10 @@ export default function RegisterPage() {
               {errorType === "terms" ? (
                 <p className="mt-2 text-base font-semibold text-[#ffd6d6]" role="alert">
                   필수 약관에 모두 동의해 주세요
+                </p>
+              ) : social ? (
+                <p className="mt-2 text-base break-all text-white/75">
+                  {PROVIDER_LABEL[social.provider]} 계정 {social.email}로 가입해요
                 </p>
               ) : (
                 <p className="mt-2 text-base text-white/75">사주라 서비스 약관을 확인해 주세요</p>
@@ -369,7 +390,11 @@ export default function RegisterPage() {
                 비밀번호를 만들어 주세요
               </h1>
               <p className="mt-2 text-base text-white/75">8자 이상으로 입력해 주세요</p>
-              <form className="mt-8 space-y-3 text-left" noValidate onSubmit={handleRegister}>
+              <form
+                className="mt-8 space-y-3 text-left"
+                noValidate
+                onSubmit={handleNextFromPassword}
+              >
                 <input
                   id="password"
                   type="password"
@@ -395,6 +420,38 @@ export default function RegisterPage() {
                     비밀번호가 일치하지 않거나 8자 미만입니다.
                   </p>
                 )}
+                <button
+                  type="submit"
+                  className="mt-6 inline-flex h-[52px] w-full items-center justify-center rounded-xl bg-brand px-5 text-lg font-bold text-white transition-colors hover:bg-brand-strong"
+                >
+                  계속
+                </button>
+              </form>
+            </div>
+          )}
+
+          {/* 마지막 단계: 사업자 인증 — 통과하면 계정 생성 + 로그인 */}
+          {step === "business" && (
+            <div>
+              <h1 className="mt-9 text-[1.75rem] font-extrabold tracking-tight">
+                매장 인증을 해 주세요
+              </h1>
+              {businessError ? (
+                <p className="mt-2 text-base font-semibold text-[#ffd6d6]" role="alert">
+                  {businessError}
+                </p>
+              ) : (
+                <p className="mt-2 text-base text-white/75">
+                  사업자등록번호와 등록증을 올리면 가입이 끝나요
+                </p>
+              )}
+              <form className="mt-8 space-y-3 text-left" noValidate onSubmit={handleRegister}>
+                <BusinessFields
+                  businessNo={businessNo}
+                  onBusinessNoChange={setBusinessNo}
+                  cert={cert}
+                  onCertChange={setCert}
+                />
                 <button
                   type="submit"
                   disabled={isSubmitting}

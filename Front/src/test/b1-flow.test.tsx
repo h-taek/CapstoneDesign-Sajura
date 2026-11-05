@@ -1,6 +1,7 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { MemoryRouter, Route, Routes } from "react-router";
+import { HTTPError } from "ky";
+import { MemoryRouter, Route, Routes, useLocation } from "react-router";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import * as authApi from "../api/endpoints/auth";
 import * as menusApi from "../api/endpoints/menus";
@@ -23,6 +24,61 @@ function renderWithClient(ui: React.ReactElement, initialPath = "/") {
       <MemoryRouter initialEntries={[initialPath]}>{ui}</MemoryRouter>
     </QueryClientProvider>,
   );
+}
+
+function LocationProbe() {
+  const location = useLocation();
+  return <p data-testid="location">{`${location.pathname}${location.search}`}</p>;
+}
+
+function renderRegister(path = "/register") {
+  return renderWithClient(
+    <Routes>
+      <Route path="/register" element={<RegisterPage />} />
+      <Route path="/onboarding/*" element={<LocationProbe />} />
+      <Route path="/login" element={<LocationProbe />} />
+    </Routes>,
+    path,
+  );
+}
+
+function httpError(status: number, error: string, message: string) {
+  return new HTTPError(
+    new Response(JSON.stringify({ error, message }), {
+      status,
+      headers: { "Content-Type": "application/json" },
+    }),
+    new Request("http://localhost/api/auth/register"),
+    {} as never,
+  );
+}
+
+const pendingMe = {
+  user_id: "u1",
+  email: "test@sajura.kr",
+  name: "홍길동",
+  auth_provider: "LOCAL" as const,
+  role: "OWNER" as const,
+  store_name: null,
+  business_no: "123-45-67890",
+  business_status: "PENDING" as const,
+  onboarding_completed: false,
+  created_at: "2026-01-01T00:00:00",
+};
+
+const tokens = {
+  access_token: "tok",
+  token_type: "bearer" as const,
+  expires_in: 3600,
+  business_status: "PENDING" as const,
+  onboarding_completed: false,
+};
+
+function fillBusinessStep() {
+  fireEvent.change(screen.getByLabelText("사업자등록번호"), { target: { value: "1234567890" } });
+  fireEvent.change(document.getElementById("cert") as HTMLInputElement, {
+    target: { files: [new File(["x"], "cert.png", { type: "image/png" })] },
+  });
 }
 
 describe("B1 시작·인증·온보딩 화면 흐름", () => {
@@ -83,13 +139,105 @@ describe("B1 시작·인증·온보딩 화면 흐름", () => {
       // 비밀번호 불일치 검증
       fireEvent.change(pwInput, { target: { value: "password123!" } });
       fireEvent.change(pwConfirmInput, { target: { value: "different123!" } });
-      fireEvent.click(screen.getByRole("button", { name: "가입하기" }));
+      fireEvent.click(screen.getByRole("button", { name: "계속" }));
       expect(screen.getByText("비밀번호가 일치하지 않거나 8자 미만입니다.")).toBeInTheDocument();
+    });
+
+    function goThroughEmailSteps() {
+      fireEvent.click(screen.getByLabelText("모두 동의합니다"));
+      fireEvent.click(screen.getByRole("button", { name: "계속" }));
+      fireEvent.change(screen.getByPlaceholderText("이메일"), {
+        target: { value: "test@sajura.kr" },
+      });
+      fireEvent.click(screen.getByRole("button", { name: "계속" }));
+      fireEvent.change(screen.getByPlaceholderText("이름"), { target: { value: "홍길동" } });
+      fireEvent.click(screen.getByRole("button", { name: "계속" }));
+      fireEvent.change(screen.getByPlaceholderText("비밀번호"), {
+        target: { value: "password123!" },
+      });
+      fireEvent.change(screen.getByPlaceholderText("비밀번호 확인"), {
+        target: { value: "password123!" },
+      });
+      fireEvent.click(screen.getByRole("button", { name: "계속" }));
+    }
+
+    it("마지막 사업자 인증 단계에서 가입하면 곧바로 로그인되어 온보딩으로 간다", async () => {
+      const register = vi.spyOn(authApi, "register").mockResolvedValue(tokens);
+      vi.spyOn(authApi, "fetchMe").mockResolvedValue(pendingMe);
+      renderRegister();
+
+      goThroughEmailSteps();
+      expect(screen.getByLabelText("5 / 5 단계")).toBeInTheDocument();
+      fillBusinessStep();
+      fireEvent.click(screen.getByRole("button", { name: "가입하기" }));
+
+      await waitFor(() =>
+        expect(screen.getByTestId("location")).toHaveTextContent("/onboarding/1"),
+      );
+      expect(register).toHaveBeenCalledWith(
+        expect.objectContaining({
+          email: "test@sajura.kr",
+          name: "홍길동",
+          businessNo: "123-45-67890",
+          cert: expect.any(File),
+        }),
+      );
+      expect(useAuthStore.getState().accessToken).toBe("tok");
+    });
+
+    it("다른 계정이 쓰는 사업자번호면 사업자 인증 단계에 머물며 사유를 보여 준다", async () => {
+      vi.spyOn(authApi, "register").mockRejectedValue(
+        httpError(409, "AUTH_BUSINESS_NO_DUPLICATE", "이미 등록된 사업자등록번호입니다."),
+      );
+      renderRegister();
+
+      goThroughEmailSteps();
+      fillBusinessStep();
+      fireEvent.click(screen.getByRole("button", { name: "가입하기" }));
+
+      expect(await screen.findByText("이미 등록된 사업자등록번호입니다.")).toBeInTheDocument();
+      expect(screen.getByLabelText("사업자등록번호")).toHaveValue("123-45-67890");
+      expect(useAuthStore.getState().accessToken).toBeNull();
+    });
+
+    it("소셜 모드는 약관 → 사업자 인증 2단계이고, 소셜 계정으로 가입한다", async () => {
+      vi.spyOn(authApi, "fetchSocialSignup").mockResolvedValue({
+        provider: "KAKAO",
+        email: "owner@kakao.com",
+        name: "카카오점주",
+      });
+      const registerSocial = vi.spyOn(authApi, "registerSocial").mockResolvedValue(tokens);
+      vi.spyOn(authApi, "fetchMe").mockResolvedValue({ ...pendingMe, auth_provider: "KAKAO" });
+      renderRegister("/register?social=1");
+
+      expect(await screen.findByText("카카오 계정 owner@kakao.com로 가입해요")).toBeInTheDocument();
+      fireEvent.click(screen.getByLabelText("모두 동의합니다"));
+      fireEvent.click(screen.getByRole("button", { name: "계속" }));
+
+      expect(screen.getByLabelText("2 / 2 단계")).toBeInTheDocument();
+      fillBusinessStep();
+      fireEvent.click(screen.getByRole("button", { name: "가입하기" }));
+
+      await waitFor(() =>
+        expect(screen.getByTestId("location")).toHaveTextContent("/onboarding/1"),
+      );
+      expect(registerSocial).toHaveBeenCalledWith("123-45-67890", expect.any(File));
+    });
+
+    it("소셜 가입 대기 토큰이 만료됐으면 로그인 화면으로 보낸다", async () => {
+      vi.spyOn(authApi, "fetchSocialSignup").mockRejectedValue(
+        httpError(401, "AUTH_SIGNUP_TOKEN_INVALID", "가입 대기 시간이 지났습니다."),
+      );
+      renderRegister("/register?social=1");
+
+      await waitFor(() =>
+        expect(screen.getByTestId("location")).toHaveTextContent("/login?error=signup_expired"),
+      );
     });
   });
 
   describe("LoginPage 상태 안내 문구", () => {
-    it("회원가입 완료 상태와 탈퇴 상태를 올바르게 안내한다", () => {
+    it("탈퇴 상태와 소셜 가입 대기 만료를 안내한다", () => {
       // 1. 일반 렌더링
       const { unmount } = renderWithClient(<LoginPage />, "/login");
       expect(screen.getByRole("heading", { name: /Sajura/ })).toBeInTheDocument();
@@ -99,9 +247,16 @@ describe("B1 시작·인증·온보딩 화면 흐름", () => {
       unmount();
 
       // 2. 탈퇴 유예 상태
-      renderWithClient(<LoginPage />, "/login?error=withdrawn");
+      const { unmount: u2 } = renderWithClient(<LoginPage />, "/login?error=withdrawn");
       expect(screen.getByText(/탈퇴가 접수되었어요. 30일 뒤 삭제돼요./)).toBeInTheDocument();
       expect(screen.getByText(/탈퇴 처리된 계정입니다/)).toBeInTheDocument();
+      u2();
+
+      // 3. 소셜 가입 대기 만료
+      renderWithClient(<LoginPage />, "/login?error=signup_expired");
+      expect(
+        screen.getByText("가입 시간이 지났어요. 소셜 로그인부터 다시 해 주세요."),
+      ).toBeInTheDocument();
     });
   });
 

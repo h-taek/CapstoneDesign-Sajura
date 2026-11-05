@@ -6,9 +6,11 @@
 //   PENDING·VERIFIED + 온보딩 미완료 → /onboarding/{현재 스텝}
 //   PENDING·VERIFIED + 온보딩 완료   → /  (앱)
 //   role !== ADMIN 이 /admin/* 접근  → 본인 단계(온보딩 완료 시 /)
-import { type ReactNode, useSyncExternalStore } from "react";
+import { type ReactNode, useEffect, useState, useSyncExternalStore } from "react";
 import { Navigate, useLocation } from "react-router";
 import { isMorningTransitioning, subscribeMorningTransition } from "../components/sky/day";
+import { clearLocalSession } from "../lib/local-session";
+import { queryClient } from "../lib/query-client";
 import type { AuthUser } from "../stores/auth-store";
 import { useAuthStore } from "../stores/auth-store";
 import { useOnboardingStore } from "../stores/onboarding-store";
@@ -39,14 +41,25 @@ function useMorningActive(): boolean {
   return useSyncExternalStore(subscribeMorningTransition, isMorningTransitioning, () => false);
 }
 
+/** 사업자 검증 전(UNVERIFIED·REJECTED) 로그인 — Refresh Token이 없는 임시 로그인이다 (04_fe.md §2). */
+function isTemporaryLogin(user: AuthUser | null): boolean {
+  return user?.business_status === "UNVERIFIED" || user?.business_status === "REJECTED";
+}
+
 export function RequireGuest({ children }: { children: ReactNode }) {
   const bootstrapped = useAuthStore((s) => s.bootstrapped);
   const token = useAuthStore((s) => s.accessToken);
   const user = useAuthStore((s) => s.user);
   const morningActive = useMorningActive();
+  // 임시 로그인으로 로그인·가입 화면에 들어오면(뒤로가기 등) 그 로그인을 버린다.
+  // 들어온 순간에만 본다 — 이 화면에서 막 로그인한 검증 전 계정은 검증 화면으로 보내야 한다.
+  const [enteredWithTemporary] = useState(() => Boolean(token) && isTemporaryLogin(user));
+  useEffect(() => {
+    if (enteredWithTemporary) clearLocalSession(queryClient);
+  }, [enteredWithTemporary]);
   if (!bootstrapped) return <SplashScreen />;
   if (morningActive) return <>{children}</>;
-  if (token && user) return <Navigate to={landingPath(user)} replace />;
+  if (token && user && !isTemporaryLogin(user)) return <Navigate to={landingPath(user)} replace />;
   return <>{children}</>;
 }
 

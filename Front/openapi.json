@@ -39,9 +39,9 @@
         "operationId": "register_api_auth_register_post",
         "requestBody": {
           "content": {
-            "application/json": {
+            "multipart/form-data": {
               "schema": {
-                "$ref": "#/components/schemas/RegisterRequest"
+                "$ref": "#/components/schemas/Body_register_api_auth_register_post"
               }
             }
           },
@@ -53,7 +53,113 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/RegisterResponse"
+                  "$ref": "#/components/schemas/TokenResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/auth/register/social": {
+      "get": {
+        "tags": [
+          "auth"
+        ],
+        "summary": "Social Signup Info",
+        "operationId": "social_signup_info_api_auth_register_social_get",
+        "parameters": [
+          {
+            "name": "signup_token",
+            "in": "cookie",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Signup Token"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SocialSignupResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "auth"
+        ],
+        "summary": "Register Social",
+        "operationId": "register_social_api_auth_register_social_post",
+        "parameters": [
+          {
+            "name": "signup_token",
+            "in": "cookie",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Signup Token"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_register_social_api_auth_register_social_post"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TokenResponse"
                 }
               }
             }
@@ -4806,6 +4912,76 @@
         ],
         "title": "AutomateTarget"
       },
+      "Body_register_api_auth_register_post": {
+        "properties": {
+          "email": {
+            "type": "string",
+            "format": "email",
+            "title": "Email"
+          },
+          "password": {
+            "type": "string",
+            "maxLength": 128,
+            "minLength": 8,
+            "title": "Password"
+          },
+          "name": {
+            "type": "string",
+            "maxLength": 50,
+            "minLength": 1,
+            "title": "Name"
+          },
+          "business_no": {
+            "type": "string",
+            "title": "Business No"
+          },
+          "cert": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "binary"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cert"
+          }
+        },
+        "type": "object",
+        "required": [
+          "email",
+          "password",
+          "name",
+          "business_no"
+        ],
+        "title": "Body_register_api_auth_register_post"
+      },
+      "Body_register_social_api_auth_register_social_post": {
+        "properties": {
+          "business_no": {
+            "type": "string",
+            "title": "Business No"
+          },
+          "cert": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "binary"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cert"
+          }
+        },
+        "type": "object",
+        "required": [
+          "business_no"
+        ],
+        "title": "Body_register_social_api_auth_register_social_post"
+      },
       "Body_upload_sales_csv_api_sales_upload_post": {
         "properties": {
           "file": {
@@ -7598,58 +7774,6 @@
         ],
         "title": "RecipeUpsertRequest"
       },
-      "RegisterRequest": {
-        "properties": {
-          "email": {
-            "type": "string",
-            "format": "email",
-            "title": "Email"
-          },
-          "password": {
-            "type": "string",
-            "maxLength": 128,
-            "minLength": 8,
-            "title": "Password"
-          },
-          "name": {
-            "type": "string",
-            "maxLength": 50,
-            "minLength": 1,
-            "title": "Name"
-          }
-        },
-        "type": "object",
-        "required": [
-          "email",
-          "password",
-          "name"
-        ],
-        "title": "RegisterRequest"
-      },
-      "RegisterResponse": {
-        "properties": {
-          "user_id": {
-            "type": "string",
-            "title": "User Id"
-          },
-          "email": {
-            "type": "string",
-            "format": "email",
-            "title": "Email"
-          },
-          "name": {
-            "type": "string",
-            "title": "Name"
-          }
-        },
-        "type": "object",
-        "required": [
-          "user_id",
-          "email",
-          "name"
-        ],
-        "title": "RegisterResponse"
-      },
       "RejectRequest": {
         "properties": {
           "reason": {
@@ -7859,6 +7983,34 @@
           "data"
         ],
         "title": "SalesTrendsResponse"
+      },
+      "SocialSignupResponse": {
+        "properties": {
+          "provider": {
+            "type": "string",
+            "enum": [
+              "GOOGLE",
+              "KAKAO"
+            ],
+            "title": "Provider"
+          },
+          "email": {
+            "type": "string",
+            "title": "Email"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          }
+        },
+        "type": "object",
+        "required": [
+          "provider",
+          "email",
+          "name"
+        ],
+        "title": "SocialSignupResponse",
+        "description": "소셜 가입 대기 토큰에 담긴 계정 정보 — 회원가입 화면 소셜 모드가 표시한다."
       },
       "StoreResponse": {
         "properties": {

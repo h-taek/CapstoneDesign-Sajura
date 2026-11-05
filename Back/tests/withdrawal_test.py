@@ -61,7 +61,11 @@ async def test_withdrawal_blocks_login_register_and_api(client: AsyncClient) -> 
     assert r.json()["error"] == "AUTH_ACCOUNT_WITHDRAWN"
 
     r = await client.post(
-        "/api/auth/register", json={"email": email, "password": "Passw0rd!", "name": "재가입"}
+        "/api/auth/register",
+        data={
+            "email": email, "password": "Passw0rd!", "name": "재가입",
+            "business_no": get_settings().NTS_MASTER_BYPASS_CODE,
+        },
     )
     assert r.status_code == 409, r.text
     assert r.json()["error"] == "AUTH_ACCOUNT_WITHDRAWN"
@@ -164,17 +168,16 @@ async def test_purge_deletes_expired_accounts_with_store_data(
 async def test_withdrawn_social_account_cannot_log_in() -> None:
     email = make_test_email("social")
     async with app_db.SessionLocal() as session:
-        await AuthService(session).login_with_oauth(
-            provider="kakao", social_id=email, email=email, name="소셜"
+        await AuthService(session).register_social(
+            provider="kakao", social_id=email, email=email, name="소셜",
+            business_no=get_settings().NTS_MASTER_BYPASS_CODE, cert=None,
         )
     async with app_db.SessionLocal() as session:
         user_id = await session.scalar(select(User.user_id).where(User.email == email))
         await AuthService(session).delete_account(user_id=user_id, password="")
     async with app_db.SessionLocal() as session:
         with pytest.raises(errors.DomainError) as exc:
-            await AuthService(session).login_with_oauth(
-                provider="kakao", social_id=email, email=email, name="소셜"
-            )
+            await AuthService(session).login_with_oauth(provider="kakao", social_id=email)
     assert exc.value.detail["error"] == "AUTH_ACCOUNT_WITHDRAWN"
 
 
@@ -186,8 +189,9 @@ async def test_oauth_callback_redirects_withdrawn_account(
 
     email = make_test_email("social")
     async with app_db.SessionLocal() as session:
-        await AuthService(session).login_with_oauth(
-            provider="kakao", social_id=email, email=email, name="소셜"
+        await AuthService(session).register_social(
+            provider="kakao", social_id=email, email=email, name="소셜",
+            business_no=get_settings().NTS_MASTER_BYPASS_CODE, cert=None,
         )
         user_id = await session.scalar(select(User.user_id).where(User.email == email))
         await AuthService(session).delete_account(user_id=user_id, password="")

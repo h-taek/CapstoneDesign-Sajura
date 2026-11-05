@@ -1,7 +1,8 @@
-"""auth_test (M3.B5) — 12 integration cases.
+"""auth_test (M3.B5) — 인증 통합 시험.
 
-Coverage: register / login / refresh / logout / logout-all / get_me + 인증 가드.
-spec: docs/spec/02_implementation_design.md §3.2, plan: docs/plan/01_be.md M3.B1~B5.
+Coverage: register(사업자 인증 포함) / 소셜 가입 대기 / login / refresh / logout / logout-all /
+get_me + 인증 가드 + 사업자 검증 전 계정의 Refresh Token.
+spec: docs/spec/02_implementation_design.md §3.2, 03_be.md §7.1·§7.3.
 """
 from __future__ import annotations
 
@@ -9,76 +10,142 @@ import uuid
 
 import pytest
 from httpx import AsyncClient
+from sqlalchemy import select, update
 
-from tests.conftest import make_test_email
-
-
-def _make_biz_no() -> str:
-    n = uuid.uuid4().int
-    return f"{n % 1000:03d}-{(n // 1000) % 100:02d}-{(n // 100000) % 100000:05d}"
-
-
-def _cert_file() -> dict:
-    """multipart 업로드용 더미 사업자등록증(PNG 헤더)."""
-    return {"cert": ("cert.png", b"\x89PNG\r\n\x1a\n_dummy_cert_", "image/png")}
-
-
-def _register_payload(email: str, *, password: str = "Passw0rd!") -> dict:
-    return {"email": email, "password": password, "name": "테스트유저"}
+import app.db as app_db
+from app.config import get_settings
+from app.core import security
+from app.models.store import BusinessStatus, Store
+from app.models.user import User
+from tests.conftest import (
+    TEST_PASSWORD,
+    cert_file,
+    make_biz_no,
+    make_test_email,
+    register_user,
+)
 
 
-async def _register_and_login(client: AsyncClient, email: str, password: str = "Passw0rd!") -> dict:
-    r = await client.post("/api/auth/register", json=_register_payload(email, password=password))
-    assert r.status_code == 201, r.text
-    r = await client.post("/api/auth/login", json={"email": email, "password": password})
-    assert r.status_code == 200, r.text
-    return r.json()
+def _auth(tokens: dict) -> dict:
+    return {"Authorization": f"Bearer {tokens['access_token']}"}
 
 
-# 1
+def _register_form(email: str, business_no: str) -> dict:
+    return {
+        "email": email, "password": TEST_PASSWORD, "name": "테스트유저", "business_no": business_no,
+    }
+
+
+async def _user_exists(email: str) -> bool:
+    async with app_db.SessionLocal() as session:
+        return await session.scalar(select(User.user_id).where(User.email == email)) is not None
+
+
+async def _set_status(email: str, status: BusinessStatus) -> None:
+    async with app_db.SessionLocal() as session:
+        user_id = await session.scalar(select(User.user_id).where(User.email == email))
+        await session.execute(
+            update(Store).where(Store.user_id == user_id).values(business_status=status)
+        )
+        await session.commit()
+
+
+def _cookie_cleared(r, name: str) -> bool:
+    return any(
+        h.startswith(f"{name}=") and ("Max-Age=0" in h or 'expires=Thu, 01 Jan 1970' in h)
+        for h in r.headers.get_list("set-cookie")
+    )
+
+
+# ----------------------------------------------------------------------
+# 이메일 회원가입 — 사업자 인증까지 통과해야 계정 생성, 가입 즉시 로그인
+# ----------------------------------------------------------------------
+
+
 @pytest.mark.asyncio
-async def test_register_success(client: AsyncClient) -> None:
+async def test_register_with_business_logs_in_as_pending(client: AsyncClient) -> None:
     email = make_test_email()
-    r = await client.post("/api/auth/register", json=_register_payload(email))
-    assert r.status_code == 201
+    r = await client.post(
+        "/api/auth/register", data=_register_form(email, make_biz_no()), files=cert_file()
+    )
+    assert r.status_code == 201, r.text
     body = r.json()
-    assert body["email"] == email
-    assert body["name"] == "테스트유저"
-    assert "user_id" in body and body["user_id"]
+    assert body["access_token"]
+    assert body["business_status"] == "PENDING"
+    assert body["onboarding_completed"] is False
+    assert "refresh_token" in r.cookies
+    me = await client.get("/api/auth/me", headers=_auth(body))
+    assert me.json()["email"] == email
+    assert me.json()["business_status"] == "PENDING"
 
 
-# 2
+@pytest.mark.asyncio
+async def test_register_master_code_is_verified_without_cert(client: AsyncClient) -> None:
+    master = get_settings().NTS_MASTER_BYPASS_CODE
+    if not master:
+        pytest.skip("NTS_MASTER_BYPASS_CODE 미설정")
+    tokens = await register_user(client, make_test_email())
+    assert tokens["business_status"] == "VERIFIED"
+    store = (await client.get("/api/store", headers=_auth(tokens))).json()
+    # 마스터 통과는 실 번호를 저장하지 않는다 (unique 충돌 방지)
+    assert store["business_no"] is None
+
+
 @pytest.mark.asyncio
 async def test_register_duplicate_email_returns_409(client: AsyncClient) -> None:
     email = make_test_email()
-    r1 = await client.post("/api/auth/register", json=_register_payload(email))
-    assert r1.status_code == 201
-    r2 = await client.post("/api/auth/register", json=_register_payload(email))
-    assert r2.status_code == 409
-    assert r2.json()["error"] == "AUTH_EMAIL_DUPLICATE"
-
-
-# 3
-@pytest.mark.asyncio
-async def test_verify_business_invalid_format_returns_400(client: AsyncClient) -> None:
-    email = make_test_email()
-    tokens = await _register_and_login(client, email)
+    await register_user(client, email)
     r = await client.post(
-        "/api/store/business/verify",
-        data={"business_no": "abc-xx-yyyyy"},
-        files=_cert_file(),
-        headers={"Authorization": f"Bearer {tokens['access_token']}"},
+        "/api/auth/register", data=_register_form(email, make_biz_no()), files=cert_file()
+    )
+    assert r.status_code == 409
+    assert r.json()["error"] == "AUTH_EMAIL_DUPLICATE"
+
+
+@pytest.mark.asyncio
+async def test_register_invalid_business_no_creates_nothing(client: AsyncClient) -> None:
+    email = make_test_email()
+    r = await client.post(
+        "/api/auth/register", data=_register_form(email, "abc-xx-yyyyy"), files=cert_file()
     )
     assert r.status_code == 400
     assert r.json()["error"] == "AUTH_BUSINESS_NO_INVALID"
+    assert not await _user_exists(email)
 
 
-# 4
+@pytest.mark.asyncio
+async def test_register_without_cert_creates_nothing(client: AsyncClient) -> None:
+    email = make_test_email()
+    r = await client.post("/api/auth/register", data=_register_form(email, make_biz_no()))
+    assert r.status_code == 400
+    assert r.json()["error"] == "VALIDATION_ERROR"
+    assert not await _user_exists(email)
+
+
+@pytest.mark.asyncio
+async def test_register_duplicate_business_no_creates_nothing(client: AsyncClient) -> None:
+    biz = make_biz_no()
+    await register_user(client, make_test_email("a"), business_no=biz)
+    email_b = make_test_email("b")
+    r = await client.post(
+        "/api/auth/register", data=_register_form(email_b, biz), files=cert_file()
+    )
+    assert r.status_code == 409
+    assert r.json()["error"] == "AUTH_BUSINESS_NO_DUPLICATE"
+    assert not await _user_exists(email_b)
+
+
+# ----------------------------------------------------------------------
+# 로그인·Refresh — 사업자 검증 전 계정은 Refresh Token 없음 (03_be.md §7.3)
+# ----------------------------------------------------------------------
+
+
 @pytest.mark.asyncio
 async def test_login_success_returns_token_and_sets_refresh_cookie(client: AsyncClient) -> None:
     email = make_test_email()
-    await client.post("/api/auth/register", json=_register_payload(email))
-    r = await client.post("/api/auth/login", json={"email": email, "password": "Passw0rd!"})
+    await register_user(client, email)
+    client.cookies.clear()
+    r = await client.post("/api/auth/login", json={"email": email, "password": TEST_PASSWORD})
     assert r.status_code == 200
     body = r.json()
     assert body["token_type"] == "bearer"
@@ -87,27 +154,37 @@ async def test_login_success_returns_token_and_sets_refresh_cookie(client: Async
     assert "refresh_token" in r.cookies
 
 
-# 5
+@pytest.mark.asyncio
+async def test_login_before_verification_has_no_refresh_cookie(client: AsyncClient) -> None:
+    email = make_test_email()
+    await register_user(client, email)
+    await _set_status(email, BusinessStatus.REJECTED)
+    client.cookies.clear()
+    r = await client.post("/api/auth/login", json={"email": email, "password": TEST_PASSWORD})
+    assert r.status_code == 200, r.text
+    assert r.json()["business_status"] == "REJECTED"
+    assert r.json()["access_token"]
+    assert "refresh_token" not in r.cookies
+
+
 @pytest.mark.asyncio
 async def test_login_invalid_password_returns_401(client: AsyncClient) -> None:
     email = make_test_email()
-    await client.post("/api/auth/register", json=_register_payload(email))
+    await register_user(client, email)
     r = await client.post("/api/auth/login", json={"email": email, "password": "WrongPass1!"})
     assert r.status_code == 401
     assert r.json()["error"] == "AUTH_INVALID_CREDENTIALS"
 
 
-# 6
 @pytest.mark.asyncio
 async def test_login_unknown_email_returns_401(client: AsyncClient) -> None:
     r = await client.post(
-        "/api/auth/login", json={"email": make_test_email("nobody"), "password": "Passw0rd!"}
+        "/api/auth/login", json={"email": make_test_email("nobody"), "password": TEST_PASSWORD}
     )
     assert r.status_code == 401
     assert r.json()["error"] == "AUTH_INVALID_CREDENTIALS"
 
 
-# 7
 @pytest.mark.asyncio
 async def test_get_me_without_auth_header_returns_401(client: AsyncClient) -> None:
     r = await client.get("/api/auth/me")
@@ -115,101 +192,51 @@ async def test_get_me_without_auth_header_returns_401(client: AsyncClient) -> No
     assert r.json()["error"] == "UNAUTHORIZED"
 
 
-# 8
 @pytest.mark.asyncio
 async def test_get_me_with_bearer_returns_profile(client: AsyncClient) -> None:
     email = make_test_email()
-    tokens = await _register_and_login(client, email)
-    r = await client.get(
-        "/api/auth/me", headers={"Authorization": f"Bearer {tokens['access_token']}"}
-    )
+    tokens = await register_user(client, email, business_no=make_biz_no())
+    r = await client.get("/api/auth/me", headers=_auth(tokens))
     assert r.status_code == 200
     body = r.json()
     assert body["email"] == email
     assert body["auth_provider"] == "LOCAL"
-    assert body["business_status"] == "UNVERIFIED"
+    assert body["business_status"] == "PENDING"
     assert body["onboarding_completed"] is False
 
 
-# 8b — 사업자 검증: NTS 통과 + 등록증 업로드 → PENDING (stub 모드/유효 형식)
-@pytest.mark.asyncio
-async def test_verify_business_with_cert_sets_pending(client: AsyncClient) -> None:
-    email = make_test_email()
-    tokens = await _register_and_login(client, email)
-    auth = {"Authorization": f"Bearer {tokens['access_token']}"}
-    r = await client.post(
-        "/api/store/business/verify",
-        data={"business_no": _make_biz_no()}, files=_cert_file(), headers=auth,
-    )
-    assert r.status_code == 200, r.text
-    assert r.json()["business_status"] == "PENDING"
-    me = await client.get("/api/auth/me", headers=auth)
-    assert me.json()["business_status"] == "PENDING"
-
-
-# 8b-2 — 등록증 미첨부(비마스터) → 400
-@pytest.mark.asyncio
-async def test_verify_business_without_cert_returns_400(client: AsyncClient) -> None:
-    email = make_test_email()
-    tokens = await _register_and_login(client, email)
-    r = await client.post(
-        "/api/store/business/verify",
-        data={"business_no": _make_biz_no()},
-        headers={"Authorization": f"Bearer {tokens['access_token']}"},
-    )
-    assert r.status_code == 400
-    assert r.json()["error"] == "VALIDATION_ERROR"
-
-
-# 8c — 로그인 응답에 business_status 포함 (미검증 시 UNVERIFIED)
-@pytest.mark.asyncio
-async def test_login_includes_business_status_unverified(client: AsyncClient) -> None:
-    email = make_test_email()
-    tokens = await _register_and_login(client, email)
-    assert tokens["business_status"] == "UNVERIFIED"
-
-
-# 8d — 마스터 코드 강제 패스 → VERIFIED, 파일 불필요 (03_be.md §7.4). 미설정 시 skip.
-@pytest.mark.asyncio
-async def test_verify_business_master_code_bypass(client: AsyncClient) -> None:
-    from app.config import get_settings
-
-    master = get_settings().NTS_MASTER_BYPASS_CODE
-    if not master:
-        pytest.skip("NTS_MASTER_BYPASS_CODE 미설정")
-    email = make_test_email()
-    tokens = await _register_and_login(client, email)
-    auth = {"Authorization": f"Bearer {tokens['access_token']}"}
-    r = await client.post(
-        "/api/store/business/verify", data={"business_no": master}, headers=auth
-    )
-    assert r.status_code == 200, r.text
-    assert r.json()["business_status"] == "VERIFIED"
-    # 마스터 통과는 실 번호를 저장하지 않는다 (unique 충돌 방지).
-    assert r.json()["business_no"] is None
-
-
-# 9
 @pytest.mark.asyncio
 async def test_refresh_rotates_token(client: AsyncClient) -> None:
-    email = make_test_email()
-    await _register_and_login(client, email)
+    await register_user(client, make_test_email())
     old_refresh = client.cookies.get("refresh_token")
     assert old_refresh
     r = await client.post("/api/auth/refresh")
     assert r.status_code == 200
-    body = r.json()
-    assert body["access_token"]
+    assert r.json()["access_token"]
     new_refresh = r.cookies.get("refresh_token") or client.cookies.get("refresh_token")
     assert new_refresh and new_refresh != old_refresh
 
     # 회전 후 옛 refresh 재사용은 거부되어야 함.
-    fresh_client_cookies = {"refresh_token": old_refresh}
-    r2 = await client.post("/api/auth/refresh", cookies=fresh_client_cookies)
+    r2 = await client.post("/api/auth/refresh", cookies={"refresh_token": old_refresh})
     assert r2.status_code == 401
 
 
-# 10
+@pytest.mark.asyncio
+async def test_refresh_before_verification_drops_cookie(client: AsyncClient) -> None:
+    email = make_test_email()
+    await register_user(client, email)
+    refresh = client.cookies.get("refresh_token")
+    await _set_status(email, BusinessStatus.REJECTED)  # 로그인 뒤 관리자가 반려
+
+    r = await client.post("/api/auth/refresh", cookies={"refresh_token": refresh})
+    assert r.status_code == 200, r.text
+    assert r.json()["access_token"]
+    assert _cookie_cleared(r, "refresh_token")
+    # 쓴 Refresh Token은 폐기되어 다시 쓸 수 없다
+    r2 = await client.post("/api/auth/refresh", cookies={"refresh_token": refresh})
+    assert r2.status_code == 401
+
+
 @pytest.mark.asyncio
 async def test_refresh_with_invalid_cookie_returns_401(client: AsyncClient) -> None:
     r = await client.post("/api/auth/refresh", cookies={"refresh_token": "not-a-real-token"})
@@ -217,49 +244,168 @@ async def test_refresh_with_invalid_cookie_returns_401(client: AsyncClient) -> N
     assert r.json()["error"] == "AUTH_REFRESH_TOKEN_INVALID"
 
 
-# 11
 @pytest.mark.asyncio
 async def test_logout_revokes_current_refresh(client: AsyncClient) -> None:
-    email = make_test_email()
-    tokens = await _register_and_login(client, email)
+    tokens = await register_user(client, make_test_email())
     refresh_before = client.cookies.get("refresh_token")
-    r = await client.post(
-        "/api/auth/logout", headers={"Authorization": f"Bearer {tokens['access_token']}"}
-    )
+    r = await client.post("/api/auth/logout", headers=_auth(tokens))
     assert r.status_code == 204
     r2 = await client.post("/api/auth/refresh", cookies={"refresh_token": refresh_before})
     assert r2.status_code == 401
 
 
-# 12
 @pytest.mark.asyncio
 async def test_logout_all_revokes_every_session(client: AsyncClient) -> None:
     email = make_test_email()
-    # 세션 A 로그인 → refresh 보관.
-    tokens_a = await _register_and_login(client, email)
+    # 세션 A(가입) → refresh 보관.
+    tokens_a = await register_user(client, email)
     refresh_a = client.cookies.get("refresh_token")
 
     # 세션 B 로그인 (동일 사용자, 다른 디바이스 시뮬레이션).
-    r = await client.post("/api/auth/login", json={"email": email, "password": "Passw0rd!"})
+    r = await client.post("/api/auth/login", json={"email": email, "password": TEST_PASSWORD})
     assert r.status_code == 200
     refresh_b = r.cookies.get("refresh_token") or client.cookies.get("refresh_token")
     assert refresh_a and refresh_b and refresh_a != refresh_b
 
-    # logout-all
-    r = await client.post(
-        "/api/auth/logout-all",
-        headers={"Authorization": f"Bearer {tokens_a['access_token']}"},
-    )
+    r = await client.post("/api/auth/logout-all", headers=_auth(tokens_a))
     assert r.status_code == 204
 
-    # 두 refresh 모두 401
     for tok in (refresh_a, refresh_b):
         rr = await client.post("/api/auth/refresh", cookies={"refresh_token": tok})
         assert rr.status_code == 401
 
 
 # ----------------------------------------------------------------------
-# OAuth state(CSRF) — Authlib + SessionMiddleware (03_be.md §7, §13.1)
+# 사업자 검증 화면 — 반려 재제출·기존 미인증 계정 (02 §3.3)
+# ----------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_verify_business_resubmit_sets_pending_and_issues_refresh(
+    client: AsyncClient,
+) -> None:
+    email = make_test_email()
+    await register_user(client, email, business_no=make_biz_no())
+    await _set_status(email, BusinessStatus.REJECTED)
+    client.cookies.clear()
+    r = await client.post("/api/auth/login", json={"email": email, "password": TEST_PASSWORD})
+    auth = _auth(r.json())
+    assert "refresh_token" not in r.cookies
+
+    r = await client.post(
+        "/api/store/business/verify",
+        data={"business_no": make_biz_no()}, files=cert_file(), headers=auth,
+    )
+    assert r.status_code == 200, r.text
+    assert r.json()["business_status"] == "PENDING"
+    assert "refresh_token" in r.cookies  # 통과한 지금 처음 발급
+
+
+@pytest.mark.asyncio
+async def test_verify_business_invalid_format_returns_400(client: AsyncClient) -> None:
+    tokens = await register_user(client, make_test_email())
+    r = await client.post(
+        "/api/store/business/verify",
+        data={"business_no": "abc-xx-yyyyy"}, files=cert_file(), headers=_auth(tokens),
+    )
+    assert r.status_code == 400
+    assert r.json()["error"] == "AUTH_BUSINESS_NO_INVALID"
+
+
+@pytest.mark.asyncio
+async def test_verify_business_without_cert_returns_400(client: AsyncClient) -> None:
+    tokens = await register_user(client, make_test_email())
+    r = await client.post(
+        "/api/store/business/verify",
+        data={"business_no": make_biz_no()}, headers=_auth(tokens),
+    )
+    assert r.status_code == 400
+    assert r.json()["error"] == "VALIDATION_ERROR"
+
+
+# ----------------------------------------------------------------------
+# 소셜 가입 대기 — 사업자 인증까지 마쳐야 계정 생성 (03_be.md §7.1)
+# ----------------------------------------------------------------------
+
+
+def _signup_token(email: str, social_id: str | None = None) -> str:
+    return security.create_signup_token(
+        provider="kakao", social_id=social_id or uuid.uuid4().hex, email=email, name="카카오점주"
+    )
+
+
+@pytest.mark.asyncio
+async def test_social_signup_info_requires_signup_token(client: AsyncClient) -> None:
+    r = await client.get("/api/auth/register/social")
+    assert r.status_code == 401
+    assert r.json()["error"] == "AUTH_SIGNUP_TOKEN_INVALID"
+
+    # Access Token처럼 다른 용도의 토큰은 가입 대기 토큰으로 쓸 수 없다
+    access, _ = security.create_access_token(user_id="u", store_id=None)
+    r = await client.get("/api/auth/register/social", cookies={"signup_token": access})
+    assert r.status_code == 401
+
+
+@pytest.mark.asyncio
+async def test_social_signup_creates_account_and_logs_in(client: AsyncClient) -> None:
+    email = make_test_email("kakao")
+    client.cookies.set("signup_token", _signup_token(email))
+
+    r = await client.get("/api/auth/register/social")
+    assert r.status_code == 200, r.text
+    assert r.json() == {"provider": "KAKAO", "email": email, "name": "카카오점주"}
+    assert not await _user_exists(email)  # 가입 대기 중에는 계정이 없다
+
+    r = await client.post(
+        "/api/auth/register/social", data={"business_no": make_biz_no()}, files=cert_file()
+    )
+    assert r.status_code == 201, r.text
+    assert r.json()["business_status"] == "PENDING"
+    assert "refresh_token" in r.cookies
+    assert _cookie_cleared(r, "signup_token")
+    me = (await client.get("/api/auth/me", headers=_auth(r.json()))).json()
+    assert me["auth_provider"] == "KAKAO"
+    assert me["email"] == email
+
+
+@pytest.mark.asyncio
+async def test_social_signup_failure_creates_nothing_and_can_retry(client: AsyncClient) -> None:
+    email = make_test_email("kakao")
+    client.cookies.set("signup_token", _signup_token(email))
+
+    r = await client.post(
+        "/api/auth/register/social", data={"business_no": "abc-xx-yyyyy"}, files=cert_file()
+    )
+    assert r.status_code == 400
+    assert not await _user_exists(email)
+
+    # 가입 대기 토큰은 만료 전까지 남아 다시 제출할 수 있다
+    r = await client.post(
+        "/api/auth/register/social", data={"business_no": make_biz_no()}, files=cert_file()
+    )
+    assert r.status_code == 201, r.text
+
+
+@pytest.mark.asyncio
+async def test_social_signup_resubmit_logs_in_same_account(client: AsyncClient) -> None:
+    email = make_test_email("kakao")
+    token = _signup_token(email)
+    r1 = await client.post(
+        "/api/auth/register/social", data={"business_no": make_biz_no()}, files=cert_file(),
+        cookies={"signup_token": token},
+    )
+    r2 = await client.post(
+        "/api/auth/register/social", data={"business_no": make_biz_no()}, files=cert_file(),
+        cookies={"signup_token": token},
+    )
+    assert r1.status_code == 201 and r2.status_code == 201, r2.text
+    me1 = (await client.get("/api/auth/me", headers=_auth(r1.json()))).json()
+    me2 = (await client.get("/api/auth/me", headers=_auth(r2.json()))).json()
+    assert me1["user_id"] == me2["user_id"]
+
+
+# ----------------------------------------------------------------------
+# OAuth — state(CSRF)·콜백 분기 (03_be.md §7.1, §13.1)
 # ----------------------------------------------------------------------
 
 
@@ -294,6 +440,55 @@ async def test_oauth_callback_rejects_mismatched_state(
     client.cookies.clear()
     assert r.status_code == 400, r.text
     assert r.json()["error"] == "AUTH_SOCIAL_LOGIN_FAILED"
+
+
+def _fake_provider(monkeypatch: pytest.MonkeyPatch, profile: dict) -> None:
+    from app.api import oauth
+
+    async def _authorize(provider: str, request: object) -> dict:
+        return {}
+
+    async def _userinfo(provider: str, token: dict) -> dict:
+        return profile
+
+    monkeypatch.setattr(oauth, "_ensure_oauth_configured", lambda p: None)
+    monkeypatch.setattr(oauth, "_authorize", _authorize)
+    monkeypatch.setattr(oauth, "_fetch_userinfo", _userinfo)
+
+
+@pytest.mark.asyncio
+async def test_oauth_callback_new_account_goes_to_signup(
+    client: AsyncClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    email = make_test_email("kakao")
+    _fake_provider(monkeypatch, {"social_id": uuid.uuid4().hex, "email": email, "name": "카카오"})
+
+    r = await client.get("/api/auth/callback/kakao")
+    assert r.status_code == 302, r.text
+    assert r.headers["location"].endswith("/register?social=1")
+    assert "signup_token" in r.cookies
+    assert "refresh_token" not in r.cookies
+    assert not await _user_exists(email)
+
+
+@pytest.mark.asyncio
+async def test_oauth_callback_existing_account_logs_in(
+    client: AsyncClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    email = make_test_email("kakao")
+    social_id = uuid.uuid4().hex
+    r = await client.post(
+        "/api/auth/register/social", data={"business_no": make_biz_no()}, files=cert_file(),
+        cookies={"signup_token": _signup_token(email, social_id)},
+    )
+    assert r.status_code == 201, r.text
+    client.cookies.clear()
+    _fake_provider(monkeypatch, {"social_id": social_id, "email": email, "name": "카카오"})
+
+    r = await client.get("/api/auth/callback/kakao")
+    assert r.status_code == 302, r.text
+    assert not r.headers["location"].endswith("/register?social=1")
+    assert "refresh_token" in r.cookies
 
 
 # ----------------------------------------------------------------------

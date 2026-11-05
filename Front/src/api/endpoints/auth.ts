@@ -12,9 +12,7 @@ type RefreshResponse = S["TokenResponse"];
 
 type LoginResponse = S["TokenResponse"];
 
-export type RegisterPayload = S["RegisterRequest"];
-
-export type RegisterResponse = S["RegisterResponse"];
+export type SocialSignupInfo = S["SocialSignupResponse"];
 
 export type ChangePasswordRequest = S["ChangePasswordRequest"];
 
@@ -35,8 +33,53 @@ export async function authErrorMessage(error: unknown, fallback: string): Promis
   return fallback;
 }
 
-export async function register(payload: RegisterPayload): Promise<RegisterResponse> {
-  return api.post("auth/register", { json: payload }).json<RegisterResponse>();
+function businessForm(businessNo: string, cert: File | null): FormData {
+  const form = new FormData();
+  form.append("business_no", businessNo);
+  if (cert) form.append("cert", cert);
+  return form;
+}
+
+export interface RegisterPayload {
+  email: string;
+  password: string;
+  name: string;
+  businessNo: string;
+  cert: File | null;
+}
+
+/** 이메일 회원가입 (multipart) — 사업자 검증을 통과해야 계정 생성, 응답은 로그인과 같다. */
+export async function register(payload: RegisterPayload): Promise<TokenResponse> {
+  const form = businessForm(payload.businessNo, payload.cert);
+  form.append("email", payload.email);
+  form.append("password", payload.password);
+  form.append("name", payload.name);
+  return api.post("auth/register", { body: form }).json<TokenResponse>();
+}
+
+/** 소셜 가입 대기 정보 — Cookie signup_token이 없거나 만료면 401 AUTH_SIGNUP_TOKEN_INVALID. */
+export async function fetchSocialSignup(): Promise<SocialSignupInfo> {
+  return api.get("auth/register/social").json<SocialSignupInfo>();
+}
+
+/** 소셜 회원가입 (multipart) — 가입 대기 토큰의 계정으로, 사업자 검증을 통과해야 계정 생성. */
+export async function registerSocial(
+  businessNo: string,
+  cert: File | null,
+): Promise<TokenResponse> {
+  return api
+    .post("auth/register/social", { body: businessForm(businessNo, cert) })
+    .json<TokenResponse>();
+}
+
+/** BE 에러 envelope의 error 코드. 본문은 clone으로 읽어 메시지 파싱과 겹치지 않게 한다. */
+export async function authErrorCode(error: unknown): Promise<string | null> {
+  if (!(error instanceof HTTPError)) return null;
+  const body = (await error.response
+    .clone()
+    .json()
+    .catch(() => null)) as { error?: string } | null;
+  return body?.error ?? null;
 }
 
 export async function loginWithEmail(email: string, password: string): Promise<LoginResponse> {
@@ -87,10 +130,9 @@ export async function verifyBusiness(
   businessNo: string,
   cert: File | null,
 ): Promise<VerifyBusinessResponse> {
-  const form = new FormData();
-  form.append("business_no", businessNo);
-  if (cert) form.append("cert", cert);
-  return api.post("store/business/verify", { body: form }).json<VerifyBusinessResponse>();
+  return api
+    .post("store/business/verify", { body: businessForm(businessNo, cert) })
+    .json<VerifyBusinessResponse>();
 }
 
 /** 회원 탈퇴 — 30일 유예 후 파기 (01_basic_design.md §5.2.1). 소셜 계정은 빈 비밀번호. */

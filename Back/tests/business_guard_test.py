@@ -9,7 +9,7 @@ from sqlalchemy import update
 import app.db as app_db
 from app.config import get_settings
 from app.models.store import BusinessStatus, Store
-from tests.conftest import make_test_email
+from tests.conftest import make_test_email, register_user
 
 GUARDED = [
     ("GET", "/api/menus"),
@@ -24,14 +24,11 @@ GUARDED = [
 
 
 async def _register(client: AsyncClient) -> tuple[dict, str]:
-    email = make_test_email("guard")
-    r = await client.post(
-        "/api/auth/register", json={"email": email, "password": "Passw0rd!", "name": "가드"}
-    )
-    assert r.status_code == 201, r.text
-    r = await client.post("/api/auth/login", json={"email": email, "password": "Passw0rd!"})
-    auth = {"Authorization": f"Bearer {r.json()['access_token']}"}
+    """사업자 검증 전(UNVERIFIED) 계정 — 가입은 검증을 통과해야 하므로 가입 뒤 DB로 되돌린다."""
+    tokens = await register_user(client, make_test_email("guard"))
+    auth = {"Authorization": f"Bearer {tokens['access_token']}"}
     store_id = (await client.get("/api/store", headers=auth)).json()["store_id"]
+    await _set_status(store_id, BusinessStatus.UNVERIFIED)
     return auth, store_id
 
 
