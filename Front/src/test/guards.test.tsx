@@ -10,6 +10,7 @@ import {
   useParams,
 } from "react-router";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import * as authApi from "../api/endpoints/auth";
 import { DAY, dayClock, goDashboard, resetSkyState, useSky } from "../components/sky";
 import {
   RequireAdmin,
@@ -210,7 +211,8 @@ describe("가드 목적지 (상태 넷 × 경로)", () => {
     unmount();
   });
 
-  it("2) 사업자 미인증·반려(UNVERIFIED·REJECTED): /intro·/verify-business는 그대로, 로그인·가입 화면은 임시 로그인을 비우고 보여 주며, 나머지는 /verify-business로 보낸다", async () => {
+  it("2) 사업자 미인증·반려(UNVERIFIED·REJECTED): /intro·/verify-business는 그대로, 로그인·가입 화면은 로그아웃 뒤 보여 주며, 나머지는 /verify-business로 보낸다", async () => {
+    vi.spyOn(authApi, "logout").mockResolvedValue();
     for (const status of ["UNVERIFIED", "REJECTED"] as const) {
       const signIn = () =>
         useAuthStore.setState({
@@ -228,12 +230,12 @@ describe("가드 목적지 (상태 넷 × 경로)", () => {
       expect(screen.getByTestId("path")).toHaveTextContent("/verify-business");
       uVerify();
 
-      // 뒤로가기 등으로 로그인·가입 화면에 오면 Refresh Token 없는 임시 로그인을 버린다 (04_fe.md §2)
+      // 뒤로가기 등으로 로그인·가입 화면에 오면 로그아웃한다 (04_fe.md §2)
       for (const path of ["/login", "/register"]) {
         signIn();
         const { unmount } = renderGuardedPath(path);
-        expect(screen.getByTestId("path")).toHaveTextContent(path);
-        await waitFor(() => expect(useAuthStore.getState().accessToken).toBeNull());
+        expect(await screen.findByTestId("path")).toHaveTextContent(path);
+        expect(useAuthStore.getState().accessToken).toBeNull();
         unmount();
       }
 
@@ -256,7 +258,8 @@ describe("가드 목적지 (상태 넷 × 경로)", () => {
     }
   });
 
-  it("3) 사업자 PENDING·VERIFIED + 온보딩 미완료: /onboarding/{현재 스텝}으로 보낸다", () => {
+  it("3) 사업자 PENDING·VERIFIED + 온보딩 미완료: 로그인·가입 화면은 로그아웃 뒤 보여 주고, 나머지는 /onboarding/{현재 스텝}으로 보낸다", async () => {
+    const logout = vi.spyOn(authApi, "logout").mockResolvedValue();
     for (const status of ["PENDING", "VERIFIED"] as const) {
       useOnboardingStore.getState().reset();
       useAuthStore.setState({
@@ -266,8 +269,6 @@ describe("가드 목적지 (상태 넷 × 경로)", () => {
       });
 
       for (const path of [
-        "/login",
-        "/register",
         "/verify-business",
         "/",
         "/forecast",
@@ -282,7 +283,21 @@ describe("가드 목적지 (상태 넷 × 경로)", () => {
         expect(screen.getByTestId("path")).toHaveTextContent("/onboarding/1");
         unmount();
       }
+
+      // 온보딩 중에도 로그인·가입 화면에 오면 로그아웃해 빠져나갈 수 있다 (04_fe.md §2)
+      for (const path of ["/login", "/register"]) {
+        useAuthStore.setState({
+          bootstrapped: true,
+          accessToken: "tok",
+          user: { ...verifiedUser, business_status: status, onboarding_completed: false },
+        });
+        const { unmount } = renderGuardedPath(path);
+        expect(await screen.findByTestId("path")).toHaveTextContent(path);
+        expect(useAuthStore.getState().accessToken).toBeNull();
+        unmount();
+      }
     }
+    expect(logout).toHaveBeenCalled();
 
     // 온보딩 스텝 진행 상태가 있으면 해당 스텝으로 이동한다
     useOnboardingStore.getState().setStore({
@@ -304,6 +319,44 @@ describe("가드 목적지 (상태 넷 × 경로)", () => {
       .setMenus([{ name: "피자", category: "메인", price: 16000, is_active: true }]);
     expect(currentOnboardingStep()).toBe(4);
     expect(landingPath({ ...verifiedUser, onboarding_completed: false })).toBe("/onboarding/4");
+  });
+
+  it("로그인 화면에서 새로고침해 자동 로그인이 나중에 끝나도, 온보딩 중 계정이면 로그아웃한다", async () => {
+    vi.spyOn(authApi, "logout").mockResolvedValue();
+    useAuthStore.setState({ bootstrapped: false, accessToken: null, user: null });
+    renderGuardedPath("/login");
+    expect(screen.queryByTestId("path")).not.toBeInTheDocument();
+
+    // 자동 로그인 복구가 끝남 — 리프레시 토큰으로 온보딩 중 계정이 돌아왔다
+    act(() =>
+      useAuthStore.setState({
+        bootstrapped: true,
+        accessToken: "tok",
+        user: { ...verifiedUser, business_status: "PENDING", onboarding_completed: false },
+      }),
+    );
+    expect(await screen.findByTestId("path")).toHaveTextContent("/login");
+    expect(useAuthStore.getState().accessToken).toBeNull();
+  });
+
+  it("로그아웃이 끝날 때까지 로그인 화면을 그리지 않는다", async () => {
+    let finish: () => void = () => {};
+    vi.spyOn(authApi, "logout").mockReturnValue(
+      new Promise<void>((resolve) => {
+        finish = resolve;
+      }),
+    );
+    useAuthStore.setState({
+      bootstrapped: true,
+      accessToken: "tok",
+      user: { ...verifiedUser, business_status: "PENDING", onboarding_completed: false },
+    });
+    renderGuardedPath("/login");
+    await waitFor(() => expect(authApi.logout).toHaveBeenCalled());
+    expect(screen.queryByTestId("path")).not.toBeInTheDocument();
+
+    act(() => finish());
+    expect(await screen.findByTestId("path")).toHaveTextContent("/login");
   });
 
   it("4) 온보딩 완료: 게이트 경로는 /로 보내고, 메인·/sales·/settings/* 판 7개를 허용하며, 비관리자 /admin은 /로 보낸다", () => {

@@ -6,10 +6,11 @@
 //   PENDING·VERIFIED + 온보딩 미완료 → /onboarding/{현재 스텝}
 //   PENDING·VERIFIED + 온보딩 완료   → /  (앱)
 //   role !== ADMIN 이 /admin/* 접근  → 본인 단계(온보딩 완료 시 /)
+import { Loader2 } from "lucide-react";
 import { type ReactNode, useEffect, useState, useSyncExternalStore } from "react";
 import { Navigate, useLocation } from "react-router";
 import { isMorningTransitioning, subscribeMorningTransition } from "../components/sky/day";
-import { clearLocalSession } from "../lib/local-session";
+import { signOut } from "../features/auth/sign-out";
 import { queryClient } from "../lib/query-client";
 import type { AuthUser } from "../stores/auth-store";
 import { useAuthStore } from "../stores/auth-store";
@@ -41,25 +42,30 @@ function useMorningActive(): boolean {
   return useSyncExternalStore(subscribeMorningTransition, isMorningTransitioning, () => false);
 }
 
-/** 사업자 검증 전(UNVERIFIED·REJECTED) 로그인 — Refresh Token이 없는 임시 로그인이다 (04_fe.md §2). */
-function isTemporaryLogin(user: AuthUser | null): boolean {
-  return user?.business_status === "UNVERIFIED" || user?.business_status === "REJECTED";
-}
-
 export function RequireGuest({ children }: { children: ReactNode }) {
   const bootstrapped = useAuthStore((s) => s.bootstrapped);
   const token = useAuthStore((s) => s.accessToken);
   const user = useAuthStore((s) => s.user);
   const morningActive = useMorningActive();
-  // 임시 로그인으로 로그인·가입 화면에 들어오면(뒤로가기 등) 그 로그인을 버린다.
-  // 들어온 순간에만 본다 — 이 화면에서 막 로그인한 검증 전 계정은 검증 화면으로 보내야 한다.
-  const [enteredWithTemporary] = useState(() => Boolean(token) && isTemporaryLogin(user));
+  // 앱 단계 전 계정(사업자 검증 전·온보딩 미완료)으로 로그인·가입 화면에 들어오면 로그아웃한다 (04_fe.md §2).
+  // 자동 로그인 복구가 끝난 뒤 한 번만 본다 — 새로고침으로 들어와도 같게, 이 화면에서 막 로그인한
+  // 계정은 그 단계 화면으로 보내도록. 로그아웃이 끝날 때까지 폼을 그리지 않아 그 사이 새 로그인이 지워지지 않게 한다.
+  const [decided, setDecided] = useState(false);
+  const [leaving, setLeaving] = useState(false);
   useEffect(() => {
-    if (enteredWithTemporary) clearLocalSession(queryClient);
-  }, [enteredWithTemporary]);
-  if (!bootstrapped) return <SplashScreen />;
+    if (!bootstrapped || decided) return;
+    setDecided(true);
+    const state = useAuthStore.getState();
+    if (state.accessToken && state.user && !isStageAllowed("app", state.user)) {
+      setLeaving(true);
+      void signOut(queryClient).finally(() => setLeaving(false));
+    }
+  }, [bootstrapped, decided]);
+  if (!bootstrapped || !decided || leaving) return <SplashScreen />;
   if (morningActive) return <>{children}</>;
-  if (token && user && !isTemporaryLogin(user)) return <Navigate to={landingPath(user)} replace />;
+  if (token && user && isStageAllowed("app", user)) {
+    return <Navigate to={landingPath(user)} replace />;
+  }
   return <>{children}</>;
 }
 
@@ -96,10 +102,21 @@ export function RequireAdmin({ children }: { children: ReactNode }) {
   return <>{children}</>;
 }
 
+/** 자동 로그인 복구·로그아웃을 기다리는 동안 — 하늘만 두고, 0.5초가 넘으면 로딩 아이콘 (04_fe.md §2). */
 function SplashScreen() {
+  const [slow, setSlow] = useState(false);
+  useEffect(() => {
+    const timer = setTimeout(() => setSlow(true), 500);
+    return () => clearTimeout(timer);
+  }, []);
   return (
-    <output className="grid min-h-dvh place-items-center bg-subtle text-ink-3" aria-live="polite">
-      <span className="text-sm">로딩 중…</span>
+    <output className="grid min-h-dvh place-items-center" aria-live="polite">
+      {slow && (
+        <span className="rounded-full p-3 glass-card">
+          <Loader2 className="size-7 animate-spin text-brand" aria-hidden="true" />
+        </span>
+      )}
+      <span className="sr-only">로딩 중</span>
     </output>
   );
 }
