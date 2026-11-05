@@ -101,13 +101,18 @@ export function RequireAdmin({ children }: { children: ReactNode }) {
   return <>{children}</>;
 }
 
-// 흰 유리 원판을 도넛 모양(두께 6px)으로 오려 낸 고리 — 위로 포인트 컬러 호가 돈다
+// 지름 40px 원판을 도넛 모양(두께 6px)으로 오려 낸다 — 아래는 흰 유리 고리, 위는 도는 호
 const DONUT_MASK =
   "radial-gradient(farthest-side, transparent calc(100% - 7px), #000 calc(100% - 6px))";
 const GLASS_RING = {
   borderRadius: "9999px",
   maskImage: DONUT_MASK,
   WebkitMaskImage: DONUT_MASK,
+} as const;
+// 호는 12시에서 시계 방향으로 갈수록 진해져 9시(270°)에서 머리가 된다 — 꼬리는 유리 고리에 녹아든다
+const SPIN_ARC = {
+  ...GLASS_RING,
+  backgroundImage: "conic-gradient(transparent, var(--color-brand) 270deg, transparent 270deg)",
 } as const;
 
 /** 자동 로그인 복구·로그아웃을 기다리는 동안 — 하늘만 두고, 0.5초가 넘으면 유리 도넛 로딩 (04_fe.md §2). */
@@ -122,19 +127,11 @@ function SplashScreen() {
       {slow && (
         <span aria-hidden="true" className="relative block size-10">
           <span className="absolute inset-0 glass-card" style={GLASS_RING} />
-          {/* 고리 한가운데(반지름 17)를 지나는 호, 끝은 둥글게 — 둘레 약 107 중 28 */}
-          <svg viewBox="0 0 40 40" className="absolute inset-0 animate-spin" aria-hidden="true">
-            <circle
-              cx="20"
-              cy="20"
-              r="17"
-              fill="none"
-              strokeWidth="6"
-              strokeLinecap="round"
-              strokeDasharray="28 107"
-              className="stroke-brand"
-            />
-          </svg>
+          <span className="absolute inset-0 animate-spin">
+            <span className="absolute inset-0" style={SPIN_ARC} />
+            {/* 머리 끝을 둥글게 — 9시 방향, 고리 한가운데(반지름 17)에 두께와 같은 6px 원 */}
+            <span className="absolute top-[17px] left-0 size-1.5 rounded-full bg-brand" />
+          </span>
         </span>
       )}
       <span className="sr-only">로딩 중</span>
