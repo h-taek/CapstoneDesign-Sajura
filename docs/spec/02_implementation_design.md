@@ -187,25 +187,22 @@ sequenceDiagram
         사주라UI->>사주라서버: GET /api/auth/me
         사주라서버-->>사주라UI: user 정보 + onboarding_completed: true
         사주라UI-->>사용자: 메인 홈 이동
-    else 신규 사용자
-        사주라서버->>DB: 회원 정보 저장
-        사주라서버->>사주라서버: JWT 발급 (Refresh는 HttpOnly Cookie)
-        사주라서버-->>사주라UI: Set-Cookie refresh_token + 302 Redirect → /
-        사주라UI->>사주라서버: POST /api/auth/refresh (Cookie 자동 전송)
-        사주라서버-->>사주라UI: Access Token 응답
-        사주라UI->>사주라서버: GET /api/auth/me
-        사주라서버-->>사주라UI: user 정보 + business_status: UNVERIFIED + onboarding_completed: false
-        사주라UI-->>사용자: 사업자 검증 화면 진입 (온보딩 진입 전 게이트)
+    else 처음 보는 소셜 계정 (회원 정보 저장 안 함)
+        사주라서버->>사주라서버: 가입 대기 토큰 발급 (제공자·소셜 ID·이메일·이름, 30분)
+        사주라서버-->>사주라UI: Set-Cookie signup_token + 302 Redirect → /register?social=1
+        사주라UI->>사주라서버: GET /api/auth/register/social (Cookie 자동 전송)
+        사주라서버-->>사주라UI: provider·email·name
+        사주라UI-->>사용자: 회원가입 소셜 모드 — 약관 → 사업자 인증 단계
 
-        사용자->>사주라UI: 사업자등록번호 + 사업자등록증 파일 입력
-        사주라UI->>사주라서버: POST /api/store/business/verify (multipart: business_no + cert)
-        사주라서버->>사주라서버: 국세청 API 즉시 검증 (마스터 코드면 곧바로 VERIFIED)
-        alt 휴업 / 폐업 / 미등록 / 형식오류
-            사주라서버-->>사주라UI: 400·422 오류 + 사유 (상태 유지)
-            사주라UI-->>사용자: 재입력 / 진행 불가 안내
+        사용자->>사주라UI: 약관 동의 → 사업자등록번호 + 사업자등록증 파일 입력
+        사주라UI->>사주라서버: POST /api/auth/register/social (multipart: business_no + cert, Cookie signup_token)
+        사주라서버->>사주라서버: 국세청 API 즉시 검증 (마스터 코드면 곧바로 VERIFIED) + 중복 확인
+        alt 휴업 / 폐업 / 미등록 / 형식오류 / 중복
+            사주라서버-->>사주라UI: 400·409·422 오류 + 사유 (회원 정보 저장 안 함)
+            사주라UI-->>사용자: 사업자 인증 단계에서 재입력 / 진행 불가 안내
         else 계속사업자 (또는 마스터 코드)
-            사주라서버->>DB: 등록증 파일 저장(경로) + business_no 저장 + business_status=PENDING (마스터면 VERIFIED)
-            사주라서버-->>사주라UI: 200 business_status: PENDING
+            사주라서버->>DB: 회원 정보 + 매장(business_no, 등록증 경로, business_status=PENDING — 마스터면 VERIFIED) 저장
+            사주라서버-->>사주라UI: 201 Access Token + Set-Cookie refresh_token + signup_token 삭제
             사주라UI-->>사용자: 온보딩 Step 1 진입 (PENDING부터 허용)
             note over 사주라서버,DB: (비동기) 관리자가 /admin 심사 큐에서 등록증 확인 → 승인(VERIFIED) / 반려(REJECTED·사유)
 
@@ -566,7 +563,9 @@ Authorization: Bearer <access_token>
 
 | Method | Path | 설명 | 인증 필요 |
 |--------|------|------|-----------|
-| `POST` | `/api/auth/register` | 회원가입 (email·password·name만, 사업자 검증은 별도 단계) | X |
+| `POST` | `/api/auth/register` | 이메일 회원가입 — email·password·name + 사업자등록번호·등록증(multipart). 사업자 검증을 통과해야 계정 생성, 가입 즉시 로그인 | X |
+| `GET` | `/api/auth/register/social` | 소셜 가입 대기 정보 조회 (제공자·이메일·이름) | X (Cookie `signup_token`) |
+| `POST` | `/api/auth/register/social` | 소셜 회원가입 — 사업자등록번호·등록증(multipart). 사업자 검증을 통과해야 계정 생성, 가입 즉시 로그인 | X (Cookie `signup_token`) |
 | `POST` | `/api/auth/login` | 이메일/비밀번호 로그인 | X |
 | `GET` | `/api/auth/login/kakao` | 카카오 OAuth 인가 URL 리다이렉트 | X |
 | `GET` | `/api/auth/callback/kakao` | 카카오 인가 코드 수신 → Refresh Set-Cookie + FE 진입 URL로 302 redirect | X |
@@ -582,23 +581,66 @@ Authorization: Bearer <access_token>
 
 #### POST /api/auth/register
 
-```json
-// Request
-{
-  "email": "owner@example.com",
-  "password": "string",
-  "name": "홍길동"
-}
+```
+// Request — multipart/form-data
+//   email:       "owner@example.com"
+//   password:    "string"
+//   name:        "홍길동"
+//   business_no: "123-45-67890"
+//   cert:        <사업자등록증 파일 (image/* 또는 application/pdf)> — 마스터 코드면 생략
 
-// Response 201
+// Response 201 — 가입 즉시 로그인
 {
-  "user_id": "uuid",
-  "email": "owner@example.com",
-  "name": "홍길동"
+  "access_token": "jwt_string",
+  "token_type": "bearer",
+  "expires_in": 3600,
+  "business_status": "PENDING",   // 마스터 코드면 "VERIFIED"
+  "onboarding_completed": false
 }
+// + Set-Cookie: refresh_token=...
+
+// 실패 — 이메일 중복: 409 AUTH_EMAIL_DUPLICATE / 탈퇴 유예 중인 이메일: 409 AUTH_ACCOUNT_WITHDRAWN
+// 실패 — 사업자번호 형식 오류·미등록: 400 AUTH_BUSINESS_NO_INVALID
+// 실패 — 휴업/폐업: 422 AUTH_BUSINESS_NO_NOT_ACTIVE
+// 실패 — 다른 계정이 쓰는 사업자번호: 409 AUTH_BUSINESS_NO_DUPLICATE
+// 실패 — 국세청 서비스 장애: 503 SERVICE_UNAVAILABLE
+// 실패 — 입력·파일 형식·용량 위반: 400 VALIDATION_ERROR
 ```
 
-> 회원가입은 email·password·name만 받는다. 사업자등록번호·매장명은 가입 이후 사업자 검증(`POST /api/store/business/verify`)·온보딩(`PATCH /api/store`) 단계에서 입력한다. 소셜·이메일 계정 모두 가입 직후 `business_status=UNVERIFIED` 상태로 시작한다.
+> 사업자 검증은 `POST /api/store/business/verify`와 같은 규칙(국세청 조회 → 중복 확인 → 등록증 저장)이다. 모두 통과해야 사용자·매장 행을 만들고, 하나라도 실패하면 아무 행도 만들지 않는다. 성공하면 로그인 응답과 같은 토큰을 내려 FE가 곧바로 온보딩으로 간다. 매장명 등 매장 정보는 온보딩(`PATCH /api/store`)에서 입력한다.
+
+#### GET /api/auth/register/social
+
+```json
+// Request: Cookie의 signup_token 자동 전송 (body 없음)
+
+// Response 200
+{
+  "provider": "GOOGLE",           // GOOGLE | KAKAO
+  "email": "owner@gmail.com",
+  "name": "홍길동"
+}
+
+// 실패 — 가입 대기 토큰 없음·만료·위조: 401 AUTH_SIGNUP_TOKEN_INVALID
+```
+
+> FE 회원가입 화면이 소셜 모드(`/register?social=1`)로 열릴 때 부른다. 가입 대기 토큰: `03_be.md` §7.1.
+
+#### POST /api/auth/register/social
+
+```
+// Request — multipart/form-data, Cookie의 signup_token 자동 전송
+//   business_no: "123-45-67890"
+//   cert:        <사업자등록증 파일> — 마스터 코드면 생략
+
+// Response 201 — POST /api/auth/register와 같다 (토큰 + Set-Cookie refresh_token)
+// + Set-Cookie: signup_token 삭제
+
+// 실패 — 가입 대기 토큰 없음·만료·위조: 401 AUTH_SIGNUP_TOKEN_INVALID
+// 실패 — 사업자번호 관련: POST /api/auth/register와 같다
+```
+
+> 가입 대기 토큰의 제공자·소셜 ID·이메일·이름으로 사용자를 만든다(비밀번호 없음). 사업자 검증 규칙과 실패 시 행을 만들지 않는 것은 `POST /api/auth/register`와 같다. 실패해도 가입 대기 토큰은 만료 전까지 유지되어 같은 화면에서 다시 제출할 수 있다.
 
 #### POST /api/auth/login
 
@@ -617,7 +659,7 @@ Authorization: Bearer <access_token>
   "business_status": "UNVERIFIED",
   "onboarding_completed": true
 }
-// Refresh Token은 HttpOnly Cookie로 Set-Cookie
+// Refresh Token은 HttpOnly Cookie로 Set-Cookie — 사업자 검증 전 계정(UNVERIFIED·REJECTED)은 내리지 않는다 (`03_be.md` §7.3)
 ```
 
 > FE 진입 분기: `business_status` ∈ {UNVERIFIED, REJECTED} → 사업자 검증 화면 / {PENDING, VERIFIED} && `onboarding_completed=false` → 온보딩 / 둘 다 충족 → 메인.
@@ -637,7 +679,9 @@ Authorization: Bearer <access_token>
 // (Access Token은 응답 본문·URL에 노출 안 함 — FE가 첫 진입 시 POST /api/auth/refresh로 동기)
 ```
 
-> 흐름: BE가 OAuth 콜백 수신 → Authlib으로 인가 코드 교환 → 사용자 정보 조회·JWT 발급 → Refresh를 HttpOnly Cookie로 설정 후 FE root("/")로 302 redirect. FE는 첫 진입 시 메모리 Access Token 부재를 감지하여 `POST /api/auth/refresh` 1회 호출로 Access Token을 동기한다.
+> 흐름: BE가 OAuth 콜백 수신 → Authlib으로 인가 코드 교환 → 사용자 정보 조회·JWT 발급 → Refresh를 HttpOnly Cookie로 설정 후 FE root("/")로 302 redirect. FE는 첫 진입 시 메모리 Access Token 부재를 감지하여 `POST /api/auth/refresh` 1회 호출로 Access Token을 동기한다. 기존 계정이 사업자 검증 전(`UNVERIFIED`·`REJECTED`)이면 이 refresh가 Refresh Token을 폐기하고 Cookie를 지운다 — Cookie는 FE 인계에만 쓴다.
+>
+> 처음 보는 소셜 계정이면 사용자를 만들지 않고, JWT 대신 가입 대기 토큰(`03_be.md` §7.1)을 `signup_token` Cookie로 내려 FE `/register?social=1`로 302 redirect한다. 이후 `GET`·`POST /api/auth/register/social`로 가입을 마친다.
 
 #### GET /api/auth/login/google
 
@@ -682,6 +726,7 @@ Authorization: Bearer <access_token>
   "expires_in": 3600
 }
 // 새 Refresh Token Set-Cookie (Rotation)
+// 사업자 검증 전 계정(UNVERIFIED·REJECTED): 사용한 Refresh Token을 폐기하고 Cookie를 지운다, 새 Refresh Token 없음 (`03_be.md` §7.3)
 ```
 
 #### GET /api/auth/me
@@ -785,14 +830,16 @@ Authorization: Bearer <access_token>
   "business_status": "PENDING",   // 마스터 코드면 "VERIFIED"
   "business_no": "123-45-67890"
 }
+// + Set-Cookie: refresh_token=... (Refresh Token 첫 발급, `03_be.md` §7.3)
 
 // 실패 — 형식 오류·미등록: 400 AUTH_BUSINESS_NO_INVALID
 // 실패 — 휴업/폐업: 422 AUTH_BUSINESS_NO_NOT_ACTIVE
+// 실패 — 다른 계정이 쓰는 사업자번호: 409 AUTH_BUSINESS_NO_DUPLICATE
 // 실패 — 국세청 서비스 장애: 503 SERVICE_UNAVAILABLE
 // 실패 — 파일 형식·용량 위반: 400 VALIDATION_ERROR
 ```
 
-> 온보딩 진입 전 게이트. ① 국세청 조회로 계속사업자 여부 확인 → ② 통과 시 등록증 파일을 서버 볼륨에 저장(경로만 DB)하고 `business_status=PENDING`. PENDING부터 온보딩 진입을 허용한다. 실패 시 계정·상태를 유지하고 사유만 반환한다(삭제 없음). 입력 `business_no`가 마스터 코드(`NTS_MASTER_BYPASS_CODE`)와 일치하면 NTS 호출·파일 없이 곧바로 `VERIFIED`(시연용, `03_be.md` §7.4). 소셜·이메일 공통. 검증 어댑터: `nts.assert_business_active`, 승인 루프: 관리자 심사 API(아래).
+> 반려 재제출·기존 미인증 계정(`UNVERIFIED`)용 게이트. 회원가입은 `POST /api/auth/register`·`POST /api/auth/register/social`이 같은 검증을 한다. ① 국세청 조회로 계속사업자 여부 확인 → ② 다른 매장이 쓰는 번호인지 확인 → ③ 통과 시 등록증 파일을 서버 볼륨에 저장(경로만 DB)하고 `business_status=PENDING`, Refresh Token을 발급한다. PENDING부터 온보딩 진입을 허용한다. 실패 시 계정·상태를 유지하고 사유만 반환한다(삭제 없음). 입력 `business_no`가 마스터 코드(`NTS_MASTER_BYPASS_CODE`)와 일치하면 NTS 호출·파일 없이 곧바로 `VERIFIED`(시연용, `03_be.md` §7.4). 검증 어댑터: `nts.assert_business_active`, 승인 루프: 관리자 심사 API(아래).
 
 #### 관리자 심사 API (role=ADMIN 전용)
 
@@ -870,7 +917,7 @@ Authorization: Bearer <access_token>
 }
 ```
 
-> 온보딩 Step 4(초기 재고/메뉴 입력) 완료 후 Frontend가 호출한다. `stores.onboarding_completed`를 `true`로 업데이트하고, 이후 로그인 응답에 `onboarding_completed: true`가 반환된다. 이미 완료된 상태에서 재호출 시 동일 응답을 반환(멱등).
+> 온보딩 Step 4(입력 확인)에서 완료를 누르면 Frontend가 호출한다. `stores.onboarding_completed`를 `true`로 업데이트하고, 이후 로그인 응답에 `onboarding_completed: true`가 반환된다. 이미 완료된 상태에서 재호출 시 동일 응답을 반환(멱등).
 
 #### GET /api/store/pos
 
@@ -2254,11 +2301,11 @@ CREATE TABLE stores (
 );
 ```
 
-> 매장 행은 계정 생성(소셜/이메일) 시 1:1로 함께 생성되며, `store_name`·`business_no`·`business_type` 등은 NULL로 시작해 사업자 검증·온보딩에서 채운다.
+> 매장 행은 계정 생성(소셜/이메일) 시 1:1로 함께 생성되며, `business_no`·`business_cert_path`·`business_status=PENDING`(마스터 코드면 `business_no` NULL·`VERIFIED`)을 채운 채 만든다. `store_name`·`business_type` 등은 온보딩에서 채운다.
 >
 > 위치 칸(`latitude`~`asos_stn_id`)은 Backend가 주소를 저장할 때마다 다시 계산한다(`01_basic_design.md` §3.11.1). 좌표 변환은 Google Geocoding API, 격자는 기상청 단기예보 격자 변환식, 관측소는 ASOS 관측소 목록에서 좌표 거리가 가장 가까운 곳이다. 변환에 실패하면 다섯 칸을 모두 NULL로 둔다. API 응답에는 내보내지 않는다.
 >
-> 사업자 검증 상태(`business_status`) 흐름: `UNVERIFIED`(초기) → NTS 즉시검증 통과 + 사업자등록증 업로드 → `PENDING`(관리자 심사 대기) → 관리자 승인 → `VERIFIED` / 반려 → `REJECTED`(재시도 가능). 온보딩 진입은 `PENDING` 또는 `VERIFIED`에서 허용(`UNVERIFIED`·`REJECTED`는 차단). 마스터 코드(`NTS_MASTER_BYPASS_CODE`)는 곧바로 `VERIFIED`. 등록증 원본 파일은 서버 볼륨에 저장하고 DB엔 경로만 둔다(민감정보, `03_be.md` §10.2). `uq_stores_business_no`는 NULL 다중 허용(MySQL)이라 미검증 매장 공존 가능.
+> 사업자 검증 상태(`business_status`) 흐름: `UNVERIFIED`(사업자 인증 없이 만들어진 기존 계정, 가입 계정은 `PENDING`부터) → NTS 즉시검증 통과 + 사업자등록증 업로드 → `PENDING`(관리자 심사 대기) → 관리자 승인 → `VERIFIED` / 반려 → `REJECTED`(재시도 가능). 온보딩 진입은 `PENDING` 또는 `VERIFIED`에서 허용(`UNVERIFIED`·`REJECTED`는 차단). 마스터 코드(`NTS_MASTER_BYPASS_CODE`)는 곧바로 `VERIFIED`. 등록증 원본 파일은 서버 볼륨에 저장하고 DB엔 경로만 둔다(민감정보, `03_be.md` §10.2). `uq_stores_business_no`는 NULL 다중 허용(MySQL)이라 미검증 매장 공존 가능.
 
 #### 4.3.4 pos_connections
 

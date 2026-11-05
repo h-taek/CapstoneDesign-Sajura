@@ -77,13 +77,13 @@
 
 1. 사용자가 Google, 카카오 또는 이메일/비밀번호 방식으로 회원가입을 시작한다.
 2. 소셜 로그인인 경우 Frontend가 Backend의 OAuth 인가 URL로 이동한다.
-3. Backend가 OAuth 콜백에서 사용자 정보를 조회한다.
-4. 이메일/비밀번호 가입인 경우 Backend가 비밀번호를 해시하여 사용자 정보를 저장한다.
-5. Backend가 회원 존재 여부를 확인하고 신규 사용자 정보를 저장한다.
-6. Backend가 자체 JWT Access Token과 Refresh Token을 발급한다.
-7. (사업자 검증 게이트 — 온보딩과 분리) 사용자가 사업자등록번호와 사업자등록증 파일을 입력한다.
-8. Backend가 국세청 API로 계속사업자 여부를 검증하고, 통과 시 등록증 파일을 저장한 뒤 `business_status=PENDING`으로 둔다. 입력값이 마스터 코드면 호출 없이 곧바로 `VERIFIED`. `PENDING`·`VERIFIED`부터 온보딩 진입이 허용된다(승인 대기 중에도 진행 가능).
-8a. (비동기) 관리자(`role=ADMIN`)가 `/admin` 심사 큐에서 등록증을 확인해 승인(`VERIFIED`) 또는 반려(`REJECTED`+사유)한다. 반려 시 사용자는 재검증한다.
+3. Backend가 OAuth 콜백에서 사용자 정보를 조회한다. 처음 보는 소셜 계정이면 계정을 만들지 않고 가입 대기 토큰(30분)을 발급해 회원가입 화면으로 보낸다.
+4. 사용자가 약관에 동의한다. 이메일 가입이면 이메일·이름·비밀번호를 입력하고, 소셜 가입은 제공자에게서 받은 이메일·이름을 쓴다.
+5. 사용자가 회원가입 마지막 단계에서 사업자등록번호와 사업자등록증 파일을 입력한다.
+6. Backend가 국세청 API로 계속사업자 여부와 다른 계정이 쓰는 번호인지를 검증하고, 통과하면 등록증 파일을 저장한 뒤 회원 정보를 `business_status=PENDING`으로 저장한다(이메일 가입은 비밀번호를 해시해 저장). 입력값이 마스터 코드면 호출 없이 곧바로 `VERIFIED`. 검증에 실패하면 계정을 만들지 않는다.
+7. Backend가 자체 JWT Access Token과 Refresh Token을 발급한다(가입 즉시 로그인).
+8. Frontend가 온보딩으로 이동한다. `PENDING`·`VERIFIED`부터 온보딩 진입이 허용된다(승인 대기 중에도 진행 가능).
+8a. (비동기) 관리자(`role=ADMIN`)가 `/admin` 심사 큐에서 등록증을 확인해 승인(`VERIFIED`) 또는 반려(`REJECTED`+사유)한다. 반려 시 사용자는 로그인 뒤 사업자 검증 화면에서 재제출한다.
 9. 사용자가 매장명, 업종, 연락처, 주소, 매장 규모 구간, 운영 형태를 입력한다.
 10. Backend가 매장 정보를 DB에 저장한다.
 11. 사용자가 POS 연동 방식을 고른다. POS API(토스플레이스·키움페이·OKPOS)를 고르면 POS 종류와 자격증명을 입력하고 연동을 시도한다.
@@ -98,7 +98,9 @@
 
 #### 대안 흐름
 
-- 사업자등록번호 검증 결과가 휴업·폐업·미등록·형식오류이거나 관리자가 반려(`REJECTED`)하면 계정을 삭제하지 않고 유지한 채 사업자 검증 화면에 머무르며, 미등록/형식은 재입력을, 휴업/폐업·반려는 사유를 안내한다. `UNVERIFIED`·`REJECTED` 상태에서는 온보딩으로 넘어가지 못한다(`PENDING`부터 허용).
+- 회원가입에서 사업자등록번호 검증 결과가 휴업·폐업·미등록·형식오류이거나 다른 계정이 쓰는 번호면 계정을 만들지 않고 사업자 인증 단계에 머무르며 사유를 안내한다(입력값 유지).
+- 소셜 가입 대기 토큰이 만료(30분)되면 소셜 로그인부터 다시 시작한다.
+- 관리자가 반려(`REJECTED`)하면 계정을 유지한 채 사업자 검증 화면에서 재제출하며, 미등록/형식은 재입력을, 휴업/폐업·중복·반려는 사유를 안내한다. `UNVERIFIED`·`REJECTED` 상태에서는 온보딩으로 넘어가지 못한다(`PENDING`부터 허용).
 - POS API 미연동·연동 실패 시 CSV 모드로 진행한다. CSV 모드에서도 수요예측·자동발주 추천 기능은 동일하게 동작한다 (`02_implementation_design.md` §1.3·§1.6 데모 시나리오 기준).
 - 온보딩 도중 이탈한 사용자는 다음 로그인 시 `onboarding_completed: false` 상태로 기존 단계부터 재진입한다.
 
@@ -304,14 +306,14 @@
 
 - 사용자는 Google 또는 카카오 계정, 또는 이메일/비밀번호 방식으로 회원가입 및 로그인한다.
 - 모든 인증 방식은 동일한 자체 JWT 구조를 사용한다.
-- 회원가입 후 사용자는 사업자 검증과 온보딩에서 사업자등록번호, 매장 정보, POS 연동, 초기 재고, 초기 메뉴를 입력한다(§3.1.4).
+- 사업자 검증(사업자등록번호·사업자등록증)은 회원가입의 마지막 단계다. 이메일·소셜 모두 이 단계를 통과해야 계정이 만들어지고, 가입과 동시에 로그인된다. 그 뒤 온보딩에서 매장 정보, POS 연동, 초기 재고, 초기 메뉴를 입력한다(§3.1.4).
 
 #### 3.1.1 소셜 로그인 (Google / 카카오)
 
 - Google과 카카오 모두 Authlib 라이브러리를 사용하여 Backend에서 OAuth 2.0 흐름을 처리한다. Firebase SDK 미사용.
 - Frontend는 각 로그인 버튼 클릭 시 Backend의 인가 URL로 리다이렉트만 수행한다.
 - Backend는 OAuth 콜백에서 사용자 정보를 조회하고, 회원 존재 여부를 DB에서 확인한다.
-- 신규 사용자이면 회원 정보를 저장하고 온보딩 흐름을 시작한다.
+- 처음 보는 소셜 계정이면 회원 정보를 저장하지 않는다. 제공자·소셜 ID·이메일·이름을 담은 가입 대기 토큰(30분)을 발급해 회원가입 화면으로 보내고, 사업자 인증까지 마치면 계정을 만든다(§3.1.4).
 - 인증 제공자와 무관하게 동일한 자체 JWT를 발급한다.
 - Access Token은 콜백 응답 본문·URL에 노출하지 않는다. API: `02_implementation_design.md` §3.2 `GET /api/auth/callback/{provider}`.
 
@@ -322,28 +324,32 @@ Frontend → GET /api/auth/login/{provider}
          → 302 Redirect → 제공자 OAuth 인가 페이지
          → 제공자 인증 완료
          → GET /api/auth/callback/{provider}?code=...
-         → Backend: 제공자 사용자 정보 조회 → 자체 JWT 발급
-         → Backend: Set-Cookie refresh_token + 302 Redirect → FE root("/")
-         → Frontend 첫 진입: POST /api/auth/refresh (Cookie 자동 전송) → Access Token 수신 → 메모리 저장
-         → Frontend: GET /api/auth/me → onboarding_completed 분기
+         → Backend: 제공자 사용자 정보 조회 → 회원 존재 여부 확인
+             ├─ 기존 계정 → 자체 JWT 발급 → Set-Cookie refresh_token + 302 Redirect → FE root("/")
+             │    → Frontend 첫 진입: POST /api/auth/refresh (Cookie 자동 전송) → Access Token 수신 → 메모리 저장
+             │      (사업자 검증 전 계정이면 이때 Refresh Token을 폐기하고 Cookie를 지운다, §3.1.4)
+             │    → Frontend: GET /api/auth/me → business_status·onboarding_completed 분기
+             └─ 처음 보는 계정 → 계정 미생성 → Set-Cookie signup_token(30분) + 302 Redirect → FE /register?social=1
+                  → Frontend: GET /api/auth/register/social → 제공자 이메일·이름 표시 → 약관 → 사업자 인증
+                  → POST /api/auth/register/social → 계정 생성 + 로그인 → 온보딩
 ```
 
 | 구분 | 항목 |
 |---|---|
 | 입력 | OAuth 인가 코드 (Backend 콜백으로 수신) |
-| 출력 | Set-Cookie refresh_token (HttpOnly) + 302 Redirect to FE root. Access Token은 FE 첫 진입 후 `POST /api/auth/refresh` 응답으로 수신, user_id·email·onboarding_completed는 `GET /api/auth/me`로 조회 |
+| 출력 | 기존 계정: Set-Cookie refresh_token (HttpOnly) + 302 Redirect to FE root. Access Token은 FE 첫 진입 후 `POST /api/auth/refresh` 응답으로 수신, user_id·email·onboarding_completed는 `GET /api/auth/me`로 조회 / 처음 보는 계정: Set-Cookie signup_token (HttpOnly, 30분) + 302 Redirect to FE `/register?social=1` |
 
 #### 3.1.2 이메일/비밀번호 로그인
 
 - 사업자가 직접 이메일과 비밀번호로 가입 및 로그인하는 방식.
 - 비밀번호는 bcrypt로 해시하여 저장한다.
 - 소셜 로그인 계정은 비밀번호 변경 기능을 사용할 수 없다.
-- 이메일 회원가입(`POST /api/auth/register`)은 email·password·name만 받는다. 사업자등록번호·매장 정보는 가입 이후 사업자 검증·온보딩 단계(§3.1.4)에서 입력한다.
+- 이메일 회원가입(`POST /api/auth/register`)은 email·password·name과 사업자등록번호·사업자등록증 파일을 함께 받는다. 사업자 검증(§3.1.4)을 통과해야 계정이 만들어지고, 실패하면 계정을 만들지 않는다. 가입에 성공하면 곧바로 로그인된다. 매장 정보는 온보딩에서 입력한다.
 
 | 구분 | 항목 |
 |---|---|
-| 입력 | 회원가입: email, password, name / 로그인: email, password |
-| 출력 | JWT Access Token, JWT Refresh Token, user_id, email, business_status, onboarding_completed |
+| 입력 | 회원가입: email, password, name, 사업자등록번호, 사업자등록증 파일 / 로그인: email, password |
+| 출력 | 회원가입·로그인 공통: JWT Access Token, JWT Refresh Token(사업자 검증 전 계정 제외), business_status, onboarding_completed |
 
 #### 3.1.3 JWT 토큰 정책
 
@@ -351,17 +357,22 @@ Frontend → GET /api/auth/login/{provider}
 
 #### 3.1.4 사업자 검증 및 온보딩 초기 설정
 
-계정 생성 직후 매장 서비스 진입 전까지 아래 단계를 순서대로 진행한다. 각 단계는 직전 단계 완료 전에는 진입할 수 없다(가드).
+가입부터 매장 서비스 진입 전까지 아래 단계를 순서대로 진행한다. 각 단계는 직전 단계 완료 전에는 진입할 수 없다(가드).
 
 ```
-1. 계정 생성 (Google / 카카오 OAuth 또는 이메일/비밀번호 회원가입) → business_status=UNVERIFIED
-2. 사업자 검증 (온보딩과 분리된 독립 단계) — 사업자등록번호 입력 + 사업자등록증 업로드
+1. 회원가입 (단계형, 마지막 단계에서 계정 생성)
+     ├─ 이메일 — 약관 → 이메일 → 이름 → 비밀번호 → 사업자 인증(2)
+     └─ Google / 카카오 — 처음 보는 계정이면 가입 대기 토큰(30분) 발급 → 약관 → 사업자 인증(2)
+                          (이메일·이름은 제공자 정보, 비밀번호 없음. 토큰이 만료되면 소셜 로그인부터 다시)
+2. 사업자 인증 — 사업자등록번호 입력 + 사업자등록증 업로드
      ├─ ① 국세청 API 즉시 검증 (존재·영업 여부)
-     │      ├─ 미등록 / 형식 오류 → 재입력 요청 (상태 유지)
-     │      └─ 휴업 / 폐업 → 진행 불가, 사유 안내 (상태 유지)
-     └─ ② 계속사업자 통과 시 사업자등록증 업로드 → business_status=PENDING (관리자 심사 대기)
+     │      ├─ 미등록 / 형식 오류 → 재입력 요청
+     │      └─ 휴업 / 폐업 → 진행 불가, 사유 안내
+     ├─ ② 다른 계정이 쓰는 사업자등록번호 → 진행 불가, 사유 안내
+     └─ ③ 통과 시 사업자등록증 저장 → 계정 생성(business_status=PENDING, 관리자 심사 대기) + 로그인
+            · 실패하면 계정을 만들지 않고 이 단계에 머무른다
             · PENDING부터 온보딩 진행 허용 (관리자 승인을 기다리지 않음)
-            · 관리자 승인 → VERIFIED / 반려 → REJECTED(사유) → 재검증
+            · 관리자 승인 → VERIFIED / 반려 → REJECTED(사유) → 로그인 뒤 사업자 검증 화면에서 재제출
 3. 매장 정보 입력 (매장명, 업종, 연락처, 주소, 매장 규모 구간, 운영 형태)
 4. POS 연동 방식 선택
      ├─ CSV 모드 (pos_connections.status=CSV_MODE)
@@ -376,18 +387,19 @@ Frontend → GET /api/auth/login/{provider}
 
 사업자 검증은 국세청 API 자동 검증과 관리자 승인을 병행한다. 사업자의 실재·영업 여부는 국세청 API로, 소유권은 사업자등록증 업로드와 관리자 심사로 확인한다.
 
-- 상태 모델 `business_status`: `UNVERIFIED` → (국세청 API 통과 + 등록증 업로드) `PENDING` → (관리자 승인) `VERIFIED` / (반려) `REJECTED`.
+- 상태 모델 `business_status`: 가입한 계정은 `PENDING`(마스터 코드면 `VERIFIED`)으로 만들어진다 → (관리자 승인) `VERIFIED` / (반려) `REJECTED` → (재제출) `PENDING`. `UNVERIFIED`는 사업자 인증 없이 만들어진 기존 계정에만 있고, 사업자 검증 화면에서 제출하면 `PENDING`이 된다.
 - 온보딩 진입 가드: `PENDING` 또는 `VERIFIED`면 온보딩 진입 허용. `UNVERIFIED`·`REJECTED`면 검증 화면으로 강제 이동. 등록증을 올려 `PENDING`이 되면 관리자 승인 전이라도 온보딩·서비스 사용이 가능하고, 관리자는 사후 반려로 차단할 수 있다.
-- 검증 실패 시 계정을 삭제하지 않고 유지한다. 미등록/형식은 재입력, 휴업/폐업·반려는 사유를 표시하고 재검증을 안내한다.
+- 회원가입에서 검증이 실패하면 계정을 만들지 않는다. 사업자 검증 화면(반려 재제출·기존 미인증 계정)에서 실패하면 계정을 유지하고, 미등록/형식은 재입력, 휴업/폐업·중복·반려는 사유를 표시한다.
+- 사업자 검증 전 계정(`UNVERIFIED`·`REJECTED`)의 로그인은 임시다. Refresh Token을 남기지 않으므로 새로고침·앱 재실행이나 로그인·가입 화면으로 돌아가면 로그인 전 상태가 된다. 검증을 통과하는 응답에서 Refresh Token을 발급한다(`03_be.md` §7.3).
 - 재접속 시 `GET /api/auth/me`의 `business_status`·`onboarding_completed`로 Frontend가 검증/온보딩 화면으로 강제 이동한다.
-- 소셜·이메일 계정 모두 동일하게 사업자 검증 단계를 거친다(인증 방식 무관).
+- 소셜·이메일 계정 모두 회원가입 마지막 단계에서 사업자 인증을 받는다.
 - 관리자 심사: 관리자(`users.role=ADMIN`)가 `/admin` 심사 큐에서 `PENDING` 목록·업로드 등록증을 보고 승인/반려한다.
 - 시연·테스트용 강제 패스: 입력 사업자번호가 환경변수 마스터 코드(`NTS_MASTER_BYPASS_CODE`)와 일치하면 국세청 호출·등록증 업로드 없이 곧바로 `VERIFIED` 처리한다. 운영 조건은 `03_be.md` §7.4.
 - POS 연동 상태(`pos_connections.status` — `CONNECTED` / `ERROR` / `CSV_MODE` / `DISCONNECTED`, `02_implementation_design.md` §4.3.4)는 온보딩 완료 후 `GET /api/store/pos/status`로 별도 조회한다.
 
 | 구분 | 항목 | 비고 |
 |---|---|---|
-| 입력 | 사업자등록번호 + 사업자등록증 파일 | 필수, 국세청 API 검증 + 업로드. `POST /api/store/business/verify` (multipart) |
+| 입력 | 사업자등록번호 + 사업자등록증 파일 | 필수, 국세청 API 검증 + 업로드. 회원가입은 `POST /api/auth/register`(이메일)·`POST /api/auth/register/social`(소셜), 반려 재제출·기존 미인증 계정은 `POST /api/store/business/verify` (모두 multipart) |
 | | 매장명 | 필수 |
 | | 업종 | 필수 |
 | | 연락처 | 필수 |
@@ -986,20 +998,22 @@ MVP 제외 기능이다 (`02_implementation_design.md` §1.4).
 
 ```text
 [공통 시작]
-회원가입(이메일)/로그인/소셜 로그인
+회원가입(이메일·소셜, 마지막 단계 사업자 인증 → 가입 즉시 로그인)/로그인/소셜 로그인
 → business_status 확인
-    ├─ UNVERIFIED·REJECTED → 사업자 검증 화면
+    ├─ UNVERIFIED·REJECTED → 사업자 검증 화면 (반려 재제출·기존 미인증 계정)
     └─ PENDING·VERIFIED → onboarding_completed 확인
                 ├─ false → 온보딩 흐름 시작
                 └─ true  → 메인 홈
 
-[사업자 검증 (온보딩과 분리된 게이트, 국세청 API 자동 검증 + 관리자 승인 병행)]
+[사업자 인증 (회원가입 마지막 단계 또는 사업자 검증 화면, 국세청 API 자동 검증 + 관리자 승인 병행)]
 사업자등록번호 + 사업자등록증 업로드
 → ① 국세청 API 검증 (마스터 코드면 곧바로 VERIFIED)
-    ├─ 미등록/형식 → 재입력 (상태 유지)
-    ├─ 휴업/폐업 → 진행 불가, 사유 안내 (상태 유지)
-    └─ 계속사업자 → ② 등록증 업로드 → business_status=PENDING → 온보딩 흐름 시작
-                      └─ 관리자 심사: 승인 → VERIFIED / 반려 → REJECTED(사유) → 재검증
+    ├─ 미등록/형식 → 재입력
+    ├─ 휴업/폐업 → 진행 불가, 사유 안내
+    ├─ 다른 계정이 쓰는 번호 → 진행 불가, 사유 안내
+    └─ 계속사업자 → ② 등록증 저장 → business_status=PENDING (가입이면 계정 생성 + 로그인) → 온보딩 흐름 시작
+                      └─ 관리자 심사: 승인 → VERIFIED / 반려 → REJECTED(사유) → 사업자 검증 화면에서 재제출
+(회원가입은 실패하면 계정을 만들지 않는다. 사업자 검증 화면의 재제출은 계정과 상태를 유지한다)
 
 [관리자 심사 흐름 (role=ADMIN)]
 /admin 심사 큐 → PENDING 목록·등록증 확인 → 승인(VERIFIED) 또는 반려(사유 입력→REJECTED)
@@ -1026,13 +1040,14 @@ MVP 제외 기능이다 (`02_implementation_design.md` §1.4).
 
 온보딩 입력 항목 및 POS 상태 기준: §3.1.4
 
-1. 사용자가 이메일 회원가입 또는 Google/카카오 로그인으로 계정을 만든다. → `business_status=UNVERIFIED`
-2. 인증 완료 후 `business_status`·`onboarding_completed`를 확인한다. `UNVERIFIED`·`REJECTED`면 사업자 검증 화면으로 이동한다.
-3. (검증 게이트, 온보딩과 분리) 사업자등록번호를 입력하면 국세청 API로 즉시 검증한다.
-   - 미등록 / 형식 오류 → 재입력 (상태 유지)
-   - 휴업 / 폐업 → 진행 불가, 사유 안내 (상태 유지)
-   - 계속사업자(또는 마스터 코드) → 사업자등록증 업로드 → `business_status=PENDING` → 온보딩 진행 (관리자 승인 전이라도 진입 가능)
-   - 관리자 심사: 승인 → `VERIFIED` / 반려 → `REJECTED`(사유) → 재검증
+1. 사용자가 이메일 또는 Google/카카오로 회원가입한다. 이메일·소셜 모두 마지막 단계에서 사업자등록번호·사업자등록증을 받아 3의 검증을 통과해야 계정이 만들어지고(→ `PENDING`), 곧바로 로그인된다.
+2. 로그인 후 `business_status`·`onboarding_completed`를 확인한다. `UNVERIFIED`·`REJECTED`면 사업자 검증 화면으로 이동한다.
+3. (사업자 인증 — 회원가입 마지막 단계 또는 사업자 검증 화면) 사업자등록번호를 입력하면 국세청 API로 즉시 검증한다.
+   - 미등록 / 형식 오류 → 재입력
+   - 휴업 / 폐업 → 진행 불가, 사유 안내
+   - 다른 계정이 쓰는 번호 → 진행 불가, 사유 안내
+   - 계속사업자(또는 마스터 코드) → 사업자등록증 저장 → `business_status=PENDING` → 온보딩 진행 (관리자 승인 전이라도 진입 가능)
+   - 관리자 심사: 승인 → `VERIFIED` / 반려 → `REJECTED`(사유) → 사업자 검증 화면에서 재제출
 4. 매장명, 업종, 연락처, 주소, 매장 규모 구간, 운영 형태를 입력한다.
 5. POS 연동 방식을 선택한다.
    - CSV 모드 (`pos_connections.status=CSV_MODE`). CSV 템플릿 다운로드와 업로드는 설정 > POS 연동에서 한다(§3.4.4).
