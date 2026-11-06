@@ -16,9 +16,14 @@ export function useBulkSelection() {
     });
   }, []);
 
-  /** 보이는 항목이 모두 골라져 있으면 모두 풀고, 아니면 모두 고른다. */
+  /** 보이는 항목이 모두 골라져 있으면 그것만 풀고, 아니면 그것을 더한다. 검색을 바꿔 가며 골라 모은 것은 남긴다. */
   const toggleAll = useCallback((ids: string[]) => {
-    setSelected((prev) => (ids.every((id) => prev.has(id)) ? new Set() : new Set(ids)));
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (ids.every((id) => prev.has(id))) for (const id of ids) next.delete(id);
+      else for (const id of ids) next.add(id);
+      return next;
+    });
   }, []);
 
   const start = useCallback(() => {
@@ -89,9 +94,6 @@ export function BulkDeleteToolbar({
 }) {
   return (
     <div className="flex flex-wrap items-center gap-2">
-      <span className="tabular mr-1 text-[0.95rem] font-bold text-ink" aria-live="polite">
-        {count}개 선택
-      </span>
       <button
         type="button"
         onClick={onToggleAll}
@@ -113,7 +115,7 @@ export function BulkDeleteToolbar({
         className="inline-flex h-11 items-center gap-1.5 rounded-full bg-danger px-6 text-[0.95rem] font-semibold text-white transition-opacity hover:opacity-90 disabled:opacity-50"
       >
         <Trash2 className="size-5" />
-        {pending ? "삭제 중…" : `${count}개 삭제`}
+        {pending ? "삭제 중…" : "삭제"}
       </button>
     </div>
   );

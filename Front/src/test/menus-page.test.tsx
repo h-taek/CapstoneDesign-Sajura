@@ -131,11 +131,10 @@ describe("MenusPage", () => {
     fireEvent.click(screen.getByRole("button", { name: "삭제" }));
     fireEvent.click(screen.getByText("마르게리타"));
     fireEvent.click(screen.getByText("제로콜라"));
-    expect(screen.getByText("2개 선택")).toBeInTheDocument();
     // 고르는 중에는 편집 판이 열리지 않는다
     expect(screen.queryByLabelText(/판매가/)).not.toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole("button", { name: "2개 삭제" }));
+    fireEvent.click(screen.getByRole("button", { name: "삭제" }));
     await waitFor(() => expect(del).toHaveBeenCalledTimes(2));
     expect(del).toHaveBeenCalledWith("m-1");
     expect(del).toHaveBeenCalledWith("m-2");
