@@ -1,5 +1,6 @@
 // 재고 카드 — 4:3 비율, 재료명·총수량·소비기한(D-n · 날짜), 경고 시 해당 글씨만 빨갛게 (04_fe.md §4.6, 09_inventory.html).
 import type { InventoryItem } from "../../api/endpoints/inventory";
+import { SelectMark } from "../bulk/bulk-delete";
 import { formatExpiryDisplay, isExpiryWarning, isStockWarning } from "./stock-status";
 
 function fmtQty(v: number | string): string {
@@ -10,10 +11,18 @@ export interface InventoryCardProps {
   item: InventoryItem;
   today: Date;
   isSelected?: boolean;
+  /** 일괄 삭제로 고르는 중 — 체크 표시를 보이고 누르면 고르기/풀기 */
+  selecting?: boolean;
   onClick: () => void;
 }
 
-export function InventoryCard({ item, today, isSelected = false, onClick }: InventoryCardProps) {
+export function InventoryCard({
+  item,
+  today,
+  isSelected = false,
+  selecting = false,
+  onClick,
+}: InventoryCardProps) {
   const stockWarn = isStockWarning(item);
   const expiryWarn = isExpiryWarning(item, today);
   const expiryDisplay = formatExpiryDisplay(item.nearest_expiry_date, today);
@@ -23,11 +32,15 @@ export function InventoryCard({ item, today, isSelected = false, onClick }: Inve
       <button
         type="button"
         onClick={onClick}
-        className={`flex aspect-[4/3] w-full flex-col justify-between rounded-2xl p-4 text-left glass-card hover:bg-white/50 transition-all ${
+        aria-pressed={selecting ? isSelected : undefined}
+        className={`relative flex aspect-[4/3] w-full flex-col justify-between rounded-2xl p-4 text-left glass-card hover:bg-white/50 transition-all ${
           isSelected ? "outline-2 -outline-offset-2 outline-brand ring-2 ring-brand/20" : ""
         }`}
       >
-        <span className="truncate text-[0.95rem] font-bold text-ink">{item.name}</span>
+        {selecting && <SelectMark checked={isSelected} />}
+        <span className={`truncate text-[0.95rem] font-bold text-ink ${selecting ? "pr-8" : ""}`}>
+          {item.name}
+        </span>
         <span>
           <span
             className={`tabular block text-[1.75rem] leading-none font-bold tracking-tight ${

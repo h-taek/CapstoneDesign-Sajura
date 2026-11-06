@@ -1,8 +1,15 @@
 // 재고관리 화면 v2 — MainShell + 4:3 카드 격자 + 팔로우 패널 (04_fe.md §4.6, 09_inventory.html).
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { HTTPError } from "ky";
 import { ChevronDown, ChevronLeft, ChevronRight, Plus, Search } from "lucide-react";
 import { useCallback, useMemo, useState } from "react";
 import { type InventoryItem, deleteInventoryItem, listInventory } from "../api/endpoints/inventory";
+import {
+  BulkDeleteButton,
+  BulkDeleteToolbar,
+  deleteMany,
+  useBulkSelection,
+} from "../components/bulk/bulk-delete";
 import { InventoryAddFormPanel } from "../components/inventory/inventory-add-form-panel";
 import { InventoryCard } from "../components/inventory/inventory-card";
 import { InventoryDetailPanel } from "../components/inventory/inventory-detail-panel";
@@ -100,6 +107,30 @@ export default function InventoryPage() {
     setPage(1);
   };
 
+  // 일괄 삭제 — '전체 선택'은 지금 검색·보기 조건에 걸린 재료 전부(모든 쪽)
+  const bulk = useBulkSelection();
+  const visibleIds = useMemo(() => filteredAndSorted.map((i) => i.item_id), [filteredAndSorted]);
+  const bulkMutation = useMutation({
+    mutationFn: (ids: string[]) => deleteMany(ids, deleteInventoryItem),
+    onSuccess: ({ deleted, failed }) => {
+      queryClient.invalidateQueries({ queryKey: ["inventory"] });
+      bulk.exit();
+      if (failed.length > 0) {
+        const inUse = failed.filter((e) => e instanceof HTTPError && e.response.status === 409);
+        window.alert(
+          `${deleted}개를 삭제했어요. ${failed.length}개는 삭제하지 못했어요${inUse.length > 0 ? " — 레시피나 발주 내역에서 사용 중인 재료는 삭제할 수 없어요." : "."}`,
+        );
+      }
+    },
+  });
+  const handleBulkDelete = () => {
+    const ids = [...bulk.selected];
+    if (ids.length === 0) return;
+    if (window.confirm(`선택한 재료 ${ids.length}개를 삭제할까요?`)) {
+      bulkMutation.mutate(ids);
+    }
+  };
+
   const selectedItem = items.find((i) => i.item_id === selectedItemId) ?? null;
   const isPanelOpen = isAddFormOpen || selectedItem !== null;
 
@@ -173,19 +204,40 @@ export default function InventoryPage() {
           </div>
         </div>
 
-        {/* 2줄: 재료 추가 버튼 */}
+        {/* 2줄: 재료 추가 · 삭제 (삭제를 누르면 골라서 한 번에 지우는 줄로 바뀜) */}
         <div className="mb-4">
-          <button
-            type="button"
-            onClick={() => {
-              setIsAddFormOpen(true);
-              setSelectedItemId(null);
-            }}
-            className="inline-flex h-11 items-center gap-1.5 rounded-full bg-brand px-7 text-[0.95rem] font-semibold text-white hover:bg-brand-strong transition-colors"
-          >
-            <Plus className="size-5" />
-            재료 추가
-          </button>
+          {bulk.active ? (
+            <BulkDeleteToolbar
+              count={bulk.selected.size}
+              allSelected={visibleIds.length > 0 && visibleIds.every((id) => bulk.selected.has(id))}
+              onToggleAll={() => bulk.toggleAll(visibleIds)}
+              onCancel={bulk.exit}
+              onDelete={handleBulkDelete}
+              pending={bulkMutation.isPending}
+            />
+          ) : (
+            <div className="flex flex-wrap items-center gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setIsAddFormOpen(true);
+                  setSelectedItemId(null);
+                }}
+                className="inline-flex h-11 items-center gap-1.5 rounded-full bg-brand px-7 text-[0.95rem] font-semibold text-white hover:bg-brand-strong transition-colors"
+              >
+                <Plus className="size-5" />
+                재료 추가
+              </button>
+              <BulkDeleteButton
+                disabled={items.length === 0}
+                onClick={() => {
+                  setIsAddFormOpen(false);
+                  setSelectedItemId(null);
+                  bulk.start();
+                }}
+              />
+            </div>
+          )}
         </div>
 
         {/* 카드 격자 & 상세 판 (5열 레이아웃) */}
@@ -227,8 +279,17 @@ export default function InventoryPage() {
                     key={item.item_id}
                     item={item}
                     today={today}
-                    isSelected={selectedItemId === item.item_id}
+                    selecting={bulk.active}
+                    isSelected={
+                      bulk.active
+                        ? bulk.selected.has(item.item_id)
+                        : selectedItemId === item.item_id
+                    }
                     onClick={() => {
+                      if (bulk.active) {
+                        bulk.toggle(item.item_id);
+                        return;
+                      }
                       setIsAddFormOpen(false);
                       setSelectedItemId((prev) => (prev === item.item_id ? null : item.item_id));
                     }}

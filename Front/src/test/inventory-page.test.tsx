@@ -1,6 +1,7 @@
 // 재고 화면 — 경고 글씨·입고 대기 카드·로트 목록·입고·수정·폐기 (04_fe.md §4.6, 09_inventory.html).
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { HTTPError } from "ky";
 import { MemoryRouter } from "react-router";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import * as inventoryApi from "../api/endpoints/inventory";
@@ -173,6 +174,86 @@ describe("InventoryPage", () => {
         lead_time_days: null,
       }),
     );
+  });
+
+  it("삭제를 누르면 재료를 골라 한 번에 지우고, 사용 중(409)인 재료는 실패 개수를 알린다", async () => {
+    const milk = { ...bean, item_id: "milk", name: "우유" };
+    const salt = { ...bean, item_id: "salt", name: "소금" };
+    vi.spyOn(inventoryApi, "listInventory").mockResolvedValue([bean, milk, salt]);
+    vi.spyOn(window, "confirm").mockReturnValue(true);
+    const alert = vi.spyOn(window, "alert").mockImplementation(() => {});
+    const del = vi.spyOn(inventoryApi, "deleteInventoryItem").mockImplementation(async (id) => {
+      if (id === "salt") {
+        throw new HTTPError(
+          new Response("{}", { status: 409 }),
+          new Request("http://localhost/api/inventory/salt"),
+          {} as never,
+        );
+      }
+    });
+    renderPage();
+    await screen.findByRole("button", { name: /원두/ });
+
+    fireEvent.click(screen.getByRole("button", { name: "삭제" }));
+    // 고르는 중에는 카드를 눌러도 상세 판이 열리지 않고 선택만 된다
+    fireEvent.click(screen.getByRole("button", { name: /원두/ }));
+    expect(screen.getByRole("button", { name: /원두/ })).toHaveAttribute("aria-pressed", "true");
+
+    fireEvent.click(screen.getByRole("button", { name: "전체 선택" }));
+    for (const name of [/원두/, /우유/, /소금/]) {
+      expect(screen.getByRole("button", { name })).toHaveAttribute("aria-pressed", "true");
+    }
+    fireEvent.click(screen.getByRole("button", { name: "삭제" }));
+
+    await waitFor(() => expect(del).toHaveBeenCalledTimes(3));
+    await waitFor(() =>
+      expect(alert).toHaveBeenCalledWith(expect.stringContaining("2개를 삭제했어요. 1개는")),
+    );
+    // 끝나면 보통 줄로 돌아온다
+    expect(await screen.findByRole("button", { name: /재료 추가/ })).toBeInTheDocument();
+  });
+
+  it("고르기를 취소하면 아무것도 지우지 않는다", async () => {
+    const del = vi.spyOn(inventoryApi, "deleteInventoryItem").mockResolvedValue();
+    renderPage();
+    await screen.findByRole("button", { name: /원두/ });
+    fireEvent.click(screen.getByRole("button", { name: "삭제" }));
+    fireEvent.click(screen.getByRole("button", { name: /원두/ }));
+    fireEvent.click(screen.getByRole("button", { name: "취소" }));
+
+    expect(screen.getByRole("button", { name: /재료 추가/ })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /원두/ })).not.toHaveAttribute("aria-pressed");
+    expect(del).not.toHaveBeenCalled();
+  });
+
+  it("검색을 바꿔 가며 골라 모으고, 전체 선택·선택 해제는 보이는 재료에만 적용한다", async () => {
+    const milk = { ...bean, item_id: "milk", name: "우유" };
+    const salt = { ...bean, item_id: "salt", name: "소금" };
+    vi.spyOn(inventoryApi, "listInventory").mockResolvedValue([bean, milk, salt]);
+    vi.spyOn(window, "confirm").mockReturnValue(true);
+    const del = vi.spyOn(inventoryApi, "deleteInventoryItem").mockResolvedValue();
+    renderPage();
+    await screen.findByRole("button", { name: /원두/ });
+    const search = screen.getByPlaceholderText("재료 검색");
+
+    fireEvent.click(screen.getByRole("button", { name: "삭제" }));
+    fireEvent.change(search, { target: { value: "원두" } });
+    fireEvent.click(screen.getByRole("button", { name: /원두/ }));
+    // 다른 검색에서 전체 선택해도 앞서 고른 원두는 남는다
+    fireEvent.change(search, { target: { value: "우유" } });
+    fireEvent.click(screen.getByRole("button", { name: "전체 선택" }));
+    fireEvent.change(search, { target: { value: "소금" } });
+    fireEvent.click(screen.getByRole("button", { name: "전체 선택" }));
+    // 선택 해제는 보이는 소금만 푼다
+    fireEvent.click(screen.getByRole("button", { name: "선택 해제" }));
+    fireEvent.change(search, { target: { value: "" } });
+    expect(screen.getByRole("button", { name: /원두/ })).toHaveAttribute("aria-pressed", "true");
+    expect(screen.getByRole("button", { name: /우유/ })).toHaveAttribute("aria-pressed", "true");
+    expect(screen.getByRole("button", { name: /소금/ })).toHaveAttribute("aria-pressed", "false");
+
+    fireEvent.click(screen.getByRole("button", { name: "삭제" }));
+    await waitFor(() => expect(del).toHaveBeenCalledTimes(2));
+    expect(del).not.toHaveBeenCalledWith("salt");
   });
 
   it("입고 대기 카드는 확정 수량·오늘이 채워져 있고, 입고 처리·입고 안 함을 보낸다", async () => {
