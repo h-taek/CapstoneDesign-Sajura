@@ -8,6 +8,20 @@
 
 ## 1. 개발 이력
 
+### 팀원 PR #41 재고·메뉴 일괄 삭제 수정·머지 — d8fde33·96e310c (2026-11-06)
+
+- 검색을 바꿔도 선택이 남는 것은 의도(검색을 바꿔 가며 골라 모으기)로 보고 둔다
+- '전체 선택'이 앞서 고른 항목을 지우고 '선택 해제'가 화면에 없는 항목까지 풀던 것 — 보이는 항목만 더하고 뺀다(`useBulkSelection.toggleAll`)
+- 'N개 선택' 문구를 빼고 빨간 버튼은 '삭제'로만 적는다
+- 검증: PR 브랜치 FE Vitest 201(검색을 바꿔 골라 모으는 시험 추가 — 수정 전 코드에서 실패 확인)·typecheck·biome, 머지 후 main Vitest 217·typecheck
+
+### 2차 운영 배포 — 인증 흐름 정리 — a3ca8b7 → ab3a963 (2026-11-06)
+
+- 서버 접속 수동 배포. 바뀐 것은 `Back/app`·`Front/src`뿐(마이그레이션·환경변수 변경 없음)이라 be·arq-worker·caddy만 다시 빌드
+- 배포 전 DB 백업 `~/sajura-backup-20261106.sql.gz`(2.1MB). 운영 사업자 인증 전 계정 — 카카오 1·일반 2(UNVERIFIED), 다음 로그인 때 `/verify-business`로 간다
+- CD(GitHub Actions)는 등록하지 않기로 함 — 배포는 서버 접속 수동 유지
+- 검증: 8개 컨테이너 healthy, `alembic current` 0018, 외부 HTTPS `/health`·`/`·`/login`·`/verify-business` 200, `/api/auth/me` 401, 배포된 FE 번들에 '탈퇴가 접수되었어요' 포함
+
 ### 탈퇴 안내 누락 수정, 탈퇴·세션 만료 화면 확인 — b72064a (2026-11-06)
 
 - 탈퇴 후 로그인 화면에 '탈퇴가 접수되었어요' 안내가 뜨지 않던 것 — 로그인 정보를 비우는 순간 설정 화면 단계 가드가 상태 없이 `/login`으로 먼저 보내 이동 상태가 덮였다. 표시를 이동과 따로 남기고(`features/auth/withdrawn-notice.ts`) 로그인 화면이 한 번 읽고 지운다
