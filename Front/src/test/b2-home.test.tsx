@@ -559,4 +559,35 @@ describe("HomePage 컴포넌트", () => {
     // 최근 발주 빈 상태
     expect(screen.getByText("아직 확정한 발주가 없어요")).toBeInTheDocument();
   });
+
+  it("재고 칸: 확인 필요 재료는 웹에서 모두 그리고(칸 안 스크롤), 앱에서는 앞 8개만 보인다", async () => {
+    vi.spyOn(inventoryApi, "listInventory").mockResolvedValue(
+      Array.from({ length: 10 }, (_, i) => ({
+        item_id: `low-${i}`,
+        name: `부족 재료 ${i + 1}`,
+        unit: "kg",
+        total_quantity: 1,
+        low_stock_threshold: 10,
+        nearest_expiry_date: null,
+        needs_check: false,
+        lead_time_days: null,
+        safety_stock: null,
+        created_at: "",
+        updated_at: "",
+        coupang_product: null,
+        unit_price: null,
+      })),
+    );
+
+    renderHome();
+
+    expect(await screen.findByText("확인 필요 10")).toBeInTheDocument();
+    const list = screen.getByText("부족 재료 1").closest("ul");
+    expect(list).toHaveClass("lg:overflow-y-auto");
+    const rows = list?.querySelectorAll("li") ?? [];
+    expect(rows).toHaveLength(10);
+    expect(rows[7]).not.toHaveClass("hidden");
+    expect(rows[8]).toHaveClass("hidden", "lg:grid");
+    expect(rows[9]).toHaveClass("hidden", "lg:grid");
+  });
 });

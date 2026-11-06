@@ -40,6 +40,9 @@ import {
 } from "../lib/format";
 import { useAuthStore } from "../stores/auth-store";
 
+// 앱에서 홈 재고 칸에 보이는 확인 필요 재료 수. 웹은 칸 높이만큼 보이고 나머지는 칸 안에서 스크롤 (04_fe.md §4.3)
+const ALERT_INVENTORY_APP_LIMIT = 8;
+
 export default function HomePage() {
   const user = useAuthStore((s) => s.user);
 
@@ -437,34 +440,39 @@ export default function HomePage() {
               <span className="text-right">총 수량</span>
               <span className="text-right">소비기한</span>
             </p>
-            <ul className="mt-1 divide-y divide-white/60">
-              {alertInventory.map((item) => {
-                const isStockWarn = isStockWarning(item);
-                const isExpWarn = isExpiryWarning(item, refDate);
-                return (
-                  <li
-                    key={item.item_id}
-                    className="grid grid-cols-[minmax(0,1fr)_5.5rem_4rem] items-center gap-3 py-2.5"
-                  >
-                    <span className="truncate text-sm font-semibold text-ink">{item.name}</span>
-                    <span
-                      className={`tabular text-right text-sm ${
-                        isStockWarn ? "text-danger" : "text-ink-2"
-                      }`}
+            {/* 웹은 목록을 띄워 칸이 같은 줄 왼쪽 열보다 길어지지 않게 한다 */}
+            <div className="mt-1 lg:relative lg:min-h-32 lg:flex-1">
+              <ul className="divide-y divide-white/60 lg:absolute lg:inset-0 lg:overflow-y-auto">
+                {alertInventory.map((item, idx) => {
+                  const isStockWarn = isStockWarning(item);
+                  const isExpWarn = isExpiryWarning(item, refDate);
+                  return (
+                    <li
+                      key={item.item_id}
+                      className={`${idx < ALERT_INVENTORY_APP_LIMIT ? "grid" : "hidden lg:grid"} ${
+                        idx === ALERT_INVENTORY_APP_LIMIT - 1 ? "max-lg:border-b-0" : ""
+                      } grid-cols-[minmax(0,1fr)_5.5rem_4rem] items-center gap-3 py-2.5`}
                     >
-                      {formatQty(item.total_quantity)} {item.unit}
-                    </span>
-                    <span
-                      className={`tabular text-right text-sm ${
-                        isExpWarn ? "text-danger" : "text-ink-2"
-                      }`}
-                    >
-                      {formatExpiryDday(item.nearest_expiry_date, refDate)}
-                    </span>
-                  </li>
-                );
-              })}
-            </ul>
+                      <span className="truncate text-sm font-semibold text-ink">{item.name}</span>
+                      <span
+                        className={`tabular text-right text-sm ${
+                          isStockWarn ? "text-danger" : "text-ink-2"
+                        }`}
+                      >
+                        {formatQty(item.total_quantity)} {item.unit}
+                      </span>
+                      <span
+                        className={`tabular text-right text-sm ${
+                          isExpWarn ? "text-danger" : "text-ink-2"
+                        }`}
+                      >
+                        {formatExpiryDday(item.nearest_expiry_date, refDate)}
+                      </span>
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
           </section>
         </div>
       </div>
