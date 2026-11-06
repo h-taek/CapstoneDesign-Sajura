@@ -70,15 +70,15 @@ export default function IntroPage() {
     <>
       <style>{`
         .day-header { color: var(--sky-fg); pointer-events: none; }
-        .hd-top, .hd-pill { transition: opacity .5s ease, transform .5s cubic-bezier(.2,.7,.2,1); }
+        .hd-top { color: var(--sky-fg); }
+        .hd-pill { transition: opacity .5s ease, transform .5s cubic-bezier(.2,.7,.2,1); }
         .hd-pill { background: var(--sky-pill); border: 1px solid rgb(255 255 255 / .22);
           backdrop-filter: blur(20px) saturate(160%); -webkit-backdrop-filter: blur(20px) saturate(160%);
           box-shadow: 0 10px 30px -12px rgb(20 10 70 / .35), inset 0 1px 0 rgb(255 255 255 / .25);
           opacity: 0; transform: translate(-50%, -8px) scale(.94); }
-        .day-header:not(.scrolled) .hd-top, .day-header:not(.scrolled) .hd-top a,
-        .day-header.scrolled .hd-pill, .day-header.scrolled .hd-pill a,
+        /* 알약 상자는 터치를 받지 않고 안의 링크·버튼만 받는다 — 상자가 받으면 아이폰 사파리가 상태 표시줄 자리를 단색 띠로 덮는다 */
+        .day-header.scrolled .hd-pill a,
         .day-header.scrolled .hd-pill button { pointer-events: auto; }
-        .day-header.scrolled .hd-top { opacity: 0; transform: translateY(-12px); }
         .day-header.scrolled .hd-pill { opacity: 1; transform: translate(-50%, 0); }
 
         .scene { position: relative; min-height: 115vh; display: grid; align-items: center; padding: 120px 6vw 22vh; }
@@ -123,15 +123,7 @@ export default function IntroPage() {
         id="hd"
         className={`day-header pt-safe fixed inset-x-0 top-0 z-40 ${isScrolled ? "scrolled" : ""}`}
       >
-        <div className="hd-top flex h-20 items-center gap-4 px-5 sm:px-8">
-          <Link to="/intro" className="flex items-center gap-2" aria-label="사주라 소개">
-            <span className="flex size-8 items-center justify-center rounded-lg bg-brand text-sm font-black text-white">
-              사
-            </span>
-            <span className="text-xl font-extrabold tracking-tight">사주라</span>
-          </Link>
-        </div>
-        <div className="hd-pill absolute top-3 left-1/2 flex h-13 items-center gap-3 rounded-full pr-1.5 pl-1.5">
+        <div className="hd-pill fixed top-[calc(env(safe-area-inset-top)+12px)] left-1/2 flex h-13 items-center gap-3 rounded-full pr-1.5 pl-1.5">
           <Link
             to="/intro"
             aria-label="사주라 소개"
@@ -160,6 +152,15 @@ export default function IntroPage() {
       </header>
 
       <main>
+        {/* 로고 줄은 본문과 함께 스크롤된다 — 고정 헤더에 두면 아이폰 사파리가 상태 표시줄 자리를 단색 띠로 덮는다 */}
+        <div className="hd-top absolute inset-x-0 top-[env(safe-area-inset-top)] z-10 flex h-20 items-center gap-4 px-5 sm:px-8">
+          <Link to="/intro" className="flex items-center gap-2" aria-label="사주라 소개">
+            <span className="flex size-8 items-center justify-center rounded-lg bg-brand text-sm font-black text-white">
+              사
+            </span>
+            <span className="text-xl font-extrabold tracking-tight">사주라</span>
+          </Link>
+        </div>
         {/* 21:30 마감 — 첫 화면 */}
         <section className="scene first" data-tone="dark" data-min="1290">
           <div className="text-center">

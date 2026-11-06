@@ -6,6 +6,14 @@
   overflow: hidden;
   pointer-events: none;
 }
+/* 아이폰 사파리(iOS 26)는 화면 위·아래 끝에 닿은 고정 요소가 있으면 상태 표시줄·주소창 자리를 단색 띠로 덮는다.
+   판정 범위(위 12px·아래 3px) 밖으로 떼어 페이지가 그 밑까지 그려지게 하고, 틈은 body 색(하늘 맨 위 색)이 채운다 */
+@supports (-webkit-touch-callout: none) {
+  .bd {
+    top: 12px;
+    bottom: 4px;
+  }
+}
 .bd > * {
   position: absolute;
   display: block;
@@ -100,9 +108,6 @@
 }
 
 /* 사장님의 하루 — 시각에 따라 하늘 색·별·달·해·가게 창문 불빛이 바뀐다 */
-.bd-day {
-  background: #241a5e;
-}
 .bd-day .d-sky,
 .bd-day .d-veil {
   inset: 0;

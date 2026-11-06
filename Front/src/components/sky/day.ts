@@ -204,10 +204,16 @@ export function drawDay(mf: number): DaySample {
   if (starsEl) {
     starsEl.style.opacity = String(s.stars);
   }
+  const veil = calm ? 0.25 + (1 - s.fg) * 0.55 : 0;
   const veilEl = bd.querySelector<HTMLElement>(".d-veil");
   if (veilEl) {
-    veilEl.style.opacity = String(calm ? 0.25 + (1 - s.fg) * 0.55 : 0);
+    veilEl.style.opacity = String(veil);
   }
+  // 아이폰 사파리에서 하늘 레이어를 화면 위·아래 끝에서 뗀 틈(sky.css)을 body가 채운다 — 하늘 맨 위 색(막 포함)
+  const VEIL_RGB = [246, 244, 255]; // .d-veil #f6f4ff
+  document.body.style.backgroundColor = dayRgb(
+    s.sky[0].map((v, i) => Math.round(v + ((VEIL_RGB[i] ?? v) - v) * veil)),
+  );
 
   // 달·해 — 같은 호를 같은 방향(오른쪽 → 왼쪽)으로 넘어간다.
   const narrow = typeof window !== "undefined" ? window.innerWidth < 860 : false;
