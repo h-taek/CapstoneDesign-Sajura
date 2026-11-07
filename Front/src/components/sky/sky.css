@@ -67,6 +67,10 @@
 .entering .en-left {
   animation-name: en-left;
 }
+/* 하단 탭 바는 8px만 올라온다 — 24px 밑에서 출발하면 화면 아래 끝 3px 안에 걸려 아이폰 사파리가 주소창 자리를 단색 띠로 덮는다 */
+.entering nav[data-tabbar] {
+  animation-name: en-up-short;
+}
 .entering main > * > * {
   animation: en-up 0.6s cubic-bezier(0.2, 0.8, 0.2, 1) both;
 }
@@ -86,6 +90,12 @@
   from {
     opacity: 0;
     transform: translateY(24px) scale(0.98);
+  }
+}
+@keyframes en-up-short {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.98);
   }
 }
 @keyframes en-down {

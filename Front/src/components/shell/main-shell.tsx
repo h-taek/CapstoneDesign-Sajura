@@ -254,6 +254,7 @@ export function MainShell({ active, title, back, children, className }: MainShel
       {/* 앱 하단 5탭 바 */}
       <nav
         aria-label="하단 메뉴"
+        data-tabbar
         style={{ "--d": "0.25s" } as CSSProperties}
         className="en glass-bar pb-safe fixed inset-x-3 bottom-3 z-30 rounded-full p-1.5 lg:hidden"
       >
