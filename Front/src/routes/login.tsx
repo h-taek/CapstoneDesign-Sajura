@@ -38,11 +38,17 @@ export default function LoginPage() {
   const activeSkyStep = isWithdrawn ? "withdrawn" : "default";
   useSky(LOGIN_SKY, LOGIN_SKY_STEPS, activeSkyStep);
 
-  const { register, handleSubmit } = useForm<LoginValues>({
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+  } = useForm<LoginValues>({
     resolver: zodResolver(loginSchema),
     defaultValues: { email: "", password: "" },
     mode: "onBlur",
   });
+  // 입력 검증 오류 — 칸 아래가 아니라 부제 자리에 첫 번째 것만 보인다
+  const fieldError = errors.email?.message ?? errors.password?.message;
 
   const mutation = useMutation({
     mutationFn: async (values: LoginValues) => {
@@ -83,7 +89,11 @@ export default function LoginPage() {
         </h1>
 
         {/* 알림·오류는 부제 자리에 대신 보여 높이를 그대로 둔다 */}
-        {hasAuthError ? (
+        {fieldError ? (
+          <p className="mt-2 text-base font-semibold text-[#ffd6d6]" role="alert">
+            {fieldError}
+          </p>
+        ) : hasAuthError ? (
           <p className="mt-2 text-base font-semibold text-[#ffd6d6]" role="alert">
             이메일 또는 비밀번호가 올바르지 않아요.
           </p>

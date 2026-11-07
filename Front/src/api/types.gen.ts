@@ -1355,7 +1355,7 @@ export interface components {
             is_low_confidence: boolean;
             /** Low Confidence Reason */
             low_confidence_reason?: string | null;
-            explanation: components["schemas"]["Explanation"];
+            explanation: components["schemas"]["Explanation"] | null;
             /** Menu Forecast */
             menu_forecast: components["schemas"]["MenuForecastItem"][];
         };

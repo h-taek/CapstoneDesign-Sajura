@@ -47,6 +47,7 @@ async def store_forecast(
     *,
     dates: list[date] = TARGETS,
     low: dict[date, str] | None = None,
+    with_explanation: bool = True,
 ) -> None:
     """n8n이 저장하는 것과 같은 예측 행을 넣는다 — 대상일마다 메뉴 수량은 menu_qty."""
     low = low or {}
@@ -66,7 +67,7 @@ async def store_forecast(
                     "deviation_vs_baseline": 0.1,
                     "top_factors": [{"feature": "dow_4", "label": "금요일 효과", "pct": 0.1}],
                     "sentence": "평소보다 약 10% 높을 것으로 예상됩니다",
-                },
+                } if with_explanation else None,
             )
             s.add(f)
             await s.flush()
@@ -124,6 +125,16 @@ async def test_get_forecast_returns_stored_predictions_with_menu_names(client: A
     )
     assert r.status_code == 200, r.text
     assert [p["horizon_days"] for p in r.json()["predictions"]] == [2]
+
+
+@pytest.mark.asyncio
+async def test_get_forecast_without_explanation_returns_null(client: AsyncClient) -> None:
+    auth, store_id, menu_id = await _store(client)
+    await store_forecast(store_id, {menu_id: 10}, with_explanation=False)
+
+    r = await client.get("/api/forecast", headers=auth)
+    assert r.status_code == 200, r.text
+    assert [p["explanation"] for p in r.json()["predictions"]] == [None, None, None]
 
 
 @pytest.mark.asyncio

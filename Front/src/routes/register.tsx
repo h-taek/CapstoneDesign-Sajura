@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { ChevronRight } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router";
 import {
   authErrorCode,
@@ -12,6 +12,7 @@ import {
 } from "../api/endpoints/auth";
 import { BusinessFields } from "../components/auth/business-fields";
 import { REGISTER_SKY, REGISTER_SKY_STEPS, goDashboard, useSky } from "../components/sky";
+import { Button } from "../components/ui/button";
 import { useAuthStore } from "../stores/auth-store";
 
 type Step = "terms" | "email" | "name" | "password" | "business";
@@ -56,6 +57,7 @@ export default function RegisterPage() {
   const [tService, setTService] = useState(false);
   const [tPrivacy, setTPrivacy] = useState(false);
   const [tNotice, setTNotice] = useState(false);
+  const [termsDoc, setTermsDoc] = useState<string | null>(null);
 
   // 폼 입력값
   const [email, setEmail] = useState("");
@@ -256,32 +258,51 @@ export default function RegisterPage() {
                       <b className="font-semibold text-[#b3a4ff]">[필수]</b> 만 14세 이상입니다
                     </span>
                   </label>
-                  <label className="flex items-start gap-3 py-2.5">
-                    <input
-                      type="checkbox"
-                      id="t-service-a"
-                      checked={tService}
-                      onChange={(e) => setTService(e.target.checked)}
-                      className="mt-0.5 size-5 shrink-0 rounded accent-[#b3a4ff]"
-                    />
-                    <span className="flex-1 text-[0.95rem] text-white/90">
-                      <b className="font-semibold text-[#b3a4ff]">[필수]</b> 이용약관 동의
-                    </span>
-                    <ChevronRight className="size-5 shrink-0 text-white/70" />
-                  </label>
-                  <label className="flex items-start gap-3 py-2.5">
-                    <input
-                      type="checkbox"
-                      id="t-privacy-a"
-                      checked={tPrivacy}
-                      onChange={(e) => setTPrivacy(e.target.checked)}
-                      className="mt-0.5 size-5 shrink-0 rounded accent-[#b3a4ff]"
-                    />
-                    <span className="flex-1 text-[0.95rem] text-white/90">
-                      <b className="font-semibold text-[#b3a4ff]">[필수]</b> 개인정보 수집·이용 동의
-                    </span>
-                    <ChevronRight className="size-5 shrink-0 text-white/70" />
-                  </label>
+                  <div className="flex items-start gap-3 py-2.5">
+                    <label className="flex flex-1 items-start gap-3">
+                      <input
+                        type="checkbox"
+                        id="t-service-a"
+                        checked={tService}
+                        onChange={(e) => setTService(e.target.checked)}
+                        className="mt-0.5 size-5 shrink-0 rounded accent-[#b3a4ff]"
+                      />
+                      <span className="flex-1 text-[0.95rem] text-white/90">
+                        <b className="font-semibold text-[#b3a4ff]">[필수]</b> 이용약관 동의
+                      </span>
+                    </label>
+                    <button
+                      type="button"
+                      aria-label="이용약관 보기"
+                      onClick={() => setTermsDoc("이용약관")}
+                      className="-m-2 shrink-0 rounded-full p-2 text-white/70 hover:bg-white/10"
+                    >
+                      <ChevronRight className="size-5" />
+                    </button>
+                  </div>
+                  <div className="flex items-start gap-3 py-2.5">
+                    <label className="flex flex-1 items-start gap-3">
+                      <input
+                        type="checkbox"
+                        id="t-privacy-a"
+                        checked={tPrivacy}
+                        onChange={(e) => setTPrivacy(e.target.checked)}
+                        className="mt-0.5 size-5 shrink-0 rounded accent-[#b3a4ff]"
+                      />
+                      <span className="flex-1 text-[0.95rem] text-white/90">
+                        <b className="font-semibold text-[#b3a4ff]">[필수]</b> 개인정보 수집·이용
+                        동의
+                      </span>
+                    </label>
+                    <button
+                      type="button"
+                      aria-label="개인정보 수집·이용 보기"
+                      onClick={() => setTermsDoc("개인정보 수집·이용")}
+                      className="-m-2 shrink-0 rounded-full p-2 text-white/70 hover:bg-white/10"
+                    >
+                      <ChevronRight className="size-5" />
+                    </button>
+                  </div>
                   <label className="flex items-start gap-3 py-2.5">
                     <input
                       type="checkbox"
@@ -464,6 +485,31 @@ export default function RegisterPage() {
           )}
         </section>
       </main>
+      {termsDoc && <TermsDialog title={termsDoc} onClose={() => setTermsDoc(null)} />}
     </>
+  );
+}
+
+// 약관 보기 — 본문이 정해지기 전이라 준비 중 안내만 띄운다. showModal이 포커스 가두기·Esc 닫기를 맡는다
+function TermsDialog({ title, onClose }: { title: string; onClose: () => void }) {
+  const ref = useRef<HTMLDialogElement>(null);
+  useEffect(() => {
+    ref.current?.showModal();
+  }, []);
+  return (
+    <dialog
+      ref={ref}
+      onClose={onClose}
+      aria-labelledby="terms-dialog-title"
+      className="m-auto w-[calc(100%-2.5rem)] max-w-sm rounded-3xl border-0 p-6 text-left glass-strong backdrop:bg-ink/40"
+    >
+      <h2 id="terms-dialog-title" className="text-lg font-bold text-ink">
+        {title}
+      </h2>
+      <p className="mt-2 text-[0.95rem] text-ink-2">약관 본문을 준비하고 있어요.</p>
+      <Button size="lg" className="mt-6 w-full" onClick={() => ref.current?.close()}>
+        닫기
+      </Button>
+    </dialog>
   );
 }

@@ -14,7 +14,7 @@ import { DayPanel } from "../../components/sales/day-panel";
 import { MenuPanel } from "../../components/sales/menu-panel";
 import { DateField, MainShell } from "../../components/shell";
 import { LoadError } from "../../components/ui/load-error";
-import { formatWon, parseLocalDate, toIsoDate } from "../../lib/format";
+import { formatSlashDate, formatWon, parseLocalDate, toIsoDate } from "../../lib/format";
 
 const PAGE_SIZE = 31; // 1년이면 366줄이라 31줄씩 쪽 이동
 
@@ -234,9 +234,10 @@ export default function SalesPage() {
               </p>
             ) : (
               <div className="glass-card rounded-2xl px-2 pb-2">
-                <div className="grid grid-cols-[minmax(0,1fr)_4.5rem_7.5rem_1.25rem] gap-x-3 px-3 pt-4 pb-1 text-xs font-semibold text-ink-2">
+                {/* 앱 폭은 날짜를 '10/27'로 줄이고 수량 칸도 좁혀 한 줄에 맞춘다(웹은 '10월 27일 (화)') */}
+                <div className="grid grid-cols-[minmax(0,1fr)_3.5rem_7.5rem_1.25rem] gap-x-3 px-3 pt-4 pb-1 text-xs font-semibold text-ink-2 lg:grid-cols-[minmax(0,1fr)_4.5rem_7.5rem_1.25rem]">
                   <span>날짜</span>
-                  <span className="text-right">판매 수량</span>
+                  <span className="text-center">판매 수량</span>
                   <span className="text-right">매출</span>
                   <span />
                 </div>
@@ -248,15 +249,18 @@ export default function SalesPage() {
                         <button
                           type="button"
                           onClick={() => handleSelectDay(d.date)}
-                          className={`grid w-full grid-cols-[minmax(0,1fr)_4.5rem_7.5rem_1.25rem] items-center gap-x-3 rounded-xl px-3 py-3.5 text-left transition-colors hover:bg-white/30 ${
+                          className={`grid w-full grid-cols-[minmax(0,1fr)_3.5rem_7.5rem_1.25rem] items-center lg:grid-cols-[minmax(0,1fr)_4.5rem_7.5rem_1.25rem] gap-x-3 rounded-xl px-3 py-3.5 text-left transition-colors hover:bg-white/30 ${
                             isSelected ? "outline-2 outline-brand -outline-offset-2" : ""
                           }`}
                         >
                           <span className="min-w-0 font-semibold text-ink">
-                            {d.shortDate}{" "}
-                            <span className="font-normal text-ink-2">{d.dayOfWeek}</span>
+                            <span className="tabular lg:hidden">{formatSlashDate(d.date)}</span>
+                            <span className="hidden lg:inline">
+                              {d.shortDate}{" "}
+                              <span className="font-normal text-ink-2">{d.dayOfWeek}</span>
+                            </span>
                           </span>
-                          <span className="tabular text-right text-[0.95rem] text-ink-2">
+                          <span className="tabular text-center text-[0.95rem] text-ink-2">
                             {d.quantity}개
                           </span>
                           <span className="tabular text-right font-semibold text-ink">

@@ -33,7 +33,7 @@ class DailyPrediction(BaseModel):
     interval_p90: int
     is_low_confidence: bool
     low_confidence_reason: str | None = None
-    explanation: Explanation
+    explanation: Explanation | None  # 예측 근거 칼럼은 NULL 허용 — 없으면 null로 내려준다
     menu_forecast: list[MenuForecastItem]  # 대상일 메뉴별 예상 수량, 내림차순
 
 

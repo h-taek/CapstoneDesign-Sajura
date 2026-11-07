@@ -5313,7 +5313,14 @@
             "title": "Low Confidence Reason"
           },
           "explanation": {
-            "$ref": "#/components/schemas/Explanation"
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Explanation"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "menu_forecast": {
             "items": {

@@ -2,7 +2,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { HTTPError } from "ky";
 import { MemoryRouter, Route, Routes, useLocation } from "react-router";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, onTestFinished, vi } from "vitest";
 import * as authApi from "../api/endpoints/auth";
 import * as menusApi from "../api/endpoints/menus";
 import * as storeApi from "../api/endpoints/store";
@@ -105,6 +105,32 @@ describe("B1 시작·인증·온보딩 화면 흐름", () => {
 
       expect(screen.getByText("필수 약관에 모두 동의해 주세요")).toBeInTheDocument();
       expect(screen.queryByPlaceholderText("이메일")).not.toBeInTheDocument();
+    });
+
+    it("약관 화살표는 체크를 바꾸지 않고 준비 중 안내 창을 연다", () => {
+      // jsdom에는 모달 dialog(showModal·close)가 없어 이 시험에서만 채운다
+      const proto = HTMLDialogElement.prototype as unknown as Record<string, unknown>;
+      proto.showModal = function (this: HTMLDialogElement) {
+        this.open = true;
+      };
+      proto.close = function (this: HTMLDialogElement) {
+        this.open = false;
+        this.dispatchEvent(new Event("close"));
+      };
+      onTestFinished(() => {
+        Reflect.deleteProperty(proto, "showModal");
+        Reflect.deleteProperty(proto, "close");
+      });
+      renderWithClient(<RegisterPage />, "/register");
+
+      fireEvent.click(screen.getByRole("button", { name: "이용약관 보기" }));
+
+      expect(screen.getByRole("heading", { name: "이용약관" })).toBeInTheDocument();
+      expect(screen.getByText("약관 본문을 준비하고 있어요.")).toBeInTheDocument();
+      expect(screen.getByLabelText(/이용약관 동의/)).not.toBeChecked();
+
+      fireEvent.click(screen.getByRole("button", { name: "닫기" }));
+      expect(screen.queryByText("약관 본문을 준비하고 있어요.")).not.toBeInTheDocument();
     });
 
     it("약관 전체 동의 후 이메일, 이름, 비밀번호 단계로 차례로 진행된다", async () => {
@@ -258,6 +284,26 @@ describe("B1 시작·인증·온보딩 화면 흐름", () => {
       expect(
         screen.getByText("가입 시간이 지났어요. 소셜 로그인부터 다시 해 주세요."),
       ).toBeInTheDocument();
+    });
+
+    it("빈 칸이나 잘못된 형식으로 로그인하면 부제 자리에 첫 번째 문제를 알리고 요청하지 않는다", async () => {
+      const loginSpy = vi.spyOn(authApi, "loginWithEmail");
+      renderWithClient(<LoginPage />, "/login");
+
+      fireEvent.click(screen.getByRole("button", { name: "로그인하기" }));
+      expect(await screen.findByRole("alert")).toHaveTextContent(
+        "이메일 형식이 올바르지 않습니다.",
+      );
+      expect(
+        screen.queryByText("로그인하고 오늘 밤부터 사주라에게 맡겨 보세요."),
+      ).not.toBeInTheDocument();
+
+      fireEvent.change(screen.getByLabelText("이메일"), { target: { value: "owner@test.kr" } });
+      fireEvent.click(screen.getByRole("button", { name: "로그인하기" }));
+      await waitFor(() =>
+        expect(screen.getByRole("alert")).toHaveTextContent("비밀번호를 입력하세요."),
+      );
+      expect(loginSpy).not.toHaveBeenCalled();
     });
   });
 
