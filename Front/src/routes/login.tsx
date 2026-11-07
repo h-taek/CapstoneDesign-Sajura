@@ -11,6 +11,7 @@ import googleG3 from "../assets/login/google-g-3.svg";
 import googleG4 from "../assets/login/google-g-4.svg";
 import kakaoIcon from "../assets/login/kakao-icon.svg";
 import { LOGIN_SKY, LOGIN_SKY_STEPS, goDashboard, useSky } from "../components/sky";
+import { NoticeDialog } from "../components/ui/notice-dialog";
 import { clearWithdrawnNotice, hasWithdrawnNotice } from "../features/auth/withdrawn-notice";
 import { type LoginValues, loginSchema } from "../schemas/auth";
 import { useAuthStore } from "../stores/auth-store";
@@ -34,6 +35,7 @@ export default function LoginPage() {
 
   const [hasAuthError, setHasAuthError] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [resetNoticeOpen, setResetNoticeOpen] = useState(false);
 
   const activeSkyStep = isWithdrawn ? "withdrawn" : "default";
   useSky(LOGIN_SKY, LOGIN_SKY_STEPS, activeSkyStep);
@@ -169,9 +171,23 @@ export default function LoginPage() {
               회원가입
             </Link>
             <span className="h-3.5 w-px bg-white/40" aria-hidden="true" />
-            <span className="cursor-default">비밀번호 재설정</span>
+            {/* 재설정 기능은 아직 없다 — 눌러도 반응 없는 글자로 두지 않고 준비 중임을 알린다 */}
+            <button
+              type="button"
+              onClick={() => setResetNoticeOpen(true)}
+              className="hover:underline"
+            >
+              비밀번호 재설정
+            </button>
           </span>
         </p>
+        {resetNoticeOpen && (
+          <NoticeDialog
+            title="비밀번호 재설정"
+            message="비밀번호 재설정은 준비 중이에요."
+            onClose={() => setResetNoticeOpen(false)}
+          />
+        )}
 
         <div className="mt-7 flex items-center gap-3">
           <span className="h-px flex-1 bg-white/25" />

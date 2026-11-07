@@ -145,9 +145,14 @@ describe("B1 시작·인증·온보딩 화면 흐름", () => {
       fireEvent.change(emailInput, { target: { value: "test@sajura.kr" } });
       fireEvent.click(screen.getByRole("button", { name: "계속" }));
 
-      // 3. 이름 단계
+      // 3. 이름 단계 — 지난 단계 버튼은 '<단계> 단계로 돌아가기'로 읽힌다(조사 '로' 고정)
+      expect(screen.getByRole("button", { name: "약관 단계로 돌아가기" })).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "이메일 단계로 돌아가기" })).toBeInTheDocument();
       const nameInput = screen.getByPlaceholderText("이름");
       expect(nameInput).toBeInTheDocument();
+      // 비운 채 계속하면 안내 없이 멈추지 않고 알린다
+      fireEvent.click(screen.getByRole("button", { name: "계속" }));
+      expect(screen.getByRole("alert")).toHaveTextContent("이름을 입력하세요.");
       fireEvent.change(nameInput, { target: { value: "홍길동" } });
       fireEvent.click(screen.getByRole("button", { name: "계속" }));
 
@@ -277,6 +282,14 @@ describe("B1 시작·인증·온보딩 화면 흐름", () => {
       expect(
         screen.getByText("가입 시간이 지났어요. 소셜 로그인부터 다시 해 주세요."),
       ).toBeInTheDocument();
+    });
+
+    it("'비밀번호 재설정'을 누르면 준비 중 안내 창을 띄운다", () => {
+      renderWithClient(<LoginPage />, "/login");
+      fireEvent.click(screen.getByRole("button", { name: "비밀번호 재설정" }));
+      expect(screen.getByText("비밀번호 재설정은 준비 중이에요.")).toBeInTheDocument();
+      fireEvent.click(screen.getByRole("button", { name: "닫기" }));
+      expect(screen.queryByText("비밀번호 재설정은 준비 중이에요.")).not.toBeInTheDocument();
     });
 
     it("빈 칸이나 잘못된 형식으로 로그인하면 부제 자리에 첫 번째 문제를 알리고 요청하지 않는다", async () => {

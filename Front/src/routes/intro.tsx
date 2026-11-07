@@ -513,8 +513,8 @@ export default function IntroPage() {
                   <ChevronDown className="size-5 shrink-0 text-ink-3 transition-transform group-open:rotate-180" />
                 </summary>
                 <p className="mt-3 text-[0.95rem] leading-relaxed text-ink-2">
-                  지금은 POS에서 내려받은 매출 파일(CSV)을 올리는 방식입니다. POS 자동 연동은 준비
-                  중입니다.
+                  토스플레이스는 매출을 자동으로 받아 옵니다. 다른 POS는 내려받은 매출 파일(CSV)을
+                  올리면 됩니다. 키움페이·OKPOS 연동은 준비 중입니다.
                 </p>
               </details>
               <details className="group px-6 py-5 [&_summary::-webkit-details-marker]:hidden">

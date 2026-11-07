@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { ChevronRight } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router";
 import {
   authErrorCode,
@@ -12,7 +12,7 @@ import {
 } from "../api/endpoints/auth";
 import { BusinessFields } from "../components/auth/business-fields";
 import { REGISTER_SKY, REGISTER_SKY_STEPS, goDashboard, useSky } from "../components/sky";
-import { Button } from "../components/ui/button";
+import { NoticeDialog } from "../components/ui/notice-dialog";
 import { registerSchema } from "../schemas/auth";
 import { useAuthStore } from "../stores/auth-store";
 
@@ -125,7 +125,10 @@ export default function RegisterPage() {
   };
 
   const handleNextFromName = () => {
-    if (!name.trim()) return;
+    if (!name.trim()) {
+      setErrorType("name");
+      return;
+    }
     setErrorType(null);
     setStep("password");
   };
@@ -200,7 +203,7 @@ export default function RegisterPage() {
                     setStep(s);
                     setErrorType(null);
                   }}
-                  aria-label={`${i + 1}단계 ${STEP_LABEL[s]}로 돌아가기`}
+                  aria-label={`${STEP_LABEL[s]} 단계로 돌아가기`}
                   className="cursor-pointer py-3 hover:opacity-80"
                 >
                   <span className="block h-1 w-9 rounded-full bg-white/20" />
@@ -395,6 +398,11 @@ export default function RegisterPage() {
                   onChange={(e) => setName(e.target.value)}
                   className="h-[52px] w-full rounded-xl border border-white/15 bg-[#0d0a26]/45 px-4 text-base text-white placeholder:text-white/70 backdrop-blur-md focus:border-[#b3a4ff] focus:ring-4 focus:ring-[#b3a4ff]/25 focus:outline-none"
                 />
+                {errorType === "name" && (
+                  <p className="px-1 text-sm text-[#ffd6d6]" role="alert">
+                    이름을 입력하세요.
+                  </p>
+                )}
                 <button
                   type="button"
                   onClick={handleNextFromName}
@@ -487,31 +495,13 @@ export default function RegisterPage() {
           )}
         </section>
       </main>
-      {termsDoc && <TermsDialog title={termsDoc} onClose={() => setTermsDoc(null)} />}
+      {termsDoc && (
+        <NoticeDialog
+          title={termsDoc}
+          message="약관 본문을 준비하고 있어요."
+          onClose={() => setTermsDoc(null)}
+        />
+      )}
     </>
-  );
-}
-
-// 약관 보기 — 본문이 정해지기 전이라 준비 중 안내만 띄운다. showModal이 포커스 가두기·Esc 닫기를 맡는다
-function TermsDialog({ title, onClose }: { title: string; onClose: () => void }) {
-  const ref = useRef<HTMLDialogElement>(null);
-  useEffect(() => {
-    ref.current?.showModal();
-  }, []);
-  return (
-    <dialog
-      ref={ref}
-      onClose={onClose}
-      aria-labelledby="terms-dialog-title"
-      className="m-auto w-[calc(100%-2.5rem)] max-w-sm rounded-3xl border-0 p-6 text-left glass-strong backdrop:bg-ink/40"
-    >
-      <h2 id="terms-dialog-title" className="text-lg font-bold text-ink">
-        {title}
-      </h2>
-      <p className="mt-2 text-[0.95rem] text-ink-2">약관 본문을 준비하고 있어요.</p>
-      <Button size="lg" className="mt-6 w-full" onClick={() => ref.current?.close()}>
-        닫기
-      </Button>
-    </dialog>
   );
 }
