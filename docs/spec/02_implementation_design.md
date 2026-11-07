@@ -1602,7 +1602,7 @@ Authorization: Bearer <access_token>
       "interval_p90": 1310000,
       "is_low_confidence": false,
       "low_confidence_reason": null,   // SHORT_HISTORY | MISSING_FEATURES | SPECIAL_DAY | LONG_HORIZON | WIDE_INTERVAL | DRIFT (01_basic_design.md §3.6.3)
-      "explanation": {                 // 05_ai.md §8 — SHAP 합 = 편차, rule-based 문장(LLM 미사용)
+      "explanation": {                 // 05_ai.md §8 — SHAP 합 = 편차, rule-based 문장(LLM 미사용). 저장된 근거가 없으면 null
         "baseline": "직전 7영업일 평균",
         "deviation_vs_baseline": 0.12,
         "top_factors": [
@@ -1936,7 +1936,7 @@ Authorization: Bearer <access_token>
       "interval_p90": 1310000,
       "is_low_confidence": false,
       "low_confidence_reason": null,   // SHORT_HISTORY | MISSING_FEATURES | SPECIAL_DAY | LONG_HORIZON | WIDE_INTERVAL | DRIFT
-      "explanation": {                 // 05_ai.md §8 — SHAP 합 = 편차, rule-based 문장(LLM 미사용)
+      "explanation": {                 // 05_ai.md §8 — SHAP 합 = 편차, rule-based 문장(LLM 미사용). 저장된 근거가 없으면 null
         "baseline": "직전 7영업일 평균",
         "deviation_vs_baseline": 0.12,
         "top_factors": [
