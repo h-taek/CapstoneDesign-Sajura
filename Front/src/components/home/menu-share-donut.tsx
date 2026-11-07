@@ -71,6 +71,9 @@ export function MenuShareDonut({ hasSalesData, menuForecast }: MenuShareDonutPro
             </p>
           </div>
         </div>
+      ) : hasSalesData && menuForecast ? (
+        // 예측은 받았는데 메뉴별 수량만 빈 날(메뉴 판매 이력 10영업일 미만 등) — 실패가 아니다
+        <p className="mt-4 text-sm text-ink-3">메뉴별 예측이 아직 없어요</p>
       ) : hasSalesData ? (
         <p className="mt-4 text-sm text-ink-3">오늘 예측을 불러오지 못했어요</p>
       ) : (

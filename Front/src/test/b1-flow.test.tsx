@@ -2,7 +2,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { HTTPError } from "ky";
 import { MemoryRouter, Route, Routes, useLocation } from "react-router";
-import { afterEach, beforeEach, describe, expect, it, onTestFinished, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import * as authApi from "../api/endpoints/auth";
 import * as menusApi from "../api/endpoints/menus";
 import * as storeApi from "../api/endpoints/store";
@@ -108,19 +108,6 @@ describe("B1 시작·인증·온보딩 화면 흐름", () => {
     });
 
     it("약관 화살표는 체크를 바꾸지 않고 준비 중 안내 창을 연다", () => {
-      // jsdom에는 모달 dialog(showModal·close)가 없어 이 시험에서만 채운다
-      const proto = HTMLDialogElement.prototype as unknown as Record<string, unknown>;
-      proto.showModal = function (this: HTMLDialogElement) {
-        this.open = true;
-      };
-      proto.close = function (this: HTMLDialogElement) {
-        this.open = false;
-        this.dispatchEvent(new Event("close"));
-      };
-      onTestFinished(() => {
-        Reflect.deleteProperty(proto, "showModal");
-        Reflect.deleteProperty(proto, "close");
-      });
       renderWithClient(<RegisterPage />, "/register");
 
       fireEvent.click(screen.getByRole("button", { name: "이용약관 보기" }));

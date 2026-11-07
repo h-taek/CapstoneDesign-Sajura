@@ -1,8 +1,7 @@
 // 홈 화면 설치 안내 — 앱(모바일) 홈 상단 배너 + 설정/더보기 메뉴 항목.
 // 안드로이드·PC 크롬은 설치 창(canPrompt), 비지원 브라우저는 OS별(iOS vs Android/기타) 안내 시트.
 import { MoreVertical, PlusSquare, Share, Smartphone, X } from "lucide-react";
-import { useState } from "react";
-import { createPortal } from "react-dom";
+import { useEffect, useRef, useState } from "react";
 import { dismissInstallBanner, promptInstall, useInstallState } from "../../lib/pwa-install";
 import { Button } from "../ui/button";
 
@@ -123,58 +122,63 @@ export function InstallGuideSheet({ ios, onClose }: { ios: boolean; onClose: () 
         { icon: Smartphone, text: "'설치'를 누르면 홈 화면에 사주라가 생겨요." },
       ];
 
-  return createPortal(
-    <div className="fixed inset-0 z-50 flex items-end justify-center bg-ink/40 sm:items-center">
-      <dialog
-        open
-        aria-modal="true"
-        aria-labelledby="install-guide-title"
-        className="m-0 w-full max-w-md border-0 bg-transparent p-0 px-6 pt-6 pb-6 rounded-t-3xl sm:rounded-3xl glass-strong"
-      >
-        <div className="mb-5 flex items-center justify-between">
-          <h2 id="install-guide-title" className="text-xl font-bold text-ink">
-            홈 화면에 추가하는 방법
-          </h2>
-          <button
-            type="button"
-            onClick={onClose}
-            aria-label="닫기"
-            className="flex size-10 items-center justify-center rounded-full text-ink-3 hover:bg-subtle"
-          >
-            <X className="size-6" />
-          </button>
-        </div>
-        {ios ? (
-          <p className="mb-4 rounded-xl bg-warn-soft px-4 py-3 text-[0.95rem] text-warn">
-            아이폰은 <strong>사파리(Safari)</strong>에서 열어야 추가할 수 있어요.
-          </p>
-        ) : null}
-        <ol className="space-y-4">
-          {steps.map((s, i) => {
-            const Icon = s.icon;
-            return (
-              <li key={s.text} className="flex items-center gap-4">
-                <span className="flex size-12 shrink-0 items-center justify-center rounded-2xl bg-brand-soft text-brand">
-                  <Icon className="size-6" />
-                </span>
-                <p className="text-base leading-snug text-ink">
-                  <strong className="mr-1 text-brand">{i + 1}.</strong>
-                  {s.text}
-                </p>
-              </li>
-            );
-          })}
-        </ol>
-        <Button
+  // 모달로 띄워야 포커스가 창 안에 갇히고 Esc로 닫히며 뒤 화면을 누를 수 없다
+  const ref = useRef<HTMLDialogElement>(null);
+  useEffect(() => {
+    ref.current?.showModal();
+  }, []);
+  const close = () => ref.current?.close();
+
+  // 앱 폭은 화면 아래에 붙는 판, 넓은 화면은 가운데
+  return (
+    <dialog
+      ref={ref}
+      onClose={onClose}
+      aria-labelledby="install-guide-title"
+      className="mx-auto mt-auto mb-0 w-full max-w-md border-0 bg-transparent px-6 pt-6 pb-6 rounded-t-3xl glass-strong backdrop:bg-ink/40 sm:mb-auto sm:rounded-3xl"
+    >
+      <div className="mb-5 flex items-center justify-between">
+        <h2 id="install-guide-title" className="text-xl font-bold text-ink">
+          홈 화면에 추가하는 방법
+        </h2>
+        <button
           type="button"
-          size="xl"
-          className="mt-6 w-full rounded-2xl text-lg font-semibold"
-          onClick={onClose}
+          onClick={close}
+          aria-label="닫기"
+          className="flex size-10 items-center justify-center rounded-full text-ink-3 hover:bg-subtle"
         >
-          확인했어요
-        </Button>
-      </dialog>
-    </div>,
-    document.body,
+          <X className="size-6" />
+        </button>
+      </div>
+      {ios ? (
+        <p className="mb-4 rounded-xl bg-warn-soft px-4 py-3 text-[0.95rem] text-warn">
+          아이폰은 <strong>사파리(Safari)</strong>에서 열어야 추가할 수 있어요.
+        </p>
+      ) : null}
+      <ol className="space-y-4">
+        {steps.map((s, i) => {
+          const Icon = s.icon;
+          return (
+            <li key={s.text} className="flex items-center gap-4">
+              <span className="flex size-12 shrink-0 items-center justify-center rounded-2xl bg-brand-soft text-brand">
+                <Icon className="size-6" />
+              </span>
+              <p className="text-base leading-snug text-ink">
+                <strong className="mr-1 text-brand">{i + 1}.</strong>
+                {s.text}
+              </p>
+            </li>
+          );
+        })}
+      </ol>
+      <Button
+        type="button"
+        size="xl"
+        className="mt-6 w-full rounded-2xl text-lg font-semibold"
+        onClick={close}
+      >
+        확인했어요
+      </Button>
+    </dialog>
   );
 }

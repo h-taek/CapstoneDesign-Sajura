@@ -13,6 +13,7 @@ import {
   selectAlertInventory,
   selectTopPriceTrends,
 } from "../components/home/home-utils";
+import { MenuShareDonut } from "../components/home/menu-share-donut";
 import HomePage from "../routes/home";
 import { useAuthStore } from "../stores/auth-store";
 
@@ -222,6 +223,19 @@ describe("B2 홈 순수 계산 함수 (home-utils)", () => {
       expect(res[0]?.name).toBe("소비기한 임박 재료");
       expect(res[1]?.name).toBe("재고 부족 재료");
     });
+  });
+});
+
+describe("MenuShareDonut 빈 상태 문구", () => {
+  it("예측은 받았는데 메뉴별 수량만 비면 실패가 아니라 '아직 없어요'로 안내한다", () => {
+    const { unmount } = render(<MenuShareDonut hasSalesData menuForecast={[]} />);
+    expect(screen.getByText("메뉴별 예측이 아직 없어요")).toBeInTheDocument();
+    expect(screen.queryByText("오늘 예측을 불러오지 못했어요")).not.toBeInTheDocument();
+    unmount();
+
+    // 예측 자체가 없으면(조회 실패) 기존 실패 문구
+    render(<MenuShareDonut hasSalesData menuForecast={undefined} />);
+    expect(screen.getByText("오늘 예측을 불러오지 못했어요")).toBeInTheDocument();
   });
 });
 

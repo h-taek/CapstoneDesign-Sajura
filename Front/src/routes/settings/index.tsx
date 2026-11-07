@@ -57,9 +57,7 @@ export default function SettingsHubPage() {
   });
   const isCsvMode = !posStatus || posStatus.status === "CSV_MODE";
 
-  // 현재 활성 판 결정 (URL splat 기반, 없으면 웹은 "pos", 앱 폭에서는 null)
-  // URL이 /settings 면 웹에서는 "pos", 모바일에서는 null(판 안 보임)
-  // URL이 /settings/account 면 둘 다 "account"
+  // 현재 활성 판 — URL splat 기반. /settings면 웹·앱 모두 판 없이 목록만(웹도 고른 판만 연다)
   const activePanel: SettingsPanelKey | null = splat !== "" ? splat : null;
 
   const selectPanel = (key: SettingsPanelKey) => {
@@ -161,7 +159,7 @@ export default function SettingsHubPage() {
             <li
               data-row="pos"
               className={`relative flex items-center gap-3.5 px-5 py-2.5 transition-colors hover:bg-white/40 ${
-                activePanel === "pos" || activePanel === "pos/upload" || (!activePanel && true)
+                activePanel === "pos" || activePanel === "pos/upload"
                   ? "lg:outline-2 lg:outline-offset-[-2px] lg:outline-brand lg:rounded-2xl"
                   : ""
               }`}
@@ -331,18 +329,15 @@ export default function SettingsHubPage() {
           </button>
         </div>
 
-        {/* 오른쪽 3열: 고른 판 (웹은 늘 열려 있고 기본은 pos, 앱은 activePanel이 있을 때만 전체 화면) */}
-        {/* activePanel이 null이면 웹에서는 POS 판을 렌더링하고, 앱 폭(<lg)에서는 숨김 */}
+        {/* 오른쪽 3열: 고른 판 (웹은 옆에, 앱은 전체 화면). 아무것도 안 골랐으면 비운다 — 기본 판을 두면 그 판의 X가 닫히지 않는다 */}
         {activePanel === "account" && <AccountPanel onBack={closePanel} />}
         {activePanel === "notifications" && <NotificationsPanel onBack={closePanel} />}
         {activePanel === "store" && <StorePanel onBack={closePanel} />}
         {activePanel === "pos/upload" && <UploadPanel onBack={() => selectPanel("pos")} />}
         {activePanel === "coupang" && <CoupangPanel onBack={closePanel} />}
         {activePanel === "app-info" && <AppInfoPanel onBack={closePanel} />}
-        {(activePanel === "pos" || activePanel === null) && (
-          <div className={activePanel === null ? "hidden lg:contents" : "contents"}>
-            <PosPanel onBack={closePanel} onOpenUpload={() => selectPanel("pos/upload")} />
-          </div>
+        {activePanel === "pos" && (
+          <PosPanel onBack={closePanel} onOpenUpload={() => selectPanel("pos/upload")} />
         )}
       </div>
     </MainShell>

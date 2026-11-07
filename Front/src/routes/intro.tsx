@@ -123,7 +123,11 @@ export default function IntroPage() {
         id="hd"
         className={`day-header pt-safe fixed inset-x-0 top-0 z-40 ${isScrolled ? "scrolled" : ""}`}
       >
-        <div className="hd-pill fixed top-[calc(env(safe-area-inset-top)+12px)] left-1/2 flex h-13 items-center gap-3 rounded-full pr-1.5 pl-1.5">
+        {/* 스크롤 전에는 투명하게 숨어 있으므로 inert로 키보드 포커스·화면 읽기에서도 뺀다 */}
+        <div
+          inert={!isScrolled}
+          className="hd-pill fixed top-[calc(env(safe-area-inset-top)+12px)] left-1/2 flex h-13 items-center gap-3 rounded-full pr-1.5 pl-1.5"
+        >
           <Link
             to="/intro"
             aria-label="사주라 소개"

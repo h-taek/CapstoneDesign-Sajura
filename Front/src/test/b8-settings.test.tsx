@@ -96,11 +96,16 @@ describe("B8 설정 화면", () => {
     await waitFor(() => expect(useAuthStore.getState().accessToken).toBeNull());
   });
 
-  it("1) 판 전환: /settings 진입 시 기본으로 POS 연동이 보이고, 다른 항목 클릭 시 해당 판으로 전환된다", async () => {
+  it("1) 판 전환: /settings 진입 시 판 없이 목록만 보이고, 고른 항목의 판이 열리며 X로 닫힌다", async () => {
     const { container } = renderSettings("/settings");
-    await waitFor(() => {
-      expect(screen.getByText("CSV 모드")).toBeInTheDocument();
-    });
+    expect(await screen.findByRole("button", { name: "POS 연동" })).toBeInTheDocument();
+    expect(screen.queryByText("CSV 모드")).not.toBeInTheDocument();
+
+    // POS 연동을 고르면 판이 열리고, X(닫기)로 닫힌다
+    fireEvent.click(screen.getByRole("button", { name: "POS 연동" }));
+    expect(await screen.findByText("CSV 모드")).toBeInTheDocument();
+    fireEvent.click(screen.getAllByRole("button", { name: "닫기" })[0] as HTMLElement);
+    await waitFor(() => expect(screen.queryByText("CSV 모드")).not.toBeInTheDocument());
 
     // 알림 클릭
     const notifBtn = container.querySelector('button[data-row="notify"]');
