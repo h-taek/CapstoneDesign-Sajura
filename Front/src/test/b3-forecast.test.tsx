@@ -254,6 +254,14 @@ describe("ForecastPage 화면 렌더링 및 인터랙션", () => {
   beforeEach(() => {
     vi.restoreAllMocks();
     // 기본 mock 데이터 설정
+    vi.spyOn(salesApi, "listSales").mockResolvedValue({
+      items: [],
+      total: 54,
+      total_revenue: 1_188_000,
+      page: 1,
+      size: 1,
+      total_pages: 54,
+    });
     vi.spyOn(salesApi, "getSalesSummary").mockResolvedValue({
       total_revenue: 15_000_000,
       total_sales_count: 650,
@@ -414,6 +422,12 @@ describe("ForecastPage 화면 렌더링 및 인터랙션", () => {
     await waitFor(() => {
       expect(screen.getByText(/10월 21일 \(수\) 메뉴별 예상 판매/)).toBeInTheDocument();
     });
+  });
+
+  it("기간 판매 건수는 매출을 나눈 값이 아니라 판매 기록 수를 보여 준다", async () => {
+    renderForecastPage();
+    expect(await screen.findByText("판매 54건")).toBeInTheDocument();
+    expect(salesApi.listSales).toHaveBeenCalledWith(expect.objectContaining({ size: 1 }));
   });
 
   it("주/월/년 탭 클릭 시 탭 상태가 전환된다", async () => {

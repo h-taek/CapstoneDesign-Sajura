@@ -94,6 +94,8 @@ test.describe("auth + onboarding", () => {
     // Step 1 — 매장 정보.
     await page.locator("#store_name").fill("길동 카페");
     await page.locator("#business_type").selectOption("카페");
+    await page.locator("#store_size").selectOption("SMALL");
+    await page.locator("#operation_type").selectOption("HALL");
     await page.locator("#address").fill("서울시 강남구 1");
     await page.locator("#phone").fill("0212345678");
     await page.locator("#phone").blur();

@@ -5,11 +5,8 @@ import { Navigate, useNavigate } from "react-router";
 import { type MenusStepValues, menusStepSchema } from "../../schemas/onboarding";
 import { useOnboardingStore } from "../../stores/onboarding-store";
 
-const DEFAULT_MENUS = [
-  { name: "마르게리타 화덕피자", category: "피자", price: 16000, is_active: true },
-  { name: "페페로니 듬뿍 화덕피자", category: "피자", price: 18000, is_active: true },
-  { name: "콜라", category: "음료", price: 2500, is_active: true },
-];
+// 빈 줄 하나로 시작한다 — 예시 메뉴를 값으로 넣으면 그대로 [다음]을 눌렀을 때 등록된다
+const EMPTY_MENU = { name: "", category: "기타", price: 0, is_active: true };
 
 export default function MenusStep() {
   const navigate = useNavigate();
@@ -25,7 +22,7 @@ export default function MenusStep() {
   } = useForm<MenusStepValues>({
     resolver: zodResolver(menusStepSchema),
     defaultValues: {
-      menus: drafts.length > 0 ? drafts : DEFAULT_MENUS,
+      menus: drafts.length > 0 ? drafts : [EMPTY_MENU],
     },
     mode: "onBlur",
   });
@@ -47,6 +44,9 @@ export default function MenusStep() {
       <p className="mt-2 text-base text-white/75">재고 차감은 레시피를 등록한 뒤 켤 수 있어요</p>
       <form className="mt-8 space-y-2.5 text-left" onSubmit={handleSubmit(onSubmit)} noValidate>
         {fields.map((field, idx) => {
+          const rowErrors = errors.menus?.[idx];
+          const rowError =
+            rowErrors?.name?.message ?? rowErrors?.category?.message ?? rowErrors?.price?.message;
           return (
             <div
               key={field.id}
@@ -95,6 +95,11 @@ export default function MenusStep() {
                   <Trash2 className="size-4" />
                 </button>
               </div>
+              {rowError && (
+                <p className="px-1 text-sm font-semibold text-[#ffd6d6]" role="alert">
+                  {rowError}
+                </p>
+              )}
             </div>
           );
         })}
@@ -107,7 +112,7 @@ export default function MenusStep() {
 
         <button
           type="button"
-          onClick={() => append({ name: "", category: "기타", price: 0, is_active: true })}
+          onClick={() => append(EMPTY_MENU)}
           data-testid="menu-add"
           className="flex h-12 w-full items-center justify-center gap-1.5 rounded-xl border border-dashed border-white/35 text-[0.95rem] font-semibold text-white hover:bg-white/10"
         >

@@ -560,6 +560,28 @@ describe("HomePage 컴포넌트", () => {
     expect(screen.getByText("아직 확정한 발주가 없어요")).toBeInTheDocument();
   });
 
+  it("판매 요약 조회가 실패하면 위에 실패 안내와 다시 시도를 띄운다", async () => {
+    vi.spyOn(salesApi, "getSalesSummary").mockRejectedValue(new Error("down"));
+    vi.spyOn(inventoryApi, "getPriceTrends").mockResolvedValue({
+      start_date: "2026-09-19",
+      end_date: "2026-10-19",
+      items: [],
+    });
+    vi.spyOn(ordersApi, "listOrders").mockResolvedValue({
+      items: [],
+      total: 0,
+      page: 1,
+      size: 4,
+      total_pages: 0,
+    });
+    vi.spyOn(inventoryApi, "listInventory").mockResolvedValue([]);
+
+    renderHome();
+
+    expect(await screen.findByText("불러오지 못했어요")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "다시 시도" })).toBeInTheDocument();
+  });
+
   it("재고 칸: 확인 필요 재료는 웹에서 모두 그리고(칸 안 스크롤), 앱에서는 앞 8개만 보인다", async () => {
     vi.spyOn(inventoryApi, "listInventory").mockResolvedValue(
       Array.from({ length: 10 }, (_, i) => ({

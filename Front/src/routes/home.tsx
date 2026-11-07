@@ -28,6 +28,7 @@ import { RecentOrderTile } from "../components/home/recent-order-tile";
 import { isExpiryWarning, isStockWarning } from "../components/inventory/stock-status";
 import { InstallBanner } from "../components/pwa/install-banner";
 import { MainShell } from "../components/shell";
+import { LoadError } from "../components/ui/load-error";
 import { accuracyRatio } from "../lib/accuracy";
 import {
   formatMonthDay,
@@ -47,7 +48,11 @@ export default function HomePage() {
   const user = useAuthStore((s) => s.user);
 
   // 1. 판매 요약
-  const { data: summary } = useQuery({
+  const {
+    data: summary,
+    isError: isSummaryError,
+    refetch: refetchSummary,
+  } = useQuery({
     queryKey: ["sales-summary"],
     queryFn: getSalesSummary,
     staleTime: 60_000,
@@ -229,6 +234,11 @@ export default function HomePage() {
           </div>
         </div>
       </header>
+
+      {/* 판매 요약 실패 — 없으면 아래 칸이 모두 '판매 데이터 없음'처럼 보인다 */}
+      {isSummaryError && !summary && (
+        <LoadError className="mb-4 py-6" onRetry={() => void refetchSummary()} />
+      )}
 
       {/* 설치 안내 배너 */}
       <InstallBanner />

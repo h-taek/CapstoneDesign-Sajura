@@ -8,6 +8,7 @@ import * as menusApi from "../api/endpoints/menus";
 import * as storeApi from "../api/endpoints/store";
 import LoginPage from "../routes/login";
 import ConfirmStep from "../routes/onboarding/step-confirm";
+import MenusStep from "../routes/onboarding/step-menus";
 import PosStep from "../routes/onboarding/step-pos";
 import StoreStep from "../routes/onboarding/step-store";
 import RegisterPage from "../routes/register";
@@ -301,6 +302,12 @@ describe("B1 시작·인증·온보딩 화면 흐름", () => {
 
       const storeNameInput = screen.getByLabelText("매장명");
       fireEvent.change(storeNameInput, { target: { value: "사주라 성수점" } });
+      fireEvent.change(screen.getByLabelText("업종"), { target: { value: "양식" } });
+      fireEvent.change(screen.getByLabelText("매장 규모"), { target: { value: "MEDIUM" } });
+      fireEvent.change(screen.getByLabelText("운영 형태"), { target: { value: "BOTH" } });
+      fireEvent.change(screen.getByLabelText("주소"), {
+        target: { value: "서울 성동구 성수이로 113" },
+      });
 
       const phoneInput = screen.getByLabelText("전화번호");
       fireEvent.change(phoneInput, { target: { value: "0212345678" } });
@@ -320,6 +327,41 @@ describe("B1 시작·인증·온보딩 화면 흐름", () => {
         expect(state.store?.store_name).toBe("사주라 성수점");
         expect(state.pos?.pos_type).toBe("CSV_ONLY");
       });
+    });
+
+    it("매장 단계는 예시 값 없이 빈칸으로 시작하고, 그대로 [다음]을 누르면 칸마다 안내한다", async () => {
+      renderWithClient(<StoreStep />, "/onboarding/1");
+
+      expect((screen.getByLabelText("매장명") as HTMLInputElement).value).toBe("");
+      expect((screen.getByLabelText("주소") as HTMLInputElement).value).toBe("");
+      expect((screen.getByLabelText("전화번호") as HTMLInputElement).value).toBe("");
+      expect((screen.getByLabelText("업종") as HTMLSelectElement).value).toBe("");
+      expect((screen.getByLabelText("매장 규모") as HTMLSelectElement).value).toBe("");
+      expect((screen.getByLabelText("운영 형태") as HTMLSelectElement).value).toBe("");
+
+      fireEvent.click(screen.getByTestId("store-next"));
+
+      expect(await screen.findByText("매장명을 입력하세요.")).toBeInTheDocument();
+      expect(screen.getByText("업종을 선택하세요.")).toBeInTheDocument();
+      expect(screen.getByText("매장 규모를 선택하세요.")).toBeInTheDocument();
+      expect(screen.getByText("운영 형태를 선택하세요.")).toBeInTheDocument();
+      expect(useOnboardingStore.getState().store).toBeNull();
+    });
+
+    it("메뉴 단계는 빈 줄 하나로 시작하고, 이름 없이 [다음]을 누르면 그 줄에 안내한다", async () => {
+      useOnboardingStore.setState({
+        pos: { pos_type: "CSV_ONLY", api_key: "", store_code: "" },
+        menus: [],
+      });
+      renderWithClient(<MenusStep />, "/onboarding/3");
+
+      expect(screen.getAllByLabelText("메뉴명")).toHaveLength(1);
+      expect((screen.getByLabelText("메뉴명") as HTMLInputElement).value).toBe("");
+
+      fireEvent.click(screen.getByTestId("menus-next"));
+
+      expect(await screen.findByText("메뉴명을 입력하세요.")).toBeInTheDocument();
+      expect(useOnboardingStore.getState().menus).toEqual([]);
     });
 
     it("ConfirmStep에서 완료 시 API들을 호출한다", async () => {

@@ -24,6 +24,7 @@ import {
 import { type MenuFilter, groupAndFilterMenus } from "../components/menus/menu-logic";
 import { FollowPanel } from "../components/shell";
 import { MainShell } from "../components/shell";
+import { LoadError } from "../components/ui/load-error";
 
 const NEW = "new";
 
@@ -33,7 +34,12 @@ export default function MenusPage() {
   const [filter, setFilter] = useState<MenuFilter>("all");
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
-  const { data: menuList, isLoading: isMenusLoading } = useQuery({
+  const {
+    data: menuList,
+    isLoading: isMenusLoading,
+    isError: isMenusError,
+    refetch: refetchMenus,
+  } = useQuery({
     queryKey: ["menus-all"],
     queryFn: () => listMenus(100),
   });
@@ -205,6 +211,8 @@ export default function MenusPage() {
               <p className="rounded-2xl px-5 py-10 text-center text-ink-2 glass-card">
                 불러오는 중…
               </p>
+            ) : isMenusError && !menuList ? (
+              <LoadError onRetry={() => void refetchMenus()} />
             ) : menus.length === 0 ? (
               <div className="rounded-2xl px-5 py-10 text-center glass-card">
                 <p className="text-lg font-bold text-ink">등록된 메뉴가 없어요</p>

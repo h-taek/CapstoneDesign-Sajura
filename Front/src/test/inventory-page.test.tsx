@@ -86,6 +86,18 @@ describe("InventoryPage", () => {
     ).toBeInTheDocument();
   });
 
+  it("목록 조회가 실패하면 '재료 없음' 대신 실패 안내와 다시 시도를 보여 준다", async () => {
+    const list = vi.spyOn(inventoryApi, "listInventory").mockRejectedValueOnce(new Error("down"));
+    list.mockResolvedValueOnce([bean]);
+    renderPage();
+
+    expect(await screen.findByText("불러오지 못했어요")).toBeInTheDocument();
+    expect(screen.queryByText("등록된 재료가 없어요")).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "다시 시도" }));
+    expect(await screen.findByText("원두")).toBeInTheDocument();
+  });
+
   it("입고를 등록한다", async () => {
     const add = vi.spyOn(inventoryApi, "addLot").mockResolvedValue(lot);
     renderPage();

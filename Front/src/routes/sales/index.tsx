@@ -13,6 +13,7 @@ import {
 import { DayPanel } from "../../components/sales/day-panel";
 import { MenuPanel } from "../../components/sales/menu-panel";
 import { DateField, MainShell } from "../../components/shell";
+import { LoadError } from "../../components/ui/load-error";
 import { formatWon, parseLocalDate, toIsoDate } from "../../lib/format";
 
 const PAGE_SIZE = 31; // 1년이면 366줄이라 31줄씩 쪽 이동
@@ -225,7 +226,9 @@ export default function SalesPage() {
               <p className="glass-card rounded-2xl px-5 py-10 text-center text-ink-2">
                 불러오는 중…
               </p>
-            ) : rangeError ? null : continuousDays.length === 0 || totalStats.quantity === 0 ? (
+            ) : rangeError ? null : trendsQuery.isError && !trendsQuery.data ? (
+              <LoadError onRetry={() => void trendsQuery.refetch()} />
+            ) : continuousDays.length === 0 || totalStats.quantity === 0 ? (
               <p className="glass-card rounded-2xl px-5 py-10 text-center text-ink-2">
                 이 기간에 판매가 없어요
               </p>

@@ -20,14 +20,8 @@ export default function StoreStep() {
     formState: { errors },
   } = useForm<StoreStepValues>({
     resolver: zodResolver(storeStepSchema),
-    defaultValues: draft ?? {
-      store_name: "사주라 화덕피자 성수점",
-      business_type: "양식",
-      store_size: "MEDIUM",
-      operation_type: "BOTH",
-      address: "서울 성동구 성수이로 00",
-      phone: "02-000-0000",
-    },
+    // 예시는 placeholder로만 보인다 — 값으로 채우면 그대로 [다음]을 눌렀을 때 예시 매장이 등록된다
+    defaultValues: draft ?? { store_name: "", business_type: "", address: "", phone: "" },
     mode: "onBlur",
   });
   const phoneValue = watch("phone");
@@ -50,6 +44,7 @@ export default function StoreStep() {
             id="store_name"
             type="text"
             autoComplete="organization"
+            placeholder="예: 행복분식 성수점"
             className="h-12 w-full rounded-xl border border-white/15 bg-[#0d0a26]/45 px-4 text-base text-white placeholder:text-white/70 backdrop-blur-md [color-scheme:dark] focus:border-[#b3a4ff] focus:ring-4 focus:ring-[#b3a4ff]/25 focus:outline-none"
             {...register("store_name")}
           />
@@ -70,6 +65,9 @@ export default function StoreStep() {
               className="h-12 w-full rounded-xl border border-white/15 bg-[#0d0a26]/45 px-4 text-base text-white placeholder:text-white/70 backdrop-blur-md [color-scheme:dark] focus:border-[#b3a4ff] focus:ring-4 focus:ring-[#b3a4ff]/25 focus:outline-none appearance-none pr-10"
               {...register("business_type")}
             >
+              <option value="" className="bg-[#110b36] text-white">
+                업종 선택
+              </option>
               {BUSINESS_TYPES.map((b) => (
                 <option key={b} value={b} className="bg-[#110b36] text-white">
                   {b}
@@ -96,6 +94,9 @@ export default function StoreStep() {
                 className="h-12 w-full rounded-xl border border-white/15 bg-[#0d0a26]/45 px-4 text-base text-white placeholder:text-white/70 backdrop-blur-md [color-scheme:dark] focus:border-[#b3a4ff] focus:ring-4 focus:ring-[#b3a4ff]/25 focus:outline-none appearance-none pr-10"
                 {...register("store_size")}
               >
+                <option value="" className="bg-[#110b36] text-white">
+                  선택
+                </option>
                 <option value="SMALL" className="bg-[#110b36] text-white">
                   소형 (~10석)
                 </option>
@@ -108,6 +109,11 @@ export default function StoreStep() {
               </select>
               <ChevronDown className="pointer-events-none absolute top-1/2 right-4 size-4 -translate-y-1/2 text-white/80" />
             </span>
+            {errors.store_size?.message && (
+              <p className="px-1 text-sm font-semibold text-[#ffd6d6]" role="alert">
+                {errors.store_size.message}
+              </p>
+            )}
           </div>
           <div className="flex flex-col gap-1.5">
             <label htmlFor="operation_type" className="text-sm font-semibold text-white/90">
@@ -119,6 +125,9 @@ export default function StoreStep() {
                 className="h-12 w-full rounded-xl border border-white/15 bg-[#0d0a26]/45 px-4 text-base text-white placeholder:text-white/70 backdrop-blur-md [color-scheme:dark] focus:border-[#b3a4ff] focus:ring-4 focus:ring-[#b3a4ff]/25 focus:outline-none appearance-none pr-10"
                 {...register("operation_type")}
               >
+                <option value="" className="bg-[#110b36] text-white">
+                  선택
+                </option>
                 <option value="HALL" className="bg-[#110b36] text-white">
                   홀
                 </option>
@@ -131,6 +140,11 @@ export default function StoreStep() {
               </select>
               <ChevronDown className="pointer-events-none absolute top-1/2 right-4 size-4 -translate-y-1/2 text-white/80" />
             </span>
+            {errors.operation_type?.message && (
+              <p className="px-1 text-sm font-semibold text-[#ffd6d6]" role="alert">
+                {errors.operation_type.message}
+              </p>
+            )}
           </div>
         </div>
 
@@ -142,6 +156,7 @@ export default function StoreStep() {
             id="address"
             type="text"
             autoComplete="street-address"
+            placeholder="예: 서울 성동구 성수이로 113"
             className="h-12 w-full rounded-xl border border-white/15 bg-[#0d0a26]/45 px-4 text-base text-white placeholder:text-white/70 backdrop-blur-md [color-scheme:dark] focus:border-[#b3a4ff] focus:ring-4 focus:ring-[#b3a4ff]/25 focus:outline-none"
             {...register("address")}
           />
@@ -160,6 +175,7 @@ export default function StoreStep() {
             id="phone"
             inputMode="tel"
             autoComplete="tel"
+            placeholder="예: 02-1234-5678"
             value={phoneValue}
             onChange={(e) =>
               setValue("phone", formatPhone(e.target.value), { shouldValidate: false })

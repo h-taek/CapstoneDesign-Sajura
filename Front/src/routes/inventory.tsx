@@ -23,6 +23,7 @@ import {
   sortInventoryByOption,
 } from "../components/inventory/stock-status";
 import { MainShell } from "../components/shell/main-shell";
+import { LoadError } from "../components/ui/load-error";
 import { usePreferencesStore } from "../stores/preferences-store";
 
 const PAGE_SIZE = 25;
@@ -43,10 +44,11 @@ export default function InventoryPage() {
   const setSortOption = usePreferencesStore((st) => st.setInventorySortOption);
 
   // 재고 목록 쿼리
-  const { data: items = [], isLoading } = useQuery({
+  const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ["inventory"],
     queryFn: listInventory,
   });
+  const items = useMemo(() => data ?? [], [data]);
 
   // 재료 삭제 뮤테이션
   const deleteMutation = useMutation({
@@ -251,6 +253,8 @@ export default function InventoryPage() {
               <p className="rounded-2xl px-5 py-10 text-center text-ink-2 glass-card">
                 불러오는 중…
               </p>
+            ) : isError && !data ? (
+              <LoadError onRetry={() => void refetch()} />
             ) : items.length === 0 ? (
               <div className="rounded-2xl px-5 py-10 text-center glass-card">
                 <p className="text-lg font-bold text-ink">등록된 재료가 없어요</p>

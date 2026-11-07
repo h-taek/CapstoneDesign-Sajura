@@ -5,7 +5,7 @@ import { AlertTriangle, ChevronLeft, ChevronRight } from "lucide-react";
 import { useMemo, useState } from "react";
 import { type ForecastActualPoint, getForecastVsActual } from "../api/endpoints/dashboard";
 import { type DailyPrediction, getForecastPredict } from "../api/endpoints/forecast";
-import { getSalesSummary } from "../api/endpoints/sales";
+import { getSalesSummary, listSales } from "../api/endpoints/sales";
 import { ForecastChart } from "../components/forecast/forecast-chart";
 import {
   type MenuShareCardItem,
@@ -20,7 +20,13 @@ import {
   lowConfidenceTooltip,
 } from "../components/forecast/forecast-logic";
 import { MainShell } from "../components/shell";
-import { formatMonthDay, formatMonthDayDow, formatWonShort, parseLocalDate } from "../lib/format";
+import {
+  formatMonthDay,
+  formatMonthDayDow,
+  formatWonShort,
+  parseLocalDate,
+  toIsoDate,
+} from "../lib/format";
 
 export default function ForecastPage() {
   const [range, setRange] = useState<PeriodRange>("month");
@@ -52,6 +58,13 @@ export default function ForecastPage() {
       bounds.queryEnd.toISOString(),
     ],
     queryFn: () => getForecastVsActual(bounds.queryStart, bounds.queryEnd),
+    staleTime: 60_000,
+  });
+
+  // 기간 판매 건수 — 판매 기록 수(홈 '판매 N건'과 같은 기준). 목록은 안 쓰고 합계만 받는다
+  const { data: periodSales } = useQuery({
+    queryKey: ["sales-count", toIsoDate(bounds.start), toIsoDate(bounds.end)],
+    queryFn: () => listSales({ start_date: bounds.start, end_date: bounds.end, size: 1 }),
     staleTime: 60_000,
   });
 
@@ -175,7 +188,7 @@ export default function ForecastPage() {
                   {formatWonShort(periodView.total)}
                 </p>
                 <p className="tabular mt-2.5 text-sm text-ink-3">
-                  판매 {Math.round(periodView.total / 22000).toLocaleString()}건
+                  {periodSales ? `판매 ${periodSales.total.toLocaleString()}건` : "판매 -"}
                 </p>
                 <p
                   title="날짜마다 1 − |예측 − 실제| ÷ 실제의 평균"
