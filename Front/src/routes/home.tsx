@@ -59,6 +59,8 @@ export default function HomePage() {
   });
 
   const hasSalesData = (summary?.total_sales_count ?? 0) > 0 && Boolean(summary?.last_sale_at);
+  // 판매 요약을 못 받았으면 판매가 있는지 모른다 — 신규 매장 안내('0원'·'첫 매출')를 띄우지 않는다
+  const summaryFailed = isSummaryError && !summary;
 
   // 기준일: 판매 기록이 있으면 마지막 판매일, 없으면 오늘
   const refDate = summary?.last_sale_at ? parseLocalDate(summary.last_sale_at) : new Date();
@@ -183,7 +185,11 @@ export default function HomePage() {
             </span>
             <div className="min-w-0">
               <p className="tabular text-xl leading-none font-bold tracking-tight text-ink lg:text-[1.35rem]">
-                {hasSalesData ? formatWonShort(summary?.today_revenue ?? 0) : "0원"}
+                {hasSalesData
+                  ? formatWonShort(summary?.today_revenue ?? 0)
+                  : summaryFailed
+                    ? "—"
+                    : "0원"}
               </p>
               <p className="mt-1 text-xs leading-snug text-ink-2 lg:truncate">
                 {hasSalesData
@@ -205,11 +211,13 @@ export default function HomePage() {
                   : "—"}
               </p>
               <p className="mt-1 text-xs leading-snug text-ink-2 lg:truncate">
-                {!hasSalesData
-                  ? "내일 예상 · 예측 전"
-                  : tomorrowPrediction
-                    ? `내일 ${formatMonthDayDow(tomorrowPrediction.target_date)} 예상`
-                    : "내일 예상 · 불러오지 못했어요"}
+                {summaryFailed
+                  ? "내일 예상"
+                  : !hasSalesData
+                    ? "내일 예상 · 예측 전"
+                    : tomorrowPrediction
+                      ? `내일 ${formatMonthDayDow(tomorrowPrediction.target_date)} 예상`
+                      : "내일 예상 · 불러오지 못했어요"}
               </p>
             </div>
           </div>
@@ -224,11 +232,13 @@ export default function HomePage() {
                 {hasSalesData && accuracy != null ? `${accuracy}%` : "—"}
               </p>
               <p className="mt-1 text-xs leading-snug text-ink-2 lg:truncate">
-                {!hasSalesData
-                  ? "예측 정확도 · 예측 전"
-                  : yesterdayPredicted != null
-                    ? `예측 정확도 · 어제 예측 ${formatWonShort(yesterdayPredicted)}`
-                    : "예측 정확도 · 어제 예측 —"}
+                {summaryFailed
+                  ? "예측 정확도"
+                  : !hasSalesData
+                    ? "예측 정확도 · 예측 전"
+                    : yesterdayPredicted != null
+                      ? `예측 정확도 · 어제 예측 ${formatWonShort(yesterdayPredicted)}`
+                      : "예측 정확도 · 어제 예측 —"}
               </p>
             </div>
           </div>
@@ -236,130 +246,138 @@ export default function HomePage() {
       </header>
 
       {/* 판매 요약 실패 — 없으면 아래 칸이 모두 '판매 데이터 없음'처럼 보인다 */}
-      {isSummaryError && !summary && (
-        <LoadError className="mb-4 py-6" onRetry={() => void refetchSummary()} />
-      )}
+      {summaryFailed && <LoadError className="mb-4 py-6" onRetry={() => void refetchSummary()} />}
 
       {/* 설치 안내 배너 */}
       <InstallBanner />
 
       {/* 웹은 두 열 — 왼쪽 7칸 / 오른쪽 5칸 */}
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-12">
-        <div className="grid gap-4 lg:col-span-7">
-          {/* 오늘 예상 매출 */}
-          <section className="flex flex-col rounded-2xl p-5 glass-card">
-            <div className="flex items-center justify-between gap-2">
-              <h2 className="text-base font-bold text-ink">오늘 예상 매출</h2>
-              <span className="rounded-full bg-white/60 px-2.5 py-1 text-xs font-semibold text-ink-2">
-                {formatMonthDayDow(todayTargetDate)}
-              </span>
-            </div>
+        <div
+          className={`grid gap-4 lg:col-span-7 ${
+            // 요약 실패로 칸이 쿠팡 단가 하나만 남으면 오른쪽 열 높이만큼 늘어나지 않게 위로 붙인다
+            summaryFailed ? "content-start" : ""
+          }`}
+        >
+          {/* 판매 요약에 기대는 칸 — 요약을 못 받았으면 숨긴다 */}
+          {!summaryFailed && (
+            <>
+              {/* 오늘 예상 매출 */}
+              <section className="flex flex-col rounded-2xl p-5 glass-card">
+                <div className="flex items-center justify-between gap-2">
+                  <h2 className="text-base font-bold text-ink">오늘 예상 매출</h2>
+                  <span className="rounded-full bg-white/60 px-2.5 py-1 text-xs font-semibold text-ink-2">
+                    {formatMonthDayDow(todayTargetDate)}
+                  </span>
+                </div>
 
-            {hasSalesData && todayPrediction ? (
-              <div className="mt-3 flex flex-wrap items-baseline gap-x-3 gap-y-1">
-                <p className="tabular text-[2.5rem] leading-none font-bold tracking-tight text-ink">
-                  {formatWonShort(todayPrediction.predicted_sales)}
-                </p>
-                {deviation != null && deviationPct != null && (
-                  <p className="text-sm text-ink-2">
-                    평소보다{" "}
-                    <span
-                      className={`inline-flex items-center gap-0.5 font-bold ${
-                        deviation < 0 ? "text-down" : "text-up"
-                      }`}
+                {hasSalesData && todayPrediction ? (
+                  <div className="mt-3 flex flex-wrap items-baseline gap-x-3 gap-y-1">
+                    <p className="tabular text-[2.5rem] leading-none font-bold tracking-tight text-ink">
+                      {formatWonShort(todayPrediction.predicted_sales)}
+                    </p>
+                    {deviation != null && deviationPct != null && (
+                      <p className="text-sm text-ink-2">
+                        평소보다{" "}
+                        <span
+                          className={`inline-flex items-center gap-0.5 font-bold ${
+                            deviation < 0 ? "text-down" : "text-up"
+                          }`}
+                        >
+                          {deviation < 0 ? (
+                            <ArrowDown className="size-3" />
+                          ) : (
+                            <ArrowUp className="size-3" />
+                          )}
+                          {deviationPct}%
+                        </span>{" "}
+                        {deviation < 0 ? "낮을" : "높을"} 것으로 예상
+                      </p>
+                    )}
+                  </div>
+                ) : hasSalesData ? (
+                  <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
+                    <div>
+                      <p className="text-lg font-bold text-ink">오늘 예측을 불러오지 못했어요</p>
+                      <p className="mt-1 text-sm text-ink-3">
+                        발주 추천도 예측으로 계산해서 함께 비어 있어요.
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => refetchForecast()}
+                      className="inline-flex h-11 items-center rounded-full bg-ink px-5 text-[0.95rem] font-semibold text-white"
                     >
-                      {deviation < 0 ? (
-                        <ArrowDown className="size-3" />
-                      ) : (
-                        <ArrowUp className="size-3" />
-                      )}
-                      {deviationPct}%
-                    </span>{" "}
-                    {deviation < 0 ? "낮을" : "높을"} 것으로 예상
+                      다시 불러오기
+                    </button>
+                  </div>
+                ) : (
+                  <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
+                    <div>
+                      <p className="text-lg font-bold text-ink">첫 매출을 올려 주세요</p>
+                      <p className="mt-1 text-sm text-ink-3">
+                        올린 다음 날 아침부터 예상 매출과 발주 추천이 나와요.
+                      </p>
+                    </div>
+                    <Link
+                      to="/settings/pos/upload"
+                      className="inline-flex h-11 items-center gap-1.5 rounded-full bg-ink px-5 text-[0.95rem] font-semibold text-white"
+                    >
+                      <Upload className="size-4" />
+                      매출 올리기
+                    </Link>
+                  </div>
+                )}
+
+                {hasSalesData && (
+                  <p className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-ink-2">
+                    <span className="inline-flex items-center gap-1.5">
+                      <span className="h-0.5 w-3.5 rounded-full bg-brand" />
+                      실제
+                    </span>
+                    {todayPrediction && (
+                      <span className="inline-flex items-center gap-1.5">
+                        <span className="w-3.5 border-t-2 border-dashed border-brand" />
+                        오늘 예상
+                      </span>
+                    )}
+                    {baseline != null && (
+                      <span className="inline-flex items-center gap-1.5">
+                        <span className="w-3.5 border-t-2 border-dashed border-ink-3" />
+                        평소 · {formatWonShort(baseline)}
+                      </span>
+                    )}
                   </p>
                 )}
-              </div>
-            ) : hasSalesData ? (
-              <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
-                <div>
-                  <p className="text-lg font-bold text-ink">오늘 예측을 불러오지 못했어요</p>
-                  <p className="mt-1 text-sm text-ink-3">
-                    발주 추천도 예측으로 계산해서 함께 비어 있어요.
+
+                {hasSalesData ? (
+                  <HomeAreaChart
+                    labels={chartLabels}
+                    values={chartValues}
+                    forecastCount={forecastCount}
+                    refVal={baseline}
+                  />
+                ) : (
+                  <p className="mt-4 flex h-40 items-center justify-center rounded-xl text-sm text-ink-3 glass-card lg:h-56">
+                    매출을 올리면 그려져요
                   </p>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => refetchForecast()}
-                  className="inline-flex h-11 items-center rounded-full bg-ink px-5 text-[0.95rem] font-semibold text-white"
-                >
-                  다시 불러오기
-                </button>
-              </div>
-            ) : (
-              <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
-                <div>
-                  <p className="text-lg font-bold text-ink">첫 매출을 올려 주세요</p>
-                  <p className="mt-1 text-sm text-ink-3">
-                    올린 다음 날 아침부터 예상 매출과 발주 추천이 나와요.
-                  </p>
-                </div>
-                <Link
-                  to="/settings/pos/upload"
-                  className="inline-flex h-11 items-center gap-1.5 rounded-full bg-ink px-5 text-[0.95rem] font-semibold text-white"
-                >
-                  <Upload className="size-4" />
-                  매출 올리기
-                </Link>
-              </div>
-            )}
-
-            {hasSalesData && (
-              <p className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-ink-2">
-                <span className="inline-flex items-center gap-1.5">
-                  <span className="h-0.5 w-3.5 rounded-full bg-brand" />
-                  실제
-                </span>
-                {todayPrediction && (
-                  <span className="inline-flex items-center gap-1.5">
-                    <span className="w-3.5 border-t-2 border-dashed border-brand" />
-                    오늘 예상
-                  </span>
                 )}
-                {baseline != null && (
-                  <span className="inline-flex items-center gap-1.5">
-                    <span className="w-3.5 border-t-2 border-dashed border-ink-3" />
-                    평소 · {formatWonShort(baseline)}
-                  </span>
-                )}
-              </p>
-            )}
+              </section>
 
-            {hasSalesData ? (
-              <HomeAreaChart
-                labels={chartLabels}
-                values={chartValues}
-                forecastCount={forecastCount}
-                refVal={baseline}
-              />
-            ) : (
-              <p className="mt-4 flex h-40 items-center justify-center rounded-xl text-sm text-ink-3 glass-card lg:h-56">
-                매출을 올리면 그려져요
-              </p>
-            )}
-          </section>
-
-          {/* 지난달 매출까지 도넛 + 많이 나갈 메뉴 도넛 */}
-          <div className="grid gap-4 lg:grid-cols-7">
-            <MonthProgressDonut
-              hasSalesData={hasSalesData}
-              thisMonthRevenue={thisMonthRevenue}
-              prevMonthRevenue={prevMonthRevenue}
-            />
-            <MenuShareDonut
-              hasSalesData={hasSalesData}
-              menuForecast={todayPrediction?.menu_forecast}
-            />
-          </div>
+              {/* 지난달 매출까지 도넛 + 많이 나갈 메뉴 도넛 */}
+              <div className="grid gap-4 lg:grid-cols-7">
+                <MonthProgressDonut
+                  hasSalesData={hasSalesData}
+                  thisMonthRevenue={thisMonthRevenue}
+                  prevMonthRevenue={prevMonthRevenue}
+                />
+                <MenuShareDonut
+                  hasSalesData={hasSalesData}
+                  menuForecast={todayPrediction?.menu_forecast}
+                />
+              </div>
+            </>
+          )}
 
           {/* 쿠팡 단가 추세 */}
           <section className="flex flex-col rounded-2xl p-5 glass-card">

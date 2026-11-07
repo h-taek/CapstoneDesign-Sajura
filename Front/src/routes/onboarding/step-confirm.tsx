@@ -37,7 +37,8 @@ export default function ConfirmStep() {
           store_code: pos.store_code ?? "",
         });
       }
-      await createMenusBulk(menus);
+      // 카테고리는 선택 칸이라 비어 있으면 null로 보낸다
+      await createMenusBulk(menus.map((m) => ({ ...m, category: m.category.trim() || null })));
       await completeOnboarding();
       const me = await fetchMe();
       setUser(me);
@@ -101,7 +102,9 @@ export default function ConfirmStep() {
           <ul className="mt-1.5 space-y-1">
             {menus.map((m) => (
               <li key={`${m.name}-${m.category}`}>
-                {m.name} · {m.category} · {m.price.toLocaleString()}원
+                {[m.name, m.category.trim(), `${m.price.toLocaleString()}원`]
+                  .filter(Boolean)
+                  .join(" · ")}
               </li>
             ))}
           </ul>

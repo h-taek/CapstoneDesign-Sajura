@@ -430,6 +430,18 @@ describe("ForecastPage 화면 렌더링 및 인터랙션", () => {
     expect(salesApi.listSales).toHaveBeenCalledWith(expect.objectContaining({ size: 1 }));
   });
 
+  it("그날 메뉴별 수량이 없으면 메뉴별 예상 판매 구역을 제목째 숨긴다", async () => {
+    const base = await forecastApi.getForecastPredict();
+    vi.spyOn(forecastApi, "getForecastPredict").mockResolvedValue({
+      predictions: base.predictions.map((p) => ({ ...p, menu_forecast: [] })),
+    });
+    renderForecastPage();
+
+    expect(await screen.findByText("앞으로 3일 예상 매출")).toBeInTheDocument();
+    await screen.findAllByText(/10월 20일/);
+    expect(screen.queryByText(/메뉴별 예상 판매/)).not.toBeInTheDocument();
+  });
+
   it("주/월/년 탭 클릭 시 탭 상태가 전환된다", async () => {
     renderForecastPage();
 

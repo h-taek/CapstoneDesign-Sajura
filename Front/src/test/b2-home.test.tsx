@@ -580,6 +580,11 @@ describe("HomePage 컴포넌트", () => {
 
     expect(await screen.findByText("불러오지 못했어요")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "다시 시도" })).toBeInTheDocument();
+    // 판매가 있는지 모르므로 신규 매장 안내('0원'·'첫 매출')를 띄우지 않는다
+    expect(screen.queryByText("0원")).not.toBeInTheDocument();
+    expect(screen.queryByText("첫 매출을 올려 주세요")).not.toBeInTheDocument();
+    expect(screen.queryByText("내일 예상 · 예측 전")).not.toBeInTheDocument();
+    expect(screen.getByText("쿠팡 단가 추세")).toBeInTheDocument();
   });
 
   it("재고 칸: 확인 필요 재료는 웹에서 모두 그리고(칸 안 스크롤), 앱에서는 앞 8개만 보인다", async () => {

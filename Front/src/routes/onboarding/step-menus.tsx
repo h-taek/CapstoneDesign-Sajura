@@ -5,8 +5,9 @@ import { Navigate, useNavigate } from "react-router";
 import { type MenusStepValues, menusStepSchema } from "../../schemas/onboarding";
 import { useOnboardingStore } from "../../stores/onboarding-store";
 
-// 빈 줄 하나로 시작한다 — 예시 메뉴를 값으로 넣으면 그대로 [다음]을 눌렀을 때 등록된다
-const EMPTY_MENU = { name: "", category: "기타", price: 0, is_active: true };
+// 빈 줄 하나로 시작한다 — 예시 메뉴를 값으로 넣으면 그대로 [다음]을 눌렀을 때 등록된다.
+// 판매가는 메뉴 관리 '새 메뉴' 판처럼 빈칸으로 둔다(0을 채우면 그대로 0원 메뉴가 된다)
+const EMPTY_MENU = { name: "", category: "", is_active: true } as MenusStepValues["menus"][number];
 
 export default function MenusStep() {
   const navigate = useNavigate();
@@ -56,22 +57,22 @@ export default function MenusStep() {
               <input
                 id={`menus.${idx}.name`}
                 aria-label="메뉴명"
-                placeholder="메뉴명"
+                placeholder="메뉴명 (예: 마르게리타)"
                 className="h-12 w-full rounded-xl border border-white/15 bg-[#0d0a26]/45 px-4 text-base text-white placeholder:text-white/70 backdrop-blur-md [color-scheme:dark] focus:border-[#b3a4ff] focus:ring-4 focus:ring-[#b3a4ff]/25 focus:outline-none"
                 {...register(`menus.${idx}.name`)}
               />
               <div className="flex items-center gap-2">
                 <input
                   id={`menus.${idx}.category`}
-                  aria-label="카테고리"
-                  placeholder="카테고리"
-                  className="h-12 rounded-xl border border-white/15 bg-[#0d0a26]/45 px-3 text-base text-white placeholder:text-white/70 backdrop-blur-md [color-scheme:dark] focus:border-[#b3a4ff] focus:ring-4 focus:ring-[#b3a4ff]/25 focus:outline-none w-20 shrink-0"
+                  aria-label="카테고리 (선택)"
+                  placeholder="예: 피자"
+                  className="h-12 rounded-xl border border-white/15 bg-[#0d0a26]/45 px-3 text-base text-white placeholder:text-white/70 backdrop-blur-md [color-scheme:dark] focus:border-[#b3a4ff] focus:ring-4 focus:ring-[#b3a4ff]/25 focus:outline-none w-24 shrink-0"
                   {...register(`menus.${idx}.category`)}
                 />
                 <input
                   id={`menus.${idx}.price`}
-                  aria-label="단가(원)"
-                  placeholder="단가(원)"
+                  aria-label="판매가 (원)"
+                  placeholder="판매가 (원)"
                   type="number"
                   min="0"
                   inputMode="numeric"

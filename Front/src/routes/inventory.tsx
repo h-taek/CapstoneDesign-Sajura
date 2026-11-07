@@ -173,7 +173,8 @@ export default function InventoryPage() {
                   viewFilter === "all" ? "bg-brand-soft text-brand" : "text-ink-2 hover:text-ink"
                 }`}
               >
-                전체 {items.length}
+                {/* 목록을 못 받았으면(불러오는 중·실패) 0개로 보이지 않게 숫자를 뺀다 */}
+                전체{data ? ` ${items.length}` : ""}
               </button>
               <button
                 type="button"
@@ -184,7 +185,7 @@ export default function InventoryPage() {
                   viewFilter === "alert" ? "bg-brand-soft text-brand" : "text-ink-2 hover:text-ink"
                 }`}
               >
-                확인 필요 {alertCount}
+                확인 필요{data ? ` ${alertCount}` : ""}
               </button>
             </div>
 

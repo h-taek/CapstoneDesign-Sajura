@@ -405,12 +405,12 @@ export default function ForecastPage() {
           </section>
         </div>
 
-        {/* 메뉴별 예상 판매 섹션 */}
+        {/* 메뉴별 예상 판매 섹션 — 그날 메뉴별 수량이 없으면(메뉴 판매 이력 10영업일 미만 등) 구역째 숨긴다 */}
         {forecastLoading || forecastError || !selectedPrediction ? (
           <div className="flex min-h-[120px] items-center justify-center rounded-2xl px-6 py-8 text-center text-sm text-ink-3 glass-card">
             메뉴별 예측도 함께 기다리고 있어요
           </div>
-        ) : (
+        ) : menuShareItems.length === 0 ? null : (
           <>
             <h2 className="px-1 text-base font-bold text-ink">
               {formatMonthDayDow(selectedPrediction.target_date)} 메뉴별 예상 판매

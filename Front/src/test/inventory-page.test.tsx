@@ -93,6 +93,9 @@ describe("InventoryPage", () => {
 
     expect(await screen.findByText("불러오지 못했어요")).toBeInTheDocument();
     expect(screen.queryByText("등록된 재료가 없어요")).not.toBeInTheDocument();
+    // 칩도 '0'으로 보이지 않는다
+    expect(screen.getByRole("tab", { name: "전체" })).toBeInTheDocument();
+    expect(screen.getByRole("tab", { name: "확인 필요" })).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: "다시 시도" }));
     expect(await screen.findByText("원두")).toBeInTheDocument();

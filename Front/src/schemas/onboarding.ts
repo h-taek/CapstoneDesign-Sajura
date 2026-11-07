@@ -57,13 +57,17 @@ export const posStepSchema = z
   );
 export type PosStepValues = z.infer<typeof posStepSchema>;
 
+// 메뉴 관리 '새 메뉴' 판과 같은 규칙 — 판매가는 빈칸으로 시작해 꼭 받고, 카테고리는 선택
 export const menuItemSchema = z.object({
   name: z.string().min(1, "메뉴명을 입력하세요.").max(50),
-  category: z.string().min(1, "카테고리를 입력하세요.").max(30),
-  price: z.coerce
-    .number({ message: "숫자로 입력하세요." })
-    .int("정수로 입력하세요.")
-    .min(0, "0 이상이어야 합니다."),
+  category: z.string().max(30),
+  price: z.preprocess(
+    (v) => (v === "" ? undefined : v),
+    z.coerce
+      .number({ message: "판매가를 입력하세요." })
+      .int("정수로 입력하세요.")
+      .min(0, "0 이상이어야 합니다."),
+  ),
   is_active: z.boolean(),
 });
 

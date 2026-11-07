@@ -25,6 +25,8 @@ export default function StoreStep() {
     mode: "onBlur",
   });
   const phoneValue = watch("phone");
+  // 아직 안 고른 선택칸의 '선택' 글자는 글 칸 placeholder처럼 연하게 — 고른 값처럼 보이지 않게
+  const selectTone = (v: string | undefined) => (v ? "text-white" : "text-white/70");
 
   const onSubmit = (values: StoreStepValues) => {
     setStore(values);
@@ -62,7 +64,7 @@ export default function StoreStep() {
           <span className="relative block">
             <select
               id="business_type"
-              className="h-12 w-full rounded-xl border border-white/15 bg-[#0d0a26]/45 px-4 text-base text-white placeholder:text-white/70 backdrop-blur-md [color-scheme:dark] focus:border-[#b3a4ff] focus:ring-4 focus:ring-[#b3a4ff]/25 focus:outline-none appearance-none pr-10"
+              className={`h-12 w-full rounded-xl border border-white/15 bg-[#0d0a26]/45 px-4 text-base ${selectTone(watch("business_type"))} placeholder:text-white/70 backdrop-blur-md [color-scheme:dark] focus:border-[#b3a4ff] focus:ring-4 focus:ring-[#b3a4ff]/25 focus:outline-none appearance-none pr-10`}
               {...register("business_type")}
             >
               <option value="" className="bg-[#110b36] text-white">
@@ -91,7 +93,7 @@ export default function StoreStep() {
             <span className="relative block">
               <select
                 id="store_size"
-                className="h-12 w-full rounded-xl border border-white/15 bg-[#0d0a26]/45 px-4 text-base text-white placeholder:text-white/70 backdrop-blur-md [color-scheme:dark] focus:border-[#b3a4ff] focus:ring-4 focus:ring-[#b3a4ff]/25 focus:outline-none appearance-none pr-10"
+                className={`h-12 w-full rounded-xl border border-white/15 bg-[#0d0a26]/45 px-4 text-base ${selectTone(watch("store_size"))} placeholder:text-white/70 backdrop-blur-md [color-scheme:dark] focus:border-[#b3a4ff] focus:ring-4 focus:ring-[#b3a4ff]/25 focus:outline-none appearance-none pr-10`}
                 {...register("store_size")}
               >
                 <option value="" className="bg-[#110b36] text-white">
@@ -122,7 +124,7 @@ export default function StoreStep() {
             <span className="relative block">
               <select
                 id="operation_type"
-                className="h-12 w-full rounded-xl border border-white/15 bg-[#0d0a26]/45 px-4 text-base text-white placeholder:text-white/70 backdrop-blur-md [color-scheme:dark] focus:border-[#b3a4ff] focus:ring-4 focus:ring-[#b3a4ff]/25 focus:outline-none appearance-none pr-10"
+                className={`h-12 w-full rounded-xl border border-white/15 bg-[#0d0a26]/45 px-4 text-base ${selectTone(watch("operation_type"))} placeholder:text-white/70 backdrop-blur-md [color-scheme:dark] focus:border-[#b3a4ff] focus:ring-4 focus:ring-[#b3a4ff]/25 focus:outline-none appearance-none pr-10`}
                 {...register("operation_type")}
               >
                 <option value="" className="bg-[#110b36] text-white">

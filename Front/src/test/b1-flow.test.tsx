@@ -408,6 +408,20 @@ describe("B1 시작·인증·온보딩 화면 흐름", () => {
 
       expect(await screen.findByText("메뉴명을 입력하세요.")).toBeInTheDocument();
       expect(useOnboardingStore.getState().menus).toEqual([]);
+
+      // 판매가는 빈칸으로 시작하고 꼭 넣어야 한다. 카테고리는 비워도 된다
+      expect((screen.getByLabelText("판매가 (원)") as HTMLInputElement).value).toBe("");
+      fireEvent.change(screen.getByLabelText("메뉴명"), { target: { value: "김치찌개" } });
+      fireEvent.click(screen.getByTestId("menus-next"));
+      expect(await screen.findByText("판매가를 입력하세요.")).toBeInTheDocument();
+
+      fireEvent.change(screen.getByLabelText("판매가 (원)"), { target: { value: "9000" } });
+      fireEvent.click(screen.getByTestId("menus-next"));
+      await waitFor(() =>
+        expect(useOnboardingStore.getState().menus).toEqual([
+          { name: "김치찌개", category: "", price: 9000, is_active: true },
+        ]),
+      );
     });
 
     it("ConfirmStep에서 완료 시 API들을 호출한다", async () => {
@@ -425,7 +439,10 @@ describe("B1 시작·인증·온보딩 화면 흐름", () => {
           api_key: "",
           store_code: "",
         },
-        menus: [{ name: "피자", category: "메인", price: 15000, is_active: true }],
+        menus: [
+          { name: "피자", category: "메인", price: 15000, is_active: true },
+          { name: "콜라", category: " ", price: 2000, is_active: true },
+        ],
       });
 
       const patchStoreSpy = vi
@@ -457,6 +474,7 @@ describe("B1 시작·인증·온보딩 화면 흐름", () => {
       expect(screen.getByText("사주라 성수점")).toBeInTheDocument();
       expect(screen.getByText("CSV 업로드만 사용")).toBeInTheDocument();
       expect(screen.getByText("피자 · 메인 · 15,000원")).toBeInTheDocument();
+      expect(screen.getByText("콜라 · 2,000원")).toBeInTheDocument();
 
       fireEvent.click(screen.getByTestId("confirm-submit"));
 
@@ -464,6 +482,7 @@ describe("B1 시작·인증·온보딩 화면 흐름", () => {
         expect(patchStoreSpy).toHaveBeenCalled();
         expect(menusBulkSpy).toHaveBeenCalledWith([
           { name: "피자", category: "메인", price: 15000, is_active: true },
+          { name: "콜라", category: null, price: 2000, is_active: true },
         ]);
         expect(completeSpy).toHaveBeenCalled();
         expect(fetchMeSpy).toHaveBeenCalled();
