@@ -77,8 +77,16 @@ export function MiniPriceChart({ values }: MiniPriceChartProps) {
         <path
           d={`${linePath} L${getX(values.length - 1)},${H - B} L${getX(0)},${H - B}Z`}
           fill={`url(#${gradId})`}
+          className="chart-fade"
         />
-        <path d={linePath} fill="none" stroke={BRAND_COLOR} strokeWidth="2" />
+        <path
+          d={linePath}
+          pathLength={1}
+          fill="none"
+          stroke={BRAND_COLOR}
+          strokeWidth="2"
+          className="chart-line"
+        />
       </svg>
     </div>
   );

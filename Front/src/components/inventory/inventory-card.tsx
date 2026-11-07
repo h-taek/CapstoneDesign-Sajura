@@ -1,6 +1,7 @@
 // 재고 카드 — 4:3 비율, 재료명·총수량·소비기한(D-n · 날짜), 경고 시 해당 글씨만 빨갛게 (04_fe.md §4.6, 09_inventory.html).
 import type { InventoryItem } from "../../api/endpoints/inventory";
 import { SelectMark } from "../bulk/bulk-delete";
+import { CountUp } from "../ui/count-up";
 import { formatExpiryDisplay, isExpiryWarning, isStockWarning } from "./stock-status";
 
 function fmtQty(v: number | string): string {
@@ -47,7 +48,7 @@ export function InventoryCard({
               stockWarn ? "text-danger" : "text-ink"
             }`}
           >
-            {fmtQty(item.total_quantity)}
+            <CountUp value={Number(item.total_quantity)} format={fmtQty} />
             <span
               className={`ml-1 text-sm font-semibold ${stockWarn ? "text-danger" : "text-ink-2"}`}
             >

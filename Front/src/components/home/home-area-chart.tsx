@@ -176,6 +176,7 @@ export function HomeAreaChart({
             strokeOpacity="0.7"
             strokeWidth="1.5"
             strokeDasharray="6 5"
+            className="chart-fade"
           />
         )}
 
@@ -184,12 +185,20 @@ export function HomeAreaChart({
           <path
             d={`${realLinePath} L${getX(n - 1)},${H - B} L${getX(0)},${H - B}Z`}
             fill={`url(#${gradId})`}
+            className="chart-fade"
           />
         )}
 
         {/* 실제 매출 곡선 실선 */}
         {realPts.length > 0 && (
-          <path d={realLinePath} fill="none" stroke={BRAND_COLOR} strokeWidth="2.5" />
+          <path
+            d={realLinePath}
+            pathLength={1}
+            fill="none"
+            stroke={BRAND_COLOR}
+            strokeWidth="2.5"
+            className="chart-line"
+          />
         )}
 
         {/* 오늘 예측 연결 점선 */}
@@ -200,6 +209,7 @@ export function HomeAreaChart({
             stroke={BRAND_COLOR}
             strokeWidth="2.5"
             strokeDasharray="6 4"
+            className="chart-fade"
           />
         )}
 

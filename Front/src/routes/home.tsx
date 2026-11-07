@@ -28,6 +28,7 @@ import { RecentOrderTile } from "../components/home/recent-order-tile";
 import { isExpiryWarning, isStockWarning } from "../components/inventory/stock-status";
 import { InstallBanner } from "../components/pwa/install-banner";
 import { MainShell } from "../components/shell";
+import { CountUp } from "../components/ui/count-up";
 import { LoadError } from "../components/ui/load-error";
 import { accuracyRatio } from "../lib/accuracy";
 import {
@@ -187,11 +188,13 @@ export default function HomePage() {
             </span>
             <div className="min-w-0">
               <p className="tabular text-xl leading-none font-bold tracking-tight text-ink lg:text-[1.35rem]">
-                {hasSalesData
-                  ? formatWonShort(summary?.today_revenue ?? 0)
-                  : summaryFailed
-                    ? "—"
-                    : "0원"}
+                {hasSalesData ? (
+                  <CountUp value={summary?.today_revenue ?? 0} format={formatWonShort} />
+                ) : summaryFailed ? (
+                  "—"
+                ) : (
+                  "0원"
+                )}
               </p>
               <p className="mt-1 text-xs leading-snug text-ink-2 lg:truncate">
                 {hasSalesData
@@ -208,9 +211,11 @@ export default function HomePage() {
             </span>
             <div className="min-w-0">
               <p className="tabular text-xl leading-none font-bold tracking-tight text-ink lg:text-[1.35rem]">
-                {hasSalesData && tomorrowPrediction
-                  ? formatWonShort(tomorrowPrediction.predicted_sales)
-                  : "—"}
+                {hasSalesData && tomorrowPrediction ? (
+                  <CountUp value={tomorrowPrediction.predicted_sales} format={formatWonShort} />
+                ) : (
+                  "—"
+                )}
               </p>
               <p className="mt-1 text-xs leading-snug text-ink-2 lg:truncate">
                 {summaryFailed
@@ -231,7 +236,11 @@ export default function HomePage() {
             </span>
             <div className="min-w-0">
               <p className="tabular text-xl leading-none font-bold tracking-tight text-ink lg:text-[1.35rem]">
-                {hasSalesData && accuracy != null ? `${accuracy}%` : "—"}
+                {hasSalesData && accuracy != null ? (
+                  <CountUp value={accuracy} format={(v) => `${v}%`} />
+                ) : (
+                  "—"
+                )}
               </p>
               <p className="mt-1 text-xs leading-snug text-ink-2 lg:truncate">
                 {summaryFailed
@@ -276,7 +285,7 @@ export default function HomePage() {
                 {hasSalesData && todayPrediction ? (
                   <div className="mt-3 flex flex-wrap items-baseline gap-x-3 gap-y-1">
                     <p className="tabular text-[2.5rem] leading-none font-bold tracking-tight text-ink">
-                      {formatWonShort(todayPrediction.predicted_sales)}
+                      <CountUp value={todayPrediction.predicted_sales} format={formatWonShort} />
                     </p>
                     {deviation != null && deviationPct != null && (
                       <p className="text-sm text-ink-2">
@@ -395,7 +404,10 @@ export default function HomePage() {
                     <li key={item.itemId} className="flex flex-col rounded-xl p-3.5 glass-card">
                       <span className="truncate text-sm font-semibold text-ink">{item.name}</span>
                       <span className="tabular mt-2 text-lg leading-none font-bold tracking-tight text-ink">
-                        {Math.round(item.currentPrice).toLocaleString("ko-KR")}
+                        <CountUp
+                          value={Math.round(item.currentPrice)}
+                          format={(v) => v.toLocaleString("ko-KR")}
+                        />
                         <span className="ml-0.5 text-xs font-medium text-ink-3">
                           원/{item.unit}
                         </span>

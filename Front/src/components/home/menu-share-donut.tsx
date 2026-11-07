@@ -1,4 +1,5 @@
 // 오늘 많이 나갈 메뉴 비중 도넛 — 06_home.html.
+import { CountUp } from "../ui/count-up";
 import { type MenuForecastSlice, buildMenuShareSlices } from "./home-utils";
 
 interface MenuShareDonutProps {
@@ -59,13 +60,16 @@ export function MenuShareDonut({ hasSalesData, menuForecast }: MenuShareDonutPro
                   strokeWidth="20"
                   strokeDasharray={`${slice.dashLen} ${CIRCUMFERENCE}`}
                   strokeDashoffset={slice.dashOffset}
-                  className={slice.isOther ? "stroke-ink-4" : undefined}
+                  className={slice.isOther ? "chart-ring stroke-ink-4" : "chart-ring"}
                 />
               ))}
             </svg>
             <p className="absolute inset-0 flex flex-col items-center justify-center">
               <span className="tabular text-2xl leading-none font-bold text-ink">
-                {Math.round(totalQty).toLocaleString("ko-KR")}개
+                <CountUp
+                  value={Math.round(totalQty)}
+                  format={(v) => `${v.toLocaleString("ko-KR")}개`}
+                />
               </span>
               <span className="mt-1 text-xs text-ink-3">예상 판매</span>
             </p>

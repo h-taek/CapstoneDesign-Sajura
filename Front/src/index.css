@@ -174,3 +174,116 @@ header[data-shrink].is-shrunk .shrink-hide {
     transition: none !important;
   }
 }
+
+/* 화면 전환 — 탭을 옮기면 카드가 위에서부터 하나씩 떠오르고(--card, main-shell) 안 내용이 뒤따른다. 목록 행도 위에서부터 차례로.
+   로그인 직후 등장(.entering, sky.css)과 겹치지 않게 그때는 쓰지 않는다.
+   채움은 backwards만 — 끝난 뒤 transform이 남으면 안쪽 fixed 판(follow-panel 등)의 기준이 카드로 바뀐다 */
+main[data-shell-main] li:nth-child(2) {
+  --row: 1;
+}
+main[data-shell-main] li:nth-child(3) {
+  --row: 2;
+}
+main[data-shell-main] li:nth-child(4) {
+  --row: 3;
+}
+main[data-shell-main] li:nth-child(5) {
+  --row: 4;
+}
+main[data-shell-main] li:nth-child(6) {
+  --row: 5;
+}
+main[data-shell-main] li:nth-child(7) {
+  --row: 6;
+}
+main[data-shell-main] li:nth-child(n + 8) {
+  --row: 7;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  body:not(.entering) main[data-shell-main] > :is(header, h1, h2, p) {
+    animation: content-in 0.45s ease backwards;
+  }
+  body:not(.entering) main[data-shell-main] li {
+    animation: row-in 0.4s cubic-bezier(0.2, 0.8, 0.2, 1) backwards;
+    animation-delay: calc(0.15s + var(--card, 0) * 70ms + var(--row, 0) * 45ms);
+  }
+  body:not(.entering) main[data-shell-main] :is(.glass-card, .glass-brand) {
+    animation: card-in 0.6s cubic-bezier(0.2, 0.8, 0.2, 1) backwards;
+    animation-delay: calc(var(--card, 0) * 70ms + var(--row, 0) * 45ms);
+  }
+  body:not(.entering) main[data-shell-main] :is(.glass-card, .glass-brand) > * {
+    animation: content-in 0.45s ease backwards;
+    animation-delay: calc(0.22s + var(--card, 0) * 70ms + var(--row, 0) * 45ms);
+  }
+
+  /* 차트 — 선은 왼쪽부터 그어지고(pathLength=1), 영역·점선은 뒤따라 비치고, 막대는 아래에서 자라고, 도넛은 채워진다 */
+  .chart-line {
+    animation: chart-line 0.9s cubic-bezier(0.3, 0.7, 0.3, 1) backwards;
+    animation-delay: calc(0.3s + var(--card, 0) * 70ms);
+  }
+  .chart-fade {
+    animation: content-in 0.5s ease backwards;
+    animation-delay: calc(0.75s + var(--card, 0) * 70ms);
+  }
+  .chart-bar {
+    transform-box: fill-box;
+    transform-origin: 50% 100%;
+    animation: chart-bar 0.55s cubic-bezier(0.2, 0.8, 0.2, 1) backwards;
+    animation-delay: calc(0.25s + var(--card, 0) * 70ms + var(--i, 0) * 35ms);
+  }
+  .chart-ring {
+    animation: chart-ring 0.9s cubic-bezier(0.3, 0.7, 0.3, 1) backwards;
+    animation-delay: calc(0.3s + var(--card, 0) * 70ms);
+  }
+  /* 웹 주 메뉴 — 고른 항목의 글자가 펼쳐진다 */
+  .nav-label-in {
+    animation: nav-label-in 0.35s cubic-bezier(0.2, 0.8, 0.2, 1) backwards;
+  }
+}
+.chart-line {
+  stroke-dasharray: 1;
+}
+
+@keyframes card-in {
+  from {
+    opacity: 0;
+    transform: translateY(28px) scale(0.96);
+  }
+}
+@keyframes content-in {
+  from {
+    opacity: 0;
+  }
+}
+@keyframes row-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
+@keyframes chart-line {
+  from {
+    stroke-dashoffset: 1;
+  }
+}
+@keyframes chart-bar {
+  from {
+    transform: scaleY(0);
+  }
+}
+@keyframes chart-ring {
+  from {
+    stroke-dasharray: 0 400;
+  }
+}
+@keyframes nav-label-in {
+  from {
+    max-width: 0;
+    opacity: 0;
+  }
+  to {
+    max-width: 8rem;
+    opacity: 1;
+  }
+}

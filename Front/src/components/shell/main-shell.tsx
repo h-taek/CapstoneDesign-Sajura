@@ -12,10 +12,18 @@ import {
   TrendingUp,
   Wallet,
 } from "lucide-react";
-import { type CSSProperties, type ReactNode, useEffect, useRef, useState } from "react";
+import {
+  type CSSProperties,
+  type ReactNode,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from "react";
 import { Link } from "react-router";
 import { cn } from "../../lib/utils";
 import { useAuthStore } from "../../stores/auth-store";
+import { prefersMotion } from "../ui/count-up";
 import {
   NotificationBellButton,
   NotificationPopover,
@@ -49,6 +57,9 @@ export const APP_TABS: readonly NavItem[] = [
   { key: "orders", to: "/orders", label: "발주", icon: ClipboardList },
   { key: "settings", to: "/settings", label: "더보기", icon: Menu },
 ];
+
+// 직전 화면의 하단 탭 자리 — 선택 알약이 여기서 미끄러져 온다
+let lastTabIndex: number | null = null;
 
 const APP_TITLE: Record<Exclude<NavKey, "home">, string> = {
   forecast: "매출 예측",
@@ -106,6 +117,38 @@ export function MainShell({ active, title, back, children, className }: MainShel
     };
   }, []);
 
+  const tabIndex = APP_TABS.findIndex((tab) => tab.key === appActive);
+  const tabPillRef = useRef<HTMLSpanElement | null>(null);
+
+  useLayoutEffect(() => {
+    const from = lastTabIndex;
+    lastTabIndex = tabIndex;
+    if (from === null || from === tabIndex || !prefersMotion()) return;
+    tabPillRef.current?.animate?.(
+      [
+        { transform: `translateX(calc(${from - tabIndex} * (100% + 0.25rem)))` },
+        { transform: "translateX(0)" },
+      ],
+      { duration: 380, easing: "cubic-bezier(0.2, 0.8, 0.2, 1)" },
+    );
+  }, [tabIndex]);
+
+  const mainRef = useRef<HTMLElement | null>(null);
+
+  // 새로 붙은 카드에 차례 번호(--card)를 매긴다 — 위에서부터 하나씩 떠오른다(index.css '화면 전환').
+  // 데이터가 늦게 와 나중에 붙은 카드는 그 묶음 안에서 다시 0부터. 카드 안 카드는 바깥 카드 번호를 물려받는다
+  useLayoutEffect(() => {
+    let order = 0;
+    for (const card of mainRef.current?.querySelectorAll<HTMLElement>(
+      ".glass-card, .glass-brand",
+    ) ?? []) {
+      if (card.dataset.card !== undefined) continue;
+      if (card.parentElement?.closest(".glass-card, .glass-brand")) continue;
+      card.dataset.card = "";
+      card.style.setProperty("--card", String(Math.min(order++, 6)));
+    }
+  });
+
   const toggleNotif = () => setNotifOpen((prev) => !prev);
 
   return (
@@ -128,7 +171,7 @@ export function MainShell({ active, title, back, children, className }: MainShel
                 className="flex h-10 items-center gap-2 rounded-full bg-white/90 pr-4 pl-3 text-sm font-semibold whitespace-nowrap text-ink shadow-sm"
               >
                 <Icon className="size-5" strokeWidth={2.4} />
-                <span>{item.label}</span>
+                <span className="nav-label-in inline-block overflow-hidden">{item.label}</span>
               </Link>
             );
           }
@@ -242,6 +285,8 @@ export function MainShell({ active, title, back, children, className }: MainShel
 
       {/* 본문 영역 */}
       <main
+        ref={mainRef}
+        data-shell-main
         style={{ "--d": "0.15s" } as CSSProperties}
         className={cn(
           "en relative z-20 mx-3 mt-[5.25rem] mb-[5.75rem] lg:mx-16 lg:mt-24 lg:mb-8 xl:mx-24",
@@ -258,7 +303,17 @@ export function MainShell({ active, title, back, children, className }: MainShel
         style={{ "--d": "0.25s" } as CSSProperties}
         className="en glass-bar pb-safe fixed inset-x-3 bottom-3 z-30 rounded-full p-1.5 lg:hidden"
       >
-        <ul className="grid grid-cols-5 gap-1">
+        <ul className="relative grid grid-cols-5 gap-1">
+          {/* 선택 알약 — 화면마다 셸이 새로 그려지므로 직전 탭 자리에서 미끄러져 온다 */}
+          <span
+            ref={tabPillRef}
+            aria-hidden="true"
+            className="absolute inset-y-0 rounded-full bg-white/90 shadow-md"
+            style={{
+              width: "calc((100% - 1rem) / 5)",
+              left: `calc(${tabIndex} * ((100% - 1rem) / 5 + 0.25rem))`,
+            }}
+          />
           {APP_TABS.map((tab) => {
             const isActive = tab.key === appActive;
             const Icon = tab.icon;
@@ -268,8 +323,8 @@ export function MainShell({ active, title, back, children, className }: MainShel
                   to={tab.to}
                   aria-current={isActive ? "page" : undefined}
                   className={cn(
-                    "flex h-14 flex-col items-center justify-center gap-0.5 rounded-full text-[0.75rem] font-semibold",
-                    isActive ? "bg-white/90 text-ink shadow-md" : "text-ink-2",
+                    "relative flex h-14 flex-col items-center justify-center gap-0.5 rounded-full text-[0.75rem] font-semibold",
+                    isActive ? "text-ink" : "text-ink-2",
                   )}
                 >
                   <Icon className="size-[1.4rem]" strokeWidth={isActive ? 2.4 : 2} />

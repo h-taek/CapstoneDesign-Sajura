@@ -5,6 +5,7 @@ import { useState } from "react";
 import { type OrderSummary, getOrder } from "../../api/endpoints/orders";
 import { formatMonthDayDow, formatQty, formatWon } from "../../lib/format";
 import { cn } from "../../lib/utils";
+import { CountUp } from "../ui/count-up";
 import { formatOrderCost } from "./order-calc";
 
 function OrderHistoryItem({
@@ -55,7 +56,7 @@ function OrderHistoryItem({
         </span>
         <span className="shrink-0 text-right">
           <span className="tabular block text-[0.95rem] font-bold text-ink">
-            {formatOrderCost(order.total_estimated_cost)}
+            <CountUp value={order.total_estimated_cost} format={formatOrderCost} />
           </span>
           <span
             className={cn(

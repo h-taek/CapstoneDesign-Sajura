@@ -1,5 +1,6 @@
 // 지난달 매출까지 진행률 도넛 — 06_home.html.
 import { formatWonShort } from "../../lib/format";
+import { CountUp } from "../ui/count-up";
 
 interface MonthProgressDonutProps {
   hasSalesData: boolean;
@@ -42,10 +43,11 @@ export function MonthProgressDonut({
                 strokeWidth="14"
                 strokeLinecap="round"
                 strokeDasharray={`${dashLen} ${CIRCUMFERENCE}`}
+                className="chart-ring"
               />
             </svg>
             <p className="tabular absolute inset-0 flex items-center justify-center text-[1.65rem] font-bold">
-              {pct}%
+              <CountUp value={pct} format={(v) => `${v}%`} />
             </p>
           </div>
           <p className="tabular mt-auto pt-3 text-center text-sm text-white/85">

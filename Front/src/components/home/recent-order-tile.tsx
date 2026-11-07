@@ -4,6 +4,7 @@ import { Link } from "react-router";
 import { type OrderSummary, getOrder } from "../../api/endpoints/orders";
 import { formatMonthDayDow } from "../../lib/format";
 import { formatOrderCost } from "../orders/order-calc";
+import { CountUp } from "../ui/count-up";
 
 interface RecentOrderTileProps {
   order: OrderSummary;
@@ -46,7 +47,7 @@ export function RecentOrderTile({ order }: RecentOrderTileProps) {
         <span className="mt-3 text-[0.95rem] leading-snug font-bold text-ink">{title}</span>
         <span className="mt-0.5 truncate text-xs text-ink-3">{sub || " "}</span>
         <span className="tabular mt-auto pt-3 text-[1.35rem] leading-none font-bold tracking-tight text-ink">
-          {formatOrderCost(order.total_estimated_cost)}
+          <CountUp value={order.total_estimated_cost} format={formatOrderCost} />
         </span>
         <span className="mt-1.5 flex items-center justify-between gap-2 text-xs">
           {isPending ? (

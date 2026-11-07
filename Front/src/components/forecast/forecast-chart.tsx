@@ -1,6 +1,6 @@
 // 매출 예측 기간 막대 차트 — 목업 07_forecast / mockup.js의 renderChart(bar) 그대로 이식.
 // 실제 매출 막대(보라색) + 그날 예측 점선(회색 점선) + (최신 구간일 때) 오늘·내일·모레 예상 막대(연한 보라 + 점선 테두리).
-import { useEffect, useRef, useState } from "react";
+import { type CSSProperties, useEffect, useRef, useState } from "react";
 import { ChartTooltip, formatWonFull, useChartHover } from "../charts/chart-hover";
 
 export interface ForecastChartProps {
@@ -200,6 +200,8 @@ export function ForecastChart({
               stroke={isForecastBar ? CHART_COLORS.brand : "none"}
               strokeWidth={isForecastBar ? 1.5 : 0}
               strokeDasharray={isForecastBar ? "4 3" : undefined}
+              className="chart-bar"
+              style={{ "--i": i } as CSSProperties}
             />
           );
         })}
@@ -214,6 +216,7 @@ export function ForecastChart({
             stroke={CHART_COLORS.tick}
             strokeWidth={1.5}
             strokeDasharray="4 3"
+            className="chart-fade"
           />
         ))}
       </svg>

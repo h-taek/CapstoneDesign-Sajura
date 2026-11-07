@@ -13,6 +13,7 @@ import {
 import { DayPanel } from "../../components/sales/day-panel";
 import { MenuPanel } from "../../components/sales/menu-panel";
 import { DateField, MainShell } from "../../components/shell";
+import { CountUp } from "../../components/ui/count-up";
 import { LoadError } from "../../components/ui/load-error";
 import { formatSlashDate, formatWon, parseLocalDate, toIsoDate } from "../../lib/format";
 import { useBackToClose } from "../../lib/use-back-to-close";
@@ -224,8 +225,13 @@ export default function SalesPage() {
             </p>
           ) : (
             <p className="tabular text-[0.95rem] text-ink-2">
-              <span className="font-bold text-ink">{totalStats.quantity}개</span> ·{" "}
-              <span className="font-bold text-ink">{formatWon(totalStats.revenue)}</span>
+              <span className="font-bold text-ink">
+                <CountUp value={totalStats.quantity} format={(v) => `${v}개`} />
+              </span>{" "}
+              ·{" "}
+              <span className="font-bold text-ink">
+                <CountUp value={totalStats.revenue} format={formatWon} />
+              </span>
             </p>
           )}
         </div>

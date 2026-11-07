@@ -1,5 +1,5 @@
 // 시간대별 매출 막대 차트 (08_sales.html).
-import { useEffect, useRef, useState } from "react";
+import { type CSSProperties, useEffect, useRef, useState } from "react";
 import type { HourlySalesPoint } from "./calculations";
 
 export interface HourlySalesChartProps {
@@ -124,6 +124,8 @@ export function HourlySalesChart({ data, height = 160 }: HourlySalesChartProps) 
               height={barH}
               fill={CHART_COLOR.brand}
               rx={2}
+              className="chart-bar"
+              style={{ "--i": i } as CSSProperties}
             />
           );
         })}

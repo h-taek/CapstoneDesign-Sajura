@@ -869,8 +869,15 @@ function PriceTrendSvg({ points }: { points: Array<{ date: string; unit_price: n
           </linearGradient>
         </defs>
         <line x1={L} x2={W - R} y1={H - B} y2={H - B} stroke="#e3e6eb" />
-        <path d={areaD} fill="url(#inv-price-grad)" />
-        <path d={pathD} fill="none" stroke="#6b4eff" strokeWidth="2.5" />
+        <path d={areaD} fill="url(#inv-price-grad)" className="chart-fade" />
+        <path
+          d={pathD}
+          pathLength={1}
+          fill="none"
+          stroke="#6b4eff"
+          strokeWidth="2.5"
+          className="chart-line"
+        />
       </svg>
     </div>
   );

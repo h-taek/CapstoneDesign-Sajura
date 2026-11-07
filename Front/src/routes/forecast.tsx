@@ -20,6 +20,7 @@ import {
   lowConfidenceTooltip,
 } from "../components/forecast/forecast-logic";
 import { MainShell } from "../components/shell";
+import { CountUp } from "../components/ui/count-up";
 import {
   formatMonthDay,
   formatMonthDayDow,
@@ -185,7 +186,7 @@ export default function ForecastPage() {
                 </div>
 
                 <p className="tabular mt-2 text-[2.25rem] leading-none font-bold tracking-tight text-ink">
-                  {formatWonShort(periodView.total)}
+                  <CountUp value={periodView.total} format={formatWonShort} />
                 </p>
                 <p className="tabular mt-2.5 text-sm text-ink-3">
                   {periodSales ? `판매 ${periodSales.total.toLocaleString()}건` : "판매 -"}
@@ -390,7 +391,7 @@ export default function ForecastPage() {
                         </span>
                         <span className="shrink-0 text-right">
                           <span className="tabular block text-base font-bold text-ink">
-                            {formatWonShort(p.predicted_sales)}
+                            <CountUp value={p.predicted_sales} format={formatWonShort} />
                           </span>
                           <span className="tabular block text-xs text-ink-3">
                             {formatIntervalRange(p.interval_p10, p.interval_p90)}
@@ -448,12 +449,12 @@ export default function ForecastPage() {
                         strokeWidth="9"
                         strokeLinecap="round"
                         strokeDasharray={item.strokeDasharray}
-                        className="stroke-brand"
+                        className="chart-ring stroke-brand"
                       />
                     </svg>
                     <span className="absolute inset-0 flex flex-col items-center justify-center">
                       <span className="tabular text-lg leading-none font-bold text-ink">
-                        {item.sharePct}%
+                        <CountUp value={item.sharePct} format={(v) => `${v}%`} />
                       </span>
                       <span className="mt-1 text-xs text-ink-3">비중</span>
                     </span>
