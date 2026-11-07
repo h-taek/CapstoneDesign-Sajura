@@ -214,11 +214,11 @@ export function RecommendList({
                 )}
               </div>
 
-              {/* 추천 근거 */}
+              {/* 추천 근거 — 웹은 한 줄로 자르고 마우스오버로 전체, 앱은 마우스가 없어 줄을 넘겨 전체를 보인다 */}
               <p
                 title={item.recommendation_reason}
                 className={cn(
-                  "col-[2/4] row-start-2 truncate text-sm text-ink-2 lg:col-[2/3]",
+                  "col-[2/4] row-start-2 text-sm text-ink-2 lg:col-[2/3] lg:truncate",
                   !isSelected && "opacity-60",
                 )}
               >

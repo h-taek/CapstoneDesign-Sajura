@@ -9,6 +9,11 @@
 import { type ReactNode, useEffect, useState, useSyncExternalStore } from "react";
 import { Navigate, useLocation } from "react-router";
 import { isMorningTransitioning, subscribeMorningTransition } from "../components/sky/day";
+import {
+  clearLoginReturn,
+  peekLoginReturn,
+  rememberLoginReturn,
+} from "../features/auth/login-return";
 import { signOut } from "../features/auth/sign-out";
 import { queryClient } from "../lib/query-client";
 import type { AuthUser } from "../stores/auth-store";
@@ -81,13 +86,28 @@ export function RequireStage({ stage, children }: { stage: Stage; children: Reac
   const token = useAuthStore((s) => s.accessToken);
   const user = useAuthStore((s) => s.user);
   const morningActive = useMorningActive();
-  const { pathname } = useLocation();
+  const { pathname, search } = useLocation();
   if (!bootstrapped) return <SplashScreen />;
   if (morningActive) return <>{children}</>;
   // 첫 접속(/)은 서비스 소개, 특정 화면 주소로 들어오면 로그인 (04_fe.md §3)
-  if (!token || !user) return <Navigate to={pathname === "/" ? "/intro" : "/login"} replace />;
+  if (!token || !user) {
+    if (pathname === "/") return <Navigate to="/intro" replace />;
+    if (stage === "app") rememberLoginReturn(pathname + search);
+    return <Navigate to="/login" replace />;
+  }
   if (!isStageAllowed(stage, user)) return <Navigate to={landingPath(user)} replace />;
+  // 로그인을 마치고 홈에 도착했는데 로그인 전에 가려던 화면이 있으면 그리로 보낸다
+  const loginReturn = stage === "app" && pathname === "/" ? peekLoginReturn() : null;
+  if (loginReturn) return <LoginReturn to={loginReturn} />;
   return <>{children}</>;
+}
+
+// 돌아갈 주소는 이동이 확정된 뒤(effect) 지운다 — 렌더 중에 지우면 StrictMode 두 번째 렌더가 홈에 남는다
+function LoginReturn({ to }: { to: string }) {
+  useEffect(() => {
+    clearLoginReturn();
+  }, []);
+  return <Navigate to={to} replace />;
 }
 
 /** 관리자 전용 가드 — role=ADMIN만 통과, 그 외 본인 단계로 리다이렉트. */

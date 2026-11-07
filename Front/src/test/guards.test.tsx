@@ -169,6 +169,7 @@ function renderGuardedPath(initialPath: string) {
 
 describe("가드 목적지 (상태 넷 × 경로)", () => {
   beforeEach(() => {
+    sessionStorage.clear();
     resetSkyState();
     useOnboardingStore.getState().reset();
     useAuthStore.setState({ bootstrapped: true, accessToken: null, user: null });
@@ -401,6 +402,37 @@ describe("가드 목적지 (상태 넷 × 경로)", () => {
     const { unmount: uAdmin } = renderGuardedPath("/admin/verifications");
     expect(screen.getByTestId("path")).toHaveTextContent("/admin/verifications");
     uAdmin();
+  });
+
+  it("로그인 전에 앱 화면으로 들어왔다가 로그인을 마치면 홈 대신 그 화면으로 한 번 보낸다", async () => {
+    // 알림이 연 /inventory — 로그인이 끊겨 있으면 로그인 화면으로 간다
+    const first = renderGuardedPath("/inventory");
+    expect(screen.getByTestId("path")).toHaveTextContent("/login");
+    first.unmount();
+
+    // 로그인(이메일·소셜 모두)이 끝나면 '/'에 도착한다 → 기억해 둔 /inventory로
+    act(() => useAuthStore.setState({ accessToken: "tok", user: verifiedUser }));
+    const second = renderGuardedPath("/");
+    await waitFor(() => expect(screen.getByTestId("path")).toHaveTextContent("/inventory"));
+    second.unmount();
+
+    // 한 번 쓰면 지운다 — 다음에 홈으로 오면 홈 그대로
+    const third = renderGuardedPath("/");
+    expect(screen.getByTestId("path")).toHaveTextContent(/^\/$/);
+    third.unmount();
+  });
+
+  it("단계가 남은 계정은 돌아갈 주소가 있어도 그 단계로 보낸다", () => {
+    renderGuardedPath("/orders").unmount();
+    act(() =>
+      useAuthStore.setState({
+        accessToken: "tok",
+        user: { ...verifiedUser, business_status: "UNVERIFIED", onboarding_completed: false },
+      }),
+    );
+    const view = renderGuardedPath("/");
+    expect(screen.getByTestId("path")).toHaveTextContent("/verify-business");
+    view.unmount();
   });
 
   it("루트 레이아웃의 하늘(.bd-day)은 화면을 넘겨도 다시 마운트되지 않고 시각을 이어받는다", () => {

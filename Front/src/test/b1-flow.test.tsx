@@ -390,6 +390,11 @@ describe("B1 시작·인증·온보딩 화면 흐름", () => {
       expect((screen.getByLabelText("업종") as HTMLSelectElement).value).toBe("");
       expect((screen.getByLabelText("매장 규모") as HTMLSelectElement).value).toBe("");
       expect((screen.getByLabelText("운영 형태") as HTMLSelectElement).value).toBe("");
+      // 앱 폭은 '중형 (11~30석)'이 잘리지 않게 매장 규모·운영 형태를 위아래로 쌓는다
+      expect(screen.getByLabelText("매장 규모").closest(".grid")).toHaveClass(
+        "grid-cols-1",
+        "sm:grid-cols-2",
+      );
 
       fireEvent.click(screen.getByTestId("store-next"));
 

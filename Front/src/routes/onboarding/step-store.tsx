@@ -85,7 +85,8 @@ export default function StoreStep() {
           )}
         </div>
 
-        <div className="grid grid-cols-2 gap-3">
+        {/* 앱 폭은 반씩 놓으면 '중형 (11~30석)'이 잘려 위아래로 쌓는다 */}
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <div className="flex flex-col gap-1.5">
             <label htmlFor="store_size" className="text-sm font-semibold text-white/90">
               매장 규모

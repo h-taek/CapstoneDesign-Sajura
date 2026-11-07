@@ -79,6 +79,14 @@ describe("OrdersPage", () => {
     expect(screen.getByText("기본값으로 계산")).toBeInTheDocument();
   });
 
+  it("추천 근거는 웹에서만 한 줄로 자르고(마우스오버 전체), 앱에서는 자르지 않는다", async () => {
+    renderPage();
+    const reason = (await screen.findByText(/3일 소요 450g/)).closest("p");
+    expect(reason).toHaveAttribute("title", "3일 소요 450g + 안전재고 50g");
+    expect(reason).toHaveClass("lg:truncate");
+    expect(reason).not.toHaveClass("truncate");
+  });
+
   it("단가가 있으면 예상 금액을, 없으면 단가 미설정을 보여 준다", async () => {
     renderPage();
     const amounts = await screen.findAllByText("14,000원");
