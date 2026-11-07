@@ -13,6 +13,7 @@ import {
 import { BusinessFields } from "../components/auth/business-fields";
 import { REGISTER_SKY, REGISTER_SKY_STEPS, goDashboard, useSky } from "../components/sky";
 import { Button } from "../components/ui/button";
+import { registerSchema } from "../schemas/auth";
 import { useAuthStore } from "../stores/auth-store";
 
 type Step = "terms" | "email" | "name" | "password" | "business";
@@ -114,7 +115,8 @@ export default function RegisterPage() {
 
   const handleNextFromEmail = () => {
     const trimmed = email.trim();
-    if (!trimmed || !trimmed.includes("@") || !trimmed.includes(".")) {
+    // 서버(EmailStr)가 마지막 가입 단계에서 거절할 주소는 여기서 막는다 — 가입 스키마와 같은 검사
+    if (!registerSchema.innerType().shape.email.safeParse(trimmed).success) {
       setErrorType("email");
       return;
     }

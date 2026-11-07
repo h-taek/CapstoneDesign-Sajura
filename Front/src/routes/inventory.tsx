@@ -24,6 +24,7 @@ import {
 } from "../components/inventory/stock-status";
 import { MainShell } from "../components/shell/main-shell";
 import { LoadError } from "../components/ui/load-error";
+import { useBackToClose } from "../lib/use-back-to-close";
 import { usePreferencesStore } from "../stores/preferences-store";
 
 const PAGE_SIZE = 25;
@@ -135,6 +136,11 @@ export default function InventoryPage() {
 
   const selectedItem = items.find((i) => i.item_id === selectedItemId) ?? null;
   const isPanelOpen = isAddFormOpen || selectedItem !== null;
+  // 앱 폭은 판이 화면을 덮으므로 휴대폰 뒤로 가기가 판을 닫게 한다
+  useBackToClose(isPanelOpen, () => {
+    setIsAddFormOpen(false);
+    setSelectedItemId(null);
+  });
 
   return (
     <MainShell active="inventory">

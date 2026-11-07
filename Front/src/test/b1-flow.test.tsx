@@ -149,6 +149,12 @@ describe("B1 시작·인증·온보딩 화면 흐름", () => {
         screen.getByText("이미 가입된 이메일이거나 올바르지 않은 형식입니다."),
       ).toBeInTheDocument();
 
+      // '@'와 '.'만 있는 틀린 주소도 이 단계에서 막는다(서버가 마지막 단계에서 거절하는 주소)
+      fireEvent.change(emailInput, { target: { value: "a@b..com" } });
+      fireEvent.click(screen.getByRole("button", { name: "계속" }));
+      expect(screen.getByPlaceholderText("이메일")).toBeInTheDocument();
+      expect(screen.queryByPlaceholderText("이름")).not.toBeInTheDocument();
+
       fireEvent.change(emailInput, { target: { value: "test@sajura.kr" } });
       fireEvent.click(screen.getByRole("button", { name: "계속" }));
 

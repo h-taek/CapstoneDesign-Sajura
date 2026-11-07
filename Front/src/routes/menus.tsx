@@ -25,6 +25,7 @@ import { type MenuFilter, groupAndFilterMenus } from "../components/menus/menu-l
 import { FollowPanel } from "../components/shell";
 import { MainShell } from "../components/shell";
 import { LoadError } from "../components/ui/load-error";
+import { useBackToClose } from "../lib/use-back-to-close";
 
 const NEW = "new";
 
@@ -57,6 +58,8 @@ export default function MenusPage() {
   );
 
   const isPanelOpen = selectedId !== null;
+  // 앱 폭은 판이 화면을 덮으므로 휴대폰 뒤로 가기가 판을 닫게 한다
+  useBackToClose(isPanelOpen, () => setSelectedId(null));
 
   // 일괄 삭제 — '전체 선택'은 지금 검색·보기 조건에 걸린 메뉴 전부
   const bulk = useBulkSelection();

@@ -15,6 +15,7 @@ import { MenuPanel } from "../../components/sales/menu-panel";
 import { DateField, MainShell } from "../../components/shell";
 import { LoadError } from "../../components/ui/load-error";
 import { formatSlashDate, formatWon, parseLocalDate, toIsoDate } from "../../lib/format";
+import { useBackToClose } from "../../lib/use-back-to-close";
 
 const PAGE_SIZE = 31; // 1년이면 366줄이라 31줄씩 쪽 이동
 
@@ -47,6 +48,12 @@ export default function SalesPage() {
   const currentEnd = endDate || defaultEndIso;
 
   const rangeError = isRangeExceeded(currentStart, currentEnd);
+  // 기간 오류 — 거꾸로 고른 기간을 '판매 없음'으로 보이지 않게 1년 초과와 같은 자리에 알린다
+  const periodError = rangeError
+    ? "기간은 1년까지 고를 수 있어요"
+    : currentStart > currentEnd
+      ? "시작일이 종료일보다 늦어요"
+      : null;
 
   // 날짜별 표 데이터 조회: GET /api/sales/trends(group_by=day)
   const trendsQuery = useQuery({
@@ -147,6 +154,9 @@ export default function SalesPage() {
   }, [selectedDayIso, continuousDays]);
 
   const hasThirdPanel = Boolean(selectedMenu || isAllRecordsOpen);
+  // 앱 폭은 판이 화면을 덮으므로 휴대폰 뒤로 가기가 판을 하나씩 닫게 한다(세 번째 판 → 날짜 판 → 목록)
+  useBackToClose(Boolean(selectedDayIso), handleCloseDayPanel);
+  useBackToClose(hasThirdPanel, handleBackToDayPanel);
 
   // 그리드 칼럼 계산:
   // 기본(판 없음): col-span-6
@@ -185,7 +195,7 @@ export default function SalesPage() {
                   setSelectedMenu(null);
                   setIsAllRecordsOpen(false);
                 }}
-                className={rangeError ? "border-danger focus:border-danger" : ""}
+                className={periodError ? "border-danger focus:border-danger" : ""}
               />
             </div>
             <span className="text-ink-2">~</span>
@@ -203,14 +213,14 @@ export default function SalesPage() {
                   setSelectedMenu(null);
                   setIsAllRecordsOpen(false);
                 }}
-                className={rangeError ? "border-danger focus:border-danger" : ""}
+                className={periodError ? "border-danger focus:border-danger" : ""}
               />
             </div>
           </div>
 
-          {rangeError ? (
+          {periodError ? (
             <p role="alert" className="text-sm font-semibold text-danger">
-              기간은 1년까지 고를 수 있어요
+              {periodError}
             </p>
           ) : (
             <p className="tabular text-[0.95rem] text-ink-2">
@@ -226,7 +236,7 @@ export default function SalesPage() {
               <p className="glass-card rounded-2xl px-5 py-10 text-center text-ink-2">
                 불러오는 중…
               </p>
-            ) : rangeError ? null : trendsQuery.isError && !trendsQuery.data ? (
+            ) : periodError ? null : trendsQuery.isError && !trendsQuery.data ? (
               <LoadError onRetry={() => void trendsQuery.refetch()} />
             ) : continuousDays.length === 0 || totalStats.quantity === 0 ? (
               <p className="glass-card rounded-2xl px-5 py-10 text-center text-ink-2">

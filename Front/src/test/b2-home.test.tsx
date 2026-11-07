@@ -2,7 +2,7 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render, screen } from "@testing-library/react";
 import { MemoryRouter } from "react-router";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, onTestFinished, vi } from "vitest";
 import * as dashboardApi from "../api/endpoints/dashboard";
 import * as forecastApi from "../api/endpoints/forecast";
 import * as inventoryApi from "../api/endpoints/inventory";
@@ -585,6 +585,48 @@ describe("HomePage 컴포넌트", () => {
     expect(screen.queryByText("첫 매출을 올려 주세요")).not.toBeInTheDocument();
     expect(screen.queryByText("내일 예상 · 예측 전")).not.toBeInTheDocument();
     expect(screen.getByText("쿠팡 단가 추세")).toBeInTheDocument();
+  });
+
+  it("재고 칸 소비기한 경고는 마지막 판매일이 아니라 오늘 기준이다", async () => {
+    // 마지막 판매 10/19, 오늘 11/7 — 11/9 소비기한은 오늘 기준 D-2라 경고, 판매일 기준이면 빠진다
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(new Date(2026, 10, 7, 9, 0));
+    onTestFinished(() => {
+      vi.useRealTimers();
+    });
+    vi.spyOn(salesApi, "getSalesSummary").mockResolvedValue({
+      total_revenue: 1_000_000,
+      total_sales_count: 10,
+      first_sale_at: "2026-10-01T10:00:00",
+      last_sale_at: "2026-10-19T21:00:00",
+      today_revenue: 100_000,
+      today_sales_count: 5,
+      this_month_revenue: 0,
+      this_month_sales_count: 0,
+    });
+    vi.spyOn(inventoryApi, "listInventory").mockResolvedValue([
+      {
+        item_id: "soon",
+        name: "고추장",
+        unit: "병",
+        total_quantity: 50,
+        low_stock_threshold: 10,
+        nearest_expiry_date: "2026-11-09",
+        needs_check: false,
+        lead_time_days: null,
+        safety_stock: null,
+        created_at: "",
+        updated_at: "",
+        coupang_product: null,
+        unit_price: null,
+      },
+    ]);
+
+    renderHome();
+
+    expect(await screen.findByText("확인 필요 1")).toBeInTheDocument();
+    expect(screen.getByText("고추장")).toBeInTheDocument();
+    expect(screen.getByText("D-2")).toHaveClass("text-danger");
   });
 
   it("재고 칸: 확인 필요 재료는 웹에서 모두 그리고(칸 안 스크롤), 앱에서는 앞 8개만 보인다", async () => {

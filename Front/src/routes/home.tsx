@@ -161,7 +161,9 @@ export default function HomePage() {
   const recentOrders = ordersData?.items ?? [];
 
   // 확인 필요 재고
-  const alertInventory = selectAlertInventory(inventoryData ?? [], refDate);
+  // 소비기한 경고·D-n은 재고 화면과 같이 오늘 기준(04_fe.md §4.6) — 매출·예측만 마지막 판매일 기준
+  const today = new Date();
+  const alertInventory = selectAlertInventory(inventoryData ?? [], today);
 
   // 오늘 예상 대상일 텍스트
   const todayTargetDate = todayPrediction?.target_date
@@ -473,7 +475,7 @@ export default function HomePage() {
               <ul className="divide-y divide-white/60 lg:absolute lg:inset-0 lg:overflow-y-auto">
                 {alertInventory.map((item, idx) => {
                   const isStockWarn = isStockWarning(item);
-                  const isExpWarn = isExpiryWarning(item, refDate);
+                  const isExpWarn = isExpiryWarning(item, today);
                   return (
                     <li
                       key={item.item_id}
@@ -494,7 +496,7 @@ export default function HomePage() {
                           isExpWarn ? "text-danger" : "text-ink-2"
                         }`}
                       >
-                        {formatExpiryDday(item.nearest_expiry_date, refDate)}
+                        {formatExpiryDday(item.nearest_expiry_date, today)}
                       </span>
                     </li>
                   );

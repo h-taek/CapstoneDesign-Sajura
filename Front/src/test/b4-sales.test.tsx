@@ -304,4 +304,21 @@ describe("B4 판매 데이터 화면 (SalesPage)", () => {
       expect(screen.getByRole("alert")).toHaveTextContent("기간은 1년까지 고를 수 있어요");
     });
   });
+
+  it("시작일이 종료일보다 늦으면 '판매 없음' 대신 기간 오류를 표시한다", async () => {
+    renderPage();
+
+    await screen.findByText(/706개/);
+
+    const dateInputs = screen.getAllByLabelText(/종료일/);
+    const nativeDateInput = dateInputs.find((el) => el.tagName === "INPUT");
+    expect(nativeDateInput).toBeDefined();
+    fireEvent.change(nativeDateInput as HTMLElement, { target: { value: "2026-10-01" } });
+
+    await waitFor(() => {
+      expect(screen.getByRole("alert")).toHaveTextContent("시작일이 종료일보다 늦어요");
+    });
+    expect(screen.queryByText("이 기간에 판매가 없어요")).not.toBeInTheDocument();
+    expect(screen.queryByText(/0개/)).not.toBeInTheDocument();
+  });
 });
